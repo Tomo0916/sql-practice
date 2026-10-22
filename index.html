@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Learning Studio</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- SQLite WebAssembly Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <h1>SQL Learning Studio</h1>
+      <span class="badge">Lesson 1–5</span>
+    </div>
+    <div class="header-right">
+      <select id="langSelect" class="lang-select">
+        <option value="ja">日本語 (Japanese)</option>
+        <option value="en">English (英語)</option>
+        <option value="my">မြန်မာ (Burmese)</option>
+        <option value="bn">বাংলা (Bengali)</option>
+        <option value="si">සිංහල (Sinhala)</option>
+        <option value="id">Indonesia</option>
+        <option value="vi">Tiếng Việt</option>
+        <option value="zh">中文 (中国語)</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <!-- 左パネル：問題・ヒント -->
+    <section class="pane left-pane">
+      <div class="nav-section">
+        <div class="nav-group-title">Part 1: Products DB (ECサイト)</div>
+        <div class="nav-tabs" id="tabContainerProducts"></div>
+        <div class="nav-group-title">Part 2: Students DB (学校)</div>
+        <div class="nav-tabs" id="tabContainerStudents"></div>
+      </div>
+
+      <div class="card problem-card">
+        <h2 id="probTitle"></h2>
+        <p class="prob-desc" id="probDesc"></p>
+        
+        <div class="table-preview-box">
+          <div class="table-header-info">
+            <span>Target Table: <strong id="targetTableLabel"></strong></span>
+            <button class="text-btn" id="previewTableBtn">📋 <span id="viewRawLabel">全データを見る</span></button>
+          </div>
+          <div class="column-chips" id="columnChips"></div>
+        </div>
+      </div>
+
+      <div class="accordion-group">
+        <details>
+          <summary id="hint1Label">💡 ヒント 1: 構文</summary>
+          <p id="hint1Text"></p>
+        </details>
+        <details>
+          <summary id="hint2Label">🔍 ヒント 2: テンプレート</summary>
+          <pre><code id="hint2Text"></code></pre>
+        </details>
+        <details>
+          <summary id="ansLabel">✅ 模範解答</summary>
+          <pre><code id="answerText"></code></pre>
+        </details>
+      </div>
+    </section>
+
+    <!-- 右パネル：エディタ・結果 -->
+    <section class="pane right-pane">
+      <!-- クイック入力支援チップ -->
+      <div class="snippet-bar">
+        <span class="snippet-title">Insert:</span>
+        <button class="chip" onclick="insertSnippet('SELECT ')">SELECT</button>
+        <button class="chip" onclick="insertSnippet('FROM ')">FROM</button>
+        <button class="chip" onclick="insertSnippet('WHERE ')">WHERE</button>
+        <button class="chip" onclick="insertSnippet('LIKE \'%%\'')">LIKE</button>
+        <button class="chip" onclick="insertSnippet('BETWEEN ')">BETWEEN</button>
+        <button class="chip" onclick="insertSnippet('DISTINCT ')">DISTINCT</button>
+        <button class="chip" onclick="insertSnippet('ORDER BY ')">ORDER BY</button>
+        <button class="chip" onclick="insertSnippet('LIMIT ')">LIMIT</button>
+      </div>
+
+      <div class="editor-container">
+        <textarea id="sqlInput" spellcheck="false" placeholder="SELECT * FROM ..."></textarea>
+      </div>
+
+      <div class="action-bar">
+        <button id="runBtn" class="btn btn-primary">▶ <span id="runBtnLabel">実行 (Run)</span></button>
+        <button id="resetBtn" class="btn btn-secondary"><span id="resetBtnLabel">リセット</span></button>
+        <button id="nextBtn" class="btn btn-success" style="display:none;">次の問題へ ➔</button>
+        <span class="shortcut-text">Ctrl + Enter</span>
+      </div>
+
+      <div id="statusMsg" class="status-msg"></div>
+
+      <!-- 結果表示（あなたの結果 vs 期待される結果） -->
+      <div class="result-area">
+        <div class="result-tabs">
+          <button class="res-tab-btn active" id="tabUserRes">Your Output (あなたの結果)</button>
+          <button class="res-tab-btn" id="tabExpectedRes">Expected Output (正解の見本)</button>
+        </div>
+        <div class="result-table-box" id="tableOutput"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- データプレビュー用モーダル -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle"></h3>
+        <button class="close-btn" id="closeModalBtn">✖</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
