@@ -30,7 +30,7 @@ const TABLE_COLUMNS = {
 };
 
 const UI_I18N = {
-  viewRaw: { ja: "全データを見る", en: "View Raw Data", my: "အချက်အလက်အားလုံးကြည့်ရန်", bn: "সব ডাটা দেখুন", si: "සියලු දත්ත බලන්න", id: "Lihat Semua Data", vi: "Xem toàn bộ dữ liệu", zh: "查看全部数据" },
+  viewRaw: { ja: "全画面で拡大表示", en: "Expand View", my: "ချဲ့ကြည့်ရန်", bn: "বড় করে দেখুন", si: "විශාල කර බලන්න", id: "Perbesar Tampilan", vi: "Xem toàn màn hình", zh: "全屏查看" },
   hint1: { ja: "💡 ヒント 1: 構文", en: "💡 Hint 1: Syntax", my: "💡 သဲလွန်စ ၁", bn: "💡 ইঙ্গিত ১", si: "💡 ඉඟිය 1", id: "💡 Petunjuk 1", vi: "💡 Gợi ý 1", zh: "💡 提示 1" },
   hint2: { ja: "🔍 ヒント 2: テンプレート", en: "🔍 Hint 2: Template", my: "🔍 သဲလွန်စ ၂", bn: "🔍 ইঙ্গিত ২", si: "🔍 ඉඟිය 2", id: "🔍 Petunjuk 2", vi: "🔍 Gợi ý 2", zh: "🔍 提示 2" },
   ans: { ja: "✅ 模範解答", en: "✅ Answer", my: "✅ အဖြေမှန်", bn: "✅ সঠিক উত্তর", si: "✅ පිළිතුර", id: "✅ Kunci Jawaban", vi: "✅ Đáp án", zh: "✅ 参考答案" },

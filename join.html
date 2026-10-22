@@ -6,6 +6,35 @@
   <title>SQL JOIN Mastery Studio</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+  <style>
+    /* JOIN編専用の2テーブル並列プレビュースタイル */
+    .join-tables-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+    }
+    .mini-table-card {
+      flex: 1;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px;
+      min-width: 200px;
+    }
+    .mini-table-title {
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #2563eb;
+      margin-bottom: 6px;
+    }
+    .mini-table-card table {
+      font-size: 0.78rem;
+    }
+    .mini-table-card th, .mini-table-card td {
+      padding: 4px 8px;
+    }
+  </style>
 </head>
 <body>
 
@@ -41,11 +70,15 @@
       <div class="card problem-card">
         <h2 id="probTitle"></h2>
         <p class="prob-desc" id="probDesc"></p>
+
+        <!-- ★table_a と table_b の生データが最初から横並びで表示される枠 -->
+        <div style="font-size: 0.78rem; font-weight: bold; color: #64748b; margin-bottom: 6px;">📋 Current Tables Data (元データ):</div>
+        <div class="join-tables-container" id="joinTablesPreview"></div>
         
         <div class="table-preview-box">
           <div class="table-header-info">
-            <span>Target: <strong>table_a & table_b</strong></span>
-            <button class="text-btn" id="previewTableBtn">📋 <span id="viewRawLabel">全データを見る</span></button>
+            <span>Target: <strong id="targetTableLabel">table_a & table_b</strong></span>
+            <button class="text-btn" id="previewTableBtn">🔍 <span id="viewRawLabel">全画面で拡大表示</span></button>
           </div>
           <div class="column-chips" id="columnChips"></div>
         </div>
