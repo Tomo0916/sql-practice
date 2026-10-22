@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SQL Learning Studio</title>
+  <title>SQL Learning Studio (Lesson 1-5)</title>
   <link rel="stylesheet" href="style.css">
   <!-- SQLite WebAssembly Engine -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
@@ -14,6 +14,10 @@
     <div class="header-left">
       <h1>SQL Learning Studio</h1>
       <span class="badge">Lesson 1–5</span>
+      <!-- ★追加: JOIN編へのナビゲーションリンク -->
+      <a href="join.html" style="color: #93c5fd; font-size: 0.85rem; margin-left: 16px; text-decoration: none; font-weight: 600; background: rgba(37, 99, 235, 0.25); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(147, 197, 253, 0.4); display: inline-flex; align-items: center; gap: 4px;">
+        🚀 JOIN編へ進む (Go to JOIN) ➔
+      </a>
     </div>
     <div class="header-right">
       <select id="langSelect" class="lang-select">
@@ -96,7 +100,7 @@
 
       <div id="statusMsg" class="status-msg"></div>
 
-      <!-- 結果表示（あなたの結果 vs 期待される結果） -->
+      <!-- 結果表示 -->
       <div class="result-area">
         <div class="result-tabs">
           <button class="res-tab-btn active" id="tabUserRes">Your Output (あなたの結果)</button>
@@ -111,7 +115,7 @@
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
       <div class="modal-header">
-        <h3 id="modalTitle"></h3>
+        <h3 id="modalTitle">Table Data</h3>
         <button class="close-btn" id="closeModalBtn">✖</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
