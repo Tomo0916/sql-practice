@@ -1,4 +1,3 @@
-// JOIN学習用のテーブル作成＆シードデータ
 const INITIAL_DATABASE_SQL = `
 CREATE TABLE table_a (
   id INTEGER PRIMARY KEY,
@@ -26,8 +25,8 @@ INSERT INTO table_b VALUES
 `;
 
 const TABLE_COLUMNS = {
-  table_a: ['id', 'class', 'column_a1'],
-  table_b: ['id', 'column_b1', 'column_b2']
+  table_a: ['table_a.id', 'table_a.class', 'table_a.column_a1'],
+  table_b: ['table_b.id', 'table_b.column_b1', 'table_b.column_b2']
 };
 
 const UI_I18N = {
@@ -36,7 +35,7 @@ const UI_I18N = {
   hint2: { ja: "🔍 ヒント 2: テンプレート", en: "🔍 Hint 2: Template", my: "🔍 သဲလွန်စ ၂", bn: "🔍 ইঙ্গিত ২", si: "🔍 ඉඟිය 2", id: "🔍 Petunjuk 2", vi: "🔍 Gợi ý 2", zh: "🔍 提示 2" },
   ans: { ja: "✅ 模範解答", en: "✅ Answer", my: "✅ အဖြေမှန်", bn: "✅ সঠিক উত্তর", si: "✅ පිළිතුර", id: "✅ Kunci Jawaban", vi: "✅ Đáp án", zh: "✅ 参考答案" },
   run: { ja: "実行 (Run)", en: "Run", my: "အလုပ်လုပ်ရန်", bn: "রান করুন", si: "ක්‍රියාත්මක කරන්න", id: "Jalankan", vi: "Chạy", zh: "运行" },
-  reset: { ja: "リセット", en: "Reset", my: "မူလအတိုင်း", bn: "রিসেট", si: "යළි පිහිටුවන්න", id: "Reset", vi: "Đặt lại", zh: "重置" },
+  reset: { ja: "リセット", en: "Reset", my: "မူလအတိုင်း", bn: "রিসেٹ", si: "යළි පිහිටුවන්න", id: "Reset", vi: "Đặt lại", zh: "重置" },
   success: { ja: "🎉 正解です！完璧です！", en: "🎉 Correct! Excellent job!", my: "🎉 မှန်ကန်ပါသည်! ကောင်းမွန်ပါသည်။", bn: "🎉 সঠিক উত্তর! চমৎকার!", si: "🎉 නිවැරදියි! විශිෂ්ටයි!", id: "🎉 Benar! Kerja bagus!", vi: "🎉 Chính xác! Làm rất tốt!", zh: "🎉 回答正确！太棒了！" },
   wrong: { ja: "🤔 結果が異なります。「正解の見本」タブと見比べてみましょう。", en: "🤔 Result differs. Compare with the 'Expected Output' tab.", my: "🤔 အဖြေမကိုက်ညီပါ။ 'Expected Output' နှင့် နှိုင်းယှဉ်ကြည့်ပါ။", bn: "🤔 ফলাফল মিলছে না। 'Expected Output' ট্যাবের সাথে মিলিয়ে দেখুন।", si: "🤔 ප්‍රතිඵලය වෙනස් වේ. 'Expected Output' සමඟ සසඳන්න.", id: "🤔 Hasil belum sesuai. Bandingkan dengan tab 'Expected Output'.", vi: "🤔 Chưa đúng. Hãy so sánh với tab 'Expected Output'.", zh: "🤔 结果不符，请对比“正解见本”标签页。" }
 };
@@ -134,7 +133,7 @@ const PROBLEMS = [
   },
   {
     id: 6, table: "table_a",
-    title: { ja: "問6: LEFT JOIN ＋ ソートと件数制限", en: "Q6: LEFT JOIN with Sort & Limit", my: "မေးခွန်း ၆: အစဉ်လိုက်စီခြင်းနှင့် ကန့်သတ်ခြင်း", bn: "প্রশ্ন ৬: সাজানো এবং লিমিট নির্ধারণ", si: "ප්‍රශ්නය 6: පෙළගැස්වීම සහ සීමා කිරීම", id: "Soal 6: Pengurutan dan Limit pada LEFT JOIN", vi: "Câu 6: Sắp xếp và giới hạn với LEFT JOIN", zh: "第6题: 排序与数量限制" },
+    title: { ja: "問6: LEFT JOIN ＋ ソートと件数制限", en: "Q6: LEFT JOIN with Sort & Limit", my: "မေးခွန်း ၆: အစဉ်လိုက်စီခြင်းနှင့် ကန့်သတ်ခြင်း", bn: "প্রশ্ন ৬: সাজানো ও লিমিট", si: "ප්‍රශ්නය 6: පෙළගැස්වීම සහ සීමා කිරීම", id: "Soal 6: Pengurutan dan Limit pada LEFT JOIN", vi: "Câu 6: Sắp xếp và giới hạn với LEFT JOIN", zh: "第6题: 排序与数量限制" },
     desc: {
       ja: "table_a と table_b を LEFT JOIN し、column_b2 が大きい順（降順）に並べ替え、上位3件の「table_a.id」「table_a.column_a1」「table_b.column_b2」を取得してください。",
       en: "LEFT JOIN both tables, sort by column_b2 descending (highest first), and retrieve the top 3 rows ('table_a.id', 'table_a.column_a1', 'table_b.column_b2').",

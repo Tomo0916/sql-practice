@@ -15,20 +15,25 @@ async function initApp() {
   loadProblem(0);
 }
 
-// 2. ナビゲーションの描画
+// 2. ナビゲーションの描画（★修正：JOIN編でも正しくタブが出るように改善）
 function renderNav() {
   const pBox = document.getElementById('tabContainerProducts');
   const sBox = document.getElementById('tabContainerStudents');
-  pBox.innerHTML = '';
-  sBox.innerHTML = '';
+  if (pBox) pBox.innerHTML = '';
+  if (sBox) sBox.innerHTML = '';
 
   PROBLEMS.forEach((p, idx) => {
     const btn = document.createElement('button');
     btn.className = `tab-btn ${idx === currentProbIdx ? 'active' : ''} ${completedSet.has(p.id) ? 'completed' : ''}`;
     btn.innerText = `Q${p.id}`;
     btn.onclick = () => loadProblem(idx);
-    if (p.table === 'products') pBox.appendChild(btn);
-    else sBox.appendChild(btn);
+
+    // 学生テーブル専用タブがある場合のみ分割、それ以外（JOIN編含む）はメイン枠に配置
+    if (sBox && p.table === 'students') {
+      sBox.appendChild(btn);
+    } else if (pBox) {
+      pBox.appendChild(btn);
+    }
   });
 }
 
@@ -46,22 +51,34 @@ function loadProblem(idx) {
   document.getElementById('sqlInput').value = p.defaultSql;
   document.getElementById('nextBtn').style.display = 'none';
 
-  // 列名チップの描画
+  // 列名チップの描画（★JOIN編では table_a と table_b の両方のプレフィックス付きチップを生成）
   const chipsBox = document.getElementById('columnChips');
   chipsBox.innerHTML = '';
-  TABLE_COLUMNS[p.table].forEach(col => {
-    const chip = document.createElement('span');
-    chip.className = 'col-chip';
-    chip.innerText = col;
-    chip.onclick = () => insertSnippet(col);
-    chipsBox.appendChild(chip);
-  });
+
+  if (p.table === 'table_a' || p.table === 'table_b') {
+    // JOIN編用のチップ生成
+    ['table_a.id', 'table_a.class', 'table_a.column_a1', 'table_b.id', 'table_b.column_b1', 'table_b.column_b2'].forEach(col => {
+      const chip = document.createElement('span');
+      chip.className = 'col-chip';
+      chip.innerText = col;
+      chip.onclick = () => insertSnippet(col);
+      chipsBox.appendChild(chip);
+    });
+  } else if (TABLE_COLUMNS[p.table]) {
+    TABLE_COLUMNS[p.table].forEach(col => {
+      const chip = document.createElement('span');
+      chip.className = 'col-chip';
+      chip.innerText = col;
+      chip.onclick = () => insertSnippet(col);
+      chipsBox.appendChild(chip);
+    });
+  }
 
   hideStatus();
   renderNav();
 }
 
-// 4. エディタへのテキスト挿入（チップ入力）
+// 4. エディタへのテキスト挿入
 function insertSnippet(text) {
   const textarea = document.getElementById('sqlInput');
   const start = textarea.selectionStart;
@@ -84,7 +101,6 @@ function executeQuery() {
     lastUserResult = userRes.length > 0 ? userRes[0] : null;
     lastExpectedResult = ansRes.length > 0 ? ansRes[0] : null;
 
-    // デフォルトで「あなたの結果」タブを表示
     switchResultTab('user');
 
     if (!lastUserResult) {
@@ -111,8 +127,7 @@ function executeQuery() {
       completedSet.add(p.id);
       localStorage.setItem('sql_completed', JSON.stringify([...completedSet]));
       renderNav();
-      
-      // 次の問題があれば「次へ進む」ボタンを表示
+
       if (currentProbIdx < PROBLEMS.length - 1) {
         document.getElementById('nextBtn').style.display = 'inline-block';
       }
@@ -124,7 +139,7 @@ function executeQuery() {
   }
 }
 
-// 6. 結果テーブル描画
+// 6. テーブル描画
 function renderTable(data) {
   const box = document.getElementById('tableOutput');
   if (!data || !data.columns || data.values.length === 0) {
@@ -136,7 +151,7 @@ function renderTable(data) {
   html += "</tr></thead><tbody>";
   data.values.forEach(r => {
     html += "<tr>";
-    r.forEach(v => html += `<td>${v !== null ? v : '<span style="color:#ccc;">NULL</span>'}</td>`);
+    r.forEach(v => html += `<td>${v !== null ? v : '<span style="color:#e11d48; font-weight:bold;">NULL</span>'}</td>`);
     html += "</tr>";
   });
   html += "</tbody></table>";
@@ -170,7 +185,7 @@ function changeLanguage(lang) {
   loadProblem(currentProbIdx);
 }
 
-// 8. イベントリスナー登録
+// 8. イベント登録
 document.getElementById('runBtn').addEventListener('click', executeQuery);
 document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('sqlInput').value = PROBLEMS[currentProbIdx].defaultSql;
@@ -183,7 +198,6 @@ document.getElementById('langSelect').addEventListener('change', e => changeLang
 document.getElementById('tabUserRes').addEventListener('click', () => switchResultTab('user'));
 document.getElementById('tabExpectedRes').addEventListener('click', () => switchResultTab('expected'));
 
-// ショートカットキー: Ctrl + Enter / Cmd + Enter
 document.getElementById('sqlInput').addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     e.preventDefault();
@@ -191,23 +205,43 @@ document.getElementById('sqlInput').addEventListener('keydown', e => {
   }
 });
 
-// モーダル（全データ表示）
+// モーダル表示（★JOIN編では table_a と table_b の両方を並べて表示）
 document.getElementById('previewTableBtn').addEventListener('click', () => {
   const tbl = PROBLEMS[currentProbIdx].table;
-  const res = db.exec(`SELECT * FROM ${tbl};`)[0];
-  document.getElementById('modalTitle').innerText = `Table: ${tbl} (${res.values.length} records)`;
-  
-  let html = "<table><thead><tr>";
-  res.columns.forEach(c => html += `<th>${c}</th>`);
-  html += "</tr></thead><tbody>";
-  res.values.forEach(r => {
-    html += "<tr>";
-    r.forEach(v => html += `<td>${v}</td>`);
-    html += "</tr>";
-  });
-  html += "</tbody></table>";
+  const modalBody = document.getElementById('modalBody');
+  modalBody.innerHTML = '';
 
-  document.getElementById('modalBody').innerHTML = html;
+  if (tbl === 'table_a' || tbl === 'table_b') {
+    document.getElementById('modalTitle').innerText = 'Raw Data: table_a & table_b';
+
+    ['table_a', 'table_b'].forEach(t => {
+      const res = db.exec(`SELECT * FROM ${t};`)[0];
+      let html = `<h4 style="margin: 10px 0 6px 0; color:#2563eb;">■ Table: ${t}</h4><table><thead><tr>`;
+      res.columns.forEach(c => html += `<th>${c}</th>`);
+      html += "</tr></thead><tbody>";
+      res.values.forEach(r => {
+        html += "<tr>";
+        r.forEach(v => html += `<td>${v}</td>`);
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+      modalBody.innerHTML += html;
+    });
+  } else {
+    const res = db.exec(`SELECT * FROM ${tbl};`)[0];
+    document.getElementById('modalTitle').innerText = `Table: ${tbl} (${res.values.length} records)`;
+    let html = "<table><thead><tr>";
+    res.columns.forEach(c => html += `<th>${c}</th>`);
+    html += "</tr></thead><tbody>";
+    res.values.forEach(r => {
+      html += "<tr>";
+      r.forEach(v => html += `<td>${v}</td>`);
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    modalBody.innerHTML = html;
+  }
+
   document.getElementById('modalOverlay').style.display = 'flex';
 });
 
@@ -218,5 +252,4 @@ document.getElementById('modalOverlay').addEventListener('click', e => {
   if (e.target.id === 'modalOverlay') document.getElementById('modalOverlay').style.display = 'none';
 });
 
-// 起動
 initApp();
