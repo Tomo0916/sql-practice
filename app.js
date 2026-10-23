@@ -11,14 +11,16 @@ async function initApp() {
   db = new SQL.Database();
   db.run(INITIAL_DATABASE_SQL);
 
-  // JOIN編用：問題のすぐ下に2つのテーブルを常時描画
-  renderJoinTablesPreview();
+  // JOIN編用の2テーブルプレビューがあれば描画
+  if (typeof renderJoinTablesPreview === 'function') {
+    renderJoinTablesPreview();
+  }
 
   renderNav();
   loadProblem(0);
 }
 
-// JOIN編用の2テーブル常時プレビュー描画関数
+// JOIN編用テーブル描画
 function renderJoinTablesPreview() {
   const container = document.getElementById('joinTablesPreview');
   if (!container || !db) return;
@@ -42,12 +44,15 @@ function renderJoinTablesPreview() {
   });
 }
 
-// 2. ナビゲーションの描画
+// 2. ナビゲーションの描画（★基礎編・JOIN編・集計編のすべてのタブコンテナに自動対応）
 function renderNav() {
+  const p1Box = document.getElementById('tabPart1');
+  const p2Box = document.getElementById('tabPart2');
+  const p3Box = document.getElementById('tabPart3');
   const pBox = document.getElementById('tabContainerProducts');
   const sBox = document.getElementById('tabContainerStudents');
-  if (pBox) pBox.innerHTML = '';
-  if (sBox) sBox.innerHTML = '';
+
+  [p1Box, p2Box, p3Box, pBox, sBox].forEach(b => { if (b) b.innerHTML = ''; });
 
   PROBLEMS.forEach((p, idx) => {
     const btn = document.createElement('button');
@@ -55,15 +60,17 @@ function renderNav() {
     btn.innerText = `Q${p.id}`;
     btn.onclick = () => loadProblem(idx);
 
-    if (sBox && p.table === 'students') {
-      sBox.appendChild(btn);
-    } else if (pBox) {
-      pBox.appendChild(btn);
-    }
+    // 集計編（Part 1, 2, 3）
+    if (p.part === 1 && p1Box) p1Box.appendChild(btn);
+    else if (p.part === 2 && p2Box) p2Box.appendChild(btn);
+    else if (p.part === 3 && p3Box) p3Box.appendChild(btn);
+    // 基礎編（Products, Students）
+    else if (sBox && p.table === 'students') sBox.appendChild(btn);
+    else if (pBox) pBox.appendChild(btn);
   });
 }
 
-// 3. 問題のロード（★すべての要素をnullチェックしてエラー停止を防止）
+// 3. 問題のロード
 function loadProblem(idx) {
   currentProbIdx = idx;
   const p = PROBLEMS[idx];
@@ -119,7 +126,7 @@ function loadProblem(idx) {
   renderNav();
 }
 
-// 4. エディタへのテキスト挿入
+// 4. エディタ挿入
 function insertSnippet(text) {
   const textarea = document.getElementById('sqlInput');
   if (!textarea) return;
@@ -131,7 +138,7 @@ function insertSnippet(text) {
   textarea.selectionStart = textarea.selectionEnd = start + text.length;
 }
 
-// 5. クエリ実行と正誤判定
+// 5. クエリ実行 & 正誤判定
 function executeQuery() {
   const sql = document.getElementById('sqlInput').value.trim();
   const p = PROBLEMS[currentProbIdx];
@@ -155,7 +162,7 @@ function executeQuery() {
     const userCol = lastUserResult.columns.map(c => c.toLowerCase());
     const ansCol = lastExpectedResult.columns.map(c => c.toLowerCase());
 
-    const colMatch = JSON.stringify(userCol) === JSON.stringify(ansCol);
+    const colMatch = userCol.length === ansCol.length; // 集計関数名やエイリアスの差を許容
     let valMatch = false;
 
     if (p.answer.toUpperCase().includes("ORDER BY")) {
@@ -213,13 +220,13 @@ function switchResultTab(type) {
 function showStatus(msg, type) {
   const el = document.getElementById('statusMsg');
   if (el) {
-    el.className = `status-msg ${type}`;
+    el.className = `status-box ${type}`;
     el.innerText = msg;
   }
 }
 function hideStatus() {
   const el = document.getElementById('statusMsg');
-  if (el) el.className = 'status-msg';
+  if (el) el.className = 'status-box';
 }
 
 // 7. 言語切り替え
@@ -308,7 +315,7 @@ if (prevBtn) {
         html += "</tr>";
       });
       html += "</tbody></table>";
-      modalBody.innerHTML = html;
+      modalBody.innerHTML += html;
     }
 
     const overlay = document.getElementById('modalOverlay');
