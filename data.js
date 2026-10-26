@@ -33,11 +33,11 @@ const TABLE_COLUMNS = {
 
 const UI_I18N = {
   viewRaw: { ja: "全データを見る", en: "View Raw Data", ne: "सबै डेटा हेर्नुहोस्", fr: "Voir toutes les données", my: "အချက်အလက်အားလုံးကြည့်ရန်", bn: "সব ডাটা দেখুন", si: "සියලු දත්ත බලන්න", id: "Lihat Semua Data", vi: "Xem toàn bộ dữ liệu", zh: "查看全部数据" },
-  hint1: { ja: "💡 ヒント 1: 構文", en: "💡 Hint 1: Syntax", ne: "💡 सङ्केत १: वाक्य रचना", fr: "💡 Indice 1: Syntaxe", my: "💡 သဲလွန်စ ၁", bn: "💡 ইঙ্গিত ১", si: "💡 ඉඟිය 1", id: "💡 Petunjuk 1", vi: "💡 Gợi ý 1", zh: "💡 提示 1" },
-  hint2: { ja: "🔍 ヒント 2: テンプレート", en: "🔍 Hint 2: Template", ne: "🔍 सङ्केत २: ढाँचा", fr: "🔍 Indice 2: Modèle", my: "🔍 သဲလွန်စ ၂", bn: "🔍 ইঙ্গিত ২", si: "🔍 ඉඟිය 2", id: "🔍 Petunjuk 2", vi: "🔍 Gợi ý 2", zh: "🔍 提示 2" },
+  hint1: { ja: "💡 ヒント 1: 構文ルール", en: "💡 Hint 1: Syntax", ne: "💡 सङ्केत १: वाक्य रचना", fr: "💡 Indice 1: Syntaxe", my: "💡 သဲလွန်စ ၁", bn: "💡 ইঙ্গিত ১", si: "💡 ඉඟිය 1", id: "💡 Petunjuk 1", vi: "💡 Gợi ý 1", zh: "💡 提示 1" },
+  hint2: { ja: "🔍 ヒント 2: 穴埋めヒント", en: "🔍 Hint 2: Fill in blanks", ne: "🔍 सङ्केत २: ढाँचा", fr: "🔍 Indice 2: Modèle", my: "🔍 သဲလွန်စ ၂", bn: "🔍 ইঙ্গিত ২", si: "🔍 ඉඟිය 2", id: "🔍 Petunjuk 2", vi: "🔍 Gợi ý 2", zh: "🔍 提示 2" },
   ans: { ja: "✅ 模範解答", en: "✅ Answer", ne: "✅ सही उत्तर", fr: "✅ Réponse modèle", my: "✅ အဖြေမှန်", bn: "✅ সঠিক উত্তর", si: "✅ පිළිතුර", id: "✅ Kunci Jawaban", vi: "✅ Đáp án", zh: "✅ 参考答案" },
   run: { ja: "実行 (Run)", en: "Run", ne: "चलाउनुहोस् (Run)", fr: "Exécuter (Run)", my: "အလုပ်လုပ်ရန်", bn: "রান করুন", si: "ක්‍රියාත්මක කරන්න", id: "Jalankan", vi: "Chạy", zh: "运行" },
-  reset: { ja: "リセット", en: "Reset", ne: "रिसेट (Reset)", fr: "Réinitialiser", my: "မူလအတိုင်း", bn: "রিসেট", si: "යළි පිහිටුවන්න", id: "Reset", vi: "Đặt lại", zh: "重置" },
+  reset: { ja: "リセット", en: "Reset", ne: "रिसेट (Reset)", fr: "Réinitialiser", my: "မူလအတိုင်း", bn: "রিসেٹ", si: "යළි පිහිටුවන්න", id: "Reset", vi: "Đặt lại", zh: "重置" },
   success: { ja: "🎉 正解です！完璧です！", en: "🎉 Correct! Excellent job!", ne: "🎉 सही उत्तर! धेरै राम्रो!", fr: "🎉 Correct ! Excellent travail !", my: "🎉 မှန်ကန်ပါသည်! ကောင်းမွန်ပါသည်။", bn: "🎉 সঠিক উত্তর! চমৎকার!", si: "🎉 නිවැරදියි! විශිෂ්ටයි!", id: "🎉 Benar! Kerja bagus!", vi: "🎉 Chính xác! Làm rất tốt!", zh: "🎉 回答正确！太棒了！" },
   wrong: { ja: "🤔 結果が異なります。「正解の見本」タブと見比べてみましょう。", en: "🤔 Result differs. Compare with the 'Expected Output' tab.", ne: "🤔 नतिजा फरक छ। कृपया 'Expected Output' ट्याबसँग तुलना गर्नुहोस्।", fr: "🤔 Le résultat est différent. Comparez avec l'onglet 'Expected Output'.", my: "🤔 အဖြေမကိုက်ညီပါ။ 'Expected Output' နှင့် နှိုင်းယှဉ်ကြည့်ပါ။", bn: "🤔 ফলাফল মিলছে না। 'Expected Output' ট্যাবের সাথে মিলিয়ে দেখুন।", si: "🤔 ප්‍රතිඵලය වෙනස් වේ. 'Expected Output' සමඟ සසඳන්න.", id: "🤔 Hasil belum sesuai. Bandingkan dengan tab 'Expected Output'.", vi: "🤔 Chưa đúng. Hãy so sánh với tab 'Expected Output'.", zh: "🤔 结果不符，请对比“正解见本”标签页。" }
 };
@@ -60,7 +60,7 @@ const PROBLEMS = [
       zh: "获取所有商品的“商品名（name）”和“价格（price）”。"
     },
     hint1: "SELECT 列名1, 列名2 FROM テーブル名;",
-    hint2: "SELECT name, price FROM products;",
+    hint2: "SELECT name, ___ FROM products;",
     answer: "SELECT name, price FROM products;",
     defaultSql: "SELECT * FROM products;"
   },
@@ -80,9 +80,9 @@ const PROBLEMS = [
       zh: "获取价格在“1,000以上 5,000以下”的所有商品信息（所有列）。"
     },
     hint1: "WHERE 列名 BETWEEN 最小値 AND 最大値;",
-    hint2: "SELECT * FROM products WHERE price BETWEEN 1000 AND 5000;",
+    hint2: "SELECT * FROM products WHERE price BETWEEN ___ AND ___;",
     answer: "SELECT * FROM products WHERE price BETWEEN 1000 AND 5000;",
-    defaultSql: "SELECT * FROM products WHERE price "
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 3, table: "products",
@@ -100,9 +100,9 @@ const PROBLEMS = [
       zh: "获取商品名包含“Pro”的商品的“商品名（name）”和“分类（category）”。"
     },
     hint1: "WHERE 列名 LIKE '%キーワード%';",
-    hint2: "SELECT name, category FROM products WHERE name LIKE '%Pro%';",
+    hint2: "SELECT name, category FROM products WHERE name LIKE '%___%';",
     answer: "SELECT name, category FROM products WHERE name LIKE '%Pro%';",
-    defaultSql: "SELECT name, category FROM products WHERE name "
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 4, table: "products",
@@ -117,16 +117,16 @@ const PROBLEMS = [
       si: "අනුපිටපත් නොමැතිව හෝඩියේ අනුපිළිවෙලට කාණ්ඩ ලැයිස්තුව ලබා ගන්න.",
       id: "Tampilkan daftar kategori produk tanpa duplikat dan diurutkan abjad.",
       vi: "Lấy danh sách phân loại (category) không trùng lặp và sắp xếp A-Z.",
-      zh: "获取商品分类（category）列表，要求去重（无重复）并按字母升序排序。"
+      zh: "获取商品分类（category）列表，要求去重（无重複）并按字母升序排序。"
     },
     hint1: "SELECT DISTINCT 列名 FROM テーブル名 ORDER BY 列名 ASC;",
-    hint2: "SELECT DISTINCT category FROM products ORDER BY category ASC;",
+    hint2: "SELECT DISTINCT category FROM products ORDER BY ___ ASC;",
     answer: "SELECT DISTINCT category FROM products ORDER BY category ASC;",
-    defaultSql: "SELECT category FROM products"
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 5, table: "products",
-    title: { ja: "問5: 条件絞込＋降順TOP3", en: "Q5: Filter & Top N", ne: "प्रश्न ५: सर्त र शीर्ष ३", fr: "Q5 : Filtrage et Top 3 décroissant", my: "မေးခွန်း ၅", bn: "প্রশ্ন ৫", si: "ප්‍රශ්නය 5", id: "Soal 5", vi: "Câu 5", zh: "第5题: 条件过滤与Top3" },
+    title: { ja: "問5: 条件絞込＋降順TOP3", en: "Q5: Filter & Top N", ne: "प्रश्न ५: सर्त र शीर्ष ३", fr: "Q5 : Filtrage et Top 3 décroissant", my: "မေးခွန်း ၅", bn: "প্রশ্ন ५", si: "ප්‍රශ්නය 5", id: "Soal 5", vi: "Câu 5", zh: "第5题: 条件过滤与Top3" },
     desc: {
       ja: "カテゴリが「Electronics」の商品の中から、価格が高い順に上位3件の「商品名」と「価格」を取得してください。",
       en: "From 'Electronics', retrieve the top 3 most expensive products ('name' and 'price').",
@@ -139,10 +139,10 @@ const PROBLEMS = [
       vi: "Trong danh mục 'Electronics', lấy 3 sản phẩm đắt nhất gồm 'name' và 'price'.",
       zh: "从分类为“Electronics”的商品中，按价格由高到低排序获取前3件的“商品名”和“价格”。"
     },
-    hint1: "WHERE 条件 ORDER BY 列名 DESC LIMIT 3;",
-    hint2: "SELECT name, price FROM products WHERE category = 'Electronics' ORDER BY price DESC LIMIT 3;",
+    hint1: "WHERE 条件 ORDER BY 列名 DESC LIMIT 件数;",
+    hint2: "SELECT name, price FROM products WHERE category = '___' ORDER BY price DESC LIMIT ___;",
     answer: "SELECT name, price FROM products WHERE category = 'Electronics' ORDER BY price DESC LIMIT 3;",
-    defaultSql: "SELECT name, price FROM products WHERE category = 'Electronics' "
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 6, table: "products",
@@ -159,10 +159,10 @@ const PROBLEMS = [
       vi: "Đối với sản phẩm từ 2020 trở đi, sắp theo giá tăng dần, lấy sản phẩm thứ 4 và 5 (2 món).",
       zh: "对于2020年及之后发布的商品，按价格升序排序，获取第4和第5件（共2件）商品的“商品名”和“价格”。"
     },
-    hint1: "LIMIT 取得件数 OFFSET スキップ件数; (4番目から2件 = LIMIT 2 OFFSET 3)",
+    hint1: "ORDER BY 列名 ASC LIMIT 取得件数 OFFSET スキップ件数;",
     hint2: "SELECT name, price FROM products WHERE release_year >= 2020 ORDER BY price ASC LIMIT 2 OFFSET 3;",
     answer: "SELECT name, price FROM products WHERE release_year >= 2020 ORDER BY price ASC LIMIT 2 OFFSET 3;",
-    defaultSql: "SELECT name, price FROM products WHERE release_year >= 2020 "
+    defaultSql: "SELECT * FROM products;"
   },
 
   // --- Part 2: Students ---
@@ -181,8 +181,8 @@ const PROBLEMS = [
       vi: "Lấy thông tin 'name' và 'major' của tất cả sinh viên.",
       zh: "获取所有学生的“姓名（name）”和“专业（major）”。"
     },
-    hint1: "SELECT name, major FROM students;",
-    hint2: "SELECT name, major FROM students;",
+    hint1: "SELECT 列名1, 列名2 FROM テーブル名;",
+    hint2: "SELECT name, ___ FROM students;",
     answer: "SELECT name, major FROM students;",
     defaultSql: "SELECT * FROM students;"
   },
@@ -201,10 +201,10 @@ const PROBLEMS = [
       vi: "Lấy toàn bộ thông tin của các sinh viên có điểm số (score) từ 70 đến 90.",
       zh: "获取考试分数（score）在“70以上 90以下”的所有学生信息（所有列）。"
     },
-    hint1: "WHERE score BETWEEN 70 AND 90;",
-    hint2: "SELECT * FROM students WHERE score BETWEEN 70 AND 90;",
+    hint1: "WHERE 列名 BETWEEN 最小値 AND 最大値;",
+    hint2: "SELECT * FROM students WHERE score BETWEEN ___ AND ___;",
     answer: "SELECT * FROM students WHERE score BETWEEN 70 AND 90;",
-    defaultSql: "SELECT * FROM students WHERE score "
+    defaultSql: "SELECT * FROM students;"
   },
   {
     id: 9, table: "students",
@@ -221,10 +221,10 @@ const PROBLEMS = [
       vi: "Lấy 'name' và 'score' của các sinh viên có tên chứa chữ 'an'.",
       zh: "获取姓名包含“an”的学生的“姓名（name）”和“分数（score）”。"
     },
-    hint1: "WHERE name LIKE '%an%';",
-    hint2: "SELECT name, score FROM students WHERE name LIKE '%an%';",
+    hint1: "WHERE 列名 LIKE '%キーワード%';",
+    hint2: "SELECT name, score FROM students WHERE name LIKE '%___%';",
     answer: "SELECT name, score FROM students WHERE name LIKE '%an%';",
-    defaultSql: "SELECT name, score FROM students WHERE name "
+    defaultSql: "SELECT * FROM students;"
   },
   {
     id: 10, table: "students",
@@ -239,12 +239,12 @@ const PROBLEMS = [
       si: "අනුපිටපත් නොමැතිව හෝඩියේ අනුපිළිවෙලට ප්‍රධාන විෂයයන් (major) ලැයිස්තුව ලබා ගන්න.",
       id: "Tampilkan daftar jurusan (major) tanpa duplikat dan diurutkan abjad.",
       vi: "Lấy danh sách chuyên ngành (major) không trùng lặp và sắp xếp A-Z.",
-      zh: "获取专业（major）列表，要求去重（无重复）并按字母升序排序。"
+      zh: "获取专业（major）列表，要求去重（无重複）并按字母升序排序。"
     },
-    hint1: "SELECT DISTINCT major FROM students ORDER BY major ASC;",
-    hint2: "SELECT DISTINCT major FROM students ORDER BY major ASC;",
+    hint1: "SELECT DISTINCT 列名 FROM テーブル名 ORDER BY 列名 ASC;",
+    hint2: "SELECT DISTINCT major FROM students ORDER BY ___ ASC;",
     answer: "SELECT DISTINCT major FROM students ORDER BY major ASC;",
-    defaultSql: "SELECT major FROM students"
+    defaultSql: "SELECT * FROM students;"
   },
   {
     id: 11, table: "students",
@@ -261,14 +261,14 @@ const PROBLEMS = [
       vi: "Trong chuyên ngành 'IT', lấy 3 sinh viên có điểm cao nhất gồm 'name' và 'score'.",
       zh: "从专业为“IT”的学生中，按分数由高到低排序，获取前3名学生的“姓名”和“分数”。"
     },
-    hint1: "WHERE major = 'IT' ORDER BY score DESC LIMIT 3;",
-    hint2: "SELECT name, score FROM students WHERE major = 'IT' ORDER BY score DESC LIMIT 3;",
+    hint1: "WHERE 条件 ORDER BY 列名 DESC LIMIT 件数;",
+    hint2: "SELECT name, score FROM students WHERE major = '___' ORDER BY score DESC LIMIT ___;",
     answer: "SELECT name, score FROM students WHERE major = 'IT' ORDER BY score DESC LIMIT 3;",
-    defaultSql: "SELECT name, score FROM students WHERE major = 'IT' "
+    defaultSql: "SELECT * FROM students;"
   },
   {
     id: 12, table: "students",
-    title: { ja: "問12: 年齢ソートとオフセット", en: "Q12: Enrollment & Offset", ne: "प्रश्न १२: उमेर क्रमबद्ध र अफसेट", fr: "Q12 : Tri par âge et OFFSET", my: "မေးခွန်း ၁၂", bn: "প্রশ্ন ১২", si: "ප්‍රශ්නය 12", id: "Soal 12", vi: "Câu 12", zh: "第12题: 年龄偏移分页" },
+    title: { ja: "問12: 年齢ソートとオフセット", en: "Q12: Enrollment & Offset", ne: "प्रश्न १२: उमेर क्रमबद्ध र अफसेट", fr: "Q12 : Tri par âge et OFFSET", my: "မေးခွန်း ၁၂", bn: "প্রশ্ন १२", si: "ප්‍රශ්නය 12", id: "Soal 12", vi: "Câu 12", zh: "第12题: 年龄偏移分页" },
     desc: {
       ja: "2022年以降に入学（enrollment_year）した学生を対象に、年齢（age）が若い順に並べたときの「3番目と4番目（計2名）」の「名前（name）」と「年齢（age）」を取得してください。",
       en: "For students enrolled in 2022 or later, sort by age (youngest first) and retrieve the 3rd and 4th students ('name' and 'age').",
@@ -281,9 +281,9 @@ const PROBLEMS = [
       vi: "Đối với sinh viên nhập học từ 2022 trở đi, sắp theo tuổi tăng dần, lấy sinh viên thứ 3 và 4 (2 người).",
       zh: "对于2022年及之后入学的学生，按年龄由小到大排序，获取“第3和第4位（共2人）”学生的“姓名”和“年龄”。"
     },
-    hint1: "WHERE enrollment_year >= 2022 ORDER BY age ASC LIMIT 2 OFFSET 2;",
+    hint1: "ORDER BY 列名 ASC LIMIT 取得数 OFFSET スキップ数;",
     hint2: "SELECT name, age FROM students WHERE enrollment_year >= 2022 ORDER BY age ASC LIMIT 2 OFFSET 2;",
     answer: "SELECT name, age FROM students WHERE enrollment_year >= 2022 ORDER BY age ASC LIMIT 2 OFFSET 2;",
-    defaultSql: "SELECT name, age FROM students WHERE enrollment_year >= 2022 "
+    defaultSql: "SELECT * FROM students;"
   }
 ];
