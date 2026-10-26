@@ -33,19 +33,17 @@ const TABLE_COLUMNS = {
 
 const UI_I18N = {
   viewRaw: { ja: "全データを見る", en: "View Raw Data", ne: "सबै डेटा हेर्नुहोस्", fr: "Voir toutes les données", my: "အချက်အလက်အားလုံးကြည့်ရန်", bn: "সব ডাটা দেখুন", si: "සියලු දත්ත බලන්න", id: "Lihat Semua Data", vi: "Xem toàn bộ dữ liệu", zh: "查看全部数据" },
-  hint1: { ja: "💡 ヒント 1: 構文", en: "💡 Hint 1: Syntax", ne: "💡 सङ्केत १: वाक्य रचना", fr: "💡 Indice 1: Syntaxe", my: "💡 သဲလွန်စ ၁", bn: "💡 ইঙ্গিত ১", si: "💡 ඉඟිය 1", id: "💡 Petunjuk 1", vi: "💡 Gợi ý 1", zh: "💡 提示 1" },
-  hint2: { ja: "🔍 ヒント 2: テンプレート", en: "🔍 Hint 2: Template", ne: "🔍 सङ्केत २: ढाँचा", fr: "🔍 Indice 2: Modèle", my: "🔍 သဲလွန်စ ၂", bn: "🔍 ইঙ্গিত ২", si: "🔍 ඉඟිය 2", id: "🔍 Petunjuk 2", vi: "🔍 Gợi ý 2", zh: "🔍 提示 2" },
+  hint1: { ja: "💡 ヒント 1: 構文ルール", en: "💡 Hint 1: Syntax", ne: "💡 सङ्केत १: वाक्य रचना", fr: "💡 Indice 1: Syntaxe", my: "💡 သဲလွန်စ ၁", bn: "💡 ইঙ্গিত ১", si: "💡 ඉඟිය 1", id: "💡 Petunjuk 1", vi: "💡 Gợi ý 1", zh: "💡 提示 1" },
+  hint2: { ja: "🔍 ヒント 2: 穴埋めヒント", en: "🔍 Hint 2: Fill in blanks", ne: "🔍 सङ्केत २: ढाँचा", fr: "🔍 Indice 2: Modèle", my: "🔍 သဲလွန်စ ၂", bn: "🔍 ইঙ্গিত ২", si: "🔍 ඉඟිය 2", id: "🔍 Petunjuk 2", vi: "🔍 Gợi ý 2", zh: "🔍 提示 2" },
   ans: { ja: "✅ 模範解答", en: "✅ Answer", ne: "✅ सही उत्तर", fr: "✅ Réponse modèle", my: "✅ အဖြေမှန်", bn: "✅ সঠিক উত্তর", si: "✅ පිළිතුර", id: "✅ Kunci Jawaban", vi: "✅ Đáp án", zh: "✅ 参考答案" },
   run: { ja: "実行 (Run)", en: "Run", ne: "चलाउनुहोस् (Run)", fr: "Exécuter (Run)", my: "အလုပ်လုပ်ရန်", bn: "রান করুন", si: "ක්‍රියාත්මක කරන්න", id: "Jalankan", vi: "Chạy", zh: "运行" },
-  reset: { ja: "リセット", en: "Reset", ne: "रिसेट (Reset)", fr: "Réinitialiser", my: "မူလအတိုင်း", bn: "রিসেট", si: "යළි පිහිටුවන්න", id: "Reset", vi: "Đặt lại", zh: "重置" },
-  success: { ja: "🎉 正解です！完璧です！", en: "🎉 Correct! Excellent job!", ne: "🎉 सही उत्तर! धेरै राम्रो!", fr: "🎉 Correct ! Excellent travail !", my: "🎉 မှန်ကန်ပါသည်! ကောင်းမွန်ပါသည်။", bn: "🎉 সঠিক উত্তর! চমৎকার!", si: "🎉 නිවැරදියි! විශිෂ්ටයි!", id: "🎉 Benar! Kerja bagus!", vi: "🎉 Chính xác! Làm rất tốt!", zh: "🎉 回答正确！太棒了！" },
+  reset: { ja: "リセット", en: "Reset", ne: "रिसेट (Reset)", fr: "Réinitialiser", my: "မူလအတိုင်း", bn: "রিসেٹ", si: "යළි පිහිටුවන්න", id: "Reset", vi: "Đặt lại", zh: "重置" },
+  success: { ja: "🎉 正解です！完璧です！", en: "🎉 Correct! Excellent job!", ne: "🎉 सही उत्तर! धेरै राम्रो!", fr: "🎉 Correct ! Excellent travail !", my: "🎉 မှန်ကန်ပါသည်! ကောင်းမွန်ပါသည်။", bn: "🎉 সঠিক उत्तर! চমৎকার!", si: "🎉 නිවැරදියි! විශිෂ්ටයි!", id: "🎉 Benar! Kerja bagus!", vi: "🎉 Chính xác! Làm rất tốt!", zh: "🎉 回答正确！太棒了！" },
   wrong: { ja: "🤔 結果が異なります。「正解の見本」タブと見比べてみましょう。", en: "🤔 Result differs. Compare with the 'Expected Output' tab.", ne: "🤔 नतिजा फरक छ। कृपया 'Expected Output' ट्याबसँग तुलना गर्नुहोस्।", fr: "🤔 Le résultat est différent. Comparez avec l'onglet 'Expected Output'.", my: "🤔 အဖြေမကိုက်ညီပါ။ 'Expected Output' နှင့် နှိုင်းယှဉ်ကြည့်ပါ။", bn: "🤔 ফলাফল মিলছে না। 'Expected Output' ট্যাবের সাথে মিলিয়ে দেখুন।", si: "🤔 ප්‍රතිඵලය වෙනස් වේ. 'Expected Output' සමඟ සසඳන්න.", id: "🤔 Hasil belum sesuai. Bandingkan dengan tab 'Expected Output'.", vi: "🤔 Chưa đúng. Hãy so sánh với tab 'Expected Output'.", zh: "🤔 结果不符，请对比“正解见本”标签页。" }
 };
 
 const PROBLEMS = [
-  // ==========================================
-  // Part 1: 集計関数の基礎 (COUNT, SUM, AVG, MAX, MIN)
-  // ==========================================
+  // --- Part 1: 集計関数の基礎 ---
   {
     id: 1, part: 1, table: "products",
     title: { ja: "問1: 行数のカウント (COUNT)", en: "Q1: Row Count (COUNT)", ne: "प्रश्न १: संख्या गन्ती (COUNT)", fr: "Q1 : Compter les lignes (COUNT)", my: "မေးခွန်း ၁: အရေအတွက် ရေတွက်ခြင်း", bn: "প্রশ্ন ১: সারি গণনা (COUNT)", si: "ප්‍රශ්නය 1: පේළි ගණන් කිරීම", id: "Soal 1: Menghitung Baris (COUNT)", vi: "Câu 1: Đếm số dòng (COUNT)", zh: "第1题: 统计行数 (COUNT)" },
@@ -62,9 +60,9 @@ const PROBLEMS = [
       zh: "获取 products 表中“全部商品的数量（行数）”。"
     },
     hint1: "SELECT COUNT(*) FROM テーブル名;",
-    hint2: "SELECT COUNT(*) FROM products;",
+    hint2: "SELECT COUNT(___) FROM products;",
     answer: "SELECT COUNT(*) FROM products;",
-    defaultSql: "SELECT COUNT() FROM products;"
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 2, part: 1, table: "products",
@@ -82,13 +80,13 @@ const PROBLEMS = [
       zh: "获取所有商品的“总库存（stock的SUM）”和“平均价格（price的AVG）”。"
     },
     hint1: "SELECT SUM(列名), AVG(列名) FROM テーブル名;",
-    hint2: "SELECT SUM(stock), AVG(price) FROM products;",
+    hint2: "SELECT SUM(stock), AVG(___) FROM products;",
     answer: "SELECT SUM(stock), AVG(price) FROM products;",
-    defaultSql: "SELECT SUM(stock),  FROM products;"
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 3, part: 1, table: "students",
-    title: { ja: "問3: 最高点と最低点 (MAX, MIN)", en: "Q3: Max and Min (MAX, MIN)", ne: "प्रश्न ३: अधिकतम र न्यूनतम (MAX, MIN)", fr: "Q3 : Maximum et Minimum (MAX, MIN)", my: "မေးခွန်း ၃: အများဆုံးနှင့် အနည်းဆုံး", bn: "প্রশ্ন ৩: সর্বোচ্চ ও সর্বনিম্ন (MAX, MIN)", si: "ප්‍රශ්නය 3: උපරිම සහ අවම අගය", id: "Soal 3: Nilai Tertinggi dan Terendah", vi: "Câu 3: Điểm cao nhất và thấp nhất", zh: "第3题: 最大值与最小值 (MAX, MIN)" },
+    title: { ja: "問3: 最高点と最低点 (MAX, MIN)", en: "Q3: Max and Min (MAX, MIN)", ne: "प्रश्न ३: अधिकतम र न्यूनतम (MAX, MIN)", fr: "Q3 : Maximum et Minimum (MAX, MIN)", my: "မေးခွန်း ၃: အများဆုံးနှင့် အနည်းဆုံး", bn: "প্রশ্ন ३: সর্বোচ্চ ও সর্বনিম্ন (MAX, MIN)", si: "ප්‍රශ්නය 3: උපරිම සහ අවම අගය", id: "Soal 3: Nilai Tertinggi dan Terendah", vi: "Câu 3: Điểm cao nhất và thấp nhất", zh: "第3题: 最大值与最小值 (MAX, MIN)" },
     desc: {
       ja: "students テーブルから、テストの「最高点（score の MAX）」と「最低点（score の MIN）」を取得してください。",
       en: "From the students table, retrieve the highest test score (MAX) and the lowest test score (MIN).",
@@ -102,9 +100,9 @@ const PROBLEMS = [
       zh: "从 students 表中获取考试的“最高分（score的MAX）”和“最低分（score的MIN）”。"
     },
     hint1: "SELECT MAX(列名), MIN(列名) FROM テーブル名;",
-    hint2: "SELECT MAX(score), MIN(score) FROM students;",
+    hint2: "SELECT MAX(score), MIN(___) FROM students;",
     answer: "SELECT MAX(score), MIN(score) FROM students;",
-    defaultSql: "SELECT MAX(score),  FROM students;"
+    defaultSql: "SELECT * FROM students;"
   },
   {
     id: 4, part: 1, table: "students",
@@ -121,15 +119,13 @@ const PROBLEMS = [
       vi: "Lấy điểm thi trung bình (AVG của score) của riêng các sinh viên chuyên ngành (major) 'IT'.",
       zh: "仅针对专业（major）为 'IT' 的学生，获取其考试的“平均分（AVG）”。"
     },
-    hint1: "SELECT AVG(score) FROM students WHERE major = 'IT';",
-    hint2: "SELECT AVG(score) FROM students WHERE major = 'IT';",
+    hint1: "SELECT AVG(列名) FROM テーブル名 WHERE 条件;",
+    hint2: "SELECT AVG(score) FROM students WHERE major = '___';",
     answer: "SELECT AVG(score) FROM students WHERE major = 'IT';",
-    defaultSql: "SELECT AVG(score) FROM students WHERE "
+    defaultSql: "SELECT * FROM students;"
   },
 
-  // ==========================================
-  // Part 2: グループ化 (GROUP BY)
-  // ==========================================
+  // --- Part 2: グループ化 (GROUP BY) ---
   {
     id: 5, part: 2, table: "products",
     title: { ja: "問5: カテゴリごとの集計 (GROUP BY)", en: "Q5: Group by Category", ne: "प्रश्न ५: वर्ग अनुसार गन्ती (GROUP BY)", fr: "Q5 : Regroupement par catégorie", my: "မေးခွန်း ၅: အမျိုးအစားအလိုက် အုပ်စုဖွဲ့ခြင်း", bn: "প্রশ্ন ৫: ক্যাটাগরি অনুযায়ী গ্রুপিং", si: "ප්‍රශ්නය 5: කාණ්ඩ අනුව සමූහනය", id: "Soal 5: Pengelompokan Kategori (GROUP BY)", vi: "Câu 5: Nhóm theo danh mục (GROUP BY)", zh: "第5题: 按分类分组统计 (GROUP BY)" },
@@ -145,10 +141,10 @@ const PROBLEMS = [
       vi: "Đếm số lượng sản phẩm theo từng danh mục (category). Hiển thị 'category' và số lượng.",
       zh: "按商品分类（category）分组，获取每个分类的商品数量。显示“category”和“商品数量”。"
     },
-    hint1: "SELECT category, COUNT(*) FROM products GROUP BY category;",
-    hint2: "SELECT category, COUNT(*) FROM products GROUP BY category;",
+    hint1: "SELECT グループ列, COUNT(*) FROM テーブル名 GROUP BY グループ列;",
+    hint2: "SELECT category, COUNT(*) FROM products GROUP BY ___;",
     answer: "SELECT category, COUNT(*) FROM products GROUP BY category;",
-    defaultSql: "SELECT category, COUNT(*) FROM products GROUP BY "
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 6, part: 2, table: "students",
@@ -165,10 +161,10 @@ const PROBLEMS = [
       vi: "Với mỗi chuyên ngành (major), lấy 'major', số lượng sinh viên và điểm trung bình (AVG(score)).",
       zh: "按专业（major）分组，获取“专业名（major）”、“学生人数”和“平均分（AVG(score)）”。"
     },
-    hint1: "SELECT major, COUNT(*), AVG(score) FROM students GROUP BY major;",
-    hint2: "SELECT major, COUNT(*), AVG(score) FROM students GROUP BY major;",
+    hint1: "SELECT グループ列, COUNT(*), AVG(数値列) FROM テーブル名 GROUP BY グループ列;",
+    hint2: "SELECT major, COUNT(*), AVG(score) FROM students GROUP BY ___;",
     answer: "SELECT major, COUNT(*), AVG(score) FROM students GROUP BY major;",
-    defaultSql: "SELECT major, COUNT(*), AVG(score) FROM students GROUP BY "
+    defaultSql: "SELECT * FROM students;"
   },
   {
     id: 7, part: 2, table: "products",
@@ -179,16 +175,16 @@ const PROBLEMS = [
       ne: "प्रत्येक वर्गको औसत मूल्य निकाल्नुहोस् र औसत मूल्यको घट्दो क्रममा 'category' र 'औसत मूल्य' देखाउनुहोस्।",
       fr: "Calculez le prix moyen par catégorie et triez par ordre décroissant du prix moyen.",
       my: "အမျိုးအစားအလိုက် ပျမ်းမျှစျေးနှုန်းကို တွက်ပြီး စျေးအကြီးဆုံးမှ အငယ်ဆုံးသို့ စဉ်၍ ရယူပါ။",
-      bn: "প্রতিটি ক্যাटाগরির গড় মূল্য হিসাব করুন এবং সর্বোচ্চ গড় মূল্যের ক্রমানুসারে সাজিয়ে বের করুন।",
+      bn: "প্রতিটি ক্যাটাগরির গড় মূল্য হিসাব করুন এবং সর্বোচ্চ গড় মূল্যের ক্রমানুসারে সাজিয়ে বের করুন।",
       si: "එක් එක් කාණ්ඩයේ සාමාන්‍ය මිල ගණනය කර, සාමාන්‍ය මිල වැඩිම අගයේ සිට අවරෝහණව පෙළගස්වන්න.",
       id: "Hitung harga rata-rata per kategori, lalu urutkan dari harga rata-rata tertinggi (DESC).",
       vi: "Tính giá trung bình theo từng danh mục, sắp xếp theo giá trung bình giảm dần.",
       zh: "计算各分类的“平均价格”，并按平均价格由高到低（降序）获取“category”和“平均价格”。"
     },
-    hint1: "GROUP BY category ORDER BY AVG(price) DESC;",
-    hint2: "SELECT category, AVG(price) FROM products GROUP BY category ORDER BY AVG(price) DESC;",
+    hint1: "GROUP BY 列名 ORDER BY 集計関数 DESC;",
+    hint2: "SELECT category, AVG(price) FROM products GROUP BY category ORDER BY AVG(price) ___;",
     answer: "SELECT category, AVG(price) FROM products GROUP BY category ORDER BY AVG(price) DESC;",
-    defaultSql: "SELECT category, AVG(price) FROM products GROUP BY category ORDER BY "
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 8, part: 2, table: "students",
@@ -205,15 +201,13 @@ const PROBLEMS = [
       vi: "Đếm số sinh viên theo từng nhóm kết hợp giữa 'năm nhập học' và 'chuyên ngành'.",
       zh: "按“入学年份（enrollment_year）”和“专业（major）”的组合进行分组，获取学生人数。"
     },
-    hint1: "SELECT enrollment_year, major, COUNT(*) FROM students GROUP BY enrollment_year, major;",
-    hint2: "SELECT enrollment_year, major, COUNT(*) FROM students GROUP BY enrollment_year, major;",
+    hint1: "GROUP BY 列名1, 列名2 のようにカンマで並べます。",
+    hint2: "SELECT enrollment_year, major, COUNT(*) FROM students GROUP BY enrollment_year, ___;",
     answer: "SELECT enrollment_year, major, COUNT(*) FROM students GROUP BY enrollment_year, major;",
-    defaultSql: "SELECT enrollment_year, major, COUNT(*) FROM students GROUP BY "
+    defaultSql: "SELECT * FROM students;"
   },
 
-  // ==========================================
-  // Part 3: グループの絞り込み (HAVING)
-  // ==========================================
+  // --- Part 3: グループの絞り込み (HAVING) ---
   {
     id: 9, part: 3, table: "students",
     title: { ja: "問9: グループ条件の基本 (HAVING)", en: "Q9: Basic HAVING Clause", ne: "प्रश्न ९: समूह सर्तको आधारभूत (HAVING)", fr: "Q9 : Filtrage de groupe (HAVING)", my: "မေးခွန်း ၉: အုပ်စုစစ်ထုတ်ခြင်း (HAVING)", bn: "প্রশ্ন ৯: গ্রুপ ফিল্টারিং (HAVING)", si: "ප්‍රශ්නය 9: මූලික HAVING කොන්දේසිය", id: "Soal 9: Dasar Klausa HAVING", vi: "Câu 9: Lọc nhóm với HAVING", zh: "第9题: 分组后筛选 (HAVING 基础)" },
@@ -229,10 +223,10 @@ const PROBLEMS = [
       vi: "Nhóm theo ngành học và chỉ lấy những ngành có từ 3 sinh viên trở lên (HAVING COUNT(*) >= 3).",
       zh: "按专业（major）统计人数，仅筛选出“学生人数在3人及以上”的专业。"
     },
-    hint1: "GROUP BY major HAVING COUNT(*) >= 3;",
-    hint2: "SELECT major, COUNT(*) FROM students GROUP BY major HAVING COUNT(*) >= 3;",
+    hint1: "GROUP BY の集計結果に対する条件は HAVING を使います。",
+    hint2: "SELECT major, COUNT(*) FROM students GROUP BY major HAVING COUNT(*) >= ___;",
     answer: "SELECT major, COUNT(*) FROM students GROUP BY major HAVING COUNT(*) >= 3;",
-    defaultSql: "SELECT major, COUNT(*) FROM students GROUP BY major HAVING "
+    defaultSql: "SELECT * FROM students;"
   },
   {
     id: 10, part: 3, table: "products",
@@ -249,14 +243,14 @@ const PROBLEMS = [
       vi: "Lấy các danh mục có giá trung bình từ 5.000 trở lên kèm theo giá trung bình của chúng.",
       zh: "求各分类的平均价格，仅获取“平均价格在5,000円以上”的分类名和平均价格。"
     },
-    hint1: "GROUP BY category HAVING AVG(price) >= 5000;",
-    hint2: "SELECT category, AVG(price) FROM products GROUP BY category HAVING AVG(price) >= 5000;",
+    hint1: "GROUP BY category HAVING AVG(price) >= 条件値;",
+    hint2: "SELECT category, AVG(price) FROM products GROUP BY category HAVING AVG(price) >= ___;",
     answer: "SELECT category, AVG(price) FROM products GROUP BY category HAVING AVG(price) >= 5000;",
-    defaultSql: "SELECT category, AVG(price) FROM products GROUP BY category HAVING "
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 11, part: 3, table: "products",
-    title: { ja: "問11: WHERE と HAVING の併用", en: "Q11: WHERE and HAVING Together", ne: "प्रश्न ११: WHERE र HAVING को सँगै प्रयोग", fr: "Q11 : Combinaison WHERE et HAVING", my: "မေးခွန်း ၁၁: WHERE နှင့် HAVING တွဲသုံးခြင်း", bn: "প্রশ্ন ১১: WHERE এবং HAVING এর যৌথ ব্যবহার", si: "ප්‍රශ්නය 11: WHERE සහ HAVING එකට භාවිතය", id: "Soal 11: Kombinasi WHERE dan HAVING", vi: "Câu 11: Kết hợp WHERE và HAVING", zh: "第11题: WHERE 与 HAVING 结合使用" },
+    title: { ja: "問11: WHERE と HAVING の併用", en: "Q11: WHERE and HAVING Together", ne: "प्रश्न ११: WHERE र HAVING को सँगै प्रयोग", fr: "Q11 : Combinaison WHERE et HAVING", my: "မေးခွန်း ၁၁: WHERE နှင့် HAVING တွဲသုံးခြင်း", bn: "প্রশ্ন ११: WHERE এবং HAVING এর যৌথ ব্যবহার", si: "ප්‍රශ්නය 11: WHERE සහ HAVING එකට භාවිතය", id: "Soal 11: Kombinasi WHERE dan HAVING", vi: "Câu 11: Kết hợp WHERE và HAVING", zh: "第11题: WHERE 与 HAVING 结合使用" },
     desc: {
       ja: "「2020年以降に発売された商品」に絞り込んだ上でカテゴリごとに集計し、該当商品が「2点以上」あるカテゴリと商品数を取得してください。",
       en: "Filter for products released in 2020 or later (WHERE), group by category, and keep only categories with 2 or more products (HAVING).",
@@ -269,10 +263,10 @@ const PROBLEMS = [
       vi: "Lọc sản phẩm từ năm 2020 trở đi (WHERE), nhóm theo danh mục và chỉ lấy các nhóm có từ 2 sản phẩm trở lên (HAVING).",
       zh: "先筛选出“2020年及之后发布的商品”（WHERE），再按分类统计，仅获取商品数“在2件及以上”的分类和数量（HAVING）。"
     },
-    hint1: "WHERE release_year >= 2020 GROUP BY category HAVING COUNT(*) >= 2;",
-    hint2: "SELECT category, COUNT(*) FROM products WHERE release_year >= 2020 GROUP BY category HAVING COUNT(*) >= 2;",
+    hint1: "行の絞り込み（WHERE）→ グループ化（GROUP BY）→ グループ絞り込み（HAVING）の順です。",
+    hint2: "SELECT category, COUNT(*) FROM products WHERE release_year >= 2020 GROUP BY category HAVING COUNT(*) >= ___;",
     answer: "SELECT category, COUNT(*) FROM products WHERE release_year >= 2020 GROUP BY category HAVING COUNT(*) >= 2;",
-    defaultSql: "SELECT category, COUNT(*) FROM products WHERE release_year >= 2020 GROUP BY category HAVING "
+    defaultSql: "SELECT * FROM products;"
   },
   {
     id: 12, part: 3, table: "students",
@@ -289,9 +283,9 @@ const PROBLEMS = [
       vi: "Tính điểm trung bình theo ngành, lọc các ngành có điểm trung bình từ 75 trở lên và sắp xếp giảm dần.",
       zh: "按专业（major）计算平均分，筛选出“平均分在75分及以上”的专业，并按平均分由高到低（降序）排序输出。"
     },
-    hint1: "GROUP BY major HAVING AVG(score) >= 75 ORDER BY AVG(score) DESC;",
-    hint2: "SELECT major, AVG(score) FROM students GROUP BY major HAVING AVG(score) >= 75 ORDER BY AVG(score) DESC;",
+    hint1: "GROUP BY ... HAVING ... ORDER BY ... DESC;",
+    hint2: "SELECT major, AVG(score) FROM students GROUP BY major HAVING AVG(score) >= 75 ORDER BY AVG(score) ___;",
     answer: "SELECT major, AVG(score) FROM students GROUP BY major HAVING AVG(score) >= 75 ORDER BY AVG(score) DESC;",
-    defaultSql: "SELECT major, AVG(score) FROM students GROUP BY major HAVING "
+    defaultSql: "SELECT * FROM students;"
   }
 ];
