@@ -31,11 +31,11 @@ const TABLE_COLUMNS = {
 
 const UI_I18N = {
   viewRaw: { ja: "全画面で拡大表示", en: "Expand View", ne: "पूरा स्क्रिनमा हेर्नुहोस्", fr: "Agrandir l'affichage", my: "ချဲ့ကြည့်ရန်", bn: "বড় করে দেখুন", si: "විශාල කර බලන්න", id: "Perbesar Tampilan", vi: "Xem toàn màn hình", zh: "全屏查看" },
-  hint1: { ja: "💡 ヒント 1: 構文", en: "💡 Hint 1: Syntax", ne: "💡 सङ्केत १: वाक्य रचना", fr: "💡 Indice 1: Syntaxe", my: "💡 သဲလွန်စ ၁", bn: "💡 ইঙ্গিত ১", si: "💡 ඉඟිය 1", id: "💡 Petunjuk 1", vi: "💡 Gợi ý 1", zh: "💡 提示 1" },
-  hint2: { ja: "🔍 ヒント 2: テンプレート", en: "🔍 Hint 2: Template", ne: "🔍 सङ्केत २: ढाँचा", fr: "🔍 Indice 2: Modèle", my: "🔍 သဲလွန်စ ၂", bn: "🔍 ইঙ্গিত ২", si: "🔍 ඉඟිය 2", id: "🔍 Petunjuk 2", vi: "🔍 Gợi ý 2", zh: "🔍 提示 2" },
+  hint1: { ja: "💡 ヒント 1: 構文ルール", en: "💡 Hint 1: Syntax", ne: "💡 सङ्केत १: वाक्य रचना", fr: "💡 Indice 1: Syntaxe", my: "💡 သဲလွန်စ ၁", bn: "💡 ইঙ্গিত ১", si: "💡 ඉඟිය 1", id: "💡 Petunjuk 1", vi: "💡 Gợi ý 1", zh: "💡 提示 1" },
+  hint2: { ja: "🔍 ヒント 2: 穴埋めヒント", en: "🔍 Hint 2: Fill in blanks", ne: "🔍 सङ्केत २: ढाँचा", fr: "🔍 Indice 2: Modèle", my: "🔍 သဲလွန်စ ၂", bn: "🔍 ইঙ্গিত ২", si: "🔍 ඉඟිය 2", id: "🔍 Petunjuk 2", vi: "🔍 Gợi ý 2", zh: "🔍 提示 2" },
   ans: { ja: "✅ 模範解答", en: "✅ Answer", ne: "✅ सही उत्तर", fr: "✅ Réponse modèle", my: "✅ အဖြေမှန်", bn: "✅ সঠিক উত্তর", si: "✅ පිළිතුර", id: "✅ Kunci Jawaban", vi: "✅ Đáp án", zh: "✅ 参考答案" },
   run: { ja: "実行 (Run)", en: "Run", ne: "चलाउनुहोस् (Run)", fr: "Exécuter (Run)", my: "အလုပ်လုပ်ရန်", bn: "রান করুন", si: "ක්‍රියාත්මක කරන්න", id: "Jalankan", vi: "Chạy", zh: "运行" },
-  reset: { ja: "リセット", en: "Reset", ne: "रिसेट (Reset)", fr: "Réinitialiser", my: "မူလအတိုင်း", bn: "রিসেট", si: "යළි පිහිටුවන්න", id: "Reset", vi: "Đặt lại", zh: "重置" },
+  reset: { ja: "リセット", en: "Reset", ne: "रिसेट (Reset)", fr: "Réinitialiser", my: "မူလအတိုင်း", bn: "রিসেٹ", si: "යළි පිහිටුවන්න", id: "Reset", vi: "Đặt lại", zh: "重置" },
   success: { ja: "🎉 正解です！完璧です！", en: "🎉 Correct! Excellent job!", ne: "🎉 सही उत्तर! धेरै राम्रो!", fr: "🎉 Correct ! Excellent travail !", my: "🎉 မှန်ကန်ပါသည်! ကောင်းမွန်ပါသည်။", bn: "🎉 সঠিক উত্তর! চমৎকার!", si: "🎉 නිවැරදියි! විශිෂ්ටයි!", id: "🎉 Benar! Kerja bagus!", vi: "🎉 Chính xác! Làm rất tốt!", zh: "🎉 回答正确！太棒了！" },
   wrong: { ja: "🤔 結果が異なります。「正解の見本」タブと見比べてみましょう。", en: "🤔 Result differs. Compare with the 'Expected Output' tab.", ne: "🤔 नतिजा फरक छ। कृपया 'Expected Output' ट्याबसँग तुलना गर्नुहोस्।", fr: "🤔 Le résultat est différent. Comparez avec l'onglet 'Expected Output'.", my: "🤔 အဖြေမကိုက်ညီပါ။ 'Expected Output' နှင့် နှိုင်းယှဉ်ကြည့်ပါ။", bn: "🤔 ফলাফল মিলছে না। 'Expected Output' ট্যাবের সাথে মিলিয়ে দেখুন।", si: "🤔 ප්‍රතිඵලය වෙනස් වේ. 'Expected Output' සමඟ සසඳන්න.", id: "🤔 Hasil belum sesuai. Bandingkan dengan tab 'Expected Output'.", vi: "🤔 Chưa đúng. Hãy so sánh với tab 'Expected Output'.", zh: "🤔 结果不符，请对比“正解见本”标签页。" }
 };
@@ -56,10 +56,10 @@ const PROBLEMS = [
       vi: "Thực hiện INNER JOIN giữa table_a và table_b dựa trên 'id', lấy tất cả các cột (*).",
       zh: "将 table_a 和 table_b 通过公共的“id”进行内连接（INNER JOIN），并获取所有列（*）。"
     },
-    hint1: "SELECT * FROM table_a INNER JOIN table_b ON table_a.id = table_b.id;",
-    hint2: "SELECT * FROM table_a INNER JOIN table_b ON table_a.id = table_b.id;",
+    hint1: "SELECT * FROM table_a INNER JOIN table_b ON 結合条件;",
+    hint2: "SELECT * FROM table_a INNER JOIN table_b ON table_a.id = ___.___;",
     answer: "SELECT * FROM table_a INNER JOIN table_b ON table_a.id = table_b.id;",
-    defaultSql: "SELECT * FROM table_a INNER JOIN table_b ON "
+    defaultSql: "SELECT * FROM table_a;"
   },
   {
     id: 2, table: "table_a",
@@ -76,10 +76,10 @@ const PROBLEMS = [
       vi: "Kết hợp table_a và table_b, chỉ lấy 3 cột: 'table_a.id', 'table_a.column_a1', và 'table_b.column_b1'.",
       zh: "连接 table_a 与 table_b，仅获取“table_a.id”、“table_a.column_a1”和“table_b.column_b1”这3列。"
     },
-    hint1: "SELECT テーブル名.列名 FROM ... (idは両方にあるため table_a.id のように指定します)",
-    hint2: "SELECT table_a.id, table_a.column_a1, table_b.column_b1 FROM table_a INNER JOIN table_b ON table_a.id = table_b.id;",
+    hint1: "id列のように両方にある列は「テーブル名.列名」と明記します。",
+    hint2: "SELECT table_a.id, table_a.column_a1, table_b.___ FROM table_a INNER JOIN table_b ON table_a.id = table_b.id;",
     answer: "SELECT table_a.id, table_a.column_a1, table_b.column_b1 FROM table_a INNER JOIN table_b ON table_a.id = table_b.id;",
-    defaultSql: "SELECT table_a.id,  FROM table_a INNER JOIN table_b ON table_a.id = table_b.id;"
+    defaultSql: "SELECT * FROM table_a;"
   },
   {
     id: 3, table: "table_a",
@@ -96,10 +96,10 @@ const PROBLEMS = [
       vi: "Kết hợp 2 bảng và lấy 'table_a.id', 'table_a.class', 'table_b.column_b2' với điều kiện table_a.class = 'A'.",
       zh: "连接两个表，获取 table_a.class 为 'A' 的行的“table_a.id”、“table_a.class”和“table_b.column_b2”。"
     },
-    hint1: "FROM table_a INNER JOIN table_b ON table_a.id = table_b.id WHERE table_a.class = 'A';",
-    hint2: "SELECT table_a.id, table_a.class, table_b.column_b2 FROM table_a INNER JOIN table_b ON table_a.id = table_b.id WHERE table_a.class = 'A';",
+    hint1: "ON 条件のあとに WHERE 条件 を記述します。",
+    hint2: "SELECT table_a.id, table_a.class, table_b.column_b2 FROM table_a INNER JOIN table_b ON table_a.id = table_b.id WHERE table_a.class = '___';",
     answer: "SELECT table_a.id, table_a.class, table_b.column_b2 FROM table_a INNER JOIN table_b ON table_a.id = table_b.id WHERE table_a.class = 'A';",
-    defaultSql: "SELECT table_a.id, table_a.class, table_b.column_b2 FROM table_a INNER JOIN table_b ON table_a.id = table_b.id WHERE "
+    defaultSql: "SELECT * FROM table_a;"
   },
   {
     id: 4, table: "table_a",
@@ -117,9 +117,9 @@ const PROBLEMS = [
       zh: "以 table_a 为主表左连接（LEFT JOIN）table_b，并获取所有列（*）。（观察 id=1 右侧产生的 NULL）"
     },
     hint1: "SELECT * FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id;",
-    hint2: "SELECT * FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id;",
+    hint2: "SELECT * FROM table_a LEFT JOIN table_b ON ___.___ = ___.___;",
     answer: "SELECT * FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id;",
-    defaultSql: "SELECT * FROM table_a LEFT JOIN table_b ON "
+    defaultSql: "SELECT * FROM table_a;"
   },
   {
     id: 5, table: "table_a",
@@ -136,14 +136,14 @@ const PROBLEMS = [
       vi: "Tìm các dòng chỉ có trong table_a mà KHÔNG có trong table_b. Lấy 'table_a.id' và 'table_a.column_a1'.",
       zh: "找出仅存在于 table_a 但不存在于 table_b 的行。获取“table_a.id”和“table_a.column_a1”。"
     },
-    hint1: "LEFT JOIN した後に WHERE table_b.id IS NULL と判定します。",
-    hint2: "SELECT table_a.id, table_a.column_a1 FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id WHERE table_b.id IS NULL;",
+    hint1: "LEFT JOIN して結合先が存在しない行は IS NULL で判定します。",
+    hint2: "SELECT table_a.id, table_a.column_a1 FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id WHERE table_b.id IS ___;",
     answer: "SELECT table_a.id, table_a.column_a1 FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id WHERE table_b.id IS NULL;",
-    defaultSql: "SELECT table_a.id, table_a.column_a1 FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id WHERE "
+    defaultSql: "SELECT * FROM table_a;"
   },
   {
     id: 6, table: "table_a",
-    title: { ja: "問6: LEFT JOIN ＋ ソートと件数制限", en: "Q6: LEFT JOIN with Sort & Limit", ne: "प्रश्न ६: LEFT JOIN सँग क्रमबद्ध र सिमा", fr: "Q6 : LEFT JOIN avec tri et LIMIT", my: "မေးခွန်း ၆: အစဉ်လိုက်စီခြင်းနှင့် ကန့်သတ်ခြင်း", bn: "প্রশ্ন ৬: সাজানো ও লিমিট", si: "ප්‍රශ්නය 6: පෙළගැස්වීම සහ සීමා කිරීම", id: "Soal 6: Pengurutan dan Limit pada LEFT JOIN", vi: "Câu 6: Sắp xếp và giới hạn với LEFT JOIN", zh: "第6题: 排序与数量限制" },
+    title: { ja: "問6: LEFT JOIN ＋ ソートと件数制限", en: "Q6: LEFT JOIN with Sort & Limit", ne: "प्रश्न ६: LEFT JOIN सँग क्रमबद्ध र सिमा", fr: "Q6 : LEFT JOIN avec tri et LIMIT", my: "မေးခွန်း ၆: အစဉ်လိုက်စီခြင်းနှင့် ကန့်သတ်ခြင်း", bn: "প্রশ্ন ६: সাজানো ও লিমিট", si: "ප්‍රශ්නය 6: පෙළගැස්වීම සහ සීමා කිරීම", id: "Soal 6: Pengurutan dan Limit pada LEFT JOIN", vi: "Câu 6: Sắp xếp và giới hạn với LEFT JOIN", zh: "第6题: 排序与数量限制" },
     desc: {
       ja: "table_a と table_b を LEFT JOIN し、column_b2 が大きい順（降順）に並べ替え、上位3件の「table_a.id」「table_a.column_a1」「table_b.column_b2」を取得してください。",
       en: "LEFT JOIN both tables, sort by column_b2 descending (highest first), and retrieve the top 3 rows ('table_a.id', 'table_a.column_a1', 'table_b.column_b2').",
@@ -156,9 +156,9 @@ const PROBLEMS = [
       vi: "LEFT JOIN 2 bảng, sắp xếp theo column_b2 giảm dần, lấy 3 dòng đầu ('table_a.id', 'table_a.column_a1', 'table_b.column_b2').",
       zh: "将两个表进行 LEFT JOIN，按 column_b2 由大到小（降序）排序，获取前3条记录的“table_a.id”、“table_a.column_a1”和“table_b.column_b2”。"
     },
-    hint1: "ORDER BY table_b.column_b2 DESC LIMIT 3;",
-    hint2: "SELECT table_a.id, table_a.column_a1, table_b.column_b2 FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id ORDER BY table_b.column_b2 DESC LIMIT 3;",
+    hint1: "LEFT JOIN ... ON ... ORDER BY 列名 DESC LIMIT 件数;",
+    hint2: "SELECT table_a.id, table_a.column_a1, table_b.column_b2 FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id ORDER BY table_b.column_b2 DESC LIMIT ___;",
     answer: "SELECT table_a.id, table_a.column_a1, table_b.column_b2 FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id ORDER BY table_b.column_b2 DESC LIMIT 3;",
-    defaultSql: "SELECT table_a.id, table_a.column_a1, table_b.column_b2 FROM table_a LEFT JOIN table_b ON table_a.id = table_b.id ORDER BY "
+    defaultSql: "SELECT * FROM table_a;"
   }
 ];
