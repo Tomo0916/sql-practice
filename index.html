@@ -3,131 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SQL Learning Studio (Lesson 1-5)</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- SQLite WebAssembly Engine -->
+  <title>SQL Practice</title>
+  <meta name="description" content="SQL practice in 10 languages: worked examples, daily practice problems and printable tests.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Myanmar:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="css/app.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 </head>
 <body>
+  <div id="app"></div>
+  <noscript>JavaScript is required.</noscript>
 
-  <header>
-    <div class="header-left">
-      <h1>SQL Learning Studio</h1>
-      <span class="badge">Lesson 1–5</span>
-      <!-- ★追加: JOIN編へのナビゲーションリンク -->
-      <a href="join.html" style="color: #93c5fd; font-size: 0.85rem; margin-left: 16px; text-decoration: none; font-weight: 600; background: rgba(37, 99, 235, 0.25); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(147, 197, 253, 0.4); display: inline-flex; align-items: center; gap: 4px;">
-        🚀 JOIN編へ進む (Go to JOIN) ➔
-        <a href="groupby.html" style="color: #6ee7b7; font-size: 0.85rem; margin-left: 8px; text-decoration: none; font-weight: 600; background: rgba(5, 150, 105, 0.25); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(110, 231, 183, 0.4);">
-  📊 集計編へ進む (GROUP BY) ➔
-</a>
-      </a>
-    </div>
-    <div class="header-right">
-      <select id="langSelect" class="lang-select">
-        <option value="ja">日本語 (Japanese)</option>
-        <option value="en">English (英語)</option>
-        <option value="ne">नेपाली (Nepali / ネパール語)</option>
-        <option value="fr">Français (French / フランス語)</option>
-        <option value="my">မြန်မာ (Burmese)</option>
-        <option value="bn">বাংলা (Bengali)</option>
-        <option value="si">සිංහල (Sinhala)</option>
-        <option value="id">Indonesia</option>
-        <option value="vi">Tiếng Việt</option>
-        <option value="zh">中文 (中国語)</option>
-      </select>
-    </div>
-  </header>
-
-  <div class="app-layout">
-    <!-- 左パネル：問題・ヒント -->
-    <section class="pane left-pane">
-      <div class="nav-section">
-        <div class="nav-group-title">Part 1: Products DB (ECサイト)</div>
-        <div class="nav-tabs" id="tabContainerProducts"></div>
-        <div class="nav-group-title">Part 2: Students DB (学校)</div>
-        <div class="nav-tabs" id="tabContainerStudents"></div>
-      </div>
-
-      <div class="card problem-card">
-        <h2 id="probTitle"></h2>
-        <p class="prob-desc" id="probDesc"></p>
-        
-        <div class="table-preview-box">
-          <div class="table-header-info">
-            <span>Target Table: <strong id="targetTableLabel"></strong></span>
-            <button class="text-btn" id="previewTableBtn">📋 <span id="viewRawLabel">全データを見る</span></button>
-          </div>
-          <div class="column-chips" id="columnChips"></div>
-        </div>
-      </div>
-
-      <div class="accordion-group">
-        <details>
-          <summary id="hint1Label">💡 ヒント 1: 構文</summary>
-          <p id="hint1Text"></p>
-        </details>
-        <details>
-          <summary id="hint2Label">🔍 ヒント 2: テンプレート</summary>
-          <pre><code id="hint2Text"></code></pre>
-        </details>
-        <details>
-          <summary id="ansLabel">✅ 模範解答</summary>
-          <pre><code id="answerText"></code></pre>
-        </details>
-      </div>
-    </section>
-
-    <!-- 右パネル：エディタ・結果 -->
-    <section class="pane right-pane">
-      <!-- クイック入力支援チップ -->
-      <div class="snippet-bar">
-        <span class="snippet-title">Insert:</span>
-        <button class="chip" onclick="insertSnippet('SELECT ')">SELECT</button>
-        <button class="chip" onclick="insertSnippet('FROM ')">FROM</button>
-        <button class="chip" onclick="insertSnippet('WHERE ')">WHERE</button>
-        <button class="chip" onclick="insertSnippet('LIKE \'%%\'')">LIKE</button>
-        <button class="chip" onclick="insertSnippet('BETWEEN ')">BETWEEN</button>
-        <button class="chip" onclick="insertSnippet('DISTINCT ')">DISTINCT</button>
-        <button class="chip" onclick="insertSnippet('ORDER BY ')">ORDER BY</button>
-        <button class="chip" onclick="insertSnippet('LIMIT ')">LIMIT</button>
-      </div>
-
-      <div class="editor-container">
-        <textarea id="sqlInput" spellcheck="false" placeholder="SELECT * FROM ..."></textarea>
-      </div>
-
-      <div class="action-bar">
-        <button id="runBtn" class="btn btn-primary">▶ <span id="runBtnLabel">実行 (Run)</span></button>
-        <button id="resetBtn" class="btn btn-secondary"><span id="resetBtnLabel">リセット</span></button>
-        <button id="nextBtn" class="btn btn-success" style="display:none;">次の問題へ ➔</button>
-        <span class="shortcut-text">Ctrl + Enter</span>
-      </div>
-
-      <div id="statusMsg" class="status-msg"></div>
-
-      <!-- 結果表示 -->
-      <div class="result-area">
-        <div class="result-tabs">
-          <button class="res-tab-btn active" id="tabUserRes">Your Output (あなたの結果)</button>
-          <button class="res-tab-btn" id="tabExpectedRes">Expected Output (正解の見本)</button>
-        </div>
-        <div class="result-table-box" id="tableOutput"></div>
-      </div>
-    </section>
-  </div>
-
-  <!-- データプレビュー用モーダル -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="modalTitle">Table Data</h3>
-        <button class="close-btn" id="closeModalBtn">✖</button>
-      </div>
-      <div class="modal-body" id="modalBody"></div>
-    </div>
-  </div>
-
-  <script src="data.js"></script>
-  <script src="app.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/datasets.js"></script>
+  <script src="js/lessons.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
