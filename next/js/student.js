@@ -9,7 +9,7 @@
  * language never touches progress, drafts or results.
  * ========================================================= */
 import { LANGS, LANG_CODES, loadLang, hasLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
-import { SqlEngine, LESSON_BY_KEY, STAGES, grade, todayCode, randomCode, normCode, makeRng } from './engine.js';
+import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, grade, checkAnswer, todayCode, randomCode, normCode, makeRng } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
@@ -18,7 +18,7 @@ import * as backend from './backend.js';
 import { I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
-import { lessonPage } from './book.js';
+import { textbookPage } from './book.js';
 
 const S = {
   settings: loadSettings(null),
@@ -70,15 +70,18 @@ function stageLabelH(p) {
   if (p.stage === 'fill') return H('stage.fill');
   if (p.stage === 'order') return H('stage.order');
   if (p.kind === 'review') return H('stage.review');
-  return H('stage.write', { n: p.idx - 2 });
+  if (p.stage === 'quiz') return H('stage.quiz', { n: p.wn });
+  return H('stage.write', { n: p.wn });
 }
 function stageLabel(p) {
   if (p.stage === 'demo') return T('stage.demo');
   if (p.stage === 'fill') return T('stage.fill');
   if (p.stage === 'order') return T('stage.order');
   if (p.kind === 'review') return T('stage.review');
-  return T('stage.write', { n: p.idx - 2 });
+  if (p.stage === 'quiz') return T('stage.quiz', { n: p.wn });
+  return T('stage.write', { n: p.wn });
 }
+const isQuiz = prob => LESSON_BY_KEY[prob.lesson].kind === 'quiz';
 
 /* ---------- routing ---------- */
 function parseRoute() {
@@ -169,7 +172,7 @@ function homeHTML() {
       <div class="assign-head">${I.users}<div><small>${H('class.today')}</small><h2>${esc(S.klass.name)}</h2></div><span class="tag">${H('class.you', { n: S.klass.nickname })}</span></div>
       <div class="assign-list">${S.klass.lessons.filter(k => LESSON_BY_KEY[k]).map(k => {
         const l = LESSON_BY_KEY[k], st = stateOf(l);
-        return `<a class="assign-item ${st.done ? 'done' : ''}" href="#/l/${k}/0"><span class="lesson-num">${st.done ? '✓' : l.index + 1}</span><span>${lessonTitleHTML(l, L())}</span><span class="muted">${st.count}/6</span></a>`;
+        return `<a class="assign-item ${st.done ? 'done' : ''}" href="#/l/${k}/0"><span class="lesson-num">${st.done ? '✓' : l.no}</span><span>${lessonTitleHTML(l, L())}</span><span class="muted">${st.count}/6</span></a>`;
       }).join('')}</div></section>` : '';
 
   const classBox = !backend.enabled ? '' : S.klass ? '' : `<div class="joinbox">
@@ -210,7 +213,7 @@ function homeHTML() {
           <ul class="lesson-list">${ls.map(l => {
             const st = stateOf(l);
             return `<li><a class="lesson-link ${st.done ? 'done' : ''}" href="#/l/${l.key}/0">
-              <span class="lesson-num">${st.done ? '✓' : l.index + 1}</span>
+              <span class="lesson-num">${st.done ? '✓' : l.no}</span>
               <span class="lesson-name">${lessonTitleHTML(l, L())}</span>
               <span class="dots" aria-label="${st.count}/6">${st.solved.map((s, i) => `<i class="${i === 0 ? 'demo ' : ''}${s ? 'on' : ''}"></i>`).join('')}</span>
             </a></li>`;
@@ -246,16 +249,16 @@ function lessonHTML() {
 
   const side = `<aside class="side" style="--cc:var(--c-${ch.key})">
     <div class="card side-card">
-      <div class="chap">${H('lesson.of', { a: lesson.index + 1 })} · ${rubyHTML(raw('ch.' + ch.key, L()))}</div>
+      <div class="chap">${H('lesson.of', { a: lesson.no })} · ${rubyHTML(raw('ch.' + ch.key, L()))}</div>
       <h1>${lessonTitleHTML(lesson, L())}</h1>
-      <div class="book-ref" title="${esc(T('book.inAppTip'))}">${I.book}${H('book.inApp', { n: lessonPage(lesson) })}</div>
+      ${textbookPage(lesson) ? `<div class="book-ref" title="${esc(T('book.inAppTip'))}">${I.book}${H('book.inApp', { n: textbookPage(lesson) })}</div>` : ''}
       <div class="point"><b>${H('lesson.point')}</b>${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div>
     </div>
     <nav class="card plist" aria-label="${esc(T('lesson.problems'))}">
       <div class="plist-title"><span>${H('lesson.problems')}</span><span>${st.count}/6</span></div>
       ${probs.map(p => `<a class="pitem st-${p.stage} ${p.idx === prob.idx ? 'on' : ''} ${isSolved(p.id) ? 'solved' : ''}" href="#/l/${lesson.key}/${p.idx}" ${p.idx === prob.idx ? 'aria-current="page"' : ''}>
         <span class="ck"></span><span class="pt"><b>${stageLabelH(p)}</b><span>${esc(p.stage === 'demo' ? T('stage.demoSub') : themeName(p, L()))}</span></span></a>`).join('')}
-      ${st.done ? `<div class="done-banner">✓ ${H('lesson.done')}</div>` : `<div class="rule">${H('lesson.rule')}</div>`}
+      ${st.done ? `<div class="done-banner">✓ ${H('lesson.done')}</div>` : `<div class="rule">${H(lesson.kind === 'quiz' ? 'lesson.ruleQuiz' : stagesOf(lesson).includes('order') ? 'lesson.rule' : 'lesson.ruleNoOrder')}</div>`}
     </nav>
     <div class="lesson-nav">
       ${prevL ? `<a class="btn btn-ghost btn-sm" href="#/l/${prevL.key}/0">${I.prev}${H('btn.prevLesson')}</a>` : '<span></span>'}
@@ -307,7 +310,7 @@ function sessionHTML() {
       <div class="session-progress"><span>${ses.i + 1} / ${ses.items.length}</span><div class="bar"><i style="width:${Math.round(ses.i / ses.items.length * 100)}%"></i></div></div>
     </div>
     <div class="session-layout">
-      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.index + 1 })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
         <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
@@ -346,7 +349,7 @@ function workspaceHTML(prob) {
         ${prob.stage === 'demo' ? `<span class="tag">${H('stage.demoSub')}</span>` : `<span class="tag">${themeHTML(prob, L())}</span>`}
         ${isSolved(prob.id) ? `<span class="tag ok">✓ ${H('fb.correct')}</span>` : ''}
       </div>
-      <p class="inst">${rubyHTML(raw('inst.' + (prob.stage === 'review' ? 'write' : prob.stage), L()))}</p>
+      <p class="inst">${rubyHTML(raw('inst.' + (isQuiz(prob) ? 'quiz' : prob.stage === 'review' ? 'write' : prob.stage), L()))}</p>
       <p class="prob-text">${problemHTML(prob, L())}</p>
       ${S.settings.second && S.settings.second !== L() ? `<p class="prob-text bi" lang="${htmlLang(S.settings.second)}">${problemHTML(prob, S.settings.second)}</p>` : ''}
       <div class="tables">${prob.tables.map(n => tableBlockHTML(n, prob)).join('')}</div>
@@ -354,7 +357,7 @@ function workspaceHTML(prob) {
     ${prob.stage === 'demo' ? `<div id="ws-steps">${stepsHTML(prob)}</div>` : ''}
     <div id="ws-stage">${stageHTML(prob)}</div>
     <div id="ws-fb">${feedbackHTML(prob)}</div>
-    <div id="ws-res">${resultsHTML(prob)}</div>`;
+    <div id="ws-res">${isQuiz(prob) ? '' : resultsHTML(prob)}</div>`;
 }
 function tableBlockHTML(name, prob) {
   const tbl = ALL_TABLES[name];
@@ -412,6 +415,7 @@ function answerVisible(prob) {
   return isSolved(prob.id) || (S.progress.wrong[prob.id] || 0) >= 2;
 }
 function stageHTML(prob) {
+  if (isQuiz(prob)) return quizHTML(prob);
   if (prob.stage === 'fill') return fillHTML(prob);
   if (prob.stage === 'order') return orderHTML(prob);
   return writeHTML(prob);
@@ -431,6 +435,32 @@ function hintsHTML(prob) {
       ${vis ? `<div class="hint-body"><pre class="sql">${highlightSQL(prob.sql)}</pre>
       <button class="btn btn-ghost btn-sm" data-act="useSql" data-sql="${esc(prob.sql)}">${H('hint.use')}</button></div>` : ''}</details>
   </div>`;
+}
+/* Lesson 0: read the table and type the answer */
+function quizHTML(prob) {
+  const run = S.runs[prob.id];
+  const val = S.progress.drafts['q:' + prob.id] || '';
+  const vis = answerVisible(prob);
+  const wrong = S.progress.wrong[prob.id] || 0;
+  return `<section class="card editor-card quiz">
+      <form class="quiz-form" data-form="quiz">
+        <label class="quiz-label" for="quiz-in">${H('quiz.label')}</label>
+        <div class="quiz-row"><input id="quiz-in" class="quiz-in ${run ? (run.grade && run.grade.ok ? 'ok' : 'bad') : ''}" value="${esc(val)}" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button class="btn btn-primary btn-run">${I.check}${H('fill.check')}</button></div>
+      </form>
+      <details class="hint ${vis ? '' : 'locked'}" ${vis ? '' : 'data-locked="1"'}><summary><span class="hi">${vis ? '✓' : I.lock}</span>${H('hint.answer')}${vis ? '' : `<span class="muted small lockmsg">${esc(T('hint.locked', { n: Math.max(0, 2 - wrong) }))}</span>`}</summary>
+        ${vis ? `<div class="hint-body"><p class="quiz-ans">${esc(String(prob.answer))}</p>${/^SELECT\b/i.test(prob.sql) && !/^SELECT\s+'/i.test(prob.sql) ? `<p class="muted small">${H('quiz.bySql')}</p><pre class="sql">${highlightSQL(prob.sql)}</pre>` : ''}</div>` : ''}</details>
+    </section>`;
+}
+function checkQuiz() {
+  const c = current(); if (!c) return;
+  const inp = document.getElementById('quiz-in');
+  const text = inp ? inp.value : '';
+  S.progress.drafts['q:' + c.prob.id] = text;
+  if (!text.trim()) { S.runs[c.prob.id] = { error: { code: 'empty' }, dx: [] }; afterCheck(['stage']); return; }
+  const ok = checkAnswer(c.prob, text);
+  record(c.prob, ok, { grade: ok ? { ok: true } : { ok: false, reason: 'answer' }, dx: ok ? [] : [{ key: 'quizWrong', vars: {} }], sql: text }, text);
+  afterCheck(['stage']);
 }
 function writeHTML(prob) {
   const kws = LESSON_BY_KEY[prob.lesson].keywords || [];
@@ -522,12 +552,16 @@ function resultsHTML(prob) {
   const exp = S.engine.exec(prob.sql);
   const user = run && run.res;
   const tab = (k, label, res) => `<button class="res-tab ${S.tab === k ? 'on' : ''}" data-act="tab" data-tab="${k}" role="tab" aria-selected="${S.tab === k}">${esc(label)}${res ? `<span class="count">${res.values.length}</span>` : ''}</button>`;
+  // INSERT / UPDATE / DELETE: rows that are new or changed are highlighted
+  const before = exp && exp.dml ? new Set(S.engine.tableData(exp.dml.table).values.map(r => JSON.stringify(r))) : null;
+  const opts = { rowNums: true, rowClass: before ? r => (before.has(JSON.stringify(r)) ? '' : 'chg') : null };
   let body;
-  if (S.tab === 'expected') body = gridHTML(exp, { rowNums: true });
+  if (S.tab === 'expected') body = gridHTML(exp, opts);
   else if (!run || run.error) body = `<div class="res-empty">${H('res.notRun')}</div>`;
   else if (!user.columns.length || !user.values.length) body = `<div class="res-empty">${H('res.noRows')}</div>`;
-  else body = gridHTML(user, { rowNums: true });
-  return `<section class="card results">
+  else body = gridHTML(user, user.dml ? opts : { rowNums: true });
+  const after = exp && exp.dml ? `<p class="res-after muted small">${H('res.after', { t: exp.dml.table })}</p>` : '';
+  return `<section class="card results">${after}
     <div class="res-tabs" role="tablist">${tab('user', T('res.yours'), run && !run.error ? user : null)}${tab('expected', T('res.expected'), exp)}</div>
     <div class="res-body">${body}</div>
   </section>`;
@@ -566,7 +600,7 @@ function refresh(parts) {
   }
   if (parts.includes('hints')) { const h = document.querySelector('#ws-stage .hints'); if (h) { const open = [...h.querySelectorAll('details')].map(d => d.open); h.outerHTML = hintsHTML(prob); document.querySelectorAll('#ws-stage .hints details').forEach((d, i) => { if (open[i] && !d.dataset.locked) d.open = true; }); } }
   if (parts.includes('fb')) put('ws-fb', feedbackHTML(prob));
-  if (parts.includes('res')) put('ws-res', resultsHTML(prob));
+  if (parts.includes('res') && !isQuiz(prob)) put('ws-res', resultsHTML(prob));
   if (parts.includes('side')) { const side = document.querySelector('.plist'); if (side && S.route.view === 'lesson') { const tmp = document.createElement('div'); tmp.innerHTML = lessonHTML(); const n = tmp.querySelector('.plist'); if (n) side.replaceWith(n); } }
 }
 
@@ -578,8 +612,9 @@ function evaluate(prob, sql, extra) {
   let run;
   try {
     const res = S.engine.runUser(sql);
-    const g = grade(res, exp, prob.ordered, sql);
-    const fix = g.ok ? null : findFix(sql, s => S.engine.runUser(s), r => grade(r, exp, prob.ordered).ok);
+    const names = LESSON_BY_KEY[prob.lesson].names;
+    const g = grade(res, exp, prob.ordered, sql, names);
+    const fix = g.ok ? null : findFix(sql, s => S.engine.runUser(s), r => grade(r, exp, prob.ordered, null, names).ok);
     const d = diagnose({ sql, grade: g, prob, fix });
     run = { res, grade: g, dx: d.items, mark: d.mark, sql };
   } catch (e) {
@@ -588,7 +623,10 @@ function evaluate(prob, sql, extra) {
     run = { error: err, dx: d.items, mark: d.mark, sql };
   }
   Object.assign(run, extra || {});
-  const ok = !!(run.grade && run.grade.ok);
+  return record(prob, !!(run.grade && run.grade.ok), run, sql);
+}
+/** progress, streak, review and class log after a check */
+function record(prob, ok, run, sql) {
   const empty = run.error && run.error.code === 'empty';
   if (!empty) {
     if (ok) {
@@ -633,8 +671,9 @@ function checkFill() {
   const c = current(); if (!c) return;
   const task = S.engine.fillTask(c.prob);
   const vals = readFill();
-  const norm = v => String(v || '').trim().replace(/^'|'$/g, '').replace(/\s+/g, ' ').toLowerCase();
-  const blanks = task.answers.map((a, i) => norm(vals[i]) === norm(a));
+  // quotes count when they are part of the answer (Lesson 2: text needs ' ')
+  const norm = (v, a) => { v = String(v || '').trim().replace(/\s+/g, ' ').toLowerCase(); return /^'.*'$/.test(a) ? v : v.replace(/^'|'$/g, ''); };
+  const blanks = task.answers.map((a, i) => norm(vals[i], a) === norm(a, a));
   const run = evaluate(c.prob, S.engine.fillSql(task, vals), { blanks });
   if (run.grade && run.grade.ok) run.blanks = task.answers.map(() => true);
   else { const n = blanks.filter(x => !x).length; if (n) run.dx = [{ key: 'blanksWrong', vars: { n } }].concat((run.dx || []).filter(d => d.key !== 'values')).slice(0, 3); }
@@ -701,7 +740,7 @@ const actions = {
   stepNext() { S.step++; refresh(['steps']); },
   stepPrev() { S.step = Math.max(0, S.step - 1); refresh(['steps']); },
   stepClose() { S.step = null; refresh(['steps']); },
-  checkFill, checkOrder,
+  checkFill, checkOrder, checkQuiz,
   resetFill() { const c = current(); delete S.progress.drafts['f:' + c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
   place(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).concat(el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   unplace(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).filter(x => x !== el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
@@ -744,6 +783,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('submit', e => {
   const f = e.target;
+  if (f.dataset.form === 'quiz') { e.preventDefault(); checkQuiz(); return; }
   if (f.dataset.form === 'set') { e.preventDefault(); const code = normCode(new FormData(f).get('code')); if (code) changeSet(code); }
   if (f.dataset.form === 'join') { e.preventDefault(); doJoin(f); }
   if (f.dataset.form === 'rename') { e.preventDefault(); doRename(f); }

@@ -9,11 +9,12 @@ import { fmtCell } from './ui.js';
 
 const LABEL = { from: 'FROM', join_inner: 'INNER JOIN', join_left: 'LEFT JOIN', where: 'WHERE', group: 'GROUP BY', having: 'HAVING', select: 'SELECT', select_distinct: 'SELECT DISTINCT', order: 'ORDER BY', limit: 'LIMIT', offset: 'LIMIT … OFFSET' };
 const RUN = ['from', 'join_inner', 'join_left', 'where', 'group', 'having', 'select', 'select_distinct', 'order', 'limit', 'offset'];
-export const STEP_TO_KIND = { 'step.from': 'from', 'step.join_inner': 'join_inner', 'step.join_left': 'join_left', 'step.where': 'where', 'step.group': 'group', 'step.having': 'having', 'step.agg': 'select', 'step.select': 'select', 'step.distinct': 'select_distinct', 'step.order': 'order', 'step.limit': 'limit', 'step.offset': 'offset' };
+export const STEP_TO_KIND = { 'step.from': 'from', 'step.join_inner': 'join_inner', 'step.join_left': 'join_left', 'step.where': 'where', 'step.group': 'group', 'step.having': 'having', 'step.agg': 'select', 'step.select': 'select', 'step.distinct': 'select_distinct', 'step.order': 'order', 'step.limit': 'limit', 'step.offset': 'offset', 'step.calc': 'select', 'step.alias': 'select' };
 
 /** @param current  the clause kind being explained now (or null) */
 export function orderStripHTML(sql, current, lang) {
   const kinds = splitClauses(sql).map(clauseKind);
+  if (!kinds.includes('from') || kinds.some(k => ['insert', 'update', 'delete'].includes(k))) return '';   // INSERT / UPDATE / DELETE, or SELECT without FROM: nothing to reorder
   const run = RUN.filter(k => kinds.includes(k));
   const chip = k => `<span class="os-chip ${k === current || (current === 'select' && k === 'select_distinct') ? 'on' : ''}">${LABEL[k]}</span>`;
   const row = (label, arr) => `<div class="os-row"><span class="os-lab">${label}</span><div class="os-chips">${arr.map(chip).join('<span class="os-arrow">→</span>')}</div></div>`;

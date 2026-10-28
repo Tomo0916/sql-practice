@@ -74,4 +74,6 @@ const bad = await p.evaluate(() => {
 console.log(bad.length ? '✕ sticks out:\n  ' + bad.join('\n  ') : '✓ nothing sticks out of its box');
 await p.pdf({ path: pdf, preferCSSPageSize: true, printBackground: true });
 await b.close();
+// the app offers the PDF in its textbook tab
+fs.copyFileSync(pdf, path.join(here, '..', 'next', 'book', `sql-textbook-${name}.pdf`));
 console.log('✓', path.relative(here, pdf));

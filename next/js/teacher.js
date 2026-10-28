@@ -10,7 +10,7 @@
 import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
-import { bookHTML } from './book.js';
+import { TEXTBOOKS } from './book.js';
 import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
@@ -31,14 +31,11 @@ const S = {
   mistakeProb: null,
   busy: false,
   isTeacher: null,   // null = not checked yet
-  book: Object.assign({ lang: null, second: null, title: '', cover: true, front: true, glossary: true, memo: true, lessons: LESSONS.map(l => l.key) }, Store.get('sqln.book', {})),
   test: Object.assign({ title: '', tlang: null, bilingual: null, lessons: LESSONS.map(l => l.key), per: 1, type: 'write', key: true, results: true, code: randomCode(), ab: false }, Store.get(KEYS.test, {}))
 };
 S.settings.lang = detectLang(S.settings.lang);
 S.settings.presenter = false;
 if (!S.test.tlang) S.test.tlang = S.settings.lang;
-if (!S.book.lang) S.book.lang = S.settings.lang;
-S.book.lessons = S.book.lessons.filter(k => LESSONS.some(l => l.key === k));
 const app = document.getElementById('app');
 const L = () => S.settings.lang;
 const T = (k, v) => t(k, L(), v);
@@ -75,7 +72,7 @@ function render() {
   else if (v === 'class') body = classHTML();
   else body = classesHTML();
   app.innerHTML = headerHTML() + body;
-  if (v === 'book' && S.engine) { document.title = S.book.title || t('book.defaultTitle', S.book.lang); drawJoinLines(app); }
+  if (v === 'book') document.title = `${T('book.nav')} · SQL Practice`;
   if (v === 'test' && S.engine) document.title = `${S.test.title || t('test.headingDefault', S.test.tlang)} (${S.test.code})`;
 }
 function headerHTML() {
@@ -179,7 +176,7 @@ function assignHTML(c) {
   return `<form class="card assign-form" data-form="assign">
     <div class="fld"><span>${H('tc.assignLessons')}</span>
       <div class="lesson-pick">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>
-        ${LESSONS.filter(l => l.ch === ch.key).map(l => `<label class="chk"><input type="checkbox" name="lesson" value="${l.key}" ${sel.has(l.key) ? 'checked' : ''}><span>${l.index + 1}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
+        ${LESSONS.filter(l => l.ch === ch.key).map(l => `<label class="chk"><input type="checkbox" name="lesson" value="${l.key}" ${sel.has(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
     <div class="fld"><span>${H('tc.setCode')}</span>
       <div class="inline-form"><input name="set_code" class="mono" maxlength="16" value="${esc(c.set_code)}" required>
       <button type="button" class="btn btn-ghost btn-sm" data-act="setToday">${H('set.today')}</button>
@@ -192,12 +189,15 @@ function assignHTML(c) {
     <div class="fld"><span>${H('tc.previewTitle')}</span><small class="muted">${H('tc.previewTip')}</small>
       <div class="preview-list">${(c.lessons || []).filter(k => LESSON_BY_KEY[k]).map(k => {
         const l = LESSON_BY_KEY[k];
-        return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span> ${problemHTML(p, L())}<pre class="sql">${highlightSQL(p.sql)}</pre></div>`).join('')}</details>`;
+        return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span> ${problemHTML(p, L())}${answerHTML(p)}</div>`).join('')}</details>`;
       }).join('') || `<p class="muted">${H('tc.noLessons')}</p>`}</div></div>
   </form>`;
 }
-function stageNameH(p) { return p.stage === 'write' ? H('stage.write', { n: p.idx - 2 }) : H('stage.' + p.stage); }
-function stageName(p) { return p.stage === 'write' ? T('stage.write', { n: p.idx - 2 }) : T('stage.' + p.stage); }
+function stageNameH(p) { return p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : H('stage.' + p.stage); }
+function stageName(p) { return p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : T('stage.' + p.stage); }
+const isQuiz = p => LESSON_BY_KEY[p.lesson].kind === 'quiz';
+/** the answer of a problem: SQL, or the value for Lesson 0 */
+const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${esc(String(p.answer))}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>`);
 
 /* live grid: members × problems of the assigned lessons */
 function classProblems(c) {
@@ -230,7 +230,7 @@ function liveHTML(c) {
     <div class="live-bar"><label class="chk"><input type="checkbox" data-act2="today" ${S.liveOnlyToday ? 'checked' : ''}><span>${H('tc.todayOnly')}</span></label>
       <span class="muted small">${I.bolt} ${H('tc.liveNote')}</span><button class="btn btn-ghost btn-xs" data-act="reload">${I.reset}${H('tc.reload')}</button></div>
     <div class="live-scroll"><table class="live-grid">
-      <thead><tr><th rowspan="2"></th><th rowspan="2" class="n">✓</th>${groups.map(g => `<th colspan="${g.probs.length}" class="lg-h" title="${esc(lessonTitle(g.lesson, L()))}">${g.lesson.index + 1}. ${lessonTitleHTML(g.lesson, L())}</th>`).join('')}</tr>
+      <thead><tr><th rowspan="2"></th><th rowspan="2" class="n">✓</th>${groups.map(g => `<th colspan="${g.probs.length}" class="lg-h" title="${esc(lessonTitle(g.lesson, L()))}">${g.lesson.no}. ${lessonTitleHTML(g.lesson, L())}</th>`).join('')}</tr>
       <tr>${groups.map(g => g.probs.map(p => `<th class="pcol ${p.idx === 0 ? 'first' : ''}"><button data-act="openMistakes" data-p="${p.id}" title="${esc(stageName(p))}">${p.idx === 0 ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' : 'W' + (p.idx - 2)}</button></th>`).join('')).join('')}</tr></thead>
       <tbody>${rows || `<tr><td colspan="99" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody>
       <tfoot><tr><th>${H('tc.rate')}</th><td></td>${all.map(p => { const r = Math.round(solvedBy(p) / n * 100); return `<td class="rate ${p.idx === 0 ? 'first' : ''}"><span style="--r:${r}%">${S.members.length ? r + '%' : ''}</span></td>`; }).join('')}</tr></tfoot>
@@ -254,8 +254,9 @@ function mistakesHTML(c) {
   const byText = new Map();
   wrong.forEach(a => { const k = normSql(a.sql); const x = byText.get(k) || { sql: k, n: 0, users: new Set() }; x.n++; x.users.add(a.user_id); byText.set(k, x); });
   const list = [...byText.values()].sort((a, b) => b.users.size - a.users.size || b.n - a.n).slice(0, 12);
-  const exp = S.engine.exec(prob.sql);
+  const exp = isQuiz(prob) ? null : S.engine.exec(prob.sql);
   const why = sql => {
+    if (isQuiz(prob)) return '';
     let g = null, err = null;
     try { g = grade(S.engine.runUser(sql), exp, prob.ordered, sql); } catch (e) { err = { code: e.code, message: e.message }; }
     const d = diagnose({ sql, error: err, grade: g, prob });
@@ -267,8 +268,8 @@ function mistakesHTML(c) {
       <div class="mk-stats"><b>${solvedUsers.size}</b> ${H('tc.solvedN')} · <b>${triedUsers.size - solvedUsers.size}</b> ${H('tc.stuckN')}</div>
       <button class="btn btn-ghost btn-sm" data-act="projectMistakes">${I.screen}${H('tc.project')}</button>
     </div>
-    <div class="mk-prob"><p class="prob-text">${problemHTML(prob, L())}</p><details><summary class="muted small">${H('hint.answer')}</summary><pre class="sql">${highlightSQL(prob.sql)}</pre></details></div>
-    <div id="mk-list">${list.length ? `<ol class="mk-list">${list.map(x => `<li><div class="mk-n"><b>${x.users.size}</b><small>${H('tc.people')}</small></div><div class="mk-body"><pre class="sql">${highlightSQL(x.sql)}</pre><p class="mk-why">${why(x.sql)}</p></div></li>`).join('')}</ol>` : `<p class="res-empty">${H('tc.noMistakes')}</p>`}</div>
+    <div class="mk-prob"><p class="prob-text">${problemHTML(prob, L())}</p><details><summary class="muted small">${H('hint.answer')}</summary>${answerHTML(prob)}</details></div>
+    <div id="mk-list">${list.length ? `<ol class="mk-list">${list.map(x => `<li><div class="mk-n"><b>${x.users.size}</b><small>${H('tc.people')}</small></div><div class="mk-body">${isQuiz(prob) ? `<p class="quiz-ans bad">${esc(x.sql)}</p>` : `<pre class="sql">${highlightSQL(x.sql)}</pre>`}<p class="mk-why">${why(x.sql)}</p></div></li>`).join('')}</ol>` : `<p class="res-empty">${H('tc.noMistakes')}</p>`}</div>
     <p class="muted small">${H('tc.anonNote')}</p>
   </section>`;
 }
@@ -296,7 +297,7 @@ function presentHTML() {
   return `<main class="wrap">
     <h1 class="page-title">${H('tc.present')}</h1><p class="muted">${H('tc.presentSub')}</p>
     <div class="chapters">${CHAPTERS.map(ch => `<article class="card chapter" style="--cc:var(--c-${ch.key})"><div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div><h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2></div></div>
-      <ul class="lesson-list">${LESSONS.filter(l => l.ch === ch.key).map(l => `<li><a class="lesson-link" target="_blank" rel="noopener" href="index.html?present=1&set=${encodeURIComponent(code)}#/l/${l.key}/0"><span class="lesson-num">${l.index + 1}</span><span class="lesson-name">${lessonTitleHTML(l, L())}</span>${I.screen}</a></li>`).join('')}</ul></article>`).join('')}</div>
+      <ul class="lesson-list">${LESSONS.filter(l => l.ch === ch.key).map(l => `<li><a class="lesson-link" target="_blank" rel="noopener" href="index.html?present=1&set=${encodeURIComponent(code)}#/l/${l.key}/0"><span class="lesson-num">${l.no}</span><span class="lesson-name">${lessonTitleHTML(l, L())}</span>${I.screen}</a></li>`).join('')}</ul></article>`).join('')}</div>
   </main>`;
 }
 
@@ -311,7 +312,7 @@ function testHTML() {
     <label class="fld"><span>${H('test.second')}</span><select data-tk="bilingual"><option value="">${esc(T('set.secondNone'))}</option>${LANGS.filter(l => l.code !== o.tlang).map(l => `<option value="${l.code}" ${o.bilingual === l.code ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label>
     <div class="fld"><span>${H('test.lessons')}</span>
       <div class="row-btns left"><button class="btn btn-ghost btn-xs" data-act="testAll">${H('test.all')}</button><button class="btn btn-ghost btn-xs" data-act="testNone">${H('test.none')}</button>${S.klass ? `<button class="btn btn-ghost btn-xs" data-act="testClass">${H('tc.fromClass')}</button>` : ''}</div>
-      <div class="lesson-pick compact">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>${LESSONS.filter(l => l.ch === ch.key).map(l => `<label class="chk"><input type="checkbox" data-tl="${l.key}" ${o.lessons.includes(l.key) ? 'checked' : ''}><span>${l.index + 1}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
+      <div class="lesson-pick compact">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>${LESSONS.filter(l => l.ch === ch.key && l.kind !== 'quiz').map(l => `<label class="chk"><input type="checkbox" data-tl="${l.key}" ${o.lessons.includes(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
     <div class="fld"><span>${H('test.perLesson')}</span><div class="seg">${radio('per', 1, '1')}${radio('per', 2, '2')}${radio('per', 3, '3')}</div></div>
     <div class="fld"><span>${H('test.type')}</span><div class="seg">${radio('type', 'write', T('test.typeWrite'))}${radio('type', 'predict', T('test.typePredict'))}${radio('type', 'mix', T('test.typeMix'))}</div></div>
     <div class="fld"><span>${H('test.versions')}</span><div class="seg">${radio('ab', false, T('test.versionA'))}${radio('ab', true, T('test.versionAB'))}</div><small class="muted">${H('test.versionTip')}</small></div>
@@ -358,34 +359,15 @@ function sheetsHTML(test, ver, ab) {
 }
 function saveTest() { Store.set(KEYS.test, S.test); }
 
-/* ---------- textbook ---------- */
+/* ---------- textbook (PDF) ---------- */
 function bookPanelHTML() {
-  const b = S.book;
-  const chk = (k, label) => `<label class="chk"><input type="checkbox" data-bk="${k}" ${b[k] ? 'checked' : ''}><span>${H(label)}</span></label>`;
-  const panel = `<aside class="card tm-panel">
-    <div><h1>${H('book.panelTitle')}</h1><p class="muted small">${H('book.panelSub')}</p></div>
-    <label class="fld"><span>${H('book.titleLabel')}</span><input type="text" data-bk="title" value="${esc(b.title)}" placeholder="${esc(t('book.defaultTitle', b.lang))}"></label>
-    <label class="fld"><span>${H('book.langLabel')}</span><select data-bk="lang">${langOptions(b.lang)}</select></label>
-    <label class="fld"><span>${H('book.secondLabel')}</span><select data-bk="second"><option value="">${esc(T('set.secondNone'))}</option>${LANGS.filter(l => l.code !== b.lang).map(l => `<option value="${l.code}" ${b.second === l.code ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label>
-    <div class="fld"><span>${H('book.parts')}</span>
-      ${chk('cover', 'book.partCover')}${chk('front', 'book.partFront')}${chk('glossary', 'book.partGlossary')}${chk('memo', 'book.partMemo')}</div>
-    <div class="fld"><span>${H('book.lessonsLabel')}</span>
-      <div class="row-btns left"><button class="btn btn-ghost btn-xs" data-act="bookAll">${H('test.all')}</button><button class="btn btn-ghost btn-xs" data-act="bookNone">${H('test.none')}</button></div>
-      <div class="lesson-pick compact">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>${LESSONS.filter(l => l.ch === ch.key).map(l => `<label class="chk"><input type="checkbox" data-bl="${l.key}" ${b.lessons.includes(l.key) ? 'checked' : ''}><span>${l.index + 1}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
-    <p class="muted small">${H('book.pageTip')}</p>
-    <div class="tm-print"><button class="btn btn-primary" data-act="print">${I.print}${H('test.print')}</button></div>
-  </aside>`;
-  return `<main class="wrap"><div class="tm-layout">${panel}<div class="paper-wrap book">${bookPaper()}</div></div></main>`;
-}
-function bookPaper() {
-  const b = S.book;
-  return bookHTML(S.engine, { lang: b.lang, second: b.second && b.second !== b.lang ? b.second : null, title: b.title, memo: b.memo, parts: { cover: b.cover, front: b.front, glossary: b.glossary, lessons: b.lessons } });
-}
-let bookTimer = null;
-function rerenderBook() {
-  Store.set('sqln.book', S.book);
-  clearTimeout(bookTimer);
-  bookTimer = setTimeout(() => { const p = document.querySelector('.paper-wrap.book'); if (p) { p.innerHTML = bookPaper(); drawJoinLines(p); } }, 150);
+  const cards = TEXTBOOKS.map(b => `<article class="card tb-card ${b.ready ? '' : 'soon'}">
+      <div class="tb-cover tb-${b.key}"><span>SQL</span><b>${rubyHTML(raw('book.lv.' + b.key, L()))}</b></div>
+      <div class="tb-body"><h2>${H('book.lv.' + b.key)}</h2><p class="muted">Lesson ${b.from}–${b.to}</p>
+        ${b.ready ? `<div class="row-btns left"><a class="btn btn-primary" href="${b.file}" target="_blank" rel="noopener">${I.book}${H('book.open')}</a><a class="btn btn-ghost" href="${b.file}" download>${H('book.download')}</a></div>`
+          : `<p class="muted small">${H('book.soon')}</p>`}</div></article>`).join('');
+  return `<main class="wrap"><h1 class="page-title">${H('book.panelTitle')}</h1><p class="muted">${H('book.panelSub')}</p>
+    <div class="tb-grid">${cards}</div></main>`;
 }
 let testTimer = null;
 function rerenderPaper() { saveTest(); clearTimeout(testTimer); testTimer = setTimeout(() => { const p = document.querySelector('.paper-wrap'); if (p) p.innerHTML = paperHTML(); }, 120); }
@@ -473,8 +455,6 @@ const actions = {
   testNone() { S.test.lessons = []; render(); saveTest(); },
   testClass() { S.test.lessons = LESSONS.map(l => l.key).filter(k => (S.klass.lessons || []).includes(k)); S.test.code = S.klass.set_code; render(); saveTest(); },
   testNewCode() { S.test.code = randomCode(); render(); saveTest(); },
-  bookAll() { S.book.lessons = LESSONS.map(l => l.key); Store.set('sqln.book', S.book); render(); },
-  bookNone() { S.book.lessons = []; Store.set('sqln.book', S.book); render(); },
   print() { setTimeout(() => window.print(), 60); }
 };
 document.addEventListener('click', e => {
@@ -488,17 +468,6 @@ document.addEventListener('change', async e => {
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }
   if (el.dataset.act2 === 'mistakeProb') { S.mistakeProb = el.value; refreshTab(); return; }
-  if (el.dataset.bk) {
-    const k = el.dataset.bk, b = S.book;
-    if (el.type === 'checkbox') b[k] = el.checked; else b[k] = el.value || (k === 'second' ? null : el.value);
-    if (k === 'lang' || k === 'second') { await loadLang(b.lang); if (b.second) await loadLang(b.second); if (b.second === b.lang) b.second = null; Store.set('sqln.book', b); render(); return; }
-    rerenderBook(); return;
-  }
-  if (el.dataset.bl) {
-    const key = el.dataset.bl;
-    S.book.lessons = el.checked ? LESSONS.map(l => l.key).filter(x => x === key || S.book.lessons.includes(x)) : S.book.lessons.filter(x => x !== key);
-    rerenderBook(); return;
-  }
   const k = el.dataset.tk;
   if (k) {
     const o = S.test;
@@ -522,7 +491,6 @@ document.addEventListener('change', async e => {
 });
 document.addEventListener('input', e => {
   if (e.target.dataset.tk === 'title') { S.test.title = e.target.value; rerenderPaper(); }
-  if (e.target.dataset.bk === 'title') { S.book.title = e.target.value; rerenderBook(); }
 });
 document.addEventListener('submit', async e => {
   const f = e.target, kind = f.dataset.form;
@@ -565,7 +533,7 @@ async function openQR(c) {
 /* ---------- start ---------- */
 (async function start() {
   S.route = parseRoute();
-  await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null, loadLang(S.book.lang), S.book.second ? loadLang(S.book.second) : null]);
+  await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null]);
   render();
   try { S.engine = new SqlEngine(await window.initSqlJs({ locateFile: f => 'vendor/' + f })); }
   catch (e) { console.error(e); app.innerHTML = headerHTML() + `<div class="loading"><div>${H('misc.loadError')}</div></div>`; return; }

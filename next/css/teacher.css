@@ -243,3 +243,18 @@ td.rate span { display: block; font-weight: 700; background: linear-gradient(90d
   .bpage.gloss .bfoot { position: static; margin-top: 4mm; }
 }
 @media (max-width: 1000px) { .paper-wrap.book { overflow-x: auto; align-items: flex-start; } }
+
+/* textbook tab: the printed textbooks (PDF) */
+.tb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin-top: 16px; }
+.tb-card { display: flex; gap: 16px; align-items: center; }
+.tb-card.soon { opacity: .6; }
+.tb-cover { flex: none; width: 84px; height: 116px; border-radius: 8px; color: #fff; display: flex; flex-direction: column; justify-content: space-between; padding: 10px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.tb-cover span { font-family: var(--mono); font-weight: 800; font-size: 1.1rem; }
+.tb-cover b { font-size: .95rem; }
+.tb-beginner { background: #2f5fe0; } .tb-intermediate { background: #0f8a6a; } .tb-advanced { background: #7b3fc4; }
+.tb-body h2 { margin: 0 0 2px; font-size: 1.15rem; }
+.tb-body p { margin: 0 0 10px; }
+.tb-card { padding: 16px; }
+.tb-cover b { font-size: .78rem; overflow-wrap: anywhere; line-height: 1.2; }
+.tb-cover { width: 96px; }
+.tb-cover b { font-size: .7rem; overflow-wrap: normal; }

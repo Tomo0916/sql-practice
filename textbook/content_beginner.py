@@ -634,7 +634,7 @@ AGG = minitable([('{関数|かんすう}', 'function'), ('{意味|いみ}', 'mea
     ('MAX / MIN', ('{一番|いちばん}{大|おお}きい{値|あたい} / {小|ちい}さい{値|あたい}', 'largest / smallest value'), 'MAX(price)'),
 ])
 LESSONS.append(dict(
-    no=15, key='aggregate', kw='COUNT・SUM・AVG',
+    no=15, key='aggfn', kw='COUNT・SUM・AVG',
     title=('{集計|しゅうけい}する', 'Count, total, average: aggregate functions'),
     goal=('{行|ぎょう}の{数|かず}・{合計|ごうけい}・{平均|へいきん}・{最大|さいだい}・{最小|さいしょう}を{求|もと}められる。', 'You can find the number of rows, total, average, maximum and minimum.'),
     syntax=[
@@ -760,7 +760,7 @@ def flow_steps():
     return f'<div class="fl-row two">{s1}{s2}</div><div class="fl-row two">{s3}{s4}</div><div class="fl-row three">{s5}{s6}{s7}</div>'
 
 LESSONS.append(dict(
-    no=18, key='order', kw='{実行|じっこう}{順|じゅん}',
+    no=18, key='wherehaving', kw='{実行|じっこう}{順|じゅん}',
     title=('SQL が{実行|じっこう}される{順番|じゅんばん}', 'The order in which SQL runs'),
     goal=('{書|か}く{順番|じゅんばん}と{実行|じっこう}される{順番|じゅんばん}のちがいを{説明|せつめい}でき、{句|く}を{正|ただ}しい{順|じゅん}に{書|か}ける。', 'You can explain how the writing order differs from the running order, and write clauses in the right order.'),
     see=dict(q=('データベースは、FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT の{順|じゅん}に{処理|しょり}する。{次|つぎ}の SQL で、データが 1 {段|だん}ずつ{絞|しぼ}られていく{様子|ようす}を{見|み}よう。', 'The database works in the order FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT. Watch the data get narrowed down one step at a time.'),

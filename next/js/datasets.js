@@ -45,6 +45,19 @@ export const DEMO_DATASETS = {
       [10, 'Ali Santos', 'IT', 62, 22, 2022]
     ]
   },
+  contacts: {
+    table: 'contacts',
+    columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['email', 'TEXT'], ['phone', 'TEXT']],
+    roles: { name: 'name', opt: 'email', opt2: 'phone' },
+    rows: [
+      [1, 'Aiko Sato', 'aiko@example.com', '090-1111-2222'],
+      [2, 'Ben Clark', null, '080-3333-4444'],
+      [3, 'Chen Li', 'chen@example.com', null],
+      [4, 'Dina Rai', null, null],
+      [5, 'Emma Hill', 'emma@example.com', '070-5555-6666'],
+      [6, 'Farid Khan', 'farid@example.com', null]
+    ]
+  },
   table_a: {
     table: 'table_a',
     columns: [['id', 'INTEGER'], ['class', 'TEXT'], ['column_a1', 'TEXT']],
@@ -63,6 +76,7 @@ export const SINGLE_DATASETS = [
     table: 'books',
     columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['genre', 'TEXT'], ['price', 'INTEGER'], ['pages', 'INTEGER'], ['published_year', 'INTEGER']],
     roles: { name: 'title', cat: 'genre', n1: 'price', n2: 'pages', yr: 'published_year' },
+    newRows: [[13, 'Winter Garden', 'Novel', 1700, 290, 2024], [14, 'Planet Kids', 'Comic', 600, 180, 2024]],
     likeTerms: ['Sun', 'The', 'Star', 'Night', 'Ocean', 'Water', 'Space'],
     rows: [
       [1, 'The Silent Sea', 'Novel', 1800, 320, 2019],
@@ -83,6 +97,7 @@ export const SINGLE_DATASETS = [
     table: 'employees',
     columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['department', 'TEXT'], ['salary', 'INTEGER'], ['age', 'INTEGER'], ['hire_year', 'INTEGER']],
     roles: { name: 'name', cat: 'department', n1: 'salary', n2: 'age', yr: 'hire_year' },
+    newRows: [[13, 'Hana Kim', 'IT', 340000, 26, 2024], [14, 'Paul Martin', 'HR', 305000, 39, 2024]],
     likeTerms: ['an', 'ar', 'Ra', 'in', 'Li'],
     rows: [
       [1, 'Yuki Sato', 'Sales', 320000, 29, 2018],
@@ -103,6 +118,7 @@ export const SINGLE_DATASETS = [
     table: 'menu',
     columns: [['id', 'INTEGER'], ['item', 'TEXT'], ['type', 'TEXT'], ['price', 'INTEGER'], ['calories', 'INTEGER'], ['added_year', 'INTEGER']],
     roles: { name: 'item', cat: 'type', n1: 'price', n2: 'calories', yr: 'added_year' },
+    newRows: [[13, 'Lemon Tea', 'Drink', 430, 60, 2024], [14, 'Cheese Cake', 'Dessert', 560, 330, 2024]],
     likeTerms: ['Mango', 'Chocolate', 'Tea', 'Coffee', 'Rice', 'Cake'],
     rows: [
       [1, 'Iced Coffee', 'Drink', 450, 15, 2019],
@@ -123,6 +139,7 @@ export const SINGLE_DATASETS = [
     table: 'movies',
     columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['genre', 'TEXT'], ['minutes', 'INTEGER'], ['rating', 'INTEGER'], ['release_year', 'INTEGER']],
     roles: { name: 'title', cat: 'genre', n1: 'minutes', n2: 'rating', yr: 'release_year' },
+    newRows: [[13, 'Blue Harbor', 'Drama', 112, 79, 2024], [14, 'Star Runner', 'Action', 133, 74, 2024]],
     likeTerms: ['Night', 'Party', 'Dragon', 'Fire', 'Star'],
     rows: [
       [1, 'Fast River', 'Action', 128, 72, 2019],
@@ -143,6 +160,7 @@ export const SINGLE_DATASETS = [
     table: 'hotels',
     columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['city', 'TEXT'], ['price', 'INTEGER'], ['rooms', 'INTEGER'], ['opened_year', 'INTEGER']],
     roles: { name: 'name', cat: 'city', n1: 'price', n2: 'rooms', yr: 'opened_year' },
+    newRows: [[13, 'Hill Lodge', 'Sapporo', 9800, 35, 2024], [14, 'Bay Hostel', 'Fukuoka', 3600, 30, 2024]],
     likeTerms: ['Hotel', 'Hostel', 'Inn', 'House', 'Park'],
     rows: [
       [1, 'Sakura Inn', 'Osaka', 8500, 40, 2015],
@@ -163,6 +181,7 @@ export const SINGLE_DATASETS = [
     table: 'smartphones',
     columns: [['id', 'INTEGER'], ['model', 'TEXT'], ['brand', 'TEXT'], ['price', 'INTEGER'], ['battery', 'INTEGER'], ['release_year', 'INTEGER']],
     roles: { name: 'model', cat: 'brand', n1: 'price', n2: 'battery', yr: 'release_year' },
+    newRows: [[13, 'Nova 13', 'Nova', 79800, 5000, 2024], [14, 'Kite Mini', 'Kite', 29800, 3900, 2024]],
     likeTerms: ['Lite', 'Mini', 'Pro', 'Plus', '12'],
     rows: [
       [1, 'Nova 10', 'Nova', 59800, 4500, 2021],
@@ -183,6 +202,7 @@ export const SINGLE_DATASETS = [
     table: 'players',
     columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['team', 'TEXT'], ['goals', 'INTEGER'], ['matches', 'INTEGER'], ['join_year', 'INTEGER']],
     roles: { name: 'name', cat: 'team', n1: 'goals', n2: 'matches', yr: 'join_year' },
+    newRows: [[13, 'Taro Ueda', 'Tigers', 0, 0, 2024], [14, 'Ivan Petrov', 'Eagles', 0, 0, 2024]],
     likeTerms: ['Ma', 'os', 'ar', 'Ra', 'Sa'],
     rows: [
       [1, 'Kenji Mori', 'Tigers', 12, 30, 2019],
@@ -203,6 +223,7 @@ export const SINGLE_DATASETS = [
     table: 'courses',
     columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['level', 'TEXT'], ['fee', 'INTEGER'], ['hours', 'INTEGER'], ['start_year', 'INTEGER']],
     roles: { name: 'title', cat: 'level', n1: 'fee', n2: 'hours', yr: 'start_year' },
+    newRows: [[13, 'Data Basics', 'Beginner', 9000, 16, 2024], [14, 'AI Project', 'Advanced', 30000, 40, 2024]],
     likeTerms: ['Python', 'Web', 'Japanese', 'Data', 'Basics'],
     rows: [
       [1, 'Python Basics', 'Beginner', 12000, 20, 2020],
@@ -218,6 +239,55 @@ export const SINGLE_DATASETS = [
       [11, 'Cloud Security', 'Advanced', 46000, 44, 2023],
       [12, 'Data Engineering', 'Advanced', 58000, 54, 2021]
     ]
+  }
+];
+
+
+/**
+ * Practice themes for the NULL lesson: every table has a column (roles.opt) where some values are missing.
+ */
+export const NULL_DATASETS = [
+  {
+    table: 'applicants',
+    columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['course', 'TEXT'], ['phone', 'TEXT']],
+    roles: { name: 'name', cat: 'course', opt: 'phone' },
+    rows: [[1, 'Mika Ono', 'Design', '090-1234-0001'], [2, 'Raj Patel', 'IT', null], [3, 'Lena Berg', 'Business', '080-2345-0002'],
+      [4, 'Tuan Le', 'IT', null], [5, 'Sofia Ruiz', 'Design', '070-3456-0003'], [6, 'Arif Hasan', 'Tourism', null], [7, 'Kana Mori', 'IT', '090-4567-0004'], [8, 'Ola Nilsen', 'Business', null]]
+  },
+  {
+    table: 'tasks',
+    columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['team', 'TEXT'], ['due_date', 'TEXT']],
+    roles: { name: 'title', cat: 'team', opt: 'due_date' },
+    rows: [[1, 'Make poster', 'Design', '2025-05-10'], [2, 'Fix login', 'IT', null], [3, 'Order paper', 'Office', '2025-05-02'],
+      [4, 'Update website', 'IT', '2025-05-20'], [5, 'Plan party', 'Office', null], [6, 'New logo', 'Design', null], [7, 'Backup server', 'IT', '2025-05-15']]
+  },
+  {
+    table: 'animals',
+    columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['species', 'TEXT'], ['chip_no', 'TEXT']],
+    roles: { name: 'name', cat: 'species', opt: 'chip_no' },
+    rows: [[1, 'Momo', 'Cat', 'C-1001'], [2, 'Rex', 'Dog', 'D-2001'], [3, 'Kiki', 'Bird', null], [4, 'Leo', 'Cat', null],
+      [5, 'Pochi', 'Dog', 'D-2002'], [6, 'Sora', 'Bird', null], [7, 'Tama', 'Cat', 'C-1002'], [8, 'Hachi', 'Dog', null]]
+  },
+  {
+    table: 'borrowings',
+    columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['borrower', 'TEXT'], ['returned_date', 'TEXT']],
+    roles: { name: 'title', cat: 'borrower', opt: 'returned_date' },
+    rows: [[1, 'Ocean of Stars', 'Ken', '2025-04-12'], [2, 'Ninja Cats', 'Mai', null], [3, 'Data and Society', 'Ken', null],
+      [4, 'Rain in Tokyo', 'Ali', '2025-04-20'], [5, 'Space Pirates', 'Mai', '2025-04-18'], [6, 'Sun Warriors', 'Ali', null], [7, 'The Silent Sea', 'Ken', '2025-04-25']]
+  },
+  {
+    table: 'parcels',
+    columns: [['id', 'INTEGER'], ['item', 'TEXT'], ['city', 'TEXT'], ['delivered_date', 'TEXT']],
+    roles: { name: 'item', cat: 'city', opt: 'delivered_date' },
+    rows: [[1, 'Laptop', 'Tokyo', '2025-03-03'], [2, 'Books', 'Osaka', null], [3, 'Shoes', 'Tokyo', '2025-03-05'],
+      [4, 'Camera', 'Nagoya', null], [5, 'Desk', 'Osaka', '2025-03-07'], [6, 'Guitar', 'Tokyo', null], [7, 'Rice cooker', 'Nagoya', '2025-03-08'], [8, 'Bicycle', 'Osaka', null]]
+  },
+  {
+    table: 'volunteers',
+    columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['area', 'TEXT'], ['email', 'TEXT']],
+    roles: { name: 'name', cat: 'area', opt: 'email' },
+    rows: [[1, 'Yui Abe', 'Park', 'yui@example.com'], [2, 'Sam Lee', 'Library', null], [3, 'Nina Rossi', 'Park', null],
+      [4, 'Omar Ali', 'Station', 'omar@example.com'], [5, 'Rina Goto', 'Library', 'rina@example.com'], [6, 'Hugo Blanc', 'Station', null], [7, 'Mei Wong', 'Park', 'mei@example.com']]
   }
 ];
 
@@ -315,6 +385,7 @@ export const ALL_TABLES = (() => {
   const m = {};
   Object.values(DEMO_DATASETS).forEach(t => (m[t.table] = t));
   SINGLE_DATASETS.forEach(t => (m[t.table] = t));
+  NULL_DATASETS.forEach(t => (m[t.table] = t));
   JOIN_DATASETS.forEach(p => { m[p.left.table] = Object.assign({ pair: p.key }, p.left); m[p.right.table] = Object.assign({ pair: p.key }, p.right); });
   return m;
 })();

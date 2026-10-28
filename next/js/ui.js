@@ -127,14 +127,16 @@ export function problemHTML(prob, lang) {
   Object.keys(view).forEach(k => { vars[k] = `<code>${esc(view[k])}</code>`; });
   if (p.ord) vars.ord = rubyHTML(raw('ord.' + p.ord, lang));
   ['f', 'f1', 'f2'].forEach(k => { if (p[k]) vars[k] = `<b class="agg">${rubyHTML(raw('agg.' + p[k], lang))}</b>`; });
-  return th(`L.${prob.lesson}.desc`, lang, vars);
+  // phrases that are themselves translated, e.g. cond = "price is 4800 or more"
+  if (lesson.phrases) Object.entries(lesson.phrases(p)).forEach(([k, [key, v]]) => { vars[k] = th(key, lang, Object.fromEntries(Object.entries(v).map(([a, b]) => [a, `<code>${esc(b)}</code>`]))); });
+  return th(lesson.descKey ? lesson.descKey(p) : `L.${prob.lesson}.desc`, lang, vars);
 }
 export function syntaxHint(lesson, lang) {
   return lesson.syntax.replace(/\{(\w+)\}/g, (m, k) => `‹${t('ph.' + k, lang)}›`);
 }
 
 /* ---------- glossary: SQL keywords in text become buttons ---------- */
-const GLOSS = ['SELECT', 'FROM', 'WHERE', 'BETWEEN', 'LIKE', 'DISTINCT', 'ORDER BY', 'ASC', 'DESC', 'LIMIT', 'OFFSET', 'COUNT', 'SUM', 'AVG', 'MAX', 'MIN', 'GROUP BY', 'HAVING', 'INNER JOIN', 'LEFT JOIN', 'JOIN', 'ON', 'IS NULL', 'NULL', 'AND'];
+const GLOSS = ['SELECT', 'FROM', 'AS', 'WHERE', 'AND', 'OR', 'NOT', 'BETWEEN', 'IN', 'LIKE', 'IS NULL', 'NULL', 'DISTINCT', 'ORDER BY', 'ASC', 'DESC', 'LIMIT', 'OFFSET', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM', 'COUNT', 'SUM', 'AVG', 'MAX', 'MIN', 'GROUP BY', 'HAVING', 'INNER JOIN', 'LEFT JOIN', 'JOIN', 'ON'];
 export const GLOSS_KEYS = GLOSS;
 const glossRe = new RegExp(`\\b(${GLOSS.map(g => g.replace(' ', '\\s+')).sort((a, b) => b.length - a.length).join('|')})\\b`, 'g');
 export function withGloss(html) {
