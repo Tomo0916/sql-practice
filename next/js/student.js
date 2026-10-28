@@ -18,6 +18,7 @@ import * as backend from './backend.js';
 import { I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
+import { lessonPage } from './book.js';
 
 const S = {
   settings: loadSettings(null),
@@ -247,6 +248,7 @@ function lessonHTML() {
     <div class="card side-card">
       <div class="chap">${H('lesson.of', { a: lesson.index + 1 })} · ${rubyHTML(raw('ch.' + ch.key, L()))}</div>
       <h1>${lessonTitleHTML(lesson, L())}</h1>
+      <div class="book-ref" title="${esc(T('book.inAppTip'))}">${I.book}${H('book.inApp', { n: lessonPage(lesson) })}</div>
       <div class="point"><b>${H('lesson.point')}</b>${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div>
     </div>
     <nav class="card plist" aria-label="${esc(T('lesson.problems'))}">

@@ -12,9 +12,15 @@ export function usedKeys() {
   const keys = new Set();
   for (const f of fs.readdirSync(path.join(root, 'js'))) {
     const src = fs.readFileSync(path.join(root, 'js', f), 'utf8');
-    for (const m of src.matchAll(/\b(?:T|t|H|th|bi|raw|P)\(\s*['`]([a-zA-Z0-9_.]+)['`]/g)) if (!m[1].endsWith('.')) keys.add(m[1]);
+    for (const m of src.matchAll(/\b(?:T|t|H|th|bi|raw|P|two)\(\s*['`]([a-zA-Z0-9_.]+)['`]/g)) if (!m[1].endsWith('.') && !/\.rule$/.test(m[1])) keys.add(m[1]);
     // keys chosen with ?: e.g. T(x ? 'tc.signIn' : 'tc.signUp')
-    for (const m of src.matchAll(/['`]((?:nav|foot|home|class|mix|review|words|set|stage|inst|lesson|pres|hint|fill|order|fb|viz|tc|test|prob|ed|res|btn|misc|prog)\.[A-Za-z0-9_.]*[A-Za-z0-9_])['`]/g)) keys.add(m[1]);
+    for (const m of src.matchAll(/['`]((?:nav|foot|home|class|mix|review|words|set|stage|inst|lesson|pres|hint|fill|order|fb|viz|tc|test|prob|ed|res|btn|misc|prog|book)\.[A-Za-z0-9_.]*[A-Za-z0-9_])['`]/g)) keys.add(m[1]);
+  }
+  for (let i = 1; i <= 6; i++) keys.add('book.rule' + i);
+  { // typical mistakes on textbook pages: MISTAKES = { lesson: [['dxKey', vars], ...] }
+    const src = fs.readFileSync(path.join(root, 'js/book.js'), 'utf8');
+    const block = src.slice(src.indexOf('const MISTAKES'), src.indexOf('export const MISTAKE_KEYS'));
+    for (const m of block.matchAll(/\[\s*'([a-zA-Z_]+)'/g)) keys.add('dx.' + m[1]);
   }
   CHAPTERS.forEach(c => { keys.add('ch.' + c.key); keys.add('ch.' + c.key + '.desc'); });
   LESSONS.forEach(l => {

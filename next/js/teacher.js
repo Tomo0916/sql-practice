@@ -4,11 +4,14 @@
  *   #/c/<id>/<tab>  class: assign | live | mistakes | members
  *   #/present     open an example in presenter mode
  *   #/test        paper test maker (A/B versions)
+ *   #/book        printable textbook (syntax list + way of thinking)
  * Class features need Supabase (config.js). Presenter and paper tests work without it.
  * ========================================================= */
 import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
+import { bookHTML } from './book.js';
+import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
 import * as backend from './backend.js';
@@ -28,11 +31,14 @@ const S = {
   mistakeProb: null,
   busy: false,
   isTeacher: null,   // null = not checked yet
+  book: Object.assign({ lang: null, second: null, title: '', cover: true, front: true, glossary: true, memo: true, lessons: LESSONS.map(l => l.key) }, Store.get('sqln.book', {})),
   test: Object.assign({ title: '', tlang: null, bilingual: null, lessons: LESSONS.map(l => l.key), per: 1, type: 'write', key: true, results: true, code: randomCode(), ab: false }, Store.get(KEYS.test, {}))
 };
 S.settings.lang = detectLang(S.settings.lang);
 S.settings.presenter = false;
 if (!S.test.tlang) S.test.tlang = S.settings.lang;
+if (!S.book.lang) S.book.lang = S.settings.lang;
+S.book.lessons = S.book.lessons.filter(k => LESSONS.some(l => l.key === k));
 const app = document.getElementById('app');
 const L = () => S.settings.lang;
 const T = (k, v) => t(k, L(), v);
@@ -46,6 +52,7 @@ function parseRoute() {
   if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['assign', 'live', 'mistakes', 'members'].includes(h[2]) ? h[2] : 'live' };
   if (h[0] === 'present') return { view: 'present' };
   if (h[0] === 'test') return { view: 'test' };
+  if (h[0] === 'book') return { view: 'book' };
   return { view: 'home' };
 }
 window.addEventListener('hashchange', () => { const prev = S.route; S.route = parseRoute(); if (prev.view === 'class' && (S.route.view !== 'class' || S.route.id !== prev.id)) stopWatch(); load(); });
@@ -60,6 +67,7 @@ function render() {
   if (!S.engine) body = `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   else if (v === 'present') body = presentHTML();
   else if (v === 'test') body = testHTML();
+  else if (v === 'book') body = bookPanelHTML();
   else if (!backend.enabled) body = noBackendHTML();
   else if (!S.session) body = loginHTML();
   else if (S.isTeacher === false) body = notTeacherHTML();
@@ -67,6 +75,7 @@ function render() {
   else if (v === 'class') body = classHTML();
   else body = classesHTML();
   app.innerHTML = headerHTML() + body;
+  if (v === 'book' && S.engine) { document.title = S.book.title || t('book.defaultTitle', S.book.lang); drawJoinLines(app); }
   if (v === 'test' && S.engine) document.title = `${S.test.title || t('test.headingDefault', S.test.tlang)} (${S.test.code})`;
 }
 function headerHTML() {
@@ -77,6 +86,7 @@ function headerHTML() {
       <a href="#/" class="${v === 'home' || v === 'class' ? 'on' : ''}">${I.users}<span>${H('tc.classes')}</span></a>
       <a href="#/present" class="${v === 'present' ? 'on' : ''}">${I.screen}<span>${H('tc.present')}</span></a>
       <a href="#/test" class="${v === 'test' ? 'on' : ''}">${I.paper}<span>${H('tc.test')}</span></a>
+      <a href="#/book" class="${v === 'book' ? 'on' : ''}">${I.book}<span>${H('book.nav')}</span></a>
     </nav>
     <div class="topbar-right">
       ${langSelect(L(), T('nav.language'))}
@@ -347,6 +357,36 @@ function sheetsHTML(test, ver, ab) {
   return s1 + s2 + s3;
 }
 function saveTest() { Store.set(KEYS.test, S.test); }
+
+/* ---------- textbook ---------- */
+function bookPanelHTML() {
+  const b = S.book;
+  const chk = (k, label) => `<label class="chk"><input type="checkbox" data-bk="${k}" ${b[k] ? 'checked' : ''}><span>${H(label)}</span></label>`;
+  const panel = `<aside class="card tm-panel">
+    <div><h1>${H('book.panelTitle')}</h1><p class="muted small">${H('book.panelSub')}</p></div>
+    <label class="fld"><span>${H('book.titleLabel')}</span><input type="text" data-bk="title" value="${esc(b.title)}" placeholder="${esc(t('book.defaultTitle', b.lang))}"></label>
+    <label class="fld"><span>${H('book.langLabel')}</span><select data-bk="lang">${langOptions(b.lang)}</select></label>
+    <label class="fld"><span>${H('book.secondLabel')}</span><select data-bk="second"><option value="">${esc(T('set.secondNone'))}</option>${LANGS.filter(l => l.code !== b.lang).map(l => `<option value="${l.code}" ${b.second === l.code ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label>
+    <div class="fld"><span>${H('book.parts')}</span>
+      ${chk('cover', 'book.partCover')}${chk('front', 'book.partFront')}${chk('glossary', 'book.partGlossary')}${chk('memo', 'book.partMemo')}</div>
+    <div class="fld"><span>${H('book.lessonsLabel')}</span>
+      <div class="row-btns left"><button class="btn btn-ghost btn-xs" data-act="bookAll">${H('test.all')}</button><button class="btn btn-ghost btn-xs" data-act="bookNone">${H('test.none')}</button></div>
+      <div class="lesson-pick compact">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>${LESSONS.filter(l => l.ch === ch.key).map(l => `<label class="chk"><input type="checkbox" data-bl="${l.key}" ${b.lessons.includes(l.key) ? 'checked' : ''}><span>${l.index + 1}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
+    <p class="muted small">${H('book.pageTip')}</p>
+    <div class="tm-print"><button class="btn btn-primary" data-act="print">${I.print}${H('test.print')}</button></div>
+  </aside>`;
+  return `<main class="wrap"><div class="tm-layout">${panel}<div class="paper-wrap book">${bookPaper()}</div></div></main>`;
+}
+function bookPaper() {
+  const b = S.book;
+  return bookHTML(S.engine, { lang: b.lang, second: b.second && b.second !== b.lang ? b.second : null, title: b.title, memo: b.memo, parts: { cover: b.cover, front: b.front, glossary: b.glossary, lessons: b.lessons } });
+}
+let bookTimer = null;
+function rerenderBook() {
+  Store.set('sqln.book', S.book);
+  clearTimeout(bookTimer);
+  bookTimer = setTimeout(() => { const p = document.querySelector('.paper-wrap.book'); if (p) { p.innerHTML = bookPaper(); drawJoinLines(p); } }, 150);
+}
 let testTimer = null;
 function rerenderPaper() { saveTest(); clearTimeout(testTimer); testTimer = setTimeout(() => { const p = document.querySelector('.paper-wrap'); if (p) p.innerHTML = paperHTML(); }, 120); }
 
@@ -433,6 +473,8 @@ const actions = {
   testNone() { S.test.lessons = []; render(); saveTest(); },
   testClass() { S.test.lessons = LESSONS.map(l => l.key).filter(k => (S.klass.lessons || []).includes(k)); S.test.code = S.klass.set_code; render(); saveTest(); },
   testNewCode() { S.test.code = randomCode(); render(); saveTest(); },
+  bookAll() { S.book.lessons = LESSONS.map(l => l.key); Store.set('sqln.book', S.book); render(); },
+  bookNone() { S.book.lessons = []; Store.set('sqln.book', S.book); render(); },
   print() { setTimeout(() => window.print(), 60); }
 };
 document.addEventListener('click', e => {
@@ -446,6 +488,17 @@ document.addEventListener('change', async e => {
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }
   if (el.dataset.act2 === 'mistakeProb') { S.mistakeProb = el.value; refreshTab(); return; }
+  if (el.dataset.bk) {
+    const k = el.dataset.bk, b = S.book;
+    if (el.type === 'checkbox') b[k] = el.checked; else b[k] = el.value || (k === 'second' ? null : el.value);
+    if (k === 'lang' || k === 'second') { await loadLang(b.lang); if (b.second) await loadLang(b.second); if (b.second === b.lang) b.second = null; Store.set('sqln.book', b); render(); return; }
+    rerenderBook(); return;
+  }
+  if (el.dataset.bl) {
+    const key = el.dataset.bl;
+    S.book.lessons = el.checked ? LESSONS.map(l => l.key).filter(x => x === key || S.book.lessons.includes(x)) : S.book.lessons.filter(x => x !== key);
+    rerenderBook(); return;
+  }
   const k = el.dataset.tk;
   if (k) {
     const o = S.test;
@@ -467,7 +520,10 @@ document.addEventListener('change', async e => {
     rerenderPaper();
   }
 });
-document.addEventListener('input', e => { if (e.target.dataset.tk === 'title') { S.test.title = e.target.value; rerenderPaper(); } });
+document.addEventListener('input', e => {
+  if (e.target.dataset.tk === 'title') { S.test.title = e.target.value; rerenderPaper(); }
+  if (e.target.dataset.bk === 'title') { S.book.title = e.target.value; rerenderBook(); }
+});
 document.addEventListener('submit', async e => {
   const f = e.target, kind = f.dataset.form;
   if (!kind) return;
@@ -509,7 +565,7 @@ async function openQR(c) {
 /* ---------- start ---------- */
 (async function start() {
   S.route = parseRoute();
-  await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null]);
+  await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null, loadLang(S.book.lang), S.book.second ? loadLang(S.book.second) : null]);
   render();
   try { S.engine = new SqlEngine(await window.initSqlJs({ locateFile: f => 'vendor/' + f })); }
   catch (e) { console.error(e); app.innerHTML = headerHTML() + `<div class="loading"><div>${H('misc.loadError')}</div></div>`; return; }
