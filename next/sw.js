@@ -1,11 +1,14 @@
-/* Offline support. Pages: network first (so updates show at once), everything else: cache, then refresh in the background.
+/* Offline support. App files (pages, js, css, texts): network first, so an update shows at once;
+ * vendor libraries, icons and fonts: cache first. 
  * Supabase requests are never cached. Bump VERSION when publishing big changes. */
-const VERSION = 'sqlp-next-4';
+const VERSION = 'sqlp-next-5';
 const CORE = ['./', 'index.html', 'teacher.html', 'config.js', 'css/app.css', 'css/teacher.css', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm', 'vendor/codemirror.js',
   'js/student.js', 'js/teacher.js', 'js/engine.js', 'js/lessons.js', 'js/datasets.js', 'js/diagnose.js', 'js/i18n.js', 'js/ui.js', 'js/viz.js', 'js/editor.js', 'js/store.js', 'js/backend.js', 'js/book.js',
   'i18n/ja.js', 'i18n/easy.js', 'i18n/en.js', 'icons/icon.svg', 'icons/icon-192.png', 'manifest.webmanifest'];
-self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting())); });
+// cache: 'reload' so a new version never copies stale files from the browser's HTTP cache
+self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+const put = (req, r) => { if (r.ok || r.type === 'opaque') { const c = r.clone(); caches.open(VERSION).then(x => x.put(req, c)); } return r; };
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -13,12 +16,12 @@ self.addEventListener('fetch', e => {
   if (/supabase\.co$/.test(url.hostname)) return;
   const sameOrigin = url.origin === location.origin;
   if (!sameOrigin && !/fonts\.(googleapis|gstatic)\.com$/.test(url.hostname)) return;
-  if (req.mode === 'navigate') {
-    e.respondWith(fetch(req).then(r => { const c = r.clone(); caches.open(VERSION).then(x => x.put(req, c)); return r; }).catch(() => caches.match(req).then(r => r || caches.match('index.html'))));
+  // big libraries and fonts rarely change: cache first
+  if (!sameOrigin || url.pathname.includes('/vendor/') || url.pathname.includes('/icons/')) {
+    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(r => put(req, r))));
     return;
   }
-  e.respondWith(caches.match(req).then(hit => {
-    const net = fetch(req).then(r => { if (r.ok || r.type === 'opaque') { const c = r.clone(); caches.open(VERSION).then(x => x.put(req, c)); } return r; }).catch(() => hit);
-    return hit || net;
-  }));
+  // pages, app code, styles and texts: always the newest when online, cached copy when offline
+  e.respondWith(fetch(req, { cache: 'no-cache' }).then(r => put(req, r))
+    .catch(() => caches.match(req).then(r => r || (req.mode === 'navigate' ? caches.match('index.html') : Response.error()))));
 });
