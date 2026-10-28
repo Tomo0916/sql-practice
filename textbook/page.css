@@ -408,3 +408,7 @@ code.fl-kw { font-weight: 700; color: #2b3fc4; background: #eef0fe; font-size: 7
 .mm-center { border-radius: 2.5mm; padding: 2mm; box-sizing: border-box; }
 .tag { padding-top: 1.6mm; }
 .anat-l li { padding-top: 1.4mm; }
+/* a note about MySQL (another class uses MySQL) */
+.dialect.mysql { padding-left: 15mm; border-color: #d9a066; background: #fffaf3; }
+.dialect.mysql::before { content: "MySQL"; background: #b5651d; }
+.dialect-tag.mysql { background: #b5651d; }

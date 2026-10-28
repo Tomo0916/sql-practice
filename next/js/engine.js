@@ -145,6 +145,10 @@ export class SqlEngine {
   reset() {
     if (this.db) try { this.db.close(); } catch (e) { /* ignore */ }
     this.db = new this.SQL.Database();
+    // CONCAT(a, b, …) as in MySQL (NULL if any argument is NULL), so students can try the MySQL way too
+    const concat = (...a) => (a.some(v => v === null) ? null : a.map(String).join(''));
+    Object.defineProperty(concat, 'length', { value: -1 });   // -1 = any number of arguments
+    this.db.create_function('CONCAT', concat);
     this.db.run(datasetSQL(Object.values(ALL_TABLES)));
   }
   exec(sql) { const res = this.db.exec(sql); return res.length ? res[res.length - 1] : null; }

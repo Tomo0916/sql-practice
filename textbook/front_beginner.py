@@ -27,7 +27,8 @@ def howto():
     marks = [('<span class="x">✕</span>', ('{間違|まちが}った SQL', 'wrong SQL')), ('<span class="o">○</span>', ('{正|ただ}しい SQL', 'correct SQL')),
              ('<span class="mk-lost">Wireless Mouse Pro</span>', ('{消|き}えてしまった{行|ぎょう}', 'a row that went missing')),
              ('<span class="mk-extra">Coffee Maker</span>', ('{余分|よぶん}に{入|はい}った{行|ぎょう}', 'an extra row')),
-             ('<span class="dialect-tag">DB</span>', ('データベースごとのちがい', 'differences between databases'))]
+             ('<span class="dialect-tag">DB</span>', ('データベースごとのちがい', 'differences between databases')),
+             ('<span class="dialect-tag mysql">MySQL</span>', ('MySQL で{気|き}をつけること', 'what to watch for in MySQL'))]
     mk = ''.join(f'<li><span class="mk">{m}</span>{B(t)}</li>' for m, t in marks)
     return page(H('この{本|ほん}の{使|つか}い{方|かた}', 'How to use this book')
         + B(('1 つの Lesson は、{見開|みひら}き 2 ページ。{左|ひだり}のページで{見|み}て、{右|みぎ}のページで{確|たし}かめて{書|か}く。', 'Each Lesson is a two-page spread: look on the left page, check and write on the right page.'), cls='lead')

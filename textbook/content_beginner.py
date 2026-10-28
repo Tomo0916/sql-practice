@@ -174,9 +174,10 @@ LESSONS.append(dict(
     points=[
         (("{文字|もじ}の{値|あたい}は、' '（シングルクォート）で{囲|かこ}む。{数|かず}は{囲|かこ}まない。' ' の{中|なか}は{日本語|にほんご}でもよい。", "Put text values in ' ' (single quotes). Numbers need no quotes. Japanese is fine inside ' '."),),
         (('" "（ダブルクォート）は、{列|れつ}や{表|ひょう}の{名前|なまえ}に{使|つか}う{記号|きごう}。{文字|もじ}の{値|あたい}に{使|つか}うと、エラーになるデータベースが{多|おお}い。', '" " (double quotes) are for column and table names. For text values they cause errors in most databases.'),),
-        (("キーワードや{記号|きごう}は、{半角|はんかく}で{書|か}く。{全角|ぜんかく}の（ ）や ，は、エラーになる。-- から{行|ぎょう}の{終|お}わりまでは、メモ（コメント）として{無視|むし}される。", "Write keywords and symbols in half-width characters. Full-width （ ） or ， cause errors. Text from -- to the end of the line is a comment and is ignored."), '<code class="ex">SELECT name FROM products;  -- メモ</code>'),
+        (("キーワードや{記号|きごう}は、{半角|はんかく}で{書|か}く。{全角|ぜんかく}の（ ）や ，は、エラーになる。-- から{行|ぎょう}の{終|お}わりまでは、メモ（コメント）として{無視|むし}される。-- の{後|うし}ろには、{空白|くうはく}を 1 つ{入|い}れる。", "Write keywords and symbols in half-width characters. Full-width （ ） or ， cause errors. Text from -- to the end of the line is a comment and is ignored. Put one space after --."), '<code class="ex">SELECT name FROM products;  -- メモ</code>'),
     ],
-    notes=[("Oracle では、FROM のない SELECT は{書|か}けない。SELECT 'Tokyo' FROM DUAL; のように、DUAL という{特別|とくべつ}な{表|ひょう}を{使|つか}う。", "In Oracle, SELECT needs FROM. Use the special table DUAL: SELECT 'Tokyo' FROM DUAL;")],
+    notes=[("MySQL では、\" \" で{囲|かこ}んだものも{文字|もじ}として{通|とお}ってしまう（{標準|ひょうじゅん}の{設定|せってい}）。それでも{文字|もじ}は ' ' で{書|か}こう。{列|れつ}や{表|ひょう}の{名前|なまえ}を{囲|かこ}むときは ` `（バッククォート）を{使|つか}う。また、-- の{後|うし}ろに{空白|くうはく}がないと、コメントにならない。", "MySQL: text in \" \" is also accepted as text (default settings). Still write text in ' '. To quote a column or table name, use ` ` (backquotes). Also, -- needs a space after it to start a comment.", 'mysql'),
+           ("Oracle では、FROM のない SELECT は{書|か}けない。SELECT 'Tokyo' FROM DUAL; のように、DUAL という{特別|とくべつ}な{表|ひょう}を{使|つか}う。", "In Oracle, SELECT needs FROM. Use the special table DUAL: SELECT 'Tokyo' FROM DUAL;")],
     mistakes=[
         dict(wrong="SELECT 'Tokyo;", mark_w="'Tokyo;", right="SELECT 'Tokyo';", mark_r="'Tokyo'",
              why=("' ' は{必|かなら}ず2 つで 1 {組|くみ}。{閉|と}じる ' がないと、{文|ぶん}の{終|お}わりが{分|わ}からない。", "' ' always come in pairs. Without the closing ', the statement never ends.")),
@@ -213,11 +214,9 @@ LESSONS.append(dict(
         (('{別名|べつめい}にスペースは{使|つか}えない。stock_value のように _ でつなぐ。', 'An alias cannot contain spaces. Join words with _, like stock_value.'),),
         (('|| で{文字|もじ}をつなげられる。', 'Use || to join text.'), "<code class=\"ex\">SELECT name || ' (' || category || ')' AS label FROM products;</code>"),
     ],
-    notes=[('{文字|もじ}をつなぐ || は、MySQL では{使|つか}えない。MySQL では CONCAT(name, category) と{書|か}く。', 'MySQL does not use || to join text. In MySQL write CONCAT(name, category).')],
+    notes=[("MySQL では、|| は OR（または）の{意味|いみ}になる。エラーにならずに 0 や 1 が{出|で}るので、{気|き}づきにくい。MySQL では CONCAT(name, ' - ', category) のように{書|か}く。CONCAT は、このアプリでも{使|つか}える。", "MySQL: || means OR there. You get 0 or 1 without any error, so it is easy to miss. In MySQL write CONCAT(name, ' - ', category). CONCAT also works in this app.", 'mysql'),
+           ('{整数|せいすう}どうしの{割|わ}り{算|ざん}（7 / 2）は、DBMS によって{結果|けっか}がちがう。このアプリ（SQLite）・PostgreSQL・SQL Server は 3（{小数点|しょうすうてん}{以下|いか}を{切|き}り{捨|す}てる）、MySQL・Oracle は 3.5。どれでも 3.5 にしたいときは、7.0 / 2 のように{小数|しょうすう}で{書|か}く。', 'Dividing two integers (7 / 2) gives different results: 3 in SQLite (this app), PostgreSQL and SQL Server (the decimals are dropped), 3.5 in MySQL and Oracle. To get 3.5 everywhere, write a decimal: 7.0 / 2.')],
     mistakes=[
-        dict(wrong='SELECT 7 / 2;', mark_w='7 / 2', right='SELECT 7.0 / 2;', mark_r='7.0',
-             why=('このアプリ（SQLite）や PostgreSQL では、{整数|せいすう}どうしの{割|わ}り{算|ざん}は、{小数点|しょうすうてん}{以下|いか}が{切|き}り{捨|す}てられる。7.0 のように{小数|しょうすう}で{書|か}く。Oracle や MySQL では 3.5 になる。', 'In SQLite (this app) and PostgreSQL, dividing two integers drops the decimals. Write one as 7.0. Oracle and MySQL give 3.5.'),
-             note=('3.5 ではなく、3 になってしまう。', 'You get 3 instead of 3.5.')),
         dict(wrong='SELECT name, price * stock AS stock value\nFROM products;', mark_w='stock value', right='SELECT name, price * stock AS stock_value\nFROM products;', mark_r='stock_value',
              why=('{別名|べつめい}の{途中|とちゅう}にスペースがあると、どこまでが{名前|なまえ}か{分|わ}からない。', 'With a space inside the alias, the DBMS cannot tell where the name ends.')),
     ],
@@ -254,6 +253,7 @@ LESSONS.append(dict(
          '<div class="nls">' + numline('>=', True, ('4800 も{入|はい}る。', '4800 is included.')) + numline('>', False, ('4800 は{入|はい}らない。', '4800 is not included.')) + '</div>'),
         (("{文字|もじ}の{値|あたい}は、' '（シングルクォート）で{囲|かこ}む。{数|かず}は{囲|かこ}まない（くわしくは Lesson 2）。", "Put text values in ' ' (single quotes). Numbers need no quotes (more in Lesson 2)."), "<code class=\"ex\">WHERE category = 'Books'</code>"),
     ],
+    notes=[("MySQL では、{英字|えいじ}の{大文字|おおもじ}と{小文字|こもじ}を{区別|くべつ}しない（{標準|ひょうじゅん}の{設定|せってい}）。WHERE category = 'books' でも、Books の{行|ぎょう}が{出|で}る。このアプリでは{出|で}ない。", "MySQL does not tell upper from lower case (default settings): WHERE category = 'books' also returns the Books rows. This app does not.", 'mysql')],
     mistakes=[
         dict(wrong='SELECT name, price FROM products\nWHERE price > 4800;', mark_w='price > 4800', right='SELECT name, price FROM products\nWHERE price >= 4800;', mark_r='price >= 4800',
              why=('「4800 {以上|いじょう}」には 4800 も{入|はい}る。> を{使|つか}うと、4800 ちょうどの{商品|しょうひん}が{結果|けっか}から{消|き}えてしまう。', '“4800 or more” includes 4800. If you use >, the product priced exactly 4800 disappears from the result.'),

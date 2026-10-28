@@ -337,6 +337,10 @@ def mini_map(level):
 
 TAGS = {'fe': ('{基本|きほん}{情報|じょうほう}', 'FE exam'), 'silver': ('Silver SQL', '')}
 
+def dialect(n):
+    """a note about differences between DBMSs; (ja, en, 'mysql') is a note about MySQL"""
+    return f'<div class="dialect{" mysql" if len(n) > 2 and n[2] == "mysql" else ""}">{B(n[:2])}</div>'
+
 def lesson_html(L, level='beginner'):
     lv_ja, lv_en, _ = LEVELS[level]
     dml = L.get('dml_table')
@@ -350,7 +354,7 @@ def lesson_html(L, level='beginner'):
 <div class="goal">{B(L["goal"])}</div>''']
     if L.get('syntax'):
         rows = ''.join(f'<div class="syn-row{" new" if r[3] else ""}"><div class="syn-sql">{slot_sql(r[0])}</div>{B((r[1], r[2]), cls="syn-lab")}</div>' for r in L['syntax'])
-        notes = ''.join(f'<div class="dialect">{B(n)}</div>' for n in L.get('syntax_notes', []))
+        notes = ''.join(dialect(n) for n in L.get('syntax_notes', []))
         parts.append(f'<section class="box">{H("{構文|こうぶん}", "Syntax")}<div class="syn">{rows}</div>{L.get("syntax_extra", "")}{notes}</section>')
     for extra in L.get('sections_before', []):
         parts.append(extra)
@@ -360,7 +364,7 @@ def lesson_html(L, level='beginner'):
   {B(S["q"], "p", "q")}{sql(S["sql"], S.get("mark"), "big")}{viz(S["viz"], S["sql"]) if S.get("viz") else ""}{B(S["note"], cls="note") if S.get("note") else ""}</section>''')
     if L.get('points'):
         lis = ''.join(f'<li>{B(p[0])}{p[1] if len(p) > 1 else ""}</li>' for p in L['points'])
-        notes = ''.join(f'<div class="dialect">{B(n)}</div>' for n in L.get('notes', []))
+        notes = ''.join(dialect(n) for n in L.get('notes', []))
         parts.append('<section class="box">' + H("ポイント", "Points") + f'<ol class="pts">{lis}</ol>{notes}</section>')
     for extra in L.get('sections_after', []):
         parts.append(extra)

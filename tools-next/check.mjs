@@ -61,6 +61,10 @@ for (const l of LANGS) {
 /* ---------- 2. problems ---------- */
 console.log('2. Problems (example + 5 practice) for 60 set codes');
 const eng = new SqlEngine(await initSqlJs());
+{ // CONCAT works as in MySQL (any number of arguments, NULL if one is NULL)
+  const r = eng.runUser("SELECT CONCAT(name, ' - ', category), CONCAT('a', NULL) FROM products LIMIT 1;").values[0];
+  if (r[0] !== 'Wireless Mouse - Electronics' || r[1] !== null) { console.log('✕ CONCAT:', r); errors++; }
+}
 const codes = [todayCode(), 'TEST', 'A7K2', 'CLASS-1'];
 for (let i = 0; i < 56; i++) codes.push('C' + i);
 const variety = {};
