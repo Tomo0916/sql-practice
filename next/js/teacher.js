@@ -27,6 +27,7 @@ const S = {
   unwatch: null,
   mistakeProb: null,
   busy: false,
+  isTeacher: null,   // null = not checked yet
   test: Object.assign({ title: '', tlang: null, bilingual: null, lessons: LESSONS.map(l => l.key), per: 1, type: 'write', key: true, results: true, code: randomCode(), ab: false }, Store.get(KEYS.test, {}))
 };
 S.settings.lang = detectLang(S.settings.lang);
@@ -61,6 +62,8 @@ function render() {
   else if (v === 'test') body = testHTML();
   else if (!backend.enabled) body = noBackendHTML();
   else if (!S.session) body = loginHTML();
+  else if (S.isTeacher === false) body = notTeacherHTML();
+  else if (S.isTeacher === null) body = `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   else if (v === 'class') body = classHTML();
   else body = classesHTML();
   app.innerHTML = headerHTML() + body;
@@ -89,21 +92,26 @@ function noBackendHTML() {
 
 /* ---------- sign in ---------- */
 function loginHTML() {
-  const mode = S.loginMode || 'in';
+  const mode = S.loginMode === 'reset' ? 'reset' : 'in';
   return `<main class="wrap narrow"><section class="card login">
-    <h1>${I.lock} ${H(mode === 'up' ? 'tc.signUpTitle' : mode === 'reset' ? 'tc.resetTitle' : 'tc.signInTitle')}</h1>
+    <h1>${I.lock} ${H(mode === 'reset' ? 'tc.resetTitle' : 'tc.signInTitle')}</h1>
     <p class="muted">${H('tc.signInSub')}</p>
     <form class="form" data-form="login">
       <label class="fld"><span>${H('tc.email')}</span><input type="email" name="email" required autocomplete="email"></label>
-      ${mode !== 'reset' ? `<label class="fld"><span>${H('tc.password')}</span><input type="password" name="pw" required minlength="8" autocomplete="${mode === 'up' ? 'new-password' : 'current-password'}"><small class="muted">${mode === 'up' ? H('tc.pwRule') : ''}</small></label>` : ''}
+      ${mode !== 'reset' ? `<label class="fld"><span>${H('tc.password')}</span><input type="password" name="pw" required autocomplete="current-password"></label>` : ''}
       <p class="err" id="login-err" role="alert"></p>
-      <button class="btn btn-primary">${H(mode === 'up' ? 'tc.signUp' : mode === 'reset' ? 'tc.sendReset' : 'tc.signIn')}</button>
+      <button class="btn btn-primary">${H(mode === 'reset' ? 'tc.sendReset' : 'tc.signIn')}</button>
     </form>
     <div class="login-links">
-      ${mode !== 'in' ? `<button class="linkbtn" data-act="loginMode" data-m="in">${H('tc.haveAccount')}</button>` : `<button class="linkbtn" data-act="loginMode" data-m="up">${H('tc.noAccount')}</button>`}
-      ${mode === 'in' ? `<button class="linkbtn" data-act="loginMode" data-m="reset">${H('tc.forgot')}</button>` : ''}
+      ${mode === 'reset' ? `<button class="linkbtn" data-act="loginMode" data-m="in">${H('tc.backToSignIn')}</button>` : `<button class="linkbtn" data-act="loginMode" data-m="reset">${H('tc.forgot')}</button>`}
     </div>
   </section></main>`;
+}
+/* signed in, but this e-mail address is not on the teacher list */
+function notTeacherHTML() {
+  return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon" style="background:var(--bad-soft);color:var(--bad)">${I.lock}</div>
+    <h1>${H('tc.notTeacher')}</h1><p class="muted">${H('tc.notTeacherSub', { e: (S.session.user && S.session.user.email) || '' })}</p>
+    <div class="row-btns"><button class="btn btn-ghost" data-act="signOut">${I.door}${H('tc.signOut')}</button></div></section></main>`;
 }
 
 /* ---------- class list ---------- */
@@ -350,7 +358,8 @@ async function load() {
   if (!S.engine || !backend.enabled) return;
   try {
     S.session = await backend.teacherSession();
-    if (!S.session) { render(); return; }
+    if (!S.session) { S.isTeacher = null; render(); return; }
+    if (S.isTeacher !== true) { S.isTeacher = await backend.amITeacher(); if (!S.isTeacher) { render(); return; } }
     const r = S.route;
     if (r.view === 'home' || r.view === 'test' || r.view === 'present') { S.classes = await backend.myClasses(); if (r.view === 'home') S.klass = null; }
     if (r.view === 'class') {
@@ -395,7 +404,7 @@ function refreshTab() {
 const actions = {
   closeModal,
   loginMode(el) { S.loginMode = el.dataset.m; render(); },
-  async signOut() { await backend.signOut(); S.session = null; S.classes = []; S.klass = null; stopWatch(); location.hash = '#/'; render(); },
+  async signOut() { await backend.signOut(); S.session = null; S.isTeacher = null; S.classes = []; S.klass = null; stopWatch(); location.hash = '#/'; render(); },
   showQR() { openQR(S.klass); },
   copyJoin() { copyText(joinURL(S.klass.code), () => toast(T('set.copied'))); },
   async toggleOpen() { try { S.klass = await backend.updateClass(S.klass.id, { open: !S.klass.open }); render(); } catch (e) { toast(T('class.netError')); } },
@@ -471,8 +480,8 @@ document.addEventListener('submit', async e => {
       const err = f.querySelector('#login-err');
       try {
         if (mode === 'reset') { await backend.resetPassword(email); err.textContent = ''; toast(T('tc.resetSent')); S.loginMode = 'in'; render(); return; }
-        if (mode === 'up') { const r = await backend.signUp(email, pw); if (!r.session) { err.style.color = 'var(--ok)'; err.textContent = T('tc.checkMail'); if (btn) btn.disabled = false; return; } }
-        else await backend.signIn(email, pw);
+        await backend.signIn(email, pw);
+        S.isTeacher = null;
         await load();
       } catch (ex) { err.style.color = ''; err.textContent = /Invalid login/i.test(ex.message) ? T('tc.badLogin') : /confirm/i.test(ex.message) ? T('tc.notConfirmed') : ex.message; if (btn) btn.disabled = false; }
     } else if (kind === 'newClass') {
@@ -483,7 +492,7 @@ document.addEventListener('submit', async e => {
       S.klass = await backend.updateClass(S.klass.id, patch);
       toast(T('tc.saved')); render();
     }
-  } catch (ex) { console.error(ex); toast(T('class.netError')); }
+  } catch (ex) { console.error(ex); toast(T(/not_teacher/.test(ex.message) ? 'tc.notTeacher' : 'class.netError')); }
   finally { if (btn) btn.disabled = false; }
 });
 

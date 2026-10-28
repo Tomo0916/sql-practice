@@ -25,7 +25,12 @@
 1. Supabase のプロジェクトを作り、Authentication → Sign In / Providers で **Allow anonymous sign-ins** をオン。
 2. SQL Editor に `supabase/schema.sql` を貼って Run（何度実行しても安全）。
 3. `config.js` に Project URL と **anon / publishable key** を書く（service_role key は絶対に書かない）。
-4. 先生は `teacher.html` でアカウントを作成（確認メールのリンクを開いてからログイン）。
+4. 先生のアカウントは管理者が作ります（画面からの新規登録はできません）:
+   - Supabase の Authentication → Users → **Add user** でメールアドレスとパスワードを入れ、**Auto Confirm User** にチェック
+   - SQL Editor で先生リストに追加: `insert into public.teachers (email) values ('先生のメール');`
+   - 先生を外すとき: `delete from public.teachers where email = '先生のメール';`（そのクラスにも入れなくなります）
+
+先生リストにないアカウントは、ログインできても「先生として登録されていません」と表示され、クラスを作ることも見ることもできません。
 
 安全性：行レベルセキュリティで、生徒は自分の記録だけ、先生は自分のクラスだけ見られます（`tools-next/rls-test.sql` で検証）。
 生徒が持つ情報はニックネームと解答記録だけです。

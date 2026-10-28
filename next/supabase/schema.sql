@@ -5,6 +5,10 @@
 --   classes  : クラス（先生が作る。今日の課題・セット番号・模範解答の表示ルール）
 --   members  : クラスに参加した生徒（ニックネームのみ。個人情報は持たない）
 --   attempts : 生徒が「実行」した記録（正解/不正解・SQL）
+--   teachers : 先生として使ってよいメールアドレスの一覧（ここに無い人はクラスを作れない・見られない）
+--
+-- 先生を追加する:  insert into public.teachers (email) values ('example@school.jp');
+-- 先生を外す:      delete from public.teachers where email = 'example@school.jp';
 --
 -- 生徒は「匿名ログイン」、先生はメール＋パスワードでログインします。
 -- 行レベルセキュリティ（RLS）で、生徒は自分の記録だけ、先生は自分のクラスの記録だけを見られます。
@@ -50,10 +54,26 @@ create index if not exists attempts_class_time on public.attempts (class_id, cre
 create index if not exists attempts_user on public.attempts (user_id);
 create index if not exists classes_teacher on public.classes (teacher_id);
 
+-- ---------- teacher allow-list ----------
+create table if not exists public.teachers (
+  email    text primary key check (email = lower(btrim(email)) and email like '%@%'),
+  note     text,
+  added_at timestamptz not null default now()
+);
+alter table public.teachers enable row level security;   -- no policies: only the dashboard / SQL editor can read or change it
+revoke all on public.teachers from anon, authenticated;
+
 -- ---------- helpers (security definer = can read tables regardless of RLS) ----------
+/* signed in with a confirmed email address that is on the teacher list */
+create or replace function public.is_teacher() returns boolean
+  language sql stable security definer set search_path = public, auth as
+$$ select exists (
+     select 1 from auth.users u join public.teachers t on t.email = lower(u.email)
+     where u.id = auth.uid() and u.email_confirmed_at is not null and coalesce(u.is_anonymous, false) = false) $$;
+
 create or replace function public.is_teacher_of(cid uuid) returns boolean
   language sql stable security definer set search_path = public as
-$$ select exists (select 1 from public.classes c where c.id = cid and c.teacher_id = auth.uid()) $$;
+$$ select public.is_teacher() and exists (select 1 from public.classes c where c.id = cid and c.teacher_id = auth.uid()) $$;
 
 create or replace function public.is_member_of(cid uuid) returns boolean
   language sql stable security definer set search_path = public as
@@ -73,13 +93,13 @@ drop policy if exists classes_insert on public.classes;
 drop policy if exists classes_update on public.classes;
 drop policy if exists classes_delete on public.classes;
 create policy classes_select on public.classes for select to authenticated
-  using (teacher_id = auth.uid() or public.is_member_of(id));
+  using ((teacher_id = auth.uid() and public.is_teacher()) or public.is_member_of(id));
 create policy classes_insert on public.classes for insert to authenticated
-  with check (teacher_id = auth.uid() and not public.is_anonymous_user());
+  with check (teacher_id = auth.uid() and public.is_teacher());
 create policy classes_update on public.classes for update to authenticated
-  using (teacher_id = auth.uid()) with check (teacher_id = auth.uid());
+  using (teacher_id = auth.uid() and public.is_teacher()) with check (teacher_id = auth.uid());
 create policy classes_delete on public.classes for delete to authenticated
-  using (teacher_id = auth.uid());
+  using (teacher_id = auth.uid() and public.is_teacher());
 
 drop policy if exists members_select on public.members;
 drop policy if exists members_update on public.members;
@@ -137,7 +157,7 @@ declare
   new_code text;
   c public.classes;
 begin
-  if auth.uid() is null or public.is_anonymous_user() then raise exception 'teachers only'; end if;
+  if not public.is_teacher() then raise exception 'not_teacher' using errcode = '42501'; end if;
   loop
     new_code := '';
     for i in 1..6 loop
@@ -151,6 +171,15 @@ begin
 end
 $$;
 
+-- ---------- RPC: is the signed-in user on the teacher list? (used by teacher.html) ----------
+create or replace function public.am_i_teacher() returns boolean
+  language sql stable security definer set search_path = public as
+$$ select public.is_teacher() $$;
+
+revoke all on function public.am_i_teacher() from public, anon;
+grant execute on function public.am_i_teacher() to authenticated;
+revoke all on function public.is_teacher() from public, anon;
+grant execute on function public.is_teacher() to authenticated;
 revoke all on function public.join_class(text, text) from public, anon;
 revoke all on function public.create_class(text) from public, anon;
 grant execute on function public.join_class(text, text) to authenticated;

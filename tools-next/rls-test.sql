@@ -5,9 +5,29 @@
 create or replace function pg_temp.as_user(uid text, anon boolean) returns void language plpgsql as $$
 begin perform set_config('request.jwt.claims', json_build_object('sub', uid, 'is_anonymous', anon, 'role', 'authenticated')::text, false); end $$;
 
+reset role;
+insert into public.teachers (email) values ('teacher@school.jp'), ('unconfirmed@school.jp');
+\echo '--- unlisted account (4444) cannot create a class (expect not_teacher)'
+select pg_temp.as_user('44444444-4444-4444-4444-444444444444', false);
+set role authenticated;
+select 'am_i_teacher (stranger)', public.am_i_teacher();
+select public.create_class('spam');
+insert into classes (code, name) values ('SPAM01', 'spam');
+reset role;
+\echo '--- listed but email not confirmed (5555) cannot create (expect not_teacher)'
+select pg_temp.as_user('55555555-5555-5555-5555-555555555555', false);
+set role authenticated;
+select public.create_class('x');
+reset role;
+\echo '--- students cannot read the teacher list (expect permission denied)'
+select pg_temp.as_user('22222222-2222-2222-2222-222222222222', true);
+set role authenticated;
+select * from public.teachers;
+reset role;
 \echo '--- teacher T (1111) creates a class'
 select pg_temp.as_user('11111111-1111-1111-1111-111111111111', false);
 set role authenticated;
+select 'am_i_teacher (listed)', public.am_i_teacher();
 select 'created', (c).name from (select public.create_class('IT 1年A') c) x;
 select 'code ok', code ~ '^[A-Z0-9]{6}$' from classes;
 reset role;
@@ -82,3 +102,14 @@ select count(*) from classes;
 reset role;
 \echo '--- realtime publication tables'
 select string_agg(tablename, ',') from pg_publication_tables where pubname = 'supabase_realtime';
+
+\echo '--- teacher removed from the list loses access to own class (expect 0 / 0 / UPDATE 0)'
+reset role;
+delete from public.teachers where email = 'teacher@school.jp';
+select pg_temp.as_user('11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select 'delisted sees classes', count(*) from classes;
+select 'delisted sees attempts', count(*) from attempts;
+update classes set name = 'hijack';
+reset role;
+select 'name unchanged', name from classes;
