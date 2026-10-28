@@ -33,7 +33,7 @@ LESSONS = []
 def anatomy():
     """the parts of a table; each number sits on the part it names"""
     cols, rows = run('SELECT * FROM products LIMIT 4')
-    COL, PK, ROW, VAL = 1, 0, 1, (1, 3)          # name column, id column, 2nd row, its price
+    COL, PK, ROW, VAL = 3, 0, 1, (1, 3)          # price column, id column, 2nd row, its price
     C = {'tbl': '#4353e0', 'col': '#e08a1e', 'row': '#1d8a57', 'val': '#c8374a', 'pk': '#c99a00'}
     n = len(rows)
     def frame(j, i):
@@ -58,7 +58,7 @@ def anatomy():
         for j, v in enumerate(r)) + '</tr>' for i, r in enumerate(rows))
     labels = [
         ('tbl', '①', ('{表|ひょう}（テーブル）', 'table'), ('データを{入|い}れる{入|い}れ{物|もの}。この{表|ひょう}の{名前|なまえ}は products。', 'A container for data. This table is called products.')),
-        ('col', '②', ('{列|れつ}', 'column'), ('{縦|たて}の{並|なら}び。{見出|みだ}しが{列|れつ}の{名前|なまえ}。{図|ず}は name {列|れつ}。', 'A vertical line. The heading is its name. The frame shows the name column.')),
+        ('col', '②', ('{列|れつ}', 'column'), ('{縦|たて}の{並|なら}び。{見出|みだ}しが{列|れつ}の{名前|なまえ}。{図|ず}は price {列|れつ}。', 'A vertical line. The heading is its name. The frame shows the price column.')),
         ('row', '③', ('{行|ぎょう}', 'row'), ('{横|よこ}の{並|なら}び。1つの{商品|しょうひん}が1{行|ぎょう}。{図|ず}は 2 {行|ぎょう}{目|め}。', 'A horizontal line. One product is one row. The frame shows the 2nd row.')),
         ('val', '④', ('{値|あたい}', 'value'), ('{行|ぎょう}と{列|れつ}が{交|まじ}わるところのデータ。{図|ず}は 4800。', 'The data where a row and a column meet. Here: 4800.')),
         ('pk', '⑤', ('{主|しゅ}キー', 'primary key'), ('{行|ぎょう}を1つに{決|き}める{列|れつ}。{同|おな}じ{値|あたい}は{入|はい}らない。{図|ず}は id {列|れつ}。', 'The column that identifies one row; no two rows share a value. Here: the id column.')),

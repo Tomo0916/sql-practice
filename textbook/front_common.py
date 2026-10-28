@@ -61,7 +61,7 @@ BRANCHES = [
         ('ウィンドウ{関数|かんすう}', 'window functions', '44', 'advanced')], (0, 0, 58, 140)),
     ('change', ('{変|か}える', 'Change'), [
         ('INSERT・UPDATE・DELETE', 'add, change, delete rows', '12–14', 'beginner'),
-        ('トランザクション', 'transactions', '36–37', 'advanced')], (64, 104, 56, 30)),
+        ('トランザクション', 'transactions', '36–37', 'advanced')], (64, 98, 56, 40)),
     ('build', ('{作|つく}る', 'Build'), [
         ('CREATE TABLE・データ{型|がた}', 'CREATE TABLE, data types', '38', 'advanced'),
         ('{制約|せいやく}・{外部|がいぶ}キー', 'constraints, foreign keys', '39–40', 'advanced'),

@@ -401,3 +401,10 @@ code.fl-kw { font-weight: 700; color: #2b3fc4; background: #eef0fe; font-size: 7
 .anat-t { padding-left: 2.4mm; }
 .fpage.cover .fit > .cover-name { margin-top: auto; margin-bottom: 4mm; }
 .cv-lv { padding: 1.4mm 3.2mm .2mm; line-height: 1.6; }
+
+/* mind map: items spread evenly over the card's height; centre box like the cards */
+.mm-card { display: flex; flex-direction: column; box-sizing: border-box; }
+.mm-card ul { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+.mm-center { border-radius: 2.5mm; padding: 2mm; box-sizing: border-box; }
+.tag { padding-top: 1.6mm; }
+.anat-l li { padding-top: 1.4mm; }

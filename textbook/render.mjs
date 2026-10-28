@@ -56,6 +56,22 @@ const fits = await p.evaluate(() => {
 });
 const shrunk = fits.filter(f => f.z < 1);
 if (shrunk.length) console.log('scaled pages:', shrunk.map(f => `${f.lesson}/${f.half}:${f.z}`).join(' '));
+// nothing (furigana, English, text) may stick out of the box it belongs to
+const bad = await p.evaluate(() => {
+  const out = [];
+  const boxes = document.querySelectorAll('.mm-card, .mm-center, .box, .how-page, .how-app, .goal, .cv-lv, .tag, .anat-l li, .cover-name div, .cv-editor, .minitable');
+  for (const box of boxes) {
+    const r = box.getBoundingClientRect();
+    for (const e of box.querySelectorAll('.rt, .en, .ja, b, span, code, td, th, li, pre')) {
+      const q = e.getBoundingClientRect();
+      if (!q.width || !q.height || e.closest('.anat-no, .anat-tbl')) continue;
+      const d = Math.max(r.top - q.top, q.bottom - r.bottom, r.left - q.left, q.right - r.right);
+      if (d > 1) out.push(`${box.className.split(' ')[0]} in ${(box.closest('[id]') || {}).id || 'front'}: "${e.textContent.trim().slice(0, 24)}" ${d.toFixed(1)}px`);
+    }
+  }
+  return [...new Set(out)];
+});
+console.log(bad.length ? '✕ sticks out:\n  ' + bad.join('\n  ') : '✓ nothing sticks out of its box');
 await p.pdf({ path: pdf, preferCSSPageSize: true, printBackground: true });
 await b.close();
 console.log('✓', path.relative(here, pdf));
