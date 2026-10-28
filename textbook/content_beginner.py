@@ -31,20 +31,53 @@ LESSONS = []
 
 # ---------------------------------------------------------------- Lesson 0
 def anatomy():
+    """the parts of a table; each number sits on the part it names"""
     cols, rows = run('SELECT * FROM products LIMIT 4')
-    th = ''.join(f'<th class="{"pk" if c == "id" else ""}">{esc(c)}</th>' for c in cols)
-    trs = ''.join('<tr class="{}">'.format('rowhl' if i == 1 else '') + ''.join(
-        f'<td class="{"pk" if j == 0 else ""}{" valhl" if (i == 1 and j == 3) else ""}">{esc(str(v))}</td>' for j, v in enumerate(r)) + '</tr>' for i, r in enumerate(rows))
+    COL, PK, ROW, VAL = 1, 0, 1, (1, 3)          # name column, id column, 2nd row, its price
+    C = {'tbl': '#4353e0', 'col': '#e08a1e', 'row': '#1d8a57', 'val': '#c8374a', 'pk': '#c99a00'}
+    n = len(rows)
+    def frame(j, i):
+        """box-shadows that draw a vertical frame around a column and a horizontal frame around the row"""
+        sh = []
+        for cj, c in ((COL, C['col']), (PK, C['pk'])):
+            if j == cj:
+                sh += [f'inset 2.5px 0 {c}', f'inset -2.5px 0 {c}']
+                if i == -1: sh.append(f'inset 0 2.5px {c}')
+                if i == n - 1: sh.append(f'inset 0 -2.5px {c}')
+        if i == ROW:
+            sh += [f'inset 0 2.5px {C["row"]}', f'inset 0 -2.5px {C["row"]}']
+            if j == 0: sh.append(f'inset 2.5px 0 {C["row"]}')
+            if j == len(cols) - 1: sh.append(f'inset -2.5px 0 {C["row"]}')
+        return f' style="box-shadow:{", ".join(sh)}"' if sh else ''
+    badge = lambda k, no: f'<span class="anat-no" style="background:{C[k]}">{no}</span>'
+    th = ''.join(f'<th class="{"pk" if j == PK else ""}"{frame(j, -1)}>{esc(c)}'
+                 + (badge('col', '②') if j == COL else badge('pk', '⑤') if j == PK else '') + '</th>' for j, c in enumerate(cols))
+    trs = ''.join('<tr>' + ''.join(
+        f'<td class="{"pk" if j == PK else ""}{" valhl" if (i, j) == VAL else ""}"{frame(j, i)}>{esc(str(v))}'
+        + (badge('val', '④') if (i, j) == VAL else badge('row', '③') if (i == ROW and j == len(cols) - 1) else '') + '</td>'
+        for j, v in enumerate(r)) + '</tr>' for i, r in enumerate(rows))
     labels = [
-        ('tbl', ('{表|ひょう}（テーブル）', 'table'), ('データを{入|い}れる{入|い}れ{物|もの}。{名前|なまえ}は products。', 'A container for data. Its name is products.')),
-        ('col', ('{列|れつ}', 'column'), ('{縦|たて}の{並|なら}び。{見出|みだ}しが{列|れつ}の{名前|なまえ}（name、price など）。', 'A vertical line. The heading is the column name (name, price …).')),
-        ('row', ('{行|ぎょう}', 'row'), ('{横|よこ}の{並|なら}び。1つの{商品|しょうひん}が1{行|ぎょう}。', 'A horizontal line. One product is one row.')),
-        ('val', ('{値|あたい}', 'value'), ('{行|ぎょう}と{列|れつ}が{交|まじ}わるところのデータ（4800 など）。', 'The data where a row and a column meet (4800 …).')),
-        ('pk', ('{主|しゅ}キー', 'primary key'), ('{行|ぎょう}を1つに{決|き}める{列|れつ}。{同|おな}じ{値|あたい}は{入|はい}らない（id）。', 'The column that identifies one row. No two rows have the same value (id).')),
+        ('tbl', '①', ('{表|ひょう}（テーブル）', 'table'), ('データを{入|い}れる{入|い}れ{物|もの}。この{表|ひょう}の{名前|なまえ}は products。', 'A container for data. This table is called products.')),
+        ('col', '②', ('{列|れつ}', 'column'), ('{縦|たて}の{並|なら}び。{見出|みだ}しが{列|れつ}の{名前|なまえ}。{図|ず}は name {列|れつ}。', 'A vertical line. The heading is its name. The frame shows the name column.')),
+        ('row', '③', ('{行|ぎょう}', 'row'), ('{横|よこ}の{並|なら}び。1つの{商品|しょうひん}が1{行|ぎょう}。{図|ず}は 2 {行|ぎょう}{目|め}。', 'A horizontal line. One product is one row. The frame shows the 2nd row.')),
+        ('val', '④', ('{値|あたい}', 'value'), ('{行|ぎょう}と{列|れつ}が{交|まじ}わるところのデータ。{図|ず}は 4800。', 'The data where a row and a column meet. Here: 4800.')),
+        ('pk', '⑤', ('{主|しゅ}キー', 'primary key'), ('{行|ぎょう}を1つに{決|き}める{列|れつ}。{同|おな}じ{値|あたい}は{入|はい}らない。{図|ず}は id {列|れつ}。', 'The column that identifies one row; no two rows share a value. Here: the id column.')),
     ]
-    li = ''.join(f'<li class="lab-{k}"><b>{J(n[0])}<span class="en">{n[1]}</span></b>{B(d)}</li>' for k, n, d in labels)
-    return f'''<div class="anat"><div class="anat-t"><div class="anat-name">products</div><table class="t anat-tbl"><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table>
+    li = ''.join(f'<li class="lab-{k}"><b>{badge(k, no)}{J(nm[0])}<span class="en">{nm[1]}</span></b>{B(d)}</li>' for k, no, nm, d in labels)
+    return f'''<div class="anat"><div class="anat-t"><div class="anat-name">{badge('tbl', '①')}products</div><table class="t anat-tbl"><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table>
       <div class="anat-more">… {J("{全部|ぜんぶ}で 10 {行|ぎょう}")}</div></div><ul class="anat-l">{li}</ul></div>'''
+
+DBMS = [
+    ('Oracle Database', ('{企業|きぎょう}の{大|おお}きなシステム。Oracle {資格|しかく}の{対象|たいしょう}', 'large business systems; the Oracle exams')),
+    ('MySQL', ('Web サービス', 'web services')),
+    ('PostgreSQL', ('Web サービス・データ{分析|ぶんせき}', 'web services, data analysis')),
+    ('Microsoft SQL Server', ('Windows の{企業|きぎょう}システム', 'business systems on Windows')),
+    ('SQLite', ('スマホやアプリの{中|なか}（このアプリも）', 'inside phones and apps (this app too)')),
+]
+def dbms_table():
+    head = ''.join(f'<th>{J(h[0])}<span class="en">{h[1]}</span></th>' for h in [('{正式|せいしき}{名称|めいしょう}', 'official name'), ('よく{使|つか}われるところ', 'typical use')])
+    rows = ''.join(f'<tr{" class=\"me\"" if n == "SQLite" else ""}><td class="code">{esc(n)}</td><td>{B(u)}</td></tr>' for n, u in DBMS)
+    return f'<table class="minitable dbms"><thead><tr>{head}</tr></thead><tbody>{rows}</tbody></table>'
 
 KINDS = [
     ('SELECT', ('{読|よ}む', 'read'), ('データを{取|と}り{出|だ}す', 'get data'), ('{初級|しょきゅう}', 'Beginner')),
@@ -66,7 +99,8 @@ LESSONS.append(dict(
         section(('{表|ひょう}のしくみ', 'Parts of a table'), anatomy()),
         section(('データベースと SQL', 'Databases and SQL'),
                 B(('データベースは、たくさんのデータを{表|ひょう}にまとめて{保存|ほぞん}し、すばやく{取|と}り{出|だ}せるようにしたもの。データベースを{動|うご}かすソフトを DBMS という。', 'A database stores a lot of data in tables so it can be found quickly. The software that runs it is called a DBMS.'))
-                + B(('{代表的|だいひょうてき}な DBMS：Oracle・MySQL・PostgreSQL・SQL Server・SQLite（このアプリ）。', 'Well-known DBMSs: Oracle, MySQL, PostgreSQL, SQL Server, SQLite (this app).'), cls='mt')
+                + B(('DBMS は Database Management System（データベース{管理|かんり}システム）の{略|りゃく}。{代表的|だいひょうてき}な DBMS は{次|つぎ}の 5 つ。', 'DBMS stands for Database Management System. Five well-known DBMSs:'), cls='mt')
+                + dbms_table()
                 + B(('SQL は、DBMS に「こうしてほしい」と{伝|つた}えるための{言葉|ことば}。どの DBMS でも、ほぼ{同|おな}じ SQL が{使|つか}える。', 'SQL is the language you use to tell a DBMS what to do. Almost the same SQL works on every DBMS.'), cls='mt')
                 + kinds_table()),
     ],

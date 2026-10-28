@@ -326,10 +326,14 @@ def qr(url):
 LEVELS = {'beginner': ('{初級|しょきゅう}', 'Beginner', 3), 'intermediate': ('{中級|ちゅうきゅう}', 'Intermediate', 2), 'advanced': ('{上級|じょうきゅう}', 'Advanced', 1)}
 
 def mini_map(level):
-    on = LEVELS[level][2]
-    bands = [(48, 72, 78, 42, 4), (41, 79, 85, 35, 24), (34, 86, 92, 28, 44), (27, 93, 99, 21, 64)]
-    return '<svg class="map" viewBox="0 0 120 84" aria-hidden="true">' + ''.join(
-        f'<polygon points="{a},{y} {b},{y} {c},{y + 16} {d},{y + 16}" class="lv{" on" if i == on else ""}"/>' for i, (a, b, c, d, y) in enumerate(bands)) + '</svg>'
+    """three steps, one per volume; this volume's step is filled in its colour"""
+    from front_common import LEVEL_INFO, ORDER
+    out = ''
+    for i, k in enumerate(ORDER):
+        c, h = LEVEL_INFO[k]['color'], 26 + i * 22
+        fill = c if k == level else '#fff'
+        out += f'<rect x="{6 + i * 38}" y="{80 - h}" width="32" height="{h}" rx="4" fill="{fill}" stroke="{c}" stroke-width="3"/>'
+    return f'<svg class="map" viewBox="0 0 120 84" aria-hidden="true">{out}</svg>'
 
 TAGS = {'fe': ('{基本|きほん}{情報|じょうほう}', 'FE exam'), 'silver': ('Silver SQL', '')}
 
@@ -374,9 +378,10 @@ def lesson_html(L, level='beginner'):
             '</div></div><div class="half"><div class="fit">' + '\n'.join(p2) + '</div></div></article>')
 
 def build(name, front, lessons, level):
+    from front_common import theme_css
     body = front + '\n'.join(lesson_html(L, level) for L in lessons)
     doc = f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>SQL Textbook</title>
-<link rel="stylesheet" href="../page.css"></head><body><main class="doc">{body}</main></body></html>'''
+<link rel="stylesheet" href="../page.css">{theme_css(level)}</head><body><main class="doc">{body}</main></body></html>'''
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, name + '.html'), 'w') as f:
         f.write(doc)

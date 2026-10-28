@@ -4,28 +4,15 @@ from content_beginner import LESSONS
 
 FIRST_LESSON_PAGE = 6
 
-def page(body, cls=''):
-    return f'<section class="fpage {cls}"><div class="fit">{body}</div></section>'
-
-def pyramid(on='beginner'):
-    bands = [
-        ('goal', '{一人前|いちにんまえ}', 'Graduation project (Lesson 48)', '{卒業|そつぎょう}{制作|せいさく}'),
-        ('advanced', '{上級|じょうきゅう}：{作|つく}る・{守|まも}る・{設計|せっけい}する', 'Advanced: build, protect, design (Lessons 36–47)', 'CREATE・{制約|せいやく}・{権限|けんげん}・{正規化|せいきか}'),
-        ('intermediate', '{中級|ちゅうきゅう}：{組|く}み{立|た}てる', 'Intermediate: combine (Lessons 19–35)', '{関数|かんすう}・サブクエリ・{結合|けつごう}'),
-        ('beginner', '{初級|しょきゅう}：{読|よ}む・{変|か}える', 'Beginner: read and change (Lessons 0–18)', 'SELECT・WHERE・{集計|しゅうけい}・INSERT'),
-    ]
-    out = ''
-    for i, (k, ja, en, sub) in enumerate(bands):
-        out += f'<div class="pyr-band {k}{" on" if k == on else ""}" style="--i:{i}"><b>{ruby(ja)}</b><span class="pyr-sub">{ruby(sub)}</span><span class="en">{esc(en)}</span></div>'
-    return f'<div class="pyr">{out}<div class="pyr-band base" style="--i:4"><b>{ruby("{土台|どだい}：データベースとは")}</b><span class="en">Foundation: what a database is (Lesson 0)</span></div></div>'
+from front_common import page, cover as cover_common, mind_map
 
 def cover():
-    return page(f'''<div class="cover-top"><div class="cover-mark">SQL</div><div class="cover-lv">{ruby("{初級|しょきゅう}{編|へん}")}<small>Beginner</small></div></div>
-    <h1 class="cover-title">{ruby("SQL {教科書|きょうかしょ}")}</h1>
-    <p class="cover-en">SQL Textbook</p>
-    {B(("さわって{覚|おぼ}える、データベースの{言葉|ことば}。", "Learn the language of databases by using it."), cls="cover-sub")}
-    <div class="cover-pyr">{pyramid()}</div>
-    <div class="cover-name"><div><span>No.</span></div><div><span>{ruby("{名前|なまえ}")} <small>Name</small></span></div></div>''', 'cover')
+    # the cover is an editor window: the SQL that lists this book's Lessons, and its result
+    by = {L['no']: L for L in LESSONS}
+    rows = [[n, by[n]['title'][1]] for n in range(8)] + [['⋮', '⋮'], [18, by[18]['title'][1]]]
+    q = "-- What you learn in this book\nSELECT lesson, topic\nFROM   sql_textbook\nWHERE  level = 'Beginner'\nORDER BY lesson;"
+    return cover_common('beginner', q, ['lesson', 'topic'], rows, len(LESSONS),
+                        ("さわって{覚|おぼ}える、データベースの{言葉|ことば}。", "Learn the language of databases by using it."))
 
 def howto():
     parts1 = [('①', ('できるようになること', 'What you will be able to do'), ('この Lesson のゴール。', 'The goal of the Lesson.')),
@@ -42,17 +29,12 @@ def howto():
              ('<span class="mk-extra">Coffee Maker</span>', ('{余分|よぶん}に{入|はい}った{行|ぎょう}', 'an extra row')),
              ('<span class="dialect-tag">DB</span>', ('データベースごとのちがい', 'differences between databases'))]
     mk = ''.join(f'<li><span class="mk">{m}</span>{B(t)}</li>' for m, t in marks)
-    flow = [('3', ('{先生|せんせい}が「{見|み}てみる」を{見|み}せる', 'The teacher shows “See it”')),
-            ('10', ('アプリで{練習|れんしゅう}する', 'Practise in the app')),
-            ('2', ('「よくある{間違|まちが}い」をみんなで{確|たし}かめる', 'Check the common mistakes together'))]
-    fl = ''.join(f'<div class="how-flow-step"><span class="how-min">{m}<small>{ruby("{分|ふん}")}</small></span>{B(t)}</div>' for m, t in flow)
     return page(H('この{本|ほん}の{使|つか}い{方|かた}', 'How to use this book')
         + B(('1 つの Lesson は、{見開|みひら}き 2 ページ。{左|ひだり}のページで{見|み}て、{右|みぎ}のページで{確|たし}かめて{書|か}く。', 'Each Lesson is a two-page spread: look on the left page, check and write on the right page.'), cls='lead')
         + f'<div class="how-spread">{col(("{左|ひだり}のページ", "left page"), parts1)}{col(("{右|みぎ}のページ", "right page"), parts2)}</div>'
         + f'<div class="how-row"><div class="box"><h2>{J("{記号|きごう}の{意味|いみ}")}<small>Symbols</small></h2><ul class="marks">{mk}</ul></div>'
-        + f'<div class="box"><h2>{J("{授業|じゅぎょう}の{流|なが}れ（1 Lesson）")}<small>One Lesson in class</small></h2><div class="how-flow">{fl}</div>'
-        + B(('{各|かく} Lesson の{右上|みぎうえ}の QR コードから、アプリのその Lesson を{開|ひら}ける。', 'The QR code at the top right of each Lesson opens it in the app.'), cls='mt') + '</div></div>'
-        + f'<div class="how-app"><div class="hqr">{qr(APP_URL)}</div>' + B(('アプリでは、この{本|ほん}と{同|おな}じ{表|ひょう}で SQL を{実行|じっこう}できる。{右|みぎ}の QR コードから{開|ひら}こう。', 'In the app you can run SQL on the same tables as in this book. Open it with this QR code.')) + '</div>')
+        + f'<div class="how-app"><div class="hqr">{qr(APP_URL)}</div><div>' + B(('アプリでは、この{本|ほん}と{同|おな}じ{表|ひょう}で SQL を{実行|じっこう}できる。QR コードから{開|ひら}こう。', 'In the app you can run SQL on the same tables as in this book. Open it with the QR code.'))
+        + B(('{各|かく} Lesson のページにも QR コードがあり、アプリのその Lesson を{開|ひら}ける。', 'Each Lesson page also has a QR code that opens that Lesson in the app.'), cls='mt') + '</div></div></div>')
 
 CAN_DO = [
     ('{表|ひょう}・{行|ぎょう}・{列|れつ}・{主|しゅ}キーを{説明|せつめい}できる', 'explain table, row, column, primary key', 0),
@@ -72,8 +54,8 @@ CAN_DO = [
 def map_page():
     items = ''.join(f'<li><span class="cb"></span>{B((ja, en))}<span class="cd-l">Lesson {n}</span></li>' for ja, en, n in CAN_DO)
     return page(H('{学|まな}びの{地図|ちず}', 'Learning map')
-        + B(('{土台|どだい}から{順|じゅん}に{積|つ}み{上|あ}げ、{最後|さいご}に{自分|じぶん}でデータベースを 1 つ{作|つく}れるようになる。この{本|ほん}は、{一番|いちばん}{下|した}の{初級|しょきゅう}{編|へん}。', 'Build up from the foundation; at the end you can make a database yourself. This book is the Beginner volume, the bottom layer.'), cls='lead')
-        + f'<div class="map-big">{pyramid()}</div>'
+        + B(('SQL で{学|まな}ぶことの{全体図|ぜんたいず}。{点|てん}の{色|いろ}はレベル、{数字|すうじ}は Lesson の{番号|ばんごう}。この{本|ほん}は{青|あお}の{初級|しょきゅう}{編|へん}。', 'The whole picture of SQL. Dot colours show the level, numbers show the Lesson. This book is the blue Beginner volume.'), cls='lead')
+        + mind_map('beginner')
         + f'<div class="box"><h2>{J("{初級|しょきゅう}{編|へん}でできるようになること")}<small>What you will be able to do</small></h2>'
         + B(('できるようになったら、□ にチェックを{入|い}れよう。', 'Tick each box when you can do it.'), cls='mt') + f'<ul class="cando">{items}</ul></div>')
 
