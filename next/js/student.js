@@ -29,7 +29,7 @@ const S = {
   runs: {},          // problem id → { res, grade, error, dx, sql }
   tab: 'user',
   step: null,
-  showData: {},
+  hideData: {},     // table name → true when the student hid the data table
   session: null,     // review / mix session { kind, items: [prob], i, done: {id: ok} }
   editor: null
 };
@@ -356,7 +356,7 @@ function workspaceHTML(prob) {
 }
 function tableBlockHTML(name, prob) {
   const tbl = ALL_TABLES[name];
-  const open = !!S.showData[name];
+  const open = !S.hideData[name];
   const qualify = prob.tables.length > 1;
   return `<div class="tbl">
     <div class="tbl-head">
@@ -694,7 +694,7 @@ const actions = {
     if (S.editor) { S.editor.set(el.dataset.sql); S.editor.focus(); document.getElementById('editor').scrollIntoView({ block: 'center', behavior: 'smooth' }); }
   },
   tab(el) { S.tab = el.dataset.tab; refresh(['res']); },
-  toggleData(el) { const n = el.dataset.t; S.showData[n] = !S.showData[n]; saveDraft(); render(); },
+  toggleData(el) { const n = el.dataset.t; S.hideData[n] = !S.hideData[n]; saveDraft(); render(); },
   stepStart() { S.step = 0; refresh(['steps']); },
   stepNext() { S.step++; refresh(['steps']); },
   stepPrev() { S.step = Math.max(0, S.step - 1); refresh(['steps']); },

@@ -15,7 +15,7 @@ const state = {
   runs: {},            // problem id → { res, grade, error }  (kept in memory while the page is open)
   tab: 'user',
   step: null,          // index of step-by-step explanation, or null
-  showData: {},        // table name → true
+  hideData: {},        // table name → true when the student hid the data table
   presenter: !!Store.get(KEYS.presenter, false),
   progress: Store.get(KEYS.progress, null) || { solved: {}, drafts: {}, last: null }
 };
@@ -224,7 +224,7 @@ function lessonHTML() {
 
 function tableBlockHTML(name) {
   const tbl = ALL_TABLES[name];
-  const open = !!state.showData[name];
+  const open = !state.hideData[name];
   const qualify = LESSON_BY_KEY[state.route.key].kind === 'join';
   return `<div>
     <div class="tbl-head">
@@ -425,7 +425,7 @@ document.addEventListener('click', e => {
     insertKw() { insertKeyword(el.dataset.text); },
     useSql() { const ta = document.getElementById('sql'); ta.value = el.dataset.sql; ta.dispatchEvent(new Event('input')); ta.focus(); ta.scrollIntoView({ block: 'center', behavior: 'smooth' }); },
     tab() { state.tab = el.dataset.tab; render(); },
-    toggleData() { const n = el.dataset.t; state.showData[n] = !state.showData[n]; render(); },
+    toggleData() { const n = el.dataset.t; state.hideData[n] = !state.hideData[n]; render(); },
     stepStart() { state.step = 0; render(); },
     stepNext() { state.step++; render(); },
     stepPrev() { state.step = Math.max(0, state.step - 1); render(); },
