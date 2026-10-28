@@ -33,7 +33,10 @@ export function saveProgress(p) { Store.set(KEYS.progress, p); }
 export function lessonState(progress, problems) {
   const solved = problems.map(p => !!progress.solved[p.id]);
   const by = st => problems.filter((p, i) => p.stage === st && solved[i]).length;
-  const done = by('demo') >= 1 && by('fill') >= 1 && by('order') >= 1 && by('write') >= 2;
+  // each kind of problem the lesson has must be solved: example, fill-in, ordering, 2 writing (or 3 questions in Lesson 0)
+  const has = st => problems.some(p => p.stage === st);
+  const need = { demo: 1, fill: 1, order: 1, write: 2, quiz: 3 };
+  const done = Object.entries(need).every(([st, n]) => !has(st) || by(st) >= n);
   return { solved, count: solved.filter(Boolean).length, done };
 }
 export function markLessonDone(progress, key) {

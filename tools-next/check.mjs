@@ -14,11 +14,11 @@ import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { SqlEngine, LESSON_BY_KEY, grade, todayCode, splitClauses } from '../next/js/engine.js';
+import { lessonState } from '../next/js/store.js';
+import { SqlEngine, LESSON_BY_KEY, stagesOf, grade, todayCode, splitClauses } from '../next/js/engine.js';
 import { diagnose, findFix } from '../next/js/diagnose.js';
 import { LESSONS } from '../next/js/lessons.js';
 import { usedKeys } from './build-i18n.mjs';
-import { MISTAKES, mistakeEffect } from '../next/js/book-data.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let errors = 0, warnings = 0;
@@ -63,6 +63,10 @@ for (const l of LANGS) {
 /* ---------- 2. problems ---------- */
 console.log('2. Problems (example + 5 practice) for 60 set codes');
 const eng = new SqlEngine(await initSqlJs());
+{ // CONCAT works as in MySQL (any number of arguments, NULL if one is NULL)
+  const r = eng.runUser("SELECT CONCAT(name, ' - ', category), CONCAT('a', NULL) FROM products LIMIT 1;").values[0];
+  if (r[0] !== 'Wireless Mouse - Electronics' || r[1] !== null) { console.log('✕ CONCAT:', r); errors++; }
+}
 const codes = [todayCode(), 'TEST', 'A7K2', 'CLASS-1'];
 for (let i = 0; i < 56; i++) codes.push('C' + i);
 const variety = {};
@@ -72,7 +76,8 @@ for (const L of LESSONS) {
     const probs = eng.lessonProblems(L, code);
     if (probs.length !== 6) err(`${L.key} @${code}: ${probs.length} problems`);
     const stages = probs.map(p => p.stage).join();
-    if (stages !== 'demo,fill,order,write,write,write') err(`${L.key} @${code}: stages ${stages}`);
+    if (stages !== stagesOf(L).join()) err(`${L.key} @${code}: stages ${stages}`);
+    if (!lessonState({ solved: Object.fromEntries(probs.map(p => [p.id, 1])) }, probs).done) err(`${L.key} @${code}: cannot be completed`);
     for (const p of probs) {
       variety[L.key].add(p.sql);
       const exp = eng.exec(p.sql);
@@ -105,12 +110,14 @@ for (const L of LESSONS) {
       }
       for (const l of LANGS) {
         const d = dicts[l];
-        const desc = d[`L.${p.lesson}.desc`];
+        const L2 = LESSON_BY_KEY[p.lesson];
+        const dk = L2.descKey ? L2.descKey(p.p) : `L.${p.lesson}.desc`;
+        const desc = d[dk] || '';
         if (/\{(\w+)\}/.test(desc)) for (const m of desc.matchAll(/\{(\w+)\}/g)) {
           const k = m[1];
-          const L2 = LESSON_BY_KEY[p.lesson];
-          const view = Object.assign({}, p.p, L2.kind === 'join' ? { on: 1 } : {}, L2.view ? L2.view(p.p) : {});
-          if (!(k in view)) err(`${l}: L.${p.lesson}.desc uses {${k}} which this lesson does not provide`);
+          if (/\|/.test(m[0])) continue;
+          const view = Object.assign({}, p.p, L2.kind === 'join' ? { on: 1 } : {}, L2.view ? L2.view(p.p) : {}, L2.phrases ? L2.phrases(p.p) : {});
+          if (!(k in view)) err(`${l}: ${dk} uses {${k}} which this lesson does not provide`);
         }
       }
     }
@@ -120,7 +127,7 @@ for (const [k, s] of Object.entries(variety)) console.log(`   ${k.padEnd(12)} ${
 
 /* ---------- 3. diagnostics ---------- */
 console.log('3. Diagnostics');
-const prob = eng.lessonProblems(LESSON_BY_KEY.topn, 'X')[0];
+const prob = Object.assign({}, eng.lessonProblems(LESSON_BY_KEY.limit, 'X')[0], { sql: "SELECT name, price FROM products WHERE category = 'Electronics' ORDER BY price DESC LIMIT 3;", ordered: true });
 const exp = eng.exec(prob.sql);
 const cases = [
   ["SELECT name, price FROM products WHERE category = Electronics", 'quote'],
@@ -144,7 +151,8 @@ for (const [sql, want] of cases) {
   if (want && !d.items.some(i => i.key === want)) err(`"${sql}" → ${d.items.map(i => i.key).join(',') || '(nothing)'}, expected ${want}`);
   d.items.forEach(i => { if (!(('dx.' + i.key) in en)) err(`diagnosis key dx.${i.key} has no text`); });
 }
-try { eng.runUser('DELETE FROM products'); err('DELETE was not blocked'); } catch (e) { if (e.code !== 'onlySelect') err('DELETE gave the wrong error'); }
+try { eng.runUser('DROP TABLE products'); err('DROP was not blocked'); } catch (e) { if (e.code !== 'onlySelect') err('DROP gave the wrong error'); }
+{ const r = eng.runUser('DELETE FROM products WHERE price < 2000;'); if (!r.dml || r.dml.changed < 1 || r.values.length >= 10) err('DELETE did not show the changed table'); }
 if (eng.values('SELECT COUNT(*) FROM products')[0][0] !== 10) err('products table was modified');
 
 /* ---------- 4. paper tests ---------- */
@@ -157,18 +165,6 @@ for (const code of ['T1', 'T2', 'T3']) for (const type of ['write', 'predict', '
   if (a.questions.length !== b.questions.length) warn(`test ${code}/${type}: A has ${a.questions.length}, B has ${b.questions.length}`);
   const same = a.questions.filter((q, i) => b.questions[i] && q.sql === b.questions[i].sql).length;
   if (same > a.questions.length / 3) warn(`test ${code}/${type}: versions A and B share ${same} identical questions`);
-}
-
-/* ---------- 5. textbook ---------- */
-console.log('5. Textbook');
-for (const l of LESSONS) {
-  const list = MISTAKES[l.key] || [];
-  if (list.length < 2) err(`textbook: lesson ${l.key} has ${list.length} common mistakes (need 2)`);
-  const demo = eng.demoProblem(l).sql;
-  for (const [id, wrong, right] of list) {
-    try { eng.exec(right || demo); } catch (e) { err(`textbook ${l.key}/${id}: the correct SQL fails: ${e.message}`); continue; }
-    if (!mistakeEffect(eng, wrong, right || demo)) err(`textbook ${l.key}/${id}: the "wrong" SQL gives the correct result`);
-  }
 }
 
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);

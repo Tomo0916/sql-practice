@@ -1,9 +1,9 @@
 /* Offline support. App files (pages, js, css, texts): network first, so an update shows at once;
  * vendor libraries, icons and fonts: cache first. 
  * Supabase requests are never cached. Bump VERSION when publishing big changes. */
-const VERSION = 'sqlp-next-6';
+const VERSION = 'sqlp-next-7';
 const CORE = ['./', 'index.html', 'teacher.html', 'config.js', 'css/app.css', 'css/teacher.css', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm', 'vendor/codemirror.js',
-  'js/student.js', 'js/teacher.js', 'js/engine.js', 'js/lessons.js', 'js/datasets.js', 'js/diagnose.js', 'js/i18n.js', 'js/ui.js', 'js/viz.js', 'js/editor.js', 'js/store.js', 'js/backend.js', 'js/book.js', 'js/book-data.js',
+  'js/student.js', 'js/teacher.js', 'js/engine.js', 'js/lessons.js', 'js/datasets.js', 'js/diagnose.js', 'js/i18n.js', 'js/ui.js', 'js/viz.js', 'js/editor.js', 'js/store.js', 'js/backend.js', 'js/book.js',
   'i18n/ja.js', 'i18n/easy.js', 'i18n/en.js', 'icons/icon.svg', 'icons/icon-192.png', 'manifest.webmanifest'];
 // cache: 'reload' so a new version never copies stale files from the browser's HTTP cache
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())); });

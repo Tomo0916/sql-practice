@@ -3,15 +3,23 @@
  *             fill-in-the-blank and clause-ordering builders, paper tests.
  * Pure logic: no DOM, no language. Runs in the browser and in Node (tools-next/check.mjs).
  * ========================================================= */
-import { ALL_TABLES, SINGLE_DATASETS, JOIN_DATASETS, datasetSQL } from './datasets.js';
+import { ALL_TABLES, SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, datasetSQL } from './datasets.js';
 import { LESSONS, BLANK } from './lessons.js';
 
 export const LESSON_BY_KEY = {};
 LESSONS.forEach((l, i) => { l.index = i; LESSON_BY_KEY[l.key] = l; });
 
-/** Stage of each problem in a lesson (index 0 is the fixed example). */
+/** Stage of each problem in a lesson (index 0 is the fixed example). A lesson may set its own `stages`. */
 export const STAGES = ['demo', 'fill', 'order', 'write', 'write', 'write'];
 export const PRACTICE_COUNT = STAGES.length - 1;
+export const stagesOf = lesson => lesson.stages || STAGES;
+export const blanksOf = (lesson, p) => (typeof lesson.blanks === 'function' ? lesson.blanks(p) : lesson.blanks || []);
+
+/** Lesson 0 answers: compare loosely (full-width digits, quotes, case, spaces, thousands separators). */
+export function normAnswer(v) {
+  return String(v === null || v === undefined ? '' : v).normalize('NFKC').trim().replace(/^['"‘’“”「『](.*)['"‘’“”」』]$/, '$1').replace(/(\d),(?=\d{3}\b)/g, '$1').replace(/\s+/g, ' ').toLowerCase();
+}
+export const checkAnswer = (prob, text) => normAnswer(text) !== '' && normAnswer(text) === normAnswer(prob.answer);
 
 /* ---------- seeded randomness ---------- */
 export function hashStr(s) {
@@ -42,13 +50,18 @@ export function randomCode(n) {
 export function normCode(s) { return String(s || '').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 16); }
 
 /* ---------- SQL safety ---------- */
-const FORBIDDEN = /\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|ATTACH|DETACH|PRAGMA|VACUUM|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|REINDEX|ANALYZE)\b/i;
+const FORBIDDEN = /\b(DROP|ALTER|CREATE|REPLACE|ATTACH|DETACH|PRAGMA|VACUUM|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|REINDEX|ANALYZE)\b/i;
+/** INSERT / UPDATE / DELETE: the table it changes (or null) */
+export function dmlTable(sql) {
+  const m = /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+([A-Za-z_]\w*)/i.exec(stripLiterals(sql || ''));
+  return m ? m[1] : null;
+}
 export function stripLiterals(sql) {
   return sql.replace(/'(?:[^']|'')*'/g, "''").replace(/"(?:[^"]|"")*"/g, '""').replace(/--[^\n]*/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ');
 }
 
 /* ---------- clause splitting (used by ordering exercises and visualisations) ---------- */
-const CLAUSE_RE = /\b(SELECT|FROM|(?:INNER|LEFT)\s+JOIN|WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT)\b/gi;
+const CLAUSE_RE = /\b(SELECT|INSERT\s+INTO|VALUES|UPDATE|SET|DELETE\s+FROM|FROM|(?:INNER|LEFT)\s+JOIN|WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT)\b/gi;
 /** "SELECT a FROM t WHERE x" → ["SELECT a", "FROM t", "WHERE x"] (ignores keywords inside quotes). */
 export function splitClauses(sql) {
   const s = sql.trim().replace(/;\s*$/, '');
@@ -63,6 +76,11 @@ export function splitClauses(sql) {
 export function clauseKind(chunk) {
   const u = chunk.toUpperCase();
   if (u.startsWith('SELECT')) return /^SELECT\s+DISTINCT/.test(u) ? 'select_distinct' : 'select';
+  if (u.startsWith('INSERT')) return 'insert';
+  if (u.startsWith('VALUES')) return 'values';
+  if (u.startsWith('UPDATE')) return 'update';
+  if (u.startsWith('SET')) return 'set';
+  if (u.startsWith('DELETE')) return 'delete';
   if (u.startsWith('FROM')) return 'from';
   if (/^(INNER|LEFT)/.test(u)) return u.startsWith('LEFT') ? 'join_left' : 'join_inner';
   if (u.startsWith('WHERE')) return 'where';
@@ -115,8 +133,15 @@ function alignColumns(user, exp) {
  * reason: 'noResult' | 'cols' | 'rows' | 'order' | 'values'
  * detail: 'tooMany' | 'tooFew' | 'reversed' | 'noOrder' | null
  */
-export function grade(user, exp, ordered, userSql) {
+export function grade(user, exp, ordered, userSql, names) {
   if (!user || !user.columns || !user.columns.length) return { ok: false, reason: 'noResult' };
+  if (names && user.columns.length === exp.columns.length) {   // the lesson is about naming columns (AS)
+    const j = exp.columns.findIndex((c, i) => c.toLowerCase() !== String(user.columns[i]).toLowerCase());
+    if (j >= 0 && !user.columns.some(c => c.toLowerCase() === exp.columns[j].toLowerCase())) {
+      const g = grade(user, exp, ordered, userSql);
+      if (g.ok) return { ok: false, reason: 'names', a: user.columns[j], b: exp.columns[j] };
+    }
+  }
   if (user.columns.length !== exp.columns.length) return { ok: false, reason: 'cols', a: user.columns.length, b: exp.columns.length };
   const cands = [user.values];
   const aligned = alignColumns(user, exp);
@@ -145,17 +170,40 @@ export class SqlEngine {
   reset() {
     if (this.db) try { this.db.close(); } catch (e) { /* ignore */ }
     this.db = new this.SQL.Database();
+    // CONCAT(a, b, …) as in MySQL (NULL if any argument is NULL), so students can try the MySQL way too
+    const concat = (...a) => (a.some(v => v === null) ? null : a.map(String).join(''));
+    Object.defineProperty(concat, 'length', { value: -1 });   // -1 = any number of arguments
+    this.db.create_function('CONCAT', concat);
     this.db.run(datasetSQL(Object.values(ALL_TABLES)));
   }
-  exec(sql) { const res = this.db.exec(sql); return res.length ? res[res.length - 1] : null; }
+  /** Run SQL. INSERT / UPDATE / DELETE never change the data: the result is the changed table, then it is put back. */
+  exec(sql) {
+    const t = dmlTable(sql);
+    if (t) return this._dml(sql, t);
+    const res = this.db.exec(sql); return res.length ? res[res.length - 1] : null;
+  }
+  _dml(sql, t) {
+    this.db.exec('SAVEPOINT dml');
+    try {
+      this.db.exec(sql);
+      const changed = this.db.getRowsModified();
+      const after = this.db.exec(`SELECT * FROM ${t} ORDER BY 1;`);
+      return Object.assign(after.length ? after[0] : { columns: ALL_TABLES[t] ? ALL_TABLES[t].columns.map(c => c[0]) : [], values: [] }, { dml: { table: t, changed } });
+    } finally {
+      try { this.db.exec('ROLLBACK TO dml; RELEASE dml;'); } catch (e) { this.reset(); }
+    }
+  }
   values(sql) { const r = this.exec(sql); return r ? r.values : []; }
-  /** Run student SQL safely. Throws Error with .code 'empty' | 'onlySelect', or SQLite's message. */
+  /** Run student SQL safely (SELECT, or INSERT / UPDATE / DELETE that is undone at once).
+   *  Throws Error with .code 'empty' | 'onlySelect', or SQLite's message. */
   runUser(sql) {
     const clean = stripLiterals(sql || '').trim();
     if (!clean.replace(/;/g, '').trim()) { const e = new Error('empty'); e.code = 'empty'; throw e; }
     if (FORBIDDEN.test(clean)) { const e = new Error('onlySelect'); e.code = 'onlySelect'; throw e; }
+    const t = dmlTable(sql);
     this.db.exec('SAVEPOINT student');
     try {
+      if (t) return this._dml(sql, t);
       const res = this.db.exec(sql);
       return res.length ? res[res.length - 1] : { columns: [], values: [] };
     } finally {
@@ -168,10 +216,13 @@ export class SqlEngine {
   buildProblem(lesson, p, kind, idx, theme) {
     const sql = lesson.sql(p);
     const blankP = Object.assign({}, p);
-    (lesson.blanks || []).forEach(k => (blankP[k] = BLANK));
+    blanksOf(lesson, p).forEach(k => (blankP[k] = BLANK));
     const tables = lesson.kind === 'join' ? [p.L, p.R] : [p.t];
-    const stage = kind === 'demo' ? 'demo' : kind === 'practice' ? STAGES[idx] : kind;
+    const stages = stagesOf(lesson);
+    const stage = kind === 'demo' ? 'demo' : kind === 'practice' ? stages[idx] : kind;
     return {
+      wn: stages.slice(0, idx + 1).filter(x => x === stage).length,   // "Write 1, 2, 3"
+      answer: lesson.kind === 'quiz' ? p.ans : undefined,
       id: kind === 'demo' ? `${lesson.key}:demo` : `${lesson.key}:${stage}:${hashStr(sql).toString(36)}`,
       lesson: lesson.key, kind, stage, idx, tables, p, sql,
       blank: lesson.sql(blankP),
@@ -184,7 +235,9 @@ export class SqlEngine {
   validate(lesson, p) {
     try {
       const r = this.exec(lesson.sql(p));
+      if (lesson.kind === 'quiz') return p.ans !== undefined && p.ans !== null && p.ans !== '';
       if (!r || !r.values.length) return false;
+      if (r.dml && !r.dml.changed) return false;
       if (lesson.tie) {
         const v = this.values(lesson.tie(p)).map(x => x[0]);
         if (new Set(v).size !== v.length) return false;
@@ -201,7 +254,7 @@ export class SqlEngine {
     }
     return null;
   }
-  themesFor(lesson) { return lesson.kind === 'join' ? JOIN_DATASETS : SINGLE_DATASETS; }
+  themesFor(lesson) { return lesson.kind === 'join' ? JOIN_DATASETS : lesson.themes === 'null' ? NULL_DATASETS : SINGLE_DATASETS; }
   /** Example + 5 practice problems (fill, order, write ×3) for a lesson and set code. */
   lessonProblems(lesson, code) {
     const key = `${code}|${lesson.key}`;
@@ -210,7 +263,7 @@ export class SqlEngine {
     const pool = makeRng(key).shuffle(this.themesFor(lesson));
     const seen = new Set([out[0].sql]);
     for (const ds of pool) {
-      if (out.length > PRACTICE_COUNT) break;
+      if (out.length >= stagesOf(lesson).length) break;
       const p = this.genOne(lesson, ds, `${key}|${ds.table || ds.key}`);
       if (!p) continue;
       const prob = this.buildProblem(lesson, p, 'practice', out.length, ds.table || ds.key);
@@ -226,7 +279,7 @@ export class SqlEngine {
     const R = makeRng(seed);
     for (const ds of R.shuffle(this.themesFor(lesson))) {
       const p = this.genOne(lesson, ds, `${seed}|${ds.table || ds.key}`);
-      if (p) { const pr = this.buildProblem(lesson, p, 'review', 0, ds.table || ds.key); pr.stage = 'write'; pr.id = `${lesson.key}:review:${hashStr(pr.sql).toString(36)}`; return pr; }
+      if (p) { const pr = this.buildProblem(lesson, p, 'review', 0, ds.table || ds.key); pr.stage = lesson.kind === 'quiz' ? 'quiz' : 'write'; pr.id = `${lesson.key}:review:${hashStr(pr.sql).toString(36)}`; return pr; }
     }
     return this.demoProblem(lesson);
   }
@@ -238,7 +291,7 @@ export class SqlEngine {
    */
   fillTask(prob) {
     const lesson = LESSON_BY_KEY[prob.lesson];
-    const keys = lesson.blanks || [];
+    const keys = blanksOf(lesson, prob.p);
     const sp = Object.assign({}, prob.p);
     keys.forEach((k, i) => (sp[k] = `__B${i}__`));
     const tpl = lesson.sql(sp);
@@ -292,6 +345,7 @@ export class SqlEngine {
       if (k === 'where' && />=/.test(c)) cands.push([i, c.replace('>=', '<=')]);
       if (k === 'where' && /IS NULL/i.test(c)) cands.push([i, c.replace(/IS NULL/i, '= NULL')]);
       if (k === 'group' && i > 0) cands.push([i, c]);
+      if (k === 'set' && /=\s*\d+$/.test(c)) cands.push([i, c.replace(/(\d+)$/, n => String(+n + 1))]);
     });
     let distractor = null;
     for (const [i, text] of R.shuffle(cands)) {
@@ -318,8 +372,8 @@ export class SqlEngine {
     const ver = opts.version || 'A';
     const questions = [], seen = new Set();
     const RT = makeRng(`test-types|${opts.code}`);
-    LESSONS.filter(l => opts.lessons.includes(l.key)).forEach(lesson => {
-      const themes = lesson.kind === 'join' ? joins : singles;
+    LESSONS.filter(l => opts.lessons.includes(l.key) && l.kind !== 'quiz').forEach(lesson => {
+      const themes = lesson.kind === 'join' ? joins : lesson.themes === 'null' ? NULL_DATASETS.slice(0, 2) : singles;
       for (let q = 0; q < opts.per; q++) {
         const wantType = opts.type === 'mix' ? (RT.next() < 0.5 ? 'write' : 'predict') : opts.type;
         let made = null;

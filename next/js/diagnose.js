@@ -116,6 +116,10 @@ export function diagnose(o) {
   if (/=\s*NULL\b|!=\s*NULL\b|<>\s*NULL\b/i.test(plain)) add('isNull');
   if (/\bLIKE\s*'[^'%_]*'/i.test(sql) && o.grade && !o.grade.ok) add('likePercent');
 
+  // INSERT / UPDATE / DELETE lessons: the statement itself is missing
+  const verb = o.prob && o.prob.sql ? /^\s*(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\b/i.exec(o.prob.sql) : null;
+  if (verb && !new RegExp('\\b' + verb[1].split(/\s+/)[0] + '\\b', 'i').test(plain)) add('needVerb', { kw: verb[1].replace(/\s+/g, ' ').toUpperCase() });
+
   const g = o.grade;
   if (g && !g.ok && o.prob) {
     // "SELECT name price" is valid SQL (price becomes an alias), so check it explicitly
@@ -136,6 +140,7 @@ export function diagnose(o) {
     }
     if (g.reason === 'order') add(g.detail === 'noOrder' ? 'noOrder' : g.detail === 'reversed' ? 'reversed' : 'order');
     if (g.reason === 'values') add('values');
+    if (g.reason === 'names') add('aliasName', { a: g.a, b: g.b });
     if (g.reason === 'noResult') add('noResult');
   }
   return { items: out.slice(0, 3), mark };
