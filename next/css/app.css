@@ -185,6 +185,8 @@ svg { width: 1em; height: 1em; flex: none; }
 .chap { font-size: .74rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--cc); }
 .point { margin-top: 14px; padding: 12px 14px; background: var(--surface-2); border-left: 4px solid var(--cc, var(--accent)); border-radius: 0 10px 10px 0; font-size: .9rem; color: var(--ink-2); }
 .point > b { display: block; font-size: .74rem; text-transform: uppercase; letter-spacing: .05em; color: var(--cc, var(--accent)); margin-bottom: 2px; }
+.book-ref { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: .8rem; font-weight: 700; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px; }
+.book-ref svg { width: 14px; height: 14px; }
 .point-d summary { cursor: pointer; font-weight: 700; font-size: .86rem; margin-top: 10px; color: var(--ink-2); }
 .kwref { font-family: var(--mono); font-size: .86em; font-weight: 700; color: var(--kw); background: color-mix(in srgb, var(--kw) 10%, transparent); border: 0; border-bottom: 1.5px dotted var(--kw); border-radius: 4px; padding: 0 3px; cursor: help; }
 .plist { padding: 6px; }
