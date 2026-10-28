@@ -8,6 +8,7 @@
  *     return rows, grade as correct; fill-in and ordering tasks are solvable
  *  3. diagnostics give specific advice for typical mistakes
  *  4. paper tests (A/B) can be generated
+ *  5. textbook: every "common mistake" SQL really fails (error or different result)
  * ========================================================= */
 import initSqlJs from 'sql.js';
 import fs from 'fs';
