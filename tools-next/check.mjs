@@ -8,6 +8,7 @@
  *     return rows, grade as correct; fill-in and ordering tasks are solvable
  *  3. diagnostics give specific advice for typical mistakes
  *  4. paper tests (A/B) can be generated
+ *  5. textbook: every "common mistake" SQL really fails (error or different result)
  * ========================================================= */
 import initSqlJs from 'sql.js';
 import fs from 'fs';
@@ -17,6 +18,7 @@ import { SqlEngine, LESSON_BY_KEY, grade, todayCode, splitClauses } from '../nex
 import { diagnose, findFix } from '../next/js/diagnose.js';
 import { LESSONS } from '../next/js/lessons.js';
 import { usedKeys } from './build-i18n.mjs';
+import { MISTAKES, mistakeEffect } from '../next/js/book-data.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let errors = 0, warnings = 0;
@@ -155,6 +157,18 @@ for (const code of ['T1', 'T2', 'T3']) for (const type of ['write', 'predict', '
   if (a.questions.length !== b.questions.length) warn(`test ${code}/${type}: A has ${a.questions.length}, B has ${b.questions.length}`);
   const same = a.questions.filter((q, i) => b.questions[i] && q.sql === b.questions[i].sql).length;
   if (same > a.questions.length / 3) warn(`test ${code}/${type}: versions A and B share ${same} identical questions`);
+}
+
+/* ---------- 5. textbook ---------- */
+console.log('5. Textbook');
+for (const l of LESSONS) {
+  const list = MISTAKES[l.key] || [];
+  if (list.length < 2) err(`textbook: lesson ${l.key} has ${list.length} common mistakes (need 2)`);
+  const demo = eng.demoProblem(l).sql;
+  for (const [id, wrong, right] of list) {
+    try { eng.exec(right || demo); } catch (e) { err(`textbook ${l.key}/${id}: the correct SQL fails: ${e.message}`); continue; }
+    if (!mistakeEffect(eng, wrong, right || demo)) err(`textbook ${l.key}/${id}: the "wrong" SQL gives the correct result`);
+  }
 }
 
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);

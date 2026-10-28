@@ -7,6 +7,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..', 'next');
 const { LESSONS, CHAPTERS } = await import(path.join(root, 'js/lessons.js'));
 const { SINGLE_DATASETS, JOIN_DATASETS } = await import(path.join(root, 'js/datasets.js'));
+const { MISTAKE_IDS } = await import(path.join(root, 'js/book-data.js'));
 
 export function usedKeys() {
   const keys = new Set();
@@ -17,11 +18,7 @@ export function usedKeys() {
     for (const m of src.matchAll(/['`]((?:nav|foot|home|class|mix|review|words|set|stage|inst|lesson|pres|hint|fill|order|fb|viz|tc|test|prob|ed|res|btn|misc|prog|book)\.[A-Za-z0-9_.]*[A-Za-z0-9_])['`]/g)) keys.add(m[1]);
   }
   for (let i = 1; i <= 6; i++) keys.add('book.rule' + i);
-  { // typical mistakes on textbook pages: MISTAKES = { lesson: [['dxKey', vars], ...] }
-    const src = fs.readFileSync(path.join(root, 'js/book.js'), 'utf8');
-    const block = src.slice(src.indexOf('const MISTAKES'), src.indexOf('export const MISTAKE_KEYS'));
-    for (const m of block.matchAll(/\[\s*'([a-zA-Z_]+)'/g)) keys.add('dx.' + m[1]);
-  }
+  MISTAKE_IDS.forEach(id => keys.add('book.mx.' + id)); // typical mistakes on textbook pages
   CHAPTERS.forEach(c => { keys.add('ch.' + c.key); keys.add('ch.' + c.key + '.desc'); });
   LESSONS.forEach(l => {
     ['title', 'point', 'desc'].forEach(f => keys.add(`L.${l.key}.${f}`));

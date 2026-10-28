@@ -4,17 +4,17 @@
  * "easy" = やさしい日本語 with furigana written as {漢字|かんじ}.
  * ========================================================= */
 export const LANGS = [
-  { code: 'ja', name: '日本語', html: 'ja' },
-  { code: 'easy', name: 'やさしい にほんご', html: 'ja' },
+  { code: 'ja', name: '日本語 (Japanese)', html: 'ja' },
+  { code: 'easy', name: 'やさしい にほんご (Easy Japanese)', html: 'ja' },
   { code: 'en', name: 'English', html: 'en' },
-  { code: 'ne', name: 'नेपाली', html: 'ne' },
+  { code: 'ne', name: 'नेपाली (Nepali)', html: 'ne' },
   { code: 'fr', name: 'Français', html: 'fr' },
-  { code: 'my', name: 'မြန်မာ', html: 'my' },
-  { code: 'bn', name: 'বাংলা', html: 'bn' },
-  { code: 'si', name: 'සිංහල', html: 'si' },
+  { code: 'my', name: 'မြန်မာ (Burmese)', html: 'my' },
+  { code: 'bn', name: 'বাংলা (Bengali)', html: 'bn' },
+  { code: 'si', name: 'සිංහල (Sinhala)', html: 'si' },
   { code: 'id', name: 'Bahasa Indonesia', html: 'id' },
   { code: 'vi', name: 'Tiếng Việt', html: 'vi' },
-  { code: 'zh', name: '中文', html: 'zh' }
+  { code: 'zh', name: '中文 (Chinese)', html: 'zh' }
 ];
 export const LANG_CODES = LANGS.map(l => l.code);
 export const htmlLang = c => (LANGS.find(l => l.code === c) || LANGS[2]).html;
