@@ -10,7 +10,7 @@
 import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
-import { bookHTML } from './book.js';
+import { bookHTML, fitPages } from './book.js';
 import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
@@ -75,7 +75,8 @@ function render() {
   else if (v === 'class') body = classHTML();
   else body = classesHTML();
   app.innerHTML = headerHTML() + body;
-  if (v === 'book' && S.engine) { document.title = S.book.title || t('book.defaultTitle', S.book.lang); drawJoinLines(app); }
+  bookPageStyle(v === 'book');
+  if (v === 'book' && S.engine) { document.title = S.book.title || t('book.defaultTitle', S.book.lang); afterBook(app); }
   if (v === 'test' && S.engine) document.title = `${S.test.title || t('test.headingDefault', S.test.tlang)} (${S.test.code})`;
 }
 function headerHTML() {
@@ -381,11 +382,22 @@ function bookPaper() {
   const b = S.book;
   return bookHTML(S.engine, { lang: b.lang, second: b.second && b.second !== b.lang ? b.second : null, title: b.title, memo: b.memo, parts: { cover: b.cover, front: b.front, glossary: b.glossary, lessons: b.lessons } });
 }
+/* browsers without named pages (@page book) would add the normal paper-test margins */
+function bookPageStyle(on) {
+  let el = document.getElementById('book-page-style');
+  if (on && !el) { el = document.createElement('style'); el.id = 'book-page-style'; el.textContent = '@page { size: A4; margin: 0; }'; document.head.appendChild(el); }
+  if (!on && el) el.remove();
+}
+function afterBook(root) {
+  fitPages(root);
+  drawJoinLines(root);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitPages(root); drawJoinLines(root); });
+}
 let bookTimer = null;
 function rerenderBook() {
   Store.set('sqln.book', S.book);
   clearTimeout(bookTimer);
-  bookTimer = setTimeout(() => { const p = document.querySelector('.paper-wrap.book'); if (p) { p.innerHTML = bookPaper(); drawJoinLines(p); } }, 150);
+  bookTimer = setTimeout(() => { const p = document.querySelector('.paper-wrap.book'); if (p) { p.innerHTML = bookPaper(); afterBook(p); } }, 150);
 }
 let testTimer = null;
 function rerenderPaper() { saveTest(); clearTimeout(testTimer); testTimer = setTimeout(() => { const p = document.querySelector('.paper-wrap'); if (p) p.innerHTML = paperHTML(); }, 120); }

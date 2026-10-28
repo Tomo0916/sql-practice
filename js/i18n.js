@@ -5,16 +5,16 @@
  * ========================================================= */
 
 const LANGS = [
-  { code: 'ja', name: '日本語', font: 'Noto Sans JP' },
+  { code: 'ja', name: '日本語 (Japanese)', font: 'Noto Sans JP' },
   { code: 'en', name: 'English' },
-  { code: 'ne', name: 'नेपाली', font: 'Noto Sans Devanagari' },
+  { code: 'ne', name: 'नेपाली (Nepali)', font: 'Noto Sans Devanagari' },
   { code: 'fr', name: 'Français' },
-  { code: 'my', name: 'မြန်မာ', font: 'Noto Sans Myanmar' },
-  { code: 'bn', name: 'বাংলা', font: 'Noto Sans Bengali' },
-  { code: 'si', name: 'සිංහල', font: 'Noto Sans Sinhala' },
+  { code: 'my', name: 'မြန်မာ (Burmese)', font: 'Noto Sans Myanmar' },
+  { code: 'bn', name: 'বাংলা (Bengali)', font: 'Noto Sans Bengali' },
+  { code: 'si', name: 'සිංහල (Sinhala)', font: 'Noto Sans Sinhala' },
   { code: 'id', name: 'Indonesia' },
   { code: 'vi', name: 'Tiếng Việt' },
-  { code: 'zh', name: '中文', font: 'Noto Sans SC' }
+  { code: 'zh', name: '中文 (Chinese)', font: 'Noto Sans SC' }
 ];
 const LANG_CODES = LANGS.map(l => l.code);
 
