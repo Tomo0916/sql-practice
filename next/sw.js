@@ -1,6 +1,6 @@
 /* Offline support. Pages: network first (so updates show at once), everything else: cache, then refresh in the background.
  * Supabase requests are never cached. Bump VERSION when publishing big changes. */
-const VERSION = 'sqlp-next-1';
+const VERSION = 'sqlp-next-2';
 const CORE = ['./', 'index.html', 'teacher.html', 'config.js', 'css/app.css', 'css/teacher.css', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm', 'vendor/codemirror.js',
   'js/student.js', 'js/teacher.js', 'js/engine.js', 'js/lessons.js', 'js/datasets.js', 'js/diagnose.js', 'js/i18n.js', 'js/ui.js', 'js/viz.js', 'js/editor.js', 'js/store.js', 'js/backend.js',
   'i18n/ja.js', 'i18n/easy.js', 'i18n/en.js', 'icons/icon.svg', 'icons/icon-192.png', 'manifest.webmanifest'];
