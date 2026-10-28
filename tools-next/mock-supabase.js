@@ -101,8 +101,10 @@ export function createClient() {
         save(db); bc.postMessage({ table: 'members', type: 'INSERT', row: { class_id: c.id } });
         return ok(c);
       }
+      const listed = () => !s.user.is_anonymous && (db.teachers || []).includes(String(s.user.email || '').toLowerCase());
+      if (name === 'am_i_teacher') return ok(listed());
       if (name === 'create_class') {
-        if (s.user.is_anonymous) return fail('teachers only');
+        if (!listed()) return fail('not_teacher');
         const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = ''; for (let i = 0; i < 6; i++) code += A[Math.floor(Math.random() * A.length)];
         const d = new Date(); const set = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
         const c = { id: uid(), code, name: args.p_name, teacher_id: s.user.id, set_code: set, lessons: [], answer_policy: 'after2', open: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };

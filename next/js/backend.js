@@ -90,6 +90,8 @@ export async function teacherSession() {
   return s;
 }
 export async function signIn(email, password) { const sb = await client(); return check(await sb.auth.signInWithPassword({ email, password })); }
+/** Is the signed-in account on the teacher list (public.teachers)? */
+export async function amITeacher() { const sb = await client(); return !!check(await sb.rpc('am_i_teacher')); }
 export async function signUp(email, password) {
   const sb = await client();
   return check(await sb.auth.signUp({ email, password, options: { emailRedirectTo: location.href.split('#')[0] } }));
