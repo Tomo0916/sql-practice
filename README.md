@@ -2,6 +2,16 @@
 
 ブラウザだけで動く SQL 練習アプリ（10言語対応）。 https://tomo0916.github.io/sql-practice/
 
+## 短いアドレス
+
+| アドレス | 開くページ |
+|---|---|
+| `tomo0916.github.io/sql-practice/s` | 生徒用アプリ（`next/`） |
+| `tomo0916.github.io/sql-practice/t` | 先生用ページ（`next/teacher.html`） |
+| `tomo0916.github.io/sql-practice/book` | 教科書 初級編（PDF） |
+
+中身は `s/`・`t/`・`book/` の `index.html`（転送するだけのページ）。`#/l/where` のような後ろの部分もそのまま引き継ぐ。
+
 - **index.html** … 学習アプリ（基礎・集計・JOIN の 3章 18レッスン）
 - **test.html** … 紙テスト作成（A4 印刷 / PDF 保存）
 
