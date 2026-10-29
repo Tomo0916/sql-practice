@@ -610,5 +610,20 @@ export default {
   "tc.timerBig": "ठूलो देखाउनुहोस्",
   "tc.timerClose": "बन्द गर्न थिच्नुहोस्",
   "tc.timerNeedsDb": "टाइमर प्रयोग गर्न Supabase को SQL Editor मा supabase/schema.sql फेरि चलाउनुहोस् (README हेर्नुहोस्)।",
-  "tc.late": "ढिलो"
+  "tc.late": "ढिलो",
+  /* ---- ranking ---- */
+  "tc.rank": "विद्यार्थी कहाँ अड्किए",
+  "tc.rankSub": "विद्यार्थी अड्किएका प्रश्नहरू। गलत उत्तर हेर्न एउटा खोल्नुहोस्।",
+  "tc.rankNow": "अहिले (पछिल्लो १० मिनेट)",
+  "tc.rankAll": "सबै",
+  "tc.sortStuck": "अड्किएका विद्यार्थी",
+  "tc.sortWrong": "गलत उत्तर",
+  "tc.sortNow": "अहिले गर्दै",
+  "tc.colStuck": "अड्किए",
+  "tc.colWrong": "गलत",
+  "tc.colNow": "अहिले",
+  "tc.colSolved": "सही",
+  "tc.nowTip": "अहिले यो प्रश्न गर्दै गरेका विद्यार्थी (पछिल्लो १० मिनेटको अन्तिम उत्तर)",
+  "tc.seeMistakes": "गल्ती हेर्नुहोस्",
+  "tc.rankEmpty": "अहिलेसम्म गलत उत्तर छैन।"
 };

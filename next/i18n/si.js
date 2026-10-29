@@ -610,5 +610,20 @@ export default {
   "tc.timerBig": "විශාලව පෙන්වන්න",
   "tc.timerClose": "වසා දැමීමට තට්ටු කරන්න",
   "tc.timerNeedsDb": "කාල ගණකය භාවිත කිරීමට Supabase හි SQL Editor තුළ supabase/schema.sql නැවත ධාවනය කරන්න (README බලන්න).",
-  "tc.late": "ප්‍රමාද"
+  "tc.late": "ප්‍රමාද",
+  /* ---- ranking ---- */
+  "tc.rank": "සිසුන් හිර වී ඇත්තේ කොතැනද",
+  "tc.rankSub": "සිසුන් හිර වී ඇති ප්‍රශ්න. වැරදි පිළිතුරු බැලීමට එකක් විවෘත කරන්න.",
+  "tc.rankNow": "දැන් (අවසන් මිනිත්තු 10)",
+  "tc.rankAll": "සියල්ල",
+  "tc.sortStuck": "හිර වූ සිසුන්",
+  "tc.sortWrong": "වැරදි පිළිතුරු",
+  "tc.sortNow": "දැන් කරමින්",
+  "tc.colStuck": "හිර",
+  "tc.colWrong": "වැරදි",
+  "tc.colNow": "දැන්",
+  "tc.colSolved": "නිවැරදි",
+  "tc.nowTip": "දැන් මෙම ප්‍රශ්නය කරමින් සිටින සිසුන් (අවසන් මිනිත්තු 10 තුළ ඔවුන්ගේ අවසන් පිළිතුර)",
+  "tc.seeMistakes": "වැරදි බලන්න",
+  "tc.rankEmpty": "තවම වැරදි පිළිතුරු නැත."
 };

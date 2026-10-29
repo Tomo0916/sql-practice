@@ -610,5 +610,20 @@ export default {
   "tc.timerBig": "Afficher en grand",
   "tc.timerClose": "Touchez pour fermer",
   "tc.timerNeedsDb": "Pour utiliser le minuteur, exécutez de nouveau supabase/schema.sql dans le SQL Editor de Supabase (voir README).",
-  "tc.late": "En retard"
+  "tc.late": "En retard",
+  /* ---- ranking ---- */
+  "tc.rank": "Où les élèves bloquent",
+  "tc.rankSub": "Les problèmes sur lesquels les élèves bloquent. Ouvrez-en un pour voir les mauvaises réponses.",
+  "tc.rankNow": "Maintenant (10 dernières min)",
+  "tc.rankAll": "Tout",
+  "tc.sortStuck": "Élèves bloqués",
+  "tc.sortWrong": "Mauvaises réponses",
+  "tc.sortNow": "En cours maintenant",
+  "tc.colStuck": "bloqués",
+  "tc.colWrong": "erreurs",
+  "tc.colNow": "en cours",
+  "tc.colSolved": "réussi",
+  "tc.nowTip": "Élèves qui travaillent sur ce problème maintenant (leur dernière réponse dans les 10 dernières minutes)",
+  "tc.seeMistakes": "Voir les erreurs",
+  "tc.rankEmpty": "Pas encore de mauvaise réponse."
 };

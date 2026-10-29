@@ -610,5 +610,20 @@ export default {
   "tc.timerBig": "ကြီးကြီးပြရန်",
   "tc.timerClose": "ပိတ်ရန် နှိပ်ပါ",
   "tc.timerNeedsDb": "အချိန်မှတ်စက် သုံးရန် Supabase ၏ SQL Editor တွင် supabase/schema.sql ကို ထပ်မံ run ပါ (README ကြည့်ပါ)။",
-  "tc.late": "နောက်ကျ"
+  "tc.late": "နောက်ကျ",
+  /* ---- ranking ---- */
+  "tc.rank": "ကျောင်းသားများ ဘယ်မှာ တစ်နေသလဲ",
+  "tc.rankSub": "ကျောင်းသားများ တစ်နေသော မေးခွန်းများ။ အဖြေမှားများ ကြည့်ရန် တစ်ခုကို ဖွင့်ပါ။",
+  "tc.rankNow": "ယခု (နောက်ဆုံး ၁၀ မိနစ်)",
+  "tc.rankAll": "အားလုံး",
+  "tc.sortStuck": "တစ်နေသော ကျောင်းသား",
+  "tc.sortWrong": "အဖြေမှား",
+  "tc.sortNow": "ယခု လုပ်နေသူ",
+  "tc.colStuck": "တစ်နေ",
+  "tc.colWrong": "မှား",
+  "tc.colNow": "ယခု",
+  "tc.colSolved": "မှန်",
+  "tc.nowTip": "ယခု ဤမေးခွန်းကို လုပ်နေသော ကျောင်းသား (နောက်ဆုံး ၁၀ မိနစ်အတွင်း နောက်ဆုံးအဖြေ)",
+  "tc.seeMistakes": "အမှားများ ကြည့်ရန်",
+  "tc.rankEmpty": "အဖြေမှား မရှိသေးပါ။"
 };

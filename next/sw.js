@@ -1,7 +1,7 @@
 /* Offline support. App files (pages, js, css, texts): network first, so an update shows at once;
  * vendor libraries, icons and fonts: cache first. 
  * Supabase requests are never cached. Bump VERSION when publishing big changes. */
-const VERSION = 'sqlp-next-8';
+const VERSION = 'sqlp-next-9';
 const CORE = ['./', 'index.html', 'teacher.html', 'config.js', 'css/app.css', 'css/teacher.css', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm', 'vendor/codemirror.js',
   'js/student.js', 'js/teacher.js', 'js/engine.js', 'js/lessons.js', 'js/datasets.js', 'js/diagnose.js', 'js/i18n.js', 'js/ui.js', 'js/viz.js', 'js/editor.js', 'js/store.js', 'js/backend.js', 'js/book.js', 'js/timer.js',
   'i18n/ja.js', 'i18n/easy.js', 'i18n/en.js', 'icons/icon.svg', 'icons/icon-192.png', 'manifest.webmanifest'];

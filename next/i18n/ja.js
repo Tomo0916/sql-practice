@@ -610,5 +610,20 @@ export default {
   "tc.timerBig": "大きく表示",
   "tc.timerClose": "タップで閉じる",
   "tc.timerNeedsDb": "タイマーを使うには、Supabase の SQL Editor で supabase/schema.sql をもう一度実行してください（README 参照）。",
-  "tc.late": "時間外"
+  "tc.late": "時間外",
+  /* ---- ranking ---- */
+  "tc.rank": "つまずきランキング",
+  "tc.rankSub": "生徒が止まっている問題。問題を押すと、間違いの内容が見られます。",
+  "tc.rankNow": "今（直近10分）",
+  "tc.rankAll": "すべて",
+  "tc.sortStuck": "つまずいている人数",
+  "tc.sortWrong": "間違えた回数",
+  "tc.sortNow": "取り組み中の人数",
+  "tc.colStuck": "つまずき",
+  "tc.colWrong": "間違い",
+  "tc.colNow": "取り組み中",
+  "tc.colSolved": "正解",
+  "tc.nowTip": "今この問題に取り組んでいる人数（直近10分の最後の解答）",
+  "tc.seeMistakes": "間違いを見る",
+  "tc.rankEmpty": "まだ間違いはありません。"
 };

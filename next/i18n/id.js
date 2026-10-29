@@ -610,5 +610,20 @@ export default {
   "tc.timerBig": "Tampilkan besar",
   "tc.timerClose": "Ketuk untuk menutup",
   "tc.timerNeedsDb": "Untuk memakai pengatur waktu, jalankan lagi supabase/schema.sql di SQL Editor Supabase (lihat README).",
-  "tc.late": "Terlambat"
+  "tc.late": "Terlambat",
+  /* ---- ranking ---- */
+  "tc.rank": "Di mana siswa tersendat",
+  "tc.rankSub": "Soal yang membuat siswa tersendat. Buka untuk melihat jawaban yang salah.",
+  "tc.rankNow": "Sekarang (10 menit terakhir)",
+  "tc.rankAll": "Semua",
+  "tc.sortStuck": "Siswa tersendat",
+  "tc.sortWrong": "Jawaban salah",
+  "tc.sortNow": "Sedang dikerjakan",
+  "tc.colStuck": "tersendat",
+  "tc.colWrong": "salah",
+  "tc.colNow": "sekarang",
+  "tc.colSolved": "benar",
+  "tc.nowTip": "Siswa yang sedang mengerjakan soal ini (jawaban terakhir mereka dalam 10 menit terakhir)",
+  "tc.seeMistakes": "Lihat kesalahan",
+  "tc.rankEmpty": "Belum ada jawaban salah."
 };

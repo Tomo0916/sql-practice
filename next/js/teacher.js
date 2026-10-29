@@ -28,6 +28,8 @@ const S = {
   members: [],
   attempts: [],
   liveOnlyToday: true,
+  rankWindow: 'now',   // ranking of problems: 'now' = last 10 minutes, 'all' = everything shown
+  rankSort: 'stuck',   // 'stuck' | 'wrong' | 'now'
   unwatch: null,
   mistakeProb: null,
   busy: false,
@@ -251,18 +253,65 @@ function liveHTML(c) {
     }).join('')).join('')}</tr>`;
   }).join('');
   const n = S.members.length || 1;
-  return `<section class="card live">
+  const stats = problemStats(all, atts);
+  const nowOn = new Map(stats.map(x => [x.p.id, x.now]));
+  return `${rankHTML(groups, stats)}<section class="card live">
     <div class="live-bar"><label class="chk"><input type="checkbox" data-act2="today" ${S.liveOnlyToday ? 'checked' : ''}><span>${H('tc.todayOnly')}</span></label>
       <span class="muted small">${I.bolt} ${H('tc.liveNote')}</span><button class="btn btn-ghost btn-xs" data-act="reload">${I.reset}${H('tc.reload')}</button></div>
     <div class="live-scroll"><table class="live-grid">
       <thead><tr><th rowspan="2"></th><th rowspan="2" class="n">✓</th>${groups.map(g => `<th colspan="${g.probs.length}" class="lg-h" title="${esc(lessonTitle(g.lesson, L()))}">${g.lesson.no}. ${lessonTitleHTML(g.lesson, L())}</th>`).join('')}</tr>
-      <tr>${groups.map(g => g.probs.map(p => `<th class="pcol ${p.idx === 0 ? 'first' : ''}"><button data-act="openMistakes" data-p="${p.id}" title="${esc(stageName(p))}">${p.idx === 0 ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' : (p.stage === 'quiz' ? 'Q' : 'W') + p.wn}</button></th>`).join('')).join('')}</tr></thead>
+      <tr>${groups.map(g => g.probs.map(p => { const k = nowOn.get(p.id) || 0; return `<th class="pcol ${p.idx === 0 ? 'first' : ''}"><button data-act="openMistakes" data-p="${p.id}" title="${esc(stageName(p) + (k ? ' · ' + T('tc.colNow') + ' ' + k : ''))}">${colLabel(p)}${k ? `<i class="now-n">${k}</i>` : ''}</button></th>`; }).join('')).join('')}</tr></thead>
       <tbody>${rows || `<tr><td colspan="99" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody>
       <tfoot><tr><th>${H('tc.rate')}</th><td></td>${all.map(p => { const r = Math.round(solvedBy(p) / n * 100); return `<td class="rate ${p.idx === 0 ? 'first' : ''}"><span style="--r:${r}%">${S.members.length ? r + '%' : ''}</span></td>`; }).join('')}</tr></tfoot>
     </table></div>
     <p class="muted small legend-line"><span class="lc ok">✓</span> ${H('tc.legendOk')} <span class="lc bad">2</span> ${H('tc.legendBad')} <span class="lc ok late">⏱</span> ${H('tc.late')} · Ex = ${H('stage.demo')} · □ = ${H('stage.fill')} · ⇅ = ${H('stage.order')} · W = ${H('stage.write', { n: '' }).trim()}</p>
   </section>`;
 }
+
+const colLabel = p => (p.idx === 0 ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' : (p.stage === 'quiz' ? 'Q' : 'W') + p.wn);
+const NOW_MS = 10 * 60000;   // "now" = the last 10 minutes
+/** per problem: students stuck (wrong, not solved), wrong answers, students on it now, students who solved it */
+function problemStats(all, atts) {
+  const since = Date.now() - NOW_MS;
+  const recent = atts.filter(a => new Date(a.created_at).getTime() >= since);
+  const latest = new Map();   // each student's latest attempt in the last 10 minutes → the problem they are on now
+  recent.forEach(a => { const x = latest.get(a.user_id); if (!x || a.created_at >= x.created_at) latest.set(a.user_id, a); });
+  const win = S.rankWindow === 'now' ? recent : atts;
+  return all.map(p => {
+    const mine = atts.filter(a => a.problem_id === p.id);
+    const solved = new Set(mine.filter(a => a.ok).map(a => a.user_id));
+    const w = win.filter(a => a.problem_id === p.id && !a.ok);
+    return { p, solved: solved.size, wrong: w.length, stuck: new Set(w.filter(a => !solved.has(a.user_id)).map(a => a.user_id)).size,
+      now: [...latest.values()].filter(a => a.problem_id === p.id && !(a.ok && solved.has(a.user_id))).length };
+  });
+}
+/* which problems students are stuck on, sorted */
+function rankHTML(groups, stats) {
+  const key = S.rankSort;
+  const list = stats.filter(x => (key === 'now' ? x.now : x.wrong) > 0)
+    .sort((a, b) => b[key] - a[key] || b.stuck - a.stuck || b.wrong - a.wrong || b.now - a.now).slice(0, 8);
+  const lessonOf = p => groups.find(g => g.lesson.key === p.lesson).lesson;
+  const max = Math.max(1, ...list.map(x => x[key]));
+  const seg = (name, val, label) => `<button class="${S[name] === val ? 'on' : ''}" data-act="rankSet" data-k="${name}" data-v="${val}">${H(label)}</button>`;
+  const rows = list.map((x, i) => `<li>
+      <span class="rk-n">${i + 1}</span>
+      <div class="rk-what"><b>Lesson ${lessonOf(x.p).no} · ${esc(stageName(x.p))}</b><small class="muted">${lessonTitleHTML(lessonOf(x.p), L())} · ${esc(x.p.stage === 'demo' ? T('stage.demoSub') : themeName(x.p, L()))}</small></div>
+      <div class="rk-bar"><i style="width:${Math.round(x[key] / max * 100)}%"></i></div>
+      <span class="rk-v ${key === 'stuck' ? 'on' : ''}" title="${esc(T('tc.colStuck'))}"><b>${x.stuck}</b><small>${H('tc.colStuck')}</small></span>
+      <span class="rk-v ${key === 'wrong' ? 'on' : ''}" title="${esc(T('tc.colWrong'))}"><b>${x.wrong}</b><small>${H('tc.colWrong')}</small></span>
+      <span class="rk-v ${key === 'now' ? 'on' : ''}" title="${esc(T('tc.nowTip'))}"><b>${x.now}</b><small>${H('tc.colNow')}</small></span>
+      <span class="rk-v ok"><b>${x.solved}</b><small>${H('tc.colSolved')}</small></span>
+      <button class="btn btn-ghost btn-xs" data-act="openMistakes" data-p="${x.p.id}">${I.eye}${H('tc.seeMistakes')}</button>
+    </li>`).join('');
+  return `<section class="card rank">
+    <div class="rk-head"><div><h2>${H('tc.rank')}</h2><p class="muted small">${H('tc.rankSub')}</p></div>
+      <div class="rk-ctl"><div class="seg">${seg('rankWindow', 'now', 'tc.rankNow')}${seg('rankWindow', 'all', 'tc.rankAll')}</div>
+        <div class="seg">${seg('rankSort', 'stuck', 'tc.sortStuck')}${seg('rankSort', 'wrong', 'tc.sortWrong')}${seg('rankSort', 'now', 'tc.sortNow')}</div></div></div>
+    ${rows ? `<ol class="rk-list">${rows}</ol>` : `<p class="res-empty">${H('tc.rankEmpty')}</p>`}
+  </section>`;
+}
+// "now" changes as time passes: redraw the live tab every 30 seconds
+setInterval(() => { if (S.route && S.route.view === 'class' && S.route.tab === 'live' && !document.querySelector('.modal')) refreshTab(); }, 30000);
 
 /* common wrong answers, grouped */
 function normSql(s) { return String(s || '').replace(/\s+/g, ' ').replace(/\s*;\s*$/, '').trim(); }
@@ -476,6 +525,7 @@ const actions = {
   setToday() { document.querySelector('[name="set_code"]').value = todayCode(); },
   setRandom() { document.querySelector('[name="set_code"]').value = randomCode(); },
   async reload() { await reloadClassData(); refreshTab(); toast(T('tc.reloaded')); },
+  rankSet(el) { S[el.dataset.k] = el.dataset.v; refreshTab(); },
   openMistakes(el) { S.mistakeProb = el.dataset.p; location.hash = `#/c/${S.klass.id}/mistakes`; },
   projectMistakes() {
     const list = document.getElementById('mk-list'), pr = document.querySelector('.mk-prob');

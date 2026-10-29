@@ -610,5 +610,20 @@ export default {
   "tc.timerBig": "放大显示",
   "tc.timerClose": "点击关闭",
   "tc.timerNeedsDb": "要使用计时器，请在 Supabase 的 SQL Editor 中再次运行 supabase/schema.sql（见 README）。",
-  "tc.late": "超时"
+  "tc.late": "超时",
+  /* ---- ranking ---- */
+  "tc.rank": "学生卡在哪里",
+  "tc.rankSub": "学生卡住的题目。点开可查看错误答案。",
+  "tc.rankNow": "现在（最近 10 分钟）",
+  "tc.rankAll": "全部",
+  "tc.sortStuck": "卡住的人数",
+  "tc.sortWrong": "答错次数",
+  "tc.sortNow": "正在做的人数",
+  "tc.colStuck": "卡住",
+  "tc.colWrong": "答错",
+  "tc.colNow": "正在做",
+  "tc.colSolved": "答对",
+  "tc.nowTip": "现在正在做这道题的人数（最近 10 分钟内的最后一次作答）",
+  "tc.seeMistakes": "查看错误",
+  "tc.rankEmpty": "还没有错误答案。"
 };
