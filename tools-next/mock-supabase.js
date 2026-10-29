@@ -40,7 +40,9 @@ class Query {
       if (this.table !== 'attempts') return fail('permission denied');
       for (const r of this.payload) {
         if (!db.members.some(m => m.class_id === r.class_id && m.user_id === s.user.id)) return fail('new row violates row-level security policy');
-        const row = Object.assign({ id: db.seq++, user_id: s.user.id, created_at: new Date().toISOString() }, r);
+        const c = db.classes.find(x => x.id === r.class_id);
+        const late = !!(c && c.timer_end && Date.now() > new Date(c.timer_end).getTime());   // like the mark_late trigger
+        const row = Object.assign({ id: db.seq++, user_id: s.user.id, created_at: new Date().toISOString() }, r, { late });
         db.attempts.push(row); bc.postMessage({ table: 'attempts', type: 'INSERT', row });
       }
       save(db); return ok(null);
@@ -109,6 +111,15 @@ export function createClient() {
         const d = new Date(); const set = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
         const c = { id: uid(), code, name: args.p_name, teacher_id: s.user.id, set_code: set, lessons: [], answer_policy: 'after2', open: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
         db.classes.push(c); save(db); return ok(c);
+      }
+      if (name === 'server_now') return ok(new Date().toISOString());
+      if (name === 'start_timer' || name === 'stop_timer') {
+        const c = db.classes.find(x => x.id === args.p_class && x.teacher_id === s.user.id);
+        if (!c || !listed()) return fail('not_teacher');
+        const sec = Math.max(10, Math.min(args.p_sec || 0, 7200));
+        Object.assign(c, name === 'start_timer' ? { timer_end: new Date(Date.now() + sec * 1000).toISOString(), timer_sec: sec } : { timer_end: null, timer_sec: null }, { updated_at: new Date().toISOString() });
+        save(db); bc.postMessage({ table: 'classes', type: 'UPDATE', row: c });
+        return ok(c);
       }
       return fail('unknown rpc');
     },

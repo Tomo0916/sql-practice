@@ -11,6 +11,7 @@ import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from
 import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
+import { syncClock, secondsLeft, fmtClock, timerState } from './timer.js';
 import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
@@ -160,6 +161,7 @@ function classHTML() {
       <div><h1>${esc(c.name)}</h1>
         <div class="muted small">${H('tc.members', { n: S.members.length })} · ${H('set.code')} <b class="mono">${esc(c.set_code)}</b> · ${H('tc.policy.' + c.answer_policy)}</div></div>
       <button class="code-big" data-act="showQR" title="${esc(T('tc.showQR'))}"><small>${H('class.code')}</small><b class="mono">${esc(c.code)}</b><span>${I.qr} ${H('tc.showQR')}</span></button>
+      <div class="tbox" id="tbox">${timerBoxHTML(c)}</div>
       <div class="class-actions">
         <button class="btn btn-ghost btn-sm" data-act="copyJoin">${I.link}${H('tc.copyJoin')}</button>
         <button class="btn btn-ghost btn-sm" data-act="toggleOpen">${I.lock}${H(c.open ? 'tc.close' : 'tc.reopen')}</button>
@@ -169,6 +171,28 @@ function classHTML() {
     <div id="tab-body">${body}</div>
   </main>`;
 }
+
+/* ---------- class timer: shown on every student's screen; answers after the end are marked late ---------- */
+const TIMER_MIN = [1, 3, 5, 10];
+function timerBoxHTML(c) {
+  const left = secondsLeft(c), st = timerState(left);
+  if (!st) return `<span class="tb-lab">⏱ ${H('tc.timer')}</span><div class="tb-presets">${TIMER_MIN.map(m => `<button class="btn btn-ghost btn-xs" data-act="timerStart" data-sec="${m * 60}" title="${esc(T('tc.timerNote'))}">${H('tc.timerMin', { n: m })}</button>`).join('')}</div>`;
+  return `<b class="tb-time mono ${st}" data-timer>${st === 'up' ? H('timer.up') : fmtClock(left)}</b>
+    <div class="tb-presets"><button class="btn btn-ghost btn-xs" data-act="timerBig">${H('tc.timerBig')}</button><button class="btn btn-ghost btn-xs" data-act="timerStop">${H('tc.timerStop')}</button></div>`;
+}
+let shownState = null;
+function tickTeacherTimer() {
+  const c = S.klass;
+  const box = document.getElementById('tbox');
+  if (!c || !box) return;
+  const left = secondsLeft(c), st = timerState(left);
+  if (st !== shownState) { shownState = st; box.innerHTML = timerBoxHTML(c); }
+  const text = st === 'up' ? T('timer.up') : st ? fmtClock(left) : '';
+  document.querySelectorAll('[data-timer]').forEach(el => { el.className = el.className.replace(/\b(run|warn|up)\b/g, '').trim() + ' ' + st; if (el.textContent !== text) el.textContent = text; });
+  const big = document.getElementById('timer-big');
+  if (big && !st) big.remove();
+}
+setInterval(tickTeacherTimer, 250);
 
 function assignHTML(c) {
   const sel = new Set(c.lessons || []);
@@ -213,7 +237,7 @@ function liveHTML(c) {
   if (!groups.length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/assign">${H('tc.tabAssign')}</a></section>`;
   const atts = visibleAttempts();
   const cell = {}; // user|problem → {ok, n}
-  atts.forEach(a => { const k = a.user_id + '|' + a.problem_id; const x = cell[k] || (cell[k] = { ok: false, n: 0 }); if (a.ok) x.ok = true; else x.n++; });
+  atts.forEach(a => { const k = a.user_id + '|' + a.problem_id; const x = cell[k] || (cell[k] = { ok: false, n: 0, onTime: false }); if (a.ok) { x.ok = true; if (!a.late) x.onTime = true; } else x.n++; });
   const all = groups.flatMap(g => g.probs);
   const solvedBy = p => S.members.filter(m => (cell[m.user_id + '|' + p.id] || {}).ok).length;
   const active = new Set(atts.filter(a => Date.now() - new Date(a.created_at) < 5 * 60000).map(a => a.user_id));
@@ -221,8 +245,9 @@ function liveHTML(c) {
     const done = all.filter(p => (cell[m.user_id + '|' + p.id] || {}).ok).length;
     return `<tr><th class="who">${active.has(m.user_id) ? '<i class="live-dot" title="active"></i>' : ''}${esc(m.nickname)}</th><td class="n sum">${done}/${all.length}</td>${groups.map(g => g.probs.map(p => {
       const x = cell[m.user_id + '|' + p.id];
-      const cls = !x ? '' : x.ok ? 'ok' : 'bad';
-      return `<td class="lc ${cls} ${p.idx === 0 ? 'first' : ''}" title="${esc(stageName(p))}">${!x ? '' : x.ok ? '✓' : x.n}</td>`;
+      const late = x && x.ok && !x.onTime;   // solved only after the timer ended
+      const cls = !x ? '' : late ? 'ok late' : x.ok ? 'ok' : 'bad';
+      return `<td class="lc ${cls} ${p.idx === 0 ? 'first' : ''}" title="${esc(stageName(p) + (late ? ' · ' + T('tc.late') : ''))}">${!x ? '' : x.ok ? (late ? '⏱' : '✓') : x.n}</td>`;
     }).join('')).join('')}</tr>`;
   }).join('');
   const n = S.members.length || 1;
@@ -231,11 +256,11 @@ function liveHTML(c) {
       <span class="muted small">${I.bolt} ${H('tc.liveNote')}</span><button class="btn btn-ghost btn-xs" data-act="reload">${I.reset}${H('tc.reload')}</button></div>
     <div class="live-scroll"><table class="live-grid">
       <thead><tr><th rowspan="2"></th><th rowspan="2" class="n">✓</th>${groups.map(g => `<th colspan="${g.probs.length}" class="lg-h" title="${esc(lessonTitle(g.lesson, L()))}">${g.lesson.no}. ${lessonTitleHTML(g.lesson, L())}</th>`).join('')}</tr>
-      <tr>${groups.map(g => g.probs.map(p => `<th class="pcol ${p.idx === 0 ? 'first' : ''}"><button data-act="openMistakes" data-p="${p.id}" title="${esc(stageName(p))}">${p.idx === 0 ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' : 'W' + (p.idx - 2)}</button></th>`).join('')).join('')}</tr></thead>
+      <tr>${groups.map(g => g.probs.map(p => `<th class="pcol ${p.idx === 0 ? 'first' : ''}"><button data-act="openMistakes" data-p="${p.id}" title="${esc(stageName(p))}">${p.idx === 0 ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' : (p.stage === 'quiz' ? 'Q' : 'W') + p.wn}</button></th>`).join('')).join('')}</tr></thead>
       <tbody>${rows || `<tr><td colspan="99" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody>
       <tfoot><tr><th>${H('tc.rate')}</th><td></td>${all.map(p => { const r = Math.round(solvedBy(p) / n * 100); return `<td class="rate ${p.idx === 0 ? 'first' : ''}"><span style="--r:${r}%">${S.members.length ? r + '%' : ''}</span></td>`; }).join('')}</tr></tfoot>
     </table></div>
-    <p class="muted small legend-line"><span class="lc ok">✓</span> ${H('tc.legendOk')} <span class="lc bad">2</span> ${H('tc.legendBad')} · Ex = ${H('stage.demo')} · □ = ${H('stage.fill')} · ⇅ = ${H('stage.order')} · W = ${H('stage.write', { n: '' }).trim()}</p>
+    <p class="muted small legend-line"><span class="lc ok">✓</span> ${H('tc.legendOk')} <span class="lc bad">2</span> ${H('tc.legendBad')} <span class="lc ok late">⏱</span> ${H('tc.late')} · Ex = ${H('stage.demo')} · □ = ${H('stage.fill')} · ⇅ = ${H('stage.order')} · W = ${H('stage.write', { n: '' }).trim()}</p>
   </section>`;
 }
 
@@ -404,6 +429,7 @@ async function reloadClassData() {
 }
 async function startWatch() {
   stopWatch();
+  syncClock(backend.serverNow);
   const id = S.klass.id;
   let pending = null;
   const soon = () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view === 'class' && ['live', 'mistakes', 'members'].includes(S.route.tab)) refreshTab(); }, 300); };
@@ -429,6 +455,23 @@ const actions = {
   async signOut() { await backend.signOut(); S.session = null; S.isTeacher = null; S.classes = []; S.klass = null; stopWatch(); location.hash = '#/'; render(); },
   showQR() { openQR(S.klass); },
   copyJoin() { copyText(joinURL(S.klass.code), () => toast(T('set.copied'))); },
+  async timerStart(el) {
+    try { await syncClock(backend.serverNow); S.klass = await backend.startTimer(S.klass.id, +el.dataset.sec); shownState = null; tickTeacherTimer(); }
+    catch (e) { toast(T(e.message === 'timer_missing' ? 'tc.timerNeedsDb' : 'class.netError')); }
+  },
+  async timerStop() {
+    try { S.klass = await backend.stopTimer(S.klass.id); shownState = null; tickTeacherTimer(); const b = document.getElementById('timer-big'); if (b) b.remove(); }
+    catch (e) { toast(T('class.netError')); }
+  },
+  timerBig() {
+    if (document.getElementById('timer-big')) return;
+    const d = document.createElement('div');
+    d.id = 'timer-big'; d.className = 'timer-big';
+    d.innerHTML = `<b class="mono" data-timer></b><small>${H('tc.timerClose')}</small>`;
+    d.addEventListener('click', () => d.remove());
+    document.body.appendChild(d);
+    shownState = null; tickTeacherTimer();
+  },
   async toggleOpen() { try { S.klass = await backend.updateClass(S.klass.id, { open: !S.klass.open }); render(); } catch (e) { toast(T('class.netError')); } },
   setToday() { document.querySelector('[name="set_code"]').value = todayCode(); },
   setRandom() { document.querySelector('[name="set_code"]').value = randomCode(); },

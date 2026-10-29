@@ -599,5 +599,16 @@ export default {
   "words.keywords": "Từ khóa SQL",
   "words.sub": "Các từ quan trọng bằng ngôn ngữ của bạn, tiếng Nhật và tiếng Anh.",
   "words.terms": "Từ cơ bản",
-  "words.title": "Thuật ngữ SQL"
+  "words.title": "Thuật ngữ SQL",
+  /* ---- timer ---- */
+  "timer.up": "Hết giờ!",
+  "timer.title": "Đồng hồ của giáo viên",
+  "tc.timer": "Đồng hồ",
+  "tc.timerMin": "{n} phút",
+  "tc.timerNote": "Bắt đầu đếm ngược trên màn hình của mọi học sinh. Bài nộp sau khi hết giờ sẽ được ghi là “trễ giờ” cho đến khi bạn dừng đồng hồ.",
+  "tc.timerStop": "Dừng",
+  "tc.timerBig": "Hiện to",
+  "tc.timerClose": "Chạm để đóng",
+  "tc.timerNeedsDb": "Để dùng đồng hồ, hãy chạy lại supabase/schema.sql trong SQL Editor của Supabase (xem README).",
+  "tc.late": "Trễ giờ"
 };

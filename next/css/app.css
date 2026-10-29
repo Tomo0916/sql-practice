@@ -452,3 +452,14 @@ body.presenter table.grid { font-size: 1rem; }
 .res-after { margin: 0 0 8px; }
 .grid tr.chg td { background: var(--warn-soft); font-weight: 700; }
 .prob-text code { white-space: normal; }
+
+/* class timer (started by the teacher) */
+.ctimer { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 8px;
+  background: var(--surface); color: var(--ink); border: 2px solid var(--accent); border-radius: 999px; padding: 6px 18px; box-shadow: var(--shadow); font-size: 1.25rem; pointer-events: none; }
+.ctimer b { font-weight: 800; letter-spacing: .02em; }
+.ctimer .ct-ic { font-size: 1rem; }
+.ctimer.warn { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+.ctimer.up { border-color: var(--bad); color: #fff; background: var(--bad); }
+.ctimer.flash { animation: ct-flash .5s steps(2, start) infinite; }
+@keyframes ct-flash { 50% { background: var(--surface); color: var(--bad); } }
+@media (prefers-reduced-motion: reduce) { .ctimer.flash { animation: none; } }

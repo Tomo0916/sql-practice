@@ -599,5 +599,16 @@ export default {
   "words.keywords": "SQL मुख्य शब्द",
   "words.sub": "महत्त्वपूर्ण शब्दहरू तपाईंको भाषा, जापानी र अंग्रेजीमा।",
   "words.terms": "आधारभूत शब्द",
-  "words.title": "SQL शब्दहरू"
+  "words.title": "SQL शब्दहरू",
+  /* ---- timer ---- */
+  "timer.up": "समय सकियो!",
+  "timer.title": "शिक्षकको टाइमर",
+  "tc.timer": "टाइमर",
+  "tc.timerMin": "{n} मिनेट",
+  "tc.timerNote": "सबै विद्यार्थीको स्क्रिनमा उल्टो गन्ती सुरु हुन्छ। समय सकिएपछि पठाइएका उत्तर टाइमर नरोकेसम्म “ढिलो” भनेर राखिन्छन्।",
+  "tc.timerStop": "रोक्नुहोस्",
+  "tc.timerBig": "ठूलो देखाउनुहोस्",
+  "tc.timerClose": "बन्द गर्न थिच्नुहोस्",
+  "tc.timerNeedsDb": "टाइमर प्रयोग गर्न Supabase को SQL Editor मा supabase/schema.sql फेरि चलाउनुहोस् (README हेर्नुहोस्)।",
+  "tc.late": "ढिलो"
 };

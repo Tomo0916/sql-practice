@@ -599,5 +599,16 @@ export default {
   "words.keywords": "SQLのキーワード",
   "words.sub": "大切な言葉を、あなたの言語・日本語・英語で確認できます。",
   "words.terms": "基本の言葉",
-  "words.title": "SQLの用語"
+  "words.title": "SQLの用語",
+  /* ---- timer ---- */
+  "timer.up": "時間です！",
+  "timer.title": "先生のタイマー",
+  "tc.timer": "タイマー",
+  "tc.timerMin": "{n}分",
+  "tc.timerNote": "生徒全員の画面でカウントダウンが始まります。時間が過ぎた後の解答は、タイマーを止めるまで「時間外」と記録されます。",
+  "tc.timerStop": "止める",
+  "tc.timerBig": "大きく表示",
+  "tc.timerClose": "タップで閉じる",
+  "tc.timerNeedsDb": "タイマーを使うには、Supabase の SQL Editor で supabase/schema.sql をもう一度実行してください（README 参照）。",
+  "tc.late": "時間外"
 };

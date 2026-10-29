@@ -599,5 +599,16 @@ export default {
   "words.keywords": "Kata kunci SQL",
   "words.sub": "Kata-kata penting dalam bahasa Anda, bahasa Jepang, dan bahasa Inggris.",
   "words.terms": "Kata dasar",
-  "words.title": "Istilah SQL"
+  "words.title": "Istilah SQL",
+  /* ---- timer ---- */
+  "timer.up": "Waktu habis!",
+  "timer.title": "Pengatur waktu guru",
+  "tc.timer": "Pengatur waktu",
+  "tc.timerMin": "{n} menit",
+  "tc.timerNote": "Memulai hitung mundur di layar semua siswa. Jawaban yang dikirim setelah waktu habis ditandai “terlambat” sampai pengatur waktu dihentikan.",
+  "tc.timerStop": "Hentikan",
+  "tc.timerBig": "Tampilkan besar",
+  "tc.timerClose": "Ketuk untuk menutup",
+  "tc.timerNeedsDb": "Untuk memakai pengatur waktu, jalankan lagi supabase/schema.sql di SQL Editor Supabase (lihat README).",
+  "tc.late": "Terlambat"
 };

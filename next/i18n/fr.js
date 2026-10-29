@@ -599,5 +599,16 @@ export default {
   "words.keywords": "Mots-clés SQL",
   "words.sub": "Les mots importants dans votre langue, en japonais et en anglais.",
   "words.terms": "Mots de base",
-  "words.title": "Vocabulaire SQL"
+  "words.title": "Vocabulaire SQL",
+  /* ---- timer ---- */
+  "timer.up": "Temps écoulé !",
+  "timer.title": "Minuteur du professeur",
+  "tc.timer": "Minuteur",
+  "tc.timerMin": "{n} min",
+  "tc.timerNote": "Lance un compte à rebours sur l’écran de chaque élève. Les réponses envoyées après la fin sont marquées « en retard » jusqu’à l’arrêt du minuteur.",
+  "tc.timerStop": "Arrêter",
+  "tc.timerBig": "Afficher en grand",
+  "tc.timerClose": "Touchez pour fermer",
+  "tc.timerNeedsDb": "Pour utiliser le minuteur, exécutez de nouveau supabase/schema.sql dans le SQL Editor de Supabase (voir README).",
+  "tc.late": "En retard"
 };

@@ -599,5 +599,16 @@ export default {
   "words.keywords": "SQL මූල පද",
   "words.sub": "වැදගත් වචන ඔබේ භාෂාවෙන්, ජපන් භාෂාවෙන් සහ ඉංග්‍රීසියෙන්.",
   "words.terms": "මූලික වචන",
-  "words.title": "SQL වචන"
+  "words.title": "SQL වචන",
+  /* ---- timer ---- */
+  "timer.up": "කාලය අවසන්!",
+  "timer.title": "ගුරුවරයාගේ කාල ගණකය",
+  "tc.timer": "කාල ගණකය",
+  "tc.timerMin": "මිනිත්තු {n}",
+  "tc.timerNote": "සියලු සිසුන්ගේ තිරවල ප්‍රතිලෝම ගණනය ආරම්භ වේ. කාලය අවසන් වූ පසු එවන පිළිතුරු, කාල ගණකය නවත්වන තෙක් “ප්‍රමාද” ලෙස සටහන් වේ.",
+  "tc.timerStop": "නවත්වන්න",
+  "tc.timerBig": "විශාලව පෙන්වන්න",
+  "tc.timerClose": "වසා දැමීමට තට්ටු කරන්න",
+  "tc.timerNeedsDb": "කාල ගණකය භාවිත කිරීමට Supabase හි SQL Editor තුළ supabase/schema.sql නැවත ධාවනය කරන්න (README බලන්න).",
+  "tc.late": "ප්‍රමාද"
 };

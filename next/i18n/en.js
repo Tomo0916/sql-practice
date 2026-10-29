@@ -599,5 +599,16 @@ export default {
   "words.keywords": "SQL keywords",
   "words.sub": "Important words in your language, in Japanese, and in English.",
   "words.terms": "Basic words",
-  "words.title": "SQL words"
+  "words.title": "SQL words",
+  /* ---- timer ---- */
+  "timer.up": "Time's up!",
+  "timer.title": "Teacher's timer",
+  "tc.timer": "Timer",
+  "tc.timerMin": "{n} min",
+  "tc.timerNote": "Starts a countdown on every student's screen. Answers sent after the end are marked “late” until you stop the timer.",
+  "tc.timerStop": "Stop",
+  "tc.timerBig": "Show big",
+  "tc.timerClose": "Tap to close",
+  "tc.timerNeedsDb": "To use the timer, run supabase/schema.sql again in the Supabase SQL Editor (see README).",
+  "tc.late": "Late"
 };

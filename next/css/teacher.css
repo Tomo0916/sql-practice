@@ -289,3 +289,19 @@ td.rate span { display: block; font-weight: 700; background: linear-gradient(90d
 .tb-cover b { font-size: .78rem; overflow-wrap: anywhere; line-height: 1.2; }
 .tb-cover { width: 96px; }
 .tb-cover b { font-size: .7rem; overflow-wrap: normal; }
+
+/* class timer */
+.tbox { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 150px; }
+.tb-lab { font-weight: 700; color: var(--ink-2); }
+.tb-presets { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.tb-time { font-size: 2rem; font-weight: 800; line-height: 1.1; color: var(--accent); }
+.tb-time.warn { color: var(--warn); }
+.tb-time.up { color: var(--bad); font-size: 1.3rem; animation: ct-flash-t .5s steps(2, start) 16; }
+@keyframes ct-flash-t { 50% { opacity: .2; } }
+.timer-big { position: fixed; inset: 0; z-index: 200; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+.timer-big b { font-size: min(30vw, 50vh); font-weight: 800; line-height: 1; color: var(--accent); }
+.timer-big b.warn { color: var(--warn); }
+.timer-big b.up { color: var(--bad); font-size: min(14vw, 30vh); animation: ct-flash-t .5s steps(2, start) 16; }
+.timer-big small { margin-top: 24px; color: var(--ink-3); font-size: 1rem; }
+.live-grid td.lc.ok.late { background: var(--warn-soft); color: var(--warn); }
+.legend-line .lc.ok.late { background: var(--warn-soft); color: var(--warn); }
