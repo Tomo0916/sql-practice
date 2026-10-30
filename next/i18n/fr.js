@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "Afficher en grand",
   "tc.timerClose": "Touchez pour fermer",
   "tc.timerNeedsDb": "Pour utiliser le minuteur, exécutez de nouveau supabase/schema.sql dans le SQL Editor de Supabase (voir README).",
+  "tc.timerFailed": "Le minuteur n'a pas pu démarrer. Raison donnée par le serveur :",
   "tc.late": "En retard",
   /* ---- ranking ---- */
   "tc.rank": "Où les élèves bloquent",

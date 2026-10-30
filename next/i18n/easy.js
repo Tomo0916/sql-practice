@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "{大|おお}きく {出|だ}す",
   "tc.timerClose": "タップで とじる",
   "tc.timerNeedsDb": "タイマーを {使|つか}うには、Supabase の SQL Editor で supabase/schema.sql を もう{一度|いちど} {動|うご}かしてください（README を {見|み}てください）。",
+  "tc.timerFailed": "タイマーを {始|はじ}められませんでした。サーバーからの {理由|りゆう}：",
   "tc.late": "{時間外|じかんがい}",
   /* ---- ranking ---- */
   "tc.rank": "つまずき ランキング",

@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "放大显示",
   "tc.timerClose": "点击关闭",
   "tc.timerNeedsDb": "要使用计时器，请在 Supabase 的 SQL Editor 中再次运行 supabase/schema.sql（见 README）。",
+  "tc.timerFailed": "计时器无法启动。服务器返回的原因：",
   "tc.late": "超时",
   /* ---- ranking ---- */
   "tc.rank": "学生卡在哪里",

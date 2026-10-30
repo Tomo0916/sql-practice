@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "Show big",
   "tc.timerClose": "Tap to close",
   "tc.timerNeedsDb": "To use the timer, run supabase/schema.sql again in the Supabase SQL Editor (see README).",
+  "tc.timerFailed": "The timer could not start. Reason from the server:",
   "tc.late": "Late",
   /* ---- ranking ---- */
   "tc.rank": "Where students are stuck",

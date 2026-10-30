@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "ठूलो देखाउनुहोस्",
   "tc.timerClose": "बन्द गर्न थिच्नुहोस्",
   "tc.timerNeedsDb": "टाइमर प्रयोग गर्न Supabase को SQL Editor मा supabase/schema.sql फेरि चलाउनुहोस् (README हेर्नुहोस्)।",
+  "tc.timerFailed": "टाइमर सुरु गर्न सकिएन। सर्भरले दिएको कारण:",
   "tc.late": "ढिलो",
   /* ---- ranking ---- */
   "tc.rank": "विद्यार्थी कहाँ अड्किए",

@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "বড় করে দেখান",
   "tc.timerClose": "বন্ধ করতে চাপুন",
   "tc.timerNeedsDb": "টাইমার ব্যবহার করতে Supabase-এর SQL Editor-এ supabase/schema.sql আবার চালান (README দেখুন)।",
+  "tc.timerFailed": "টাইমার চালু করা যায়নি। সার্ভারের দেওয়া কারণ:",
   "tc.late": "দেরি",
   /* ---- ranking ---- */
   "tc.rank": "শিক্ষার্থীরা কোথায় আটকে আছে",
