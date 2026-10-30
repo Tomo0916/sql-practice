@@ -625,5 +625,11 @@ export default {
   "tc.colSolved": "benar",
   "tc.nowTip": "Siswa yang sedang mengerjakan soal ini (jawaban terakhir mereka dalam 10 menit terakhir)",
   "tc.seeMistakes": "Lihat kesalahan",
-  "tc.rankEmpty": "Belum ada jawaban salah."
+  "tc.rankEmpty": "Belum ada jawaban salah.",
+  "ds.cafe_sales": "Penjualan kafe",
+  "ds.hotel_stays": "Menginap di hotel",
+  "ds.courier_jobs": "Pengiriman kurir",
+  "ds.helpdesk_tickets": "Helpdesk TI",
+  "ds.gym_visits": "Kunjungan gym",
+  "ds.factory_lots": "Pemeriksaan mutu pabrik"
 };

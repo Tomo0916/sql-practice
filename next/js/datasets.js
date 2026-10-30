@@ -381,8 +381,12 @@ export function datasetSQL(tables) {
 }
 
 /** Every table by name (so the engine can build a DB for any problem). */
+import { ANALYSIS_DEMO, ANALYSIS_THEMES } from './analysis-data.js';
+export { ANALYSIS_DEMO, ANALYSIS_THEMES };
 export const ALL_TABLES = (() => {
   const m = {};
+  Object.values(ANALYSIS_DEMO).forEach(t => (m[t.table] = t));
+  ANALYSIS_THEMES.forEach(t => (m[t.table] = t));
   Object.values(DEMO_DATASETS).forEach(t => (m[t.table] = t));
   SINGLE_DATASETS.forEach(t => (m[t.table] = t));
   NULL_DATASETS.forEach(t => (m[t.table] = t));

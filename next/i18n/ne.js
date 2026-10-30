@@ -625,5 +625,11 @@ export default {
   "tc.colSolved": "सही",
   "tc.nowTip": "अहिले यो प्रश्न गर्दै गरेका विद्यार्थी (पछिल्लो १० मिनेटको अन्तिम उत्तर)",
   "tc.seeMistakes": "गल्ती हेर्नुहोस्",
-  "tc.rankEmpty": "अहिलेसम्म गलत उत्तर छैन।"
+  "tc.rankEmpty": "अहिलेसम्म गलत उत्तर छैन।",
+  "ds.cafe_sales": "क्याफेको बिक्री",
+  "ds.hotel_stays": "होटल बसाइ",
+  "ds.courier_jobs": "कुरियर डेलिभरी",
+  "ds.helpdesk_tickets": "आईटी हेल्पडेस्क",
+  "ds.gym_visits": "जिम भ्रमण",
+  "ds.factory_lots": "कारखानाको गुणस्तर जाँच"
 };

@@ -625,5 +625,11 @@ export default {
   "tc.colSolved": "đúng",
   "tc.nowTip": "Số học sinh đang làm bài này (câu trả lời cuối của các em trong 10 phút gần nhất)",
   "tc.seeMistakes": "Xem lỗi sai",
-  "tc.rankEmpty": "Chưa có câu trả lời sai."
+  "tc.rankEmpty": "Chưa có câu trả lời sai.",
+  "ds.cafe_sales": "Doanh thu quán cà phê",
+  "ds.hotel_stays": "Lưu trú khách sạn",
+  "ds.courier_jobs": "Giao hàng chuyển phát",
+  "ds.helpdesk_tickets": "Hỗ trợ IT",
+  "ds.gym_visits": "Lượt tập gym",
+  "ds.factory_lots": "Kiểm tra chất lượng nhà máy"
 };

@@ -20,6 +20,7 @@ import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js'
 import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
 import { syncClock, secondsLeft, fmtClock, timerState } from './timer.js';
+import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -354,7 +355,9 @@ function workspaceHTML(prob) {
       <p class="prob-text">${problemHTML(prob, L())}</p>
       ${S.settings.second && S.settings.second !== L() ? `<p class="prob-text bi" lang="${htmlLang(S.settings.second)}">${problemHTML(prob, S.settings.second)}</p>` : ''}
       <div class="tables">${prob.tables.map(n => tableBlockHTML(n, prob)).join('')}</div>
+      ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? toolsHTML(prob, L(), setCode()) : ''}
     </section>
+    ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? statCardHTML(LESSON_BY_KEY[prob.lesson], prob, L(), prob.stage === 'demo') : ''}
     ${prob.stage === 'demo' ? `<div id="ws-steps">${stepsHTML(prob)}</div>` : ''}
     <div id="ws-stage">${stageHTML(prob)}</div>
     <div id="ws-fb">${feedbackHTML(prob)}</div>
@@ -367,6 +370,7 @@ function tableBlockHTML(name, prob) {
   return `<div class="tbl">
     <div class="tbl-head">
       <span class="tbl-name">${I.table}${esc(name)}</span><span class="muted small">${H('prob.rows', { n: tbl.rows.length })}</span>
+      ${tbl.analysis ? `<button class="btn btn-ghost btn-xs" data-act="csv" data-t="${esc(name)}" title="${esc(T('an.csv'))}">⤓ CSV</button>` : ''}
       <button class="btn btn-ghost btn-xs data-toggle" data-act="toggleData" data-t="${esc(name)}" aria-expanded="${open}">${I.eye}${esc(open ? T('prob.hideData') : T('prob.showData'))}</button>
     </div>
     <div class="cols">${tbl.columns.map(([c, ty]) => `<button class="col-chip" data-act="insert" data-text="${esc(qualify ? name + '.' + c : c)}" title="${esc(T('prob.colsTip'))}">${esc(c)}<small>${ty === 'INTEGER' ? '123' : 'abc'}</small></button>`).join('')}</div>
@@ -561,6 +565,9 @@ function resultsHTML(prob) {
   else if (!run || run.error) body = `<div class="res-empty">${H('res.notRun')}</div>`;
   else if (!user.columns.length || !user.values.length) body = `<div class="res-empty">${H('res.noRows')}</div>`;
   else body = gridHTML(user, user.dml ? opts : { rowNums: true });
+  // data analysis: the result as a chart too
+  const lesson = LESSON_BY_KEY[prob.lesson];
+  if (lesson.chart) body += resultChartHTML(lesson, prob, S.tab === 'expected' ? exp : (run && !run.error ? user : null));
   const after = exp && exp.dml ? `<p class="res-after muted small">${H('res.after', { t: exp.dml.table })}</p>` : '';
   return `<section class="card results">${after}
     <div class="res-tabs" role="tablist">${tab('user', T('res.yours'), run && !run.error ? user : null)}${tab('expected', T('res.expected'), exp)}</div>
@@ -736,6 +743,7 @@ const actions = {
     if (S.editor) { S.editor.set(el.dataset.sql); S.editor.focus(); document.getElementById('editor').scrollIntoView({ block: 'center', behavior: 'smooth' }); }
   },
   tab(el) { S.tab = el.dataset.tab; refresh(['res']); },
+  csv(el) { downloadCSV(el.dataset.t); },
   toggleData(el) { const n = el.dataset.t; S.hideData[n] = !S.hideData[n]; saveDraft(); render(); },
   stepStart() { S.step = 0; refresh(['steps']); },
   stepNext() { S.step++; refresh(['steps']); },
