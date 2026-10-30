@@ -6,8 +6,11 @@ import { fileURLToPath } from 'url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..', 'next');
 const { LESSONS, CHAPTERS } = await import(path.join(root, 'js/lessons.js'));
-const { SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS } = await import(path.join(root, 'js/datasets.js'));
+const { SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES } = await import(path.join(root, 'js/datasets.js'));
 
+/** texts of the data-analysis course: written in English, Japanese and Easy Japanese first; other languages fall back to English */
+export const ANALYSIS_KEY = /^(L\.an_|ch\.analysis|ph\.(width|mean|sd)$|step\.sub$|an\.)/;
+export const ANALYSIS_LANGS = ['en', 'ja', 'easy'];
 export function usedKeys() {
   const keys = new Set();
   for (const f of fs.readdirSync(path.join(root, 'js'))) {
@@ -23,8 +26,11 @@ export function usedKeys() {
   ['desc_one', 'desc_many'].forEach(k => keys.add('L.update.' + k));
   for (const [l, k] of [['between', 'desc_in'], ['null', 'desc_not'], ['orderby', 'desc_two'], ['limit', 'desc_offset']]) keys.add(`L.${l}.${k}`);
   ['eq', 'ne', 'gt', 'ge', 'lt', 'le'].forEach(k => keys.add('cmp.' + k));
+  for (const [l, ks] of [['an_missing', ['null', 'dup']], ['an_center', ['mid', 'mode']], ['an_spread', ['sd', 'range']], ['an_hist', ['bin', 'freq']], ['an_zscore', ['top', 'count']]]) ks.forEach(k => keys.add(`L.${l}.desc_${k}`));
   ['beginner', 'intermediate', 'advanced'].forEach(k => keys.add('book.lv.' + k));
   keys.add('dx.quizWrong');
+  ['stat', 'excel', 'python', 'csv', 'toolsTip', 'mean', 'median', 'k.id', 'k.quant', 'k.qual', 'k.date', 'g.copy', 'g.notebook', 'g.answer', 'g.sqlNote', 'beyond'].forEach(k => keys.add('an.' + k));
+  ANALYSIS_THEMES.forEach(d => keys.add('ds.' + d.table));
   LESSONS.forEach(l => {
     ['title', 'point', 'desc'].forEach(f => keys.add(`L.${l.key}.${f}`));
     for (const m of l.syntax.matchAll(/\{(\w+)\}/g)) keys.add('ph.' + m[1]);
@@ -35,7 +41,7 @@ export function usedKeys() {
   ['asc', 'desc', 'az', 'za'].forEach(k => keys.add('ord.' + k));
   ['COUNT', 'SUM', 'AVG', 'MAX', 'MIN'].forEach(k => keys.add('agg.' + k));
   ['demo', 'fill', 'order', 'write', 'quiz'].forEach(k => keys.add('inst.' + k));
-  ['step.calc', 'step.alias', 'step.insert', 'step.update', 'step.delete', 'step.from', 'step.join_inner', 'step.join_left', 'step.where', 'step.group', 'step.having', 'step.agg', 'step.select', 'step.distinct', 'step.order', 'step.limit', 'step.offset'].forEach(k => keys.add(k));
+  ['step.calc', 'step.alias', 'step.insert', 'step.update', 'step.delete', 'step.from', 'step.join_inner', 'step.join_left', 'step.where', 'step.group', 'step.having', 'step.agg', 'step.select', 'step.distinct', 'step.order', 'step.limit', 'step.offset', 'step.sub'].forEach(k => keys.add(k));
   for (const f of ['diagnose.js']) {
     const src = fs.readFileSync(path.join(root, 'js', f), 'utf8');
     for (const m of src.matchAll(/add\(([^;]*?)[,)]/g)) for (const q of m[1].matchAll(/'([a-zA-Z]+)'/g)) keys.add('dx.' + q[1]);

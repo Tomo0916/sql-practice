@@ -3,7 +3,7 @@
  *             fill-in-the-blank and clause-ordering builders, paper tests.
  * Pure logic: no DOM, no language. Runs in the browser and in Node (tools-next/check.mjs).
  * ========================================================= */
-import { ALL_TABLES, SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, datasetSQL } from './datasets.js';
+import { ALL_TABLES, SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES, datasetSQL } from './datasets.js';
 import { LESSONS, BLANK } from './lessons.js';
 
 export const LESSON_BY_KEY = {};
@@ -231,7 +231,18 @@ export class SqlEngine {
       theme: theme || (ALL_TABLES[tables[0]] && (ALL_TABLES[tables[0]].pair || ALL_TABLES[tables[0]].table))
     };
   }
-  demoProblem(lesson) { return this.buildProblem(lesson, Object.assign({}, lesson.demo.p), 'demo', 0, 'demo'); }
+  demoProblem(lesson) {
+    if (lesson.themes === 'analysis') {   // the example is made from Kumo Mart's table, with the variant the lesson asks for
+      const key = 'demo|' + lesson.key;
+      if (!this._cache.has(key)) {
+        const ds = ALL_TABLES[lesson.demo.ds];
+        const p = lesson.gen(ds, makeRng(key), { values: s => this.values(s) }, lesson.demo.p || {});
+        this._cache.set(key, this.buildProblem(lesson, p, 'demo', 0, 'demo'));
+      }
+      return this._cache.get(key);
+    }
+    return this.buildProblem(lesson, Object.assign({}, lesson.demo.p), 'demo', 0, 'demo');
+  }
   validate(lesson, p) {
     try {
       const r = this.exec(lesson.sql(p));
@@ -254,7 +265,7 @@ export class SqlEngine {
     }
     return null;
   }
-  themesFor(lesson) { return lesson.kind === 'join' ? JOIN_DATASETS : lesson.themes === 'null' ? NULL_DATASETS : SINGLE_DATASETS; }
+  themesFor(lesson) { return lesson.kind === 'join' ? JOIN_DATASETS : lesson.themes === 'null' ? NULL_DATASETS : lesson.themes === 'analysis' ? ANALYSIS_THEMES : SINGLE_DATASETS; }
   /** Example + 5 practice problems (fill, order, write ×3) for a lesson and set code. */
   lessonProblems(lesson, code) {
     const key = `${code}|${lesson.key}`;
@@ -373,12 +384,13 @@ export class SqlEngine {
     const questions = [], seen = new Set();
     const RT = makeRng(`test-types|${opts.code}`);
     LESSONS.filter(l => opts.lessons.includes(l.key) && l.kind !== 'quiz').forEach(lesson => {
-      const themes = lesson.kind === 'join' ? joins : lesson.themes === 'null' ? NULL_DATASETS.slice(0, 2) : singles;
+      const themes = lesson.kind === 'join' ? joins : lesson.themes === 'null' ? NULL_DATASETS.slice(0, 2) : lesson.themes === 'analysis' ? R.shuffle(ANALYSIS_THEMES).slice(0, 2) : singles;
       for (let q = 0; q < opts.per; q++) {
         const wantType = opts.type === 'mix' ? (RT.next() < 0.5 ? 'write' : 'predict') : opts.type;
         let made = null;
         for (let i = 0; i < 24 && !made; i++) {
-          const ds = themes[(q + i) % themes.length];
+          const shift = lesson.themes === 'analysis' && ver === 'B' ? 1 : 0;   // analysis answers depend mostly on the table: B uses the other one
+          const ds = themes[(q + i + shift) % themes.length];
           const p = this.genOne(lesson, ds, `test|${opts.code}|${ver}|${lesson.key}|${q}|${i}`);
           if (!p) continue;
           const prob = this.buildProblem(lesson, p, 'test', questions.length + 1, ds.table || ds.key);

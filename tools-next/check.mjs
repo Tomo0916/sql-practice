@@ -18,7 +18,7 @@ import { lessonState } from '../next/js/store.js';
 import { SqlEngine, LESSON_BY_KEY, stagesOf, grade, todayCode, splitClauses } from '../next/js/engine.js';
 import { diagnose, findFix } from '../next/js/diagnose.js';
 import { LESSONS } from '../next/js/lessons.js';
-import { usedKeys } from './build-i18n.mjs';
+import { usedKeys, ANALYSIS_KEY, ANALYSIS_LANGS } from './build-i18n.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 let errors = 0, warnings = 0;
@@ -37,7 +37,7 @@ const KANA = /[぀-ヿ]/, CJK = /[぀-ヿ一-鿿]/;
 const ph = s => [...new Set([...String(s).matchAll(/\{(\w+)\}/g)].map(m => m[1]))].sort().join();
 for (const l of LANGS) {
   const d = dicts[l];
-  Object.keys(en).forEach(k => { if (!(k in d)) err(`${l}.js missing "${k}"`); });
+  Object.keys(en).forEach(k => { if (!(k in d) && !(ANALYSIS_KEY.test(k) && !ANALYSIS_LANGS.includes(l))) err(`${l}.js missing "${k}"`); });
   Object.keys(d).forEach(k => { if (!(k in en)) warn(`${l}.js has unused "${k}"`); });
   for (const [k, v] of Object.entries(d)) {
     if (typeof v !== 'string' || !v.trim()) { err(`${l}.js "${k}" is empty`); continue; }
@@ -165,6 +165,26 @@ for (const code of ['T1', 'T2', 'T3']) for (const type of ['write', 'predict', '
   if (a.questions.length !== b.questions.length) warn(`test ${code}/${type}: A has ${a.questions.length}, B has ${b.questions.length}`);
   const same = a.questions.filter((q, i) => b.questions[i] && q.sql === b.questions[i].sql).length;
   if (same > a.questions.length / 3) warn(`test ${code}/${type}: versions A and B share ${same} identical questions`);
+}
+
+/* ---------- 5. data-analysis course texts ---------- */
+console.log('5. Data-analysis texts (statistics basics, Excel / Python guides)');
+{
+  const { STAT, GUIDE } = await import('../next/js/analysis-content.js');
+  const texts = [];
+  for (const [k, c] of Object.entries(STAT)) for (const l of ['en', 'ja', 'easy']) { if (!c[l]) err(`STAT ${k} has no ${l}`); else c[l].forEach(([, x]) => (Array.isArray(x) ? x : [x]).forEach(s => texts.push([`STAT ${k}`, l, s]))); }
+  for (const [k, vs] of Object.entries(GUIDE)) for (const [w, tools] of Object.entries(vs)) for (const [tool, steps] of Object.entries(tools)) steps.forEach((s, i) => {
+    for (const l of ['en', 'ja', 'easy']) { if (!s[l]) err(`GUIDE ${k}/${w}/${tool} step ${i + 1} has no ${l}`); else texts.push([`GUIDE ${k}/${w}/${tool} ${i + 1}`, l, s[l]]); }
+    // every {name} in a guide must be a parameter of that problem
+    const L = LESSON_BY_KEY[k];
+    for (const p of eng.lessonProblems(L, 'TEST1').filter(p => (p.p.w || '_') === w || w === '_')) {
+      for (const m of [s.en, s.code || ''].join(' ').matchAll(/\{(\w+)\}/g)) if (!(m[1] in p.p)) err(`GUIDE ${k}/${w}/${tool} step ${i + 1} uses {${m[1]}}, not a parameter`);
+    }
+  });
+  for (const [where, l, s] of texts) {
+    if (l === 'easy') { const bare = s.replace(/\{[^{}|]+\|[^{}]+\}/g, '').match(/[一-鿿]+/g); if (bare) err(`${where} (easy): kanji without furigana: ${bare.join(' ')}`); }
+    if (l === 'en' && /[぀-ヿ一-鿿]/.test(s.replace(/\{[^{}|]+\|[^{}]+\}/g, ''))) err(`${where} (en) contains Japanese`);
+  }
 }
 
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);

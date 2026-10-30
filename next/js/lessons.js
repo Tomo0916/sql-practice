@@ -58,7 +58,8 @@ export const CHAPTERS = [
   { key: 'sort', icon: '↕' },
   { key: 'change', icon: '✎' },
   { key: 'agg', icon: 'Σ' },
-  { key: 'join', icon: '⋈' }
+  { key: 'join', icon: '⋈' },
+  { key: 'analysis', icon: 'x̄' }
 ];
 
 /* stages without the clause-ordering exercise (for SQL with only one clause) */
@@ -77,6 +78,8 @@ function pickCmp(ds, R, cols, ops) {
   return { c, op, x };
 }
 /** "price >= 4800" as a phrase in the reader's language */
+/** analysis lessons: the example asks for one variant (want.w), practice picks one */
+const pickW = (want, R, opts) => (want && want.w) || R.pick(opts);
 const cmpPhrase = (c, op, v) => ['cmp.' + OP_KEY[op], { c, v }];
 
 export const LESSONS = [
@@ -494,6 +497,119 @@ export const LESSONS = [
     tie: p => `SELECT ${p.R}.${p.num} FROM ${p.L} INNER JOIN ${p.R} ON ${onOf(p)};`,
     blanks: ['ord', 'k'],
     steps: p => [['step.from', `SELECT * FROM ${p.L};`], ['step.join_left', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)};`], ['step.order', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.R}.${p.num} ${dir(p.ord)};`], ['step.limit', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.R}.${p.num} ${dir(p.ord)} LIMIT ${p.k};`], ['step.select', `SELECT ${p.L}.${p.name}, ${p.R}.${p.num} FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.R}.${p.num} ${dir(p.ord)} LIMIT ${p.k};`]]
+  },
+
+  /* =================== DATA ANALYSIS (course A, units 1–6) ===================
+   * Examples use Kumo Mart (kumo_*); practice uses other businesses (analysis-data.js).
+   * The answer SQL is also what the Excel / Python guides must reproduce. */
+  {
+    key: 'an_overview', no: 'A1', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT COUNT(*), MIN({col}), MAX({col}) FROM {table};',
+    keywords: ['SELECT', 'COUNT(*)', 'MIN()', 'MAX()', 'FROM', 'AS'],
+    demo: { ds: 'kumo_orders' },
+    gen(ds, R, ctx, want) { const r = ds.roles; return { t: ds.table, v: r.v, dt: r.dt, f1: 'MIN', f2: 'MAX' }; },
+    sql: p => `SELECT COUNT(*) AS n_rows, ${p.f1}(${p.v}) AS min_${p.v}, ${p.f2}(${p.v}) AS max_${p.v}, MIN(${p.dt}) AS first_date, MAX(${p.dt}) AS last_date FROM ${p.t};`,
+    blanks: ['f1', 'f2'],
+    steps: p => [['step.from', `SELECT * FROM ${p.t};`], ['step.agg', LESSON_SQL.an_overview(p)]]
+  },
+  {
+    key: 'an_missing', no: 'A2', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT COUNT(*), COUNT({col}), COUNT(DISTINCT {col}) FROM {table};',
+    keywords: ['SELECT', 'COUNT(*)', 'COUNT()', 'DISTINCT', 'ROUND()', 'FROM', 'AS'],
+    demo: { ds: 'kumo_customers', p: { w: 'null' } },
+    gen(ds, R, ctx, want) { const r = ds.roles; return { t: ds.table, w: pickW(want, R, ['null', 'null', 'dup']), opt: r.opt, name: r.name, k: '100.0', dist: 'DISTINCT' }; },
+    descKey: p => `L.an_missing.desc_${p.w}`,
+    sql: p => p.w === 'null'
+      ? `SELECT COUNT(*) AS n_rows, COUNT(${p.opt}) AS filled, COUNT(*) - COUNT(${p.opt}) AS missing, ROUND(${p.k} * (COUNT(*) - COUNT(${p.opt})) / COUNT(*), 1) AS missing_pct FROM ${p.t};`
+      : `SELECT COUNT(${p.name}) AS n_rows, COUNT(${p.dist} ${p.name}) AS unique_${p.name} FROM ${p.t};`,
+    blanks: p => (p.w === 'null' ? ['k'] : ['dist']),
+    steps: p => [['step.from', `SELECT * FROM ${p.t};`], ['step.agg', LESSON_SQL.an_missing(p)]]
+  },
+  {
+    key: 'an_center', no: 'A3', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT AVG({col}), (SELECT {col} FROM {table} ORDER BY {col} LIMIT 1 OFFSET {n}) FROM {table};',
+    keywords: ['SELECT', 'AVG()', 'ROUND()', 'FROM', 'ORDER BY', 'LIMIT', 'OFFSET', 'GROUP BY', 'COUNT(*)', 'DESC', '()', 'AS'],
+    demo: { ds: 'kumo_orders', p: { w: 'mid' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, n = ds.rows.length, w = pickW(want, R, ['mid', 'mid', 'mode']);
+      if (w === 'mode') {   // the most common value must be one value only
+        const top = ctx.values(`SELECT COUNT(*) AS c FROM ${ds.table} GROUP BY ${r.v2} ORDER BY c DESC LIMIT 2;`);
+        if (top.length > 1 && top[0][0] === top[1][0]) return null;
+        return { t: ds.table, w, v2: r.v2, ord: 'DESC' };
+      }
+      return { t: ds.table, w, v: r.v, n, k: (n - 1) / 2, pos: (n + 1) / 2 };
+    },
+    descKey: p => `L.an_center.desc_${p.w}`,
+    sql: p => p.w === 'mode'
+      ? `SELECT ${p.v2}, COUNT(*) AS n FROM ${p.t} GROUP BY ${p.v2} ORDER BY n ${p.ord} LIMIT 1;`
+      : `SELECT ROUND(AVG(${p.v}), 1) AS mean_${p.v}, (SELECT ${p.v} FROM ${p.t} ORDER BY ${p.v} LIMIT 1 OFFSET ${p.k}) AS median_${p.v} FROM ${p.t};`,
+    blanks: p => (p.w === 'mode' ? ['ord'] : ['k']),
+    steps: p => p.w === 'mode'
+      ? [['step.from', `SELECT * FROM ${p.t};`], ['step.group', `SELECT ${p.v2}, COUNT(*) AS n FROM ${p.t} GROUP BY ${p.v2};`], ['step.order', LESSON_SQL.an_center(p)]]
+      : [['step.from', `SELECT * FROM ${p.t};`], ['step.order', `SELECT ${p.v} FROM ${p.t} ORDER BY ${p.v};`], ['step.sub', LESSON_SQL.an_center(p)]],
+    stat: 'center'
+  },
+  {
+    key: 'an_spread', no: 'A4', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT {group}, SQRT((SUM({col} * {col}) - 1.0 * SUM({col}) * SUM({col}) / COUNT(*)) / (COUNT(*) - 1)) FROM {table} GROUP BY {group};',
+    keywords: ['SELECT', 'COUNT(*)', 'SUM()', 'AVG()', 'MIN()', 'MAX()', 'SQRT()', 'ROUND()', 'FROM', 'GROUP BY', 'ORDER BY', 'AS', '()'],
+    demo: { ds: 'kumo_orders', p: { w: 'sd' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, w = pickW(want, R, ['sd', 'sd', 'range']);
+      const p = { t: ds.table, w, g: r.g, v: r.v, dn: 'COUNT(*) - 1', rg: `MAX(${r.v}) - MIN(${r.v})` };
+      const vals = ctx.values(LESSON_SQL.an_spread(p)).map(x => x[x.length - 1]);
+      return new Set(vals).size === vals.length ? p : null;   // no ties in the sorted column
+    },
+    descKey: p => `L.an_spread.desc_${p.w}`,
+    sql: p => p.w === 'range'
+      ? `SELECT ${p.g}, MIN(${p.v}) AS min_${p.v}, MAX(${p.v}) AS max_${p.v}, ${p.rg} AS range_${p.v} FROM ${p.t} GROUP BY ${p.g} ORDER BY range_${p.v};`
+      : `SELECT ${p.g}, COUNT(*) AS n, ROUND(AVG(${p.v}), 1) AS mean_${p.v}, ROUND(SQRT((SUM(${p.v} * ${p.v}) - 1.0 * SUM(${p.v}) * SUM(${p.v}) / COUNT(*)) / (${p.dn})), 1) AS sd_${p.v} FROM ${p.t} GROUP BY ${p.g} ORDER BY sd_${p.v};`,
+    blanks: p => (p.w === 'range' ? ['rg'] : ['dn']),
+    steps: p => [['step.from', `SELECT * FROM ${p.t} ORDER BY ${p.g};`], ['step.group', `SELECT ${p.g}, COUNT(*) AS n, ROUND(AVG(${p.v}), 1) AS mean_${p.v} FROM ${p.t} GROUP BY ${p.g};`], ['step.agg', LESSON_SQL.an_spread(p)]],
+    chart: p => ({ type: 'bar', label: 0, value: p.w === 'range' ? 3 : 3 }),
+    stat: 'spread'
+  },
+  {
+    key: 'an_hist', no: 'A5', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT FLOOR(1.0 * {col} / {width}) * {width} AS bin, COUNT(*) FROM {table} GROUP BY bin ORDER BY bin;',
+    keywords: ['SELECT', 'FLOOR()', 'COUNT(*)', 'ROUND()', 'FROM', 'GROUP BY', 'ORDER BY', 'AS', '()'],
+    demo: { ds: 'kumo_orders', p: { w: 'bin' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, w = pickW(want, R, ['bin', 'bin', 'freq']);
+      return w === 'bin' ? { t: ds.table, w, v: r.v, step: ds.binStep, fl: 'FLOOR' } : { t: ds.table, w, v2: r.v2, sub: `(SELECT COUNT(*) FROM ${ds.table})` };
+    },
+    descKey: p => `L.an_hist.desc_${p.w}`,
+    sql: p => p.w === 'freq'
+      ? `SELECT ${p.v2}, COUNT(*) AS n, ROUND(100.0 * COUNT(*) / ${p.sub}, 1) AS pct FROM ${p.t} GROUP BY ${p.v2} ORDER BY ${p.v2};`
+      : `SELECT ${p.fl}(1.0 * ${p.v} / ${p.step}) * ${p.step} AS bin, COUNT(*) AS n FROM ${p.t} GROUP BY bin ORDER BY bin;`,
+    blanks: p => (p.w === 'freq' ? ['sub'] : ['fl']),
+    steps: p => p.w === 'freq'
+      ? [['step.from', `SELECT * FROM ${p.t};`], ['step.group', `SELECT ${p.v2}, COUNT(*) AS n FROM ${p.t} GROUP BY ${p.v2} ORDER BY ${p.v2};`], ['step.sub', LESSON_SQL.an_hist(p)]]
+      : [['step.from', `SELECT * FROM ${p.t};`], ['step.calc', `SELECT ${p.v}, ${p.fl}(1.0 * ${p.v} / ${p.step}) * ${p.step} AS bin FROM ${p.t};`], ['step.group', LESSON_SQL.an_hist(p)]],
+    chart: p => ({ type: 'hist', label: 0, value: 1, step: p.step || 1 }),
+    stat: 'hist'
+  },
+  {
+    key: 'an_zscore', no: 'A6', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT {col}, ROUND(({col} - {mean}) / {sd}, 2) AS z FROM {table} ORDER BY z DESC LIMIT 5;',
+    keywords: ['SELECT', 'ROUND()', 'ABS()', 'COUNT(*)', 'FROM', 'WHERE', 'ORDER BY', 'DESC', 'LIMIT', 'AS', '()', '>='],
+    demo: { ds: 'kumo_orders', p: { w: 'top' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, w = pickW(want, R, ['top', 'top', 'count']);
+      const [m, s] = ctx.values(`SELECT ROUND(AVG(${r.v}), 1), ROUND(SQRT((SUM(${r.v} * ${r.v}) - 1.0 * SUM(${r.v}) * SUM(${r.v}) / COUNT(*)) / (COUNT(*) - 1)), 1) FROM ${ds.table};`)[0];
+      const p = { t: ds.table, w, id: r.id, v: r.v, m: Number(m).toFixed(1), s: Number(s).toFixed(1), ab: 'ABS' };   // always with a decimal point, so the division is not an integer division
+      if (w === 'top') { const z = ctx.values(`SELECT ${r.v} FROM ${ds.table} ORDER BY ${r.v} DESC LIMIT 6;`).map(x => x[0]); if (z[4] === z[5]) return null; }
+      return p;
+    },
+    descKey: p => `L.an_zscore.desc_${p.w}`,
+    sql: p => p.w === 'count'
+      ? `SELECT COUNT(*) AS outliers FROM ${p.t} WHERE ${p.ab}(${p.v} - ${p.m}) / ${p.s} >= 2;`
+      : `SELECT ${p.id}, ${p.v}, ROUND((${p.v} - ${p.m}) / ${p.s}, 2) AS z FROM ${p.t} ORDER BY z DESC LIMIT 5;`,
+    blanks: p => (p.w === 'count' ? ['ab'] : ['m', 's']),
+    steps: p => p.w === 'count'
+      ? [['step.from', `SELECT * FROM ${p.t};`], ['step.calc', `SELECT ${p.id}, ${p.v}, ROUND((${p.v} - ${p.m}) / ${p.s}, 2) AS z FROM ${p.t};`], ['step.where', LESSON_SQL.an_zscore(p)]]
+      : [['step.from', `SELECT * FROM ${p.t};`], ['step.calc', `SELECT ${p.id}, ${p.v}, ROUND((${p.v} - ${p.m}) / ${p.s}, 2) AS z FROM ${p.t};`], ['step.order', LESSON_SQL.an_zscore(p)]],
+    stat: 'z'
   }
 ];
 

@@ -625,5 +625,11 @@ export default {
   "tc.colSolved": "答对",
   "tc.nowTip": "现在正在做这道题的人数（最近 10 分钟内的最后一次作答）",
   "tc.seeMistakes": "查看错误",
-  "tc.rankEmpty": "还没有错误答案。"
+  "tc.rankEmpty": "还没有错误答案。",
+  "ds.cafe_sales": "咖啡店销售",
+  "ds.hotel_stays": "酒店住宿",
+  "ds.courier_jobs": "快递配送",
+  "ds.helpdesk_tickets": "IT 服务台",
+  "ds.gym_visits": "健身房到访",
+  "ds.factory_lots": "工厂质量检查"
 };

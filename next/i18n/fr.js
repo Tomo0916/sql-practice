@@ -625,5 +625,11 @@ export default {
   "tc.colSolved": "réussi",
   "tc.nowTip": "Élèves qui travaillent sur ce problème maintenant (leur dernière réponse dans les 10 dernières minutes)",
   "tc.seeMistakes": "Voir les erreurs",
-  "tc.rankEmpty": "Pas encore de mauvaise réponse."
+  "tc.rankEmpty": "Pas encore de mauvaise réponse.",
+  "ds.cafe_sales": "Ventes du café",
+  "ds.hotel_stays": "Séjours à l’hôtel",
+  "ds.courier_jobs": "Livraisons par coursier",
+  "ds.helpdesk_tickets": "Assistance informatique",
+  "ds.gym_visits": "Visites à la salle de sport",
+  "ds.factory_lots": "Contrôle qualité en usine"
 };

@@ -625,5 +625,11 @@ export default {
   "tc.colSolved": "সঠিক",
   "tc.nowTip": "এখন এই প্রশ্নটি করছে এমন শিক্ষার্থী (শেষ ১০ মিনিটে তাদের শেষ উত্তর)",
   "tc.seeMistakes": "ভুলগুলো দেখুন",
-  "tc.rankEmpty": "এখনও কোনো ভুল উত্তর নেই।"
+  "tc.rankEmpty": "এখনও কোনো ভুল উত্তর নেই।",
+  "ds.cafe_sales": "ক্যাফের বিক্রি",
+  "ds.hotel_stays": "হোটেলে থাকা",
+  "ds.courier_jobs": "কুরিয়ার ডেলিভারি",
+  "ds.helpdesk_tickets": "আইটি হেল্পডেস্ক",
+  "ds.gym_visits": "জিমে যাওয়া",
+  "ds.factory_lots": "কারখানার মান পরীক্ষা"
 };
