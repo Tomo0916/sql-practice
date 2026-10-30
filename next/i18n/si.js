@@ -103,6 +103,7 @@ export default {
   "book.inApp": "පෙළපොත p.{n}",
   "book.inAppTip": "මුද්‍රිත පෙළපොතේ මෙම පාඩමේ පිටුව",
   "book.lv.advanced": "උසස්",
+  "book.lv.analysis": "දත්ත විශ්ලේෂණය",
   "book.lv.beginner": "ආරම්භක",
   "book.lv.intermediate": "මධ්‍යම",
   "book.nav": "පෙළපොත",

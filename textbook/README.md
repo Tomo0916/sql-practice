@@ -10,11 +10,21 @@ python3 pages.py            # 各 Lesson が 2 ページになっているか確
 node check-sql.mjs          # 教科書の SQL をアプリのエンジン（sql.js）でも実行して、結果が同じか確認
 ```
 
+データ分析編（Unit A1〜A6）：
+
+```
+python3 build.py analysis   # out/analysis.html（図は analysis-figs.mjs がアプリと同じ charts.js で描く）
+node render.mjs analysis    # out/analysis.pdf → next/book/data-analysis-textbook.pdf
+python3 pages.py analysis
+node check-sql.mjs analysis
+```
+
 必要なもの：Python 3、Node.js、Playwright（Chromium）、`../tools-next` の `npm install`（sql.js）。
 
 ## ファイル
 
 - `content_beginner.py` … 初級編 Lesson 0〜18 の中身（データとして書く）
+- `content_analysis.py`・`front_analysis.py` … データ分析編 Unit A1〜A6（依頼・統計の基礎・見てみる・Excel / Python・やってみよう）と、表紙・講座の地図・データ・答え
 - `front_beginner.py` … 表紙・使い方・学びの地図・目次・例題の表
 - `build.py` … 生成プログラム。`{漢字|かんじ}` でふりがなを付ける
 - `page.css` … 見た目

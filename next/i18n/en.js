@@ -103,11 +103,12 @@ export default {
   "book.inApp": "Textbook p.{n}",
   "book.inAppTip": "The page of this lesson in the printed textbook",
   "book.lv.advanced": "Advanced",
+  "book.lv.analysis": "Data analysis",
   "book.lv.beginner": "Beginner",
   "book.lv.intermediate": "Intermediate",
   "book.nav": "Textbook",
   "book.open": "Open (PDF)",
-  "book.panelSub": "The printed SQL textbooks (PDF). Each lesson in the app shows its page in the textbook.",
+  "book.panelSub": "The printed textbooks (PDF): SQL and data analysis. Each lesson in the app shows its page in the textbook.",
   "book.panelTitle": "Textbooks",
   "book.soon": "Coming soon",
   /* ---- btn ---- */

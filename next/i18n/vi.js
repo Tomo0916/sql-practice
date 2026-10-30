@@ -103,6 +103,7 @@ export default {
   "book.inApp": "Giáo trình tr.{n}",
   "book.inAppTip": "Trang của bài này trong giáo trình in",
   "book.lv.advanced": "Nâng cao",
+  "book.lv.analysis": "Phân tích dữ liệu",
   "book.lv.beginner": "Sơ cấp",
   "book.lv.intermediate": "Trung cấp",
   "book.nav": "Giáo trình",
