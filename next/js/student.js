@@ -70,7 +70,7 @@ const stateOf = lesson => lessonState(S.progress, problemsOf(lesson));
 function stageLabelH(p) {
   if (p.stage === 'demo') return H('stage.demo');
   if (p.stage === 'fill') return H('stage.fill');
-  if (p.stage === 'order') return H('stage.order');
+  if (p.stage === 'order') return p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.order');
   if (p.kind === 'review') return H('stage.review');
   if (p.stage === 'quiz') return H('stage.quiz', { n: p.wn });
   return H('stage.write', { n: p.wn });
@@ -78,7 +78,7 @@ function stageLabelH(p) {
 function stageLabel(p) {
   if (p.stage === 'demo') return T('stage.demo');
   if (p.stage === 'fill') return T('stage.fill');
-  if (p.stage === 'order') return T('stage.order');
+  if (p.stage === 'order') return p.of > 1 ? T('stage.orderN', { n: p.wn }) : T('stage.order');
   if (p.kind === 'review') return T('stage.review');
   if (p.stage === 'quiz') return T('stage.quiz', { n: p.wn });
   return T('stage.write', { n: p.wn });
@@ -511,12 +511,12 @@ function orderHTML(prob) {
   const byId = Object.fromEntries(task.chunks.map(c => [c.id, c]));
   const pool = task.chunks.filter(c => !placed.includes(c.id));
   const run = S.runs[prob.id];
-  return `<section class="card editor-card order">
+  return `<section class="card editor-card order ${task.fine ? 'fine' : ''}">
       <div class="ord-label">${H('order.answer')}</div>
       <ol class="ord-ans ${run && run.grade && run.grade.ok ? 'ok' : ''}" aria-live="polite">${placed.length ? placed.map((id, i) => `<li><button class="ord-chip placed" data-act="unplace" data-id="${id}" aria-label="${esc(T('order.remove'))}"><span class="ord-n">${i + 1}</span><code>${highlightSQL(byId[id].text)}</code>${I.x}</button></li>`).join('') : `<li class="ord-empty">${H('order.empty')}</li>`}</ol>
       <div class="ord-label">${H('order.pool')}</div>
       <div class="ord-pool">${pool.map(c => `<button class="ord-chip" data-act="place" data-id="${c.id}"><code>${highlightSQL(c.text)}</code></button>`).join('') || `<span class="muted small">${H('order.allUsed')}</span>`}</div>
-      <p class="muted small">${H('order.tip')}</p>
+      ${task.fine ? `<p class="ord-level">${H('order.fine')}</p>` : ''}<p class="muted small">${H('order.tip')}</p>
       <div class="actions">
         <button class="btn btn-primary btn-run" data-act="checkOrder" ${placed.length ? '' : 'disabled'}>${I.check}${H('fill.check')}</button>
         <button class="btn btn-ghost" data-act="resetOrder">${I.reset}${H('ed.reset')}</button>

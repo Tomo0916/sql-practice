@@ -10,7 +10,7 @@ export const LESSON_BY_KEY = {};
 LESSONS.forEach((l, i) => { l.index = i; LESSON_BY_KEY[l.key] = l; });
 
 /** Stage of each problem in a lesson (index 0 is the fixed example). A lesson may set its own `stages`. */
-export const STAGES = ['demo', 'fill', 'order', 'write', 'write', 'write'];
+export const STAGES = ['demo', 'fill', 'order', 'order', 'write', 'write'];   // order 1 = clauses, order 2 = one or two words
 export const PRACTICE_COUNT = STAGES.length - 1;
 export const stagesOf = lesson => lesson.stages || STAGES;
 export const blanksOf = (lesson, p) => (typeof lesson.blanks === 'function' ? lesson.blanks(p) : lesson.blanks || []);
@@ -90,6 +90,66 @@ export function clauseKind(chunk) {
   if (u.startsWith('LIMIT')) return /OFFSET/.test(u) ? 'offset' : 'limit';
   return 'other';
 }
+/**
+ * Small pieces for "put in order" level 2: one or two words each.
+ * Strings and function calls like COUNT(*) stay whole; lists in brackets are split;
+ * a comma sticks to the word before it; GROUP BY, ORDER BY, IS NULL … are one piece of their own.
+ * A piece never runs over the start of a clause (FROM, WHERE, AND …), so each one still means something.
+ */
+const MULTI_KW = ['LEFT OUTER JOIN', 'IS NOT NULL', 'GROUP BY', 'ORDER BY', 'INNER JOIN', 'LEFT JOIN', 'IS NULL', 'INSERT INTO', 'DELETE FROM', 'NOT IN', 'NOT LIKE', 'NOT BETWEEN', 'PRIMARY KEY', 'CREATE TABLE', 'SELECT DISTINCT'];
+const CLAUSE_START = /^(SELECT|FROM|WHERE|HAVING|LIMIT|OFFSET|SET|VALUES|UPDATE|AND|OR|ON|GROUP BY|ORDER BY|INNER JOIN|LEFT JOIN|LEFT OUTER JOIN|INSERT INTO|DELETE FROM|SELECT DISTINCT|CREATE TABLE)$/i;
+export function splitWords(sql) {
+  const s = sql.trim().replace(/;\s*$/, '');
+  const toks = [];
+  let cur = '';
+  const push = () => { if (cur) toks.push(cur); cur = ''; };
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "'") { let j = i + 1; while (j < s.length && !(s[j] === "'" && s[j + 1] !== "'")) j += s[j] === "'" ? 2 : 1; cur += s.slice(i, j + 1); i = j; continue; }
+    if (/\s/.test(ch)) { push(); continue; }
+    if (ch === ',') { cur += ','; push(); continue; }
+    if (ch === '(') {
+      let d = 0, j = i;
+      for (; j < s.length; j++) { if (s[j] === "'") { j++; while (j < s.length && s[j] !== "'") j++; continue; } if (s[j] === '(') d++; if (s[j] === ')' && --d === 0) break; }
+      const inner = s.slice(i, j + 1);
+      if (!cur || /\bSELECT\b/i.test(inner)) {   // a list or a subquery (not a function call): split inside, the brackets stick to the first and last word
+        push();
+        const w = splitWords(inner.slice(1, -1));
+        w[0] = '(' + w[0]; w[w.length - 1] += ')';
+        toks.push(...w); i = j; continue;
+      }
+      cur += inner; i = j; continue;
+    }
+    if (ch === ')') { cur += ch; continue; }
+    cur += ch;
+  }
+  push();
+  // a ')' or ',' left alone belongs to the word before it
+  const out = [];
+  toks.forEach(t => { if (/^[),]+$/.test(t) && out.length) out[out.length - 1] += t; else out.push(t); });
+  return out;
+}
+/** words → units (multi-word keywords joined) → pieces of 1 or 2 units */
+export function finePieces(sql, R) {
+  const w = splitWords(sql), units = [];
+  for (let i = 0; i < w.length;) {
+    const kw = MULTI_KW.find(k => { const n = k.split(' ').length; return w.slice(i, i + n).join(' ').toUpperCase() === k; });
+    if (kw) { const n = kw.split(' ').length; units.push({ text: w.slice(i, i + n).join(' '), multi: true }); i += n; }
+    else { units.push({ text: w[i], multi: false }); i++; }
+  }
+  const pieces = [];
+  // short SQL: every word alone, so there is still something to put in order
+  if (units.length < 8) return units.map(u => u.text);
+  for (let i = 0; i < units.length; i++) {
+    const a = units[i], b = units[i + 1];
+    const canPair = b && !a.text.endsWith(',') && !a.multi && !b.multi && !CLAUSE_START.test(b.text.replace(/^\(/, ''));
+    if (canPair && R.next() < 0.5) { pieces.push(a.text + ' ' + b.text); i++; }
+    else pieces.push(a.text);
+  }
+  return pieces;
+}
+const FINE_SWAPS = [[/\bDESC\b/i, 'ASC'], [/\bASC\b/i, 'DESC'], [/^>=$/, '<='], [/^<=$/, '>='], [/^>$/, '<'], [/^<$/, '>'], [/^WHERE$/i, 'HAVING'], [/^HAVING$/i, 'WHERE'], [/^INNER JOIN$/i, 'LEFT JOIN'], [/^LEFT JOIN$/i, 'INNER JOIN'], [/^IS NULL$/i, '= NULL'], [/^OR$/i, 'AND'], [/^AND$/i, 'OR'], [/^<>$/, '='], [/^=$/, '<>']];
+
 /** The order in which the database actually processes clauses. */
 export const EXEC_ORDER = ['from', 'join_inner', 'join_left', 'where', 'group', 'having', 'select', 'select_distinct', 'order', 'limit', 'offset'];
 
@@ -222,6 +282,7 @@ export class SqlEngine {
     const stage = kind === 'demo' ? 'demo' : kind === 'practice' ? stages[idx] : kind;
     return {
       wn: stages.slice(0, idx + 1).filter(x => x === stage).length,   // "Write 1, 2, 3"
+      of: stages.filter(x => x === stage).length,                    // how many problems of this stage the lesson has
       answer: lesson.kind === 'quiz' ? p.ans : undefined,
       id: kind === 'demo' ? `${lesson.key}:demo` : `${lesson.key}:${stage}:${hashStr(sql).toString(36)}`,
       lesson: lesson.key, kind, stage, idx, tables, p, sql,
@@ -266,7 +327,7 @@ export class SqlEngine {
     return null;
   }
   themesFor(lesson) { return lesson.kind === 'join' ? JOIN_DATASETS : lesson.themes === 'null' ? NULL_DATASETS : lesson.themes === 'analysis' ? ANALYSIS_THEMES : SINGLE_DATASETS; }
-  /** Example + 5 practice problems (fill, order, write ×3) for a lesson and set code. */
+  /** Example + 5 practice problems (fill, order 1, order 2, write ×2) for a lesson and set code. */
   lessonProblems(lesson, code) {
     const key = `${code}|${lesson.key}`;
     if (this._cache.has(key)) return this._cache.get(key);
@@ -336,6 +397,7 @@ export class SqlEngine {
   /** → { chunks: [{id, text, distractor}], answer: [ids in order] } or null */
   orderTask(prob) {
     if (prob._order !== undefined) return prob._order;
+    if (prob.stage === 'order' && prob.wn >= 2) { const f = this.fineOrderTask(prob); if (f) return (prob._order = f); }
     const chunks = splitClauses(prob.sql);
     if (chunks.length < 2) return (prob._order = null);
     const R = makeRng('order|' + prob.id);
@@ -369,6 +431,36 @@ export class SqlEngine {
     const items = chunks.map((text, i) => ({ id: 'c' + i, text, distractor: false }));
     if (distractor) items.push({ id: 'x', text: distractor, distractor: true });
     return (prob._order = { chunks: R.shuffle(items), answer: chunks.map((_, i) => 'c' + i) });
+  }
+
+  /** level 2: pieces of one or two words; one wrong piece (ASC for DESC, >= for <= …) when it changes the answer */
+  fineOrderTask(prob) {
+    const R = makeRng('order2|' + prob.id);
+    const pieces = finePieces(prob.sql, R);
+    if (pieces.length < 3) return null;
+    const exp = this.exec(prob.sql);
+    try { if (!grade(this.runUser(pieces.join(' ')), exp, prob.ordered).ok) return null; } catch (e) { return null; }
+    let distractor = null, twin = null;
+    const agg = LESSON_BY_KEY[prob.lesson].ch === 'agg';
+    for (const i of R.shuffle(pieces.map((_, i) => i))) {
+      const words = pieces[i].split(' ');
+      for (const [re, to] of FINE_SWAPS) {
+        if (!agg && /HAVING/.test(re.source + to)) continue;
+        const k = words.findIndex(x => re.test(x)) ;
+        let text = null;
+        if (re.test(pieces[i])) text = pieces[i].replace(re, to);
+        else if (k >= 0) { const w2 = words.slice(); w2[k] = w2[k].replace(re, to); text = w2.join(' '); }
+        if (!text || text === pieces[i]) continue;
+        const wrong = pieces.slice(); wrong[i] = text;
+        let ok = false;
+        try { ok = grade(this.runUser(wrong.join(' ')), exp, prob.ordered).ok; } catch (e) { ok = false; }
+        if (!ok) { distractor = text; twin = 'c' + i; break; }
+      }
+      if (distractor) break;
+    }
+    const items = pieces.map((text, i) => ({ id: 'c' + i, text, distractor: false }));
+    if (distractor) items.push({ id: 'x', text: distractor, distractor: true });
+    return { chunks: R.shuffle(items), answer: pieces.map((_, i) => 'c' + i), fine: true, twin };
   }
 
   /* ----- paper test ----- */

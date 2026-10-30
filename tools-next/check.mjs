@@ -100,7 +100,7 @@ for (const L of LESSONS) {
           const k = splitClauses(p.sql).length;
           // putting the trap piece in place of its twin must NOT be correct
           const kinds = o.answer.map(id => byId[id]);
-          const twin = kinds.findIndex(t => t.split(' ')[0] === x.text.split(' ')[0] || (/^(INNER|LEFT)/.test(t) && /^(INNER|LEFT)/.test(x.text)) || (/^(WHERE|HAVING)/.test(t) && /^(WHERE|HAVING)/.test(x.text)));
+          const twin = o.twin ? o.answer.indexOf(o.twin) : kinds.findIndex(t => t.split(' ')[0] === x.text.split(' ')[0] || (/^(INNER|LEFT)/.test(t) && /^(INNER|LEFT)/.test(x.text)) || (/^(WHERE|HAVING)/.test(t) && /^(WHERE|HAVING)/.test(x.text)));
           if (twin >= 0 && k) {
             const bad = kinds.slice(); bad[twin] = x.text;
             let ok = false; try { ok = grade(eng.runUser(bad.join(' ')), exp, p.ordered).ok; } catch (e) { ok = false; }
