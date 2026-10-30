@@ -498,6 +498,12 @@ function refreshTab() {
 /* =========================================================
  * EVENTS
  * ========================================================= */
+/** message for a timer error: a missing database update, the network, or the server's own reason */
+function timerError(e) {
+  if (e.message === 'timer_missing') return T('tc.timerNeedsDb');
+  if (!navigator.onLine || e instanceof TypeError) return T('class.netError');
+  return `${T('tc.timerFailed')} ${e.message}`;
+}
 const actions = {
   closeModal,
   loginMode(el) { S.loginMode = el.dataset.m; render(); },
@@ -506,11 +512,11 @@ const actions = {
   copyJoin() { copyText(joinURL(S.klass.code), () => toast(T('set.copied'))); },
   async timerStart(el) {
     try { await syncClock(backend.serverNow); S.klass = await backend.startTimer(S.klass.id, +el.dataset.sec); shownState = null; tickTeacherTimer(); }
-    catch (e) { toast(T(e.message === 'timer_missing' ? 'tc.timerNeedsDb' : 'class.netError')); }
+    catch (e) { console.error(e); toast(timerError(e)); }
   },
   async timerStop() {
     try { S.klass = await backend.stopTimer(S.klass.id); shownState = null; tickTeacherTimer(); const b = document.getElementById('timer-big'); if (b) b.remove(); }
-    catch (e) { toast(T('class.netError')); }
+    catch (e) { console.error(e); toast(timerError(e)); }
   },
   timerBig() {
     if (document.getElementById('timer-big')) return;

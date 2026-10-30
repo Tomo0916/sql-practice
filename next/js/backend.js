@@ -115,7 +115,7 @@ export async function myClasses() {
 export async function createClass(name) { const sb = await client(); return check(await sb.rpc('create_class', { p_name: name })); }
 export async function updateClass(id, patch) { const sb = await client(); return check(await sb.from('classes').update(patch).eq('id', id).select().single()); }
 /** class timer: the server sets the end time. Error 'timer_missing' when schema.sql has not been run again yet. */
-export async function startTimer(id, sec) { const sb = await client(); try { return check(await sb.rpc('start_timer', { p_class: id, p_sec: sec })); } catch (e) { if (/start_timer|schema cache|function/i.test(e.message)) e.message = 'timer_missing'; throw e; } }
+export async function startTimer(id, sec) { const sb = await client(); try { return check(await sb.rpc('start_timer', { p_class: id, p_sec: sec })); } catch (e) { if (e.code === 'PGRST202' || /could not find the function|schema cache/i.test(e.message)) { e.raw = e.message; e.message = 'timer_missing'; } throw e; } }
 export async function stopTimer(id) { const sb = await client(); return check(await sb.rpc('stop_timer', { p_class: id })); }
 export async function deleteClass(id) { const sb = await client(); check(await sb.from('classes').delete().eq('id', id)); }
 export async function members(classId) { const sb = await client(); return check(await sb.from('members').select('user_id, nickname, joined_at').eq('class_id', classId).order('joined_at')); }

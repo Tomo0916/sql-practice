@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "ကြီးကြီးပြရန်",
   "tc.timerClose": "ပိတ်ရန် နှိပ်ပါ",
   "tc.timerNeedsDb": "အချိန်မှတ်စက် သုံးရန် Supabase ၏ SQL Editor တွင် supabase/schema.sql ကို ထပ်မံ run ပါ (README ကြည့်ပါ)။",
+  "tc.timerFailed": "အချိန်မှတ်စက်ကို စတင်၍ မရပါ။ ဆာဗာမှ အကြောင်းရင်း -",
   "tc.late": "နောက်ကျ",
   /* ---- ranking ---- */
   "tc.rank": "ကျောင်းသားများ ဘယ်မှာ တစ်နေသလဲ",

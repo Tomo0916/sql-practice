@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "Hiện to",
   "tc.timerClose": "Chạm để đóng",
   "tc.timerNeedsDb": "Để dùng đồng hồ, hãy chạy lại supabase/schema.sql trong SQL Editor của Supabase (xem README).",
+  "tc.timerFailed": "Không thể bắt đầu đồng hồ. Lý do từ máy chủ:",
   "tc.late": "Trễ giờ",
   /* ---- ranking ---- */
   "tc.rank": "Học sinh đang vướng ở đâu",

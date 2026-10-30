@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "Tampilkan besar",
   "tc.timerClose": "Ketuk untuk menutup",
   "tc.timerNeedsDb": "Untuk memakai pengatur waktu, jalankan lagi supabase/schema.sql di SQL Editor Supabase (lihat README).",
+  "tc.timerFailed": "Pengatur waktu tidak dapat dimulai. Alasan dari server:",
   "tc.late": "Terlambat",
   /* ---- ranking ---- */
   "tc.rank": "Di mana siswa tersendat",

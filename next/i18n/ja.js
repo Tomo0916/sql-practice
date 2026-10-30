@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "大きく表示",
   "tc.timerClose": "タップで閉じる",
   "tc.timerNeedsDb": "タイマーを使うには、Supabase の SQL Editor で supabase/schema.sql をもう一度実行してください（README 参照）。",
+  "tc.timerFailed": "タイマーを始められませんでした。サーバーからの理由：",
   "tc.late": "時間外",
   /* ---- ranking ---- */
   "tc.rank": "つまずきランキング",

@@ -610,6 +610,7 @@ export default {
   "tc.timerBig": "විශාලව පෙන්වන්න",
   "tc.timerClose": "වසා දැමීමට තට්ටු කරන්න",
   "tc.timerNeedsDb": "කාල ගණකය භාවිත කිරීමට Supabase හි SQL Editor තුළ supabase/schema.sql නැවත ධාවනය කරන්න (README බලන්න).",
+  "tc.timerFailed": "කාල ගණකය ආරම්භ කළ නොහැකි විය. සේවාදායකයෙන් ලැබුණු හේතුව:",
   "tc.late": "ප්‍රමාද",
   /* ---- ranking ---- */
   "tc.rank": "සිසුන් හිර වී ඇත්තේ කොතැනද",
