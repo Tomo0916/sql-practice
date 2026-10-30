@@ -185,6 +185,60 @@ revoke all on function public.create_class(text) from public, anon;
 grant execute on function public.join_class(text, text) to authenticated;
 grant execute on function public.create_class(text) to authenticated;
 
+-- ---------- class timer (2026-10-29) ----------
+-- The teacher starts a countdown; every student's screen shows it.
+-- Answers sent after the end are marked late (the server decides, students cannot change it).
+alter table public.classes  add column if not exists timer_end timestamptz;
+alter table public.classes  add column if not exists timer_sec integer check (timer_sec between 10 and 7200);
+alter table public.attempts add column if not exists late boolean not null default false;
+-- Lesson 0 questions are stored with stage 'quiz'
+alter table public.attempts drop constraint if exists attempts_stage_check;
+alter table public.attempts add constraint attempts_stage_check check (stage in ('demo', 'fill', 'order', 'write', 'review', 'quiz'));
+
+/* the server's clock, so that every screen counts down together */
+create or replace function public.server_now() returns timestamptz language sql stable as $$ select now() $$;
+
+create or replace function public.start_timer(p_class uuid, p_sec integer)
+  returns public.classes
+  language plpgsql security definer set search_path = public as
+$$
+declare c public.classes;
+begin
+  if not public.is_teacher_of(p_class) then raise exception 'not_teacher' using errcode = '42501'; end if;
+  update public.classes set timer_end = now() + make_interval(secs => greatest(10, least(p_sec, 7200))), timer_sec = greatest(10, least(p_sec, 7200))
+    where id = p_class returning * into c;
+  return c;
+end
+$$;
+create or replace function public.stop_timer(p_class uuid)
+  returns public.classes
+  language plpgsql security definer set search_path = public as
+$$
+declare c public.classes;
+begin
+  if not public.is_teacher_of(p_class) then raise exception 'not_teacher' using errcode = '42501'; end if;
+  update public.classes set timer_end = null, timer_sec = null where id = p_class returning * into c;
+  return c;
+end
+$$;
+create or replace function public.mark_late() returns trigger
+  language plpgsql security definer set search_path = public as
+$$
+begin
+  new.late := exists (select 1 from public.classes c where c.id = new.class_id and c.timer_end is not null and now() > c.timer_end);
+  return new;
+end
+$$;
+drop trigger if exists attempts_late on public.attempts;
+create trigger attempts_late before insert on public.attempts for each row execute function public.mark_late();
+
+revoke all on function public.server_now() from public, anon;
+revoke all on function public.start_timer(uuid, integer) from public, anon;
+revoke all on function public.stop_timer(uuid) from public, anon;
+grant execute on function public.server_now() to authenticated;
+grant execute on function public.start_timer(uuid, integer) to authenticated;
+grant execute on function public.stop_timer(uuid) to authenticated;
+
 -- keep updated_at fresh
 create or replace function public.touch_updated_at() returns trigger language plpgsql as
 $$ begin new.updated_at := now(); return new; end $$;

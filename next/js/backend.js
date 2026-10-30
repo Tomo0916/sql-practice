@@ -33,7 +33,7 @@ export async function joinClass(code, nickname) {
 }
 export async function getClass(classId) {
   const sb = await client();
-  return check(await sb.from('classes').select('id, code, name, set_code, lessons, answer_policy, open, updated_at').eq('id', classId).maybeSingle());
+  return check(await sb.from('classes').select('*').eq('id', classId).maybeSingle());
 }
 export async function leaveClass(classId) {
   const sb = await client();
@@ -81,6 +81,13 @@ export async function watchClass(classId, onChange) {
   return () => sb.removeChannel(ch);
 }
 
+/** the server's clock (null if unknown) */
+export async function serverNow() {
+  const sb = await client();
+  const { data, error } = await sb.rpc('server_now');
+  return error || !data ? null : new Date(data);
+}
+
 /* ---------- teachers ---------- */
 export async function teacherSession() {
   const sb = await client();
@@ -107,6 +114,9 @@ export async function myClasses() {
 }
 export async function createClass(name) { const sb = await client(); return check(await sb.rpc('create_class', { p_name: name })); }
 export async function updateClass(id, patch) { const sb = await client(); return check(await sb.from('classes').update(patch).eq('id', id).select().single()); }
+/** class timer: the server sets the end time. Error 'timer_missing' when schema.sql has not been run again yet. */
+export async function startTimer(id, sec) { const sb = await client(); try { return check(await sb.rpc('start_timer', { p_class: id, p_sec: sec })); } catch (e) { if (/start_timer|schema cache|function/i.test(e.message)) e.message = 'timer_missing'; throw e; } }
+export async function stopTimer(id) { const sb = await client(); return check(await sb.rpc('stop_timer', { p_class: id })); }
 export async function deleteClass(id) { const sb = await client(); check(await sb.from('classes').delete().eq('id', id)); }
 export async function members(classId) { const sb = await client(); return check(await sb.from('members').select('user_id, nickname, joined_at').eq('class_id', classId).order('joined_at')); }
 export async function removeMember(classId, userId) { const sb = await client(); check(await sb.from('members').delete().eq('class_id', classId).eq('user_id', userId)); }
@@ -114,7 +124,7 @@ export async function attempts(classId, sinceIso) {
   const sb = await client();
   const out = [];
   for (let from = 0; ; from += 1000) {
-    let q = sb.from('attempts').select('id, user_id, problem_id, lesson, stage, ok, reason, sql, created_at').eq('class_id', classId).order('id').range(from, from + 999);
+    let q = sb.from('attempts').select('*').eq('class_id', classId).order('id').range(from, from + 999);
     if (sinceIso) q = q.gte('created_at', sinceIso);
     const rows = check(await q);
     out.push(...rows);

@@ -113,3 +113,48 @@ select 'delisted sees attempts', count(*) from attempts;
 update classes set name = 'hijack';
 reset role;
 select 'name unchanged', name from classes;
+
+\echo '=== class timer ==='
+reset role;
+insert into public.teachers (email) values ('teacher@school.jp') on conflict do nothing;
+update classes set open = true;
+\echo '--- student cannot start or stop the timer (expect not_teacher twice)'
+select pg_temp.as_user('22222222-2222-2222-2222-222222222222', true);
+set role authenticated;
+select public.start_timer(current_setting('test.cid')::uuid, 60);
+select public.stop_timer(current_setting('test.cid')::uuid);
+select 'server_now works', public.server_now() is not null;
+\echo '--- Lesson 0 answers (stage quiz) can be logged'
+insert into attempts (class_id, problem_id, lesson, stage, ok, sql) values (current_setting('test.cid')::uuid, 'intro:quiz:1', 'intro', 'quiz', true, '6');
+\echo '--- a student cannot mark an answer late or on time themselves (expect late = false while no timer)'
+insert into attempts (class_id, problem_id, lesson, stage, ok, late) values (current_setting('test.cid')::uuid, 'x:1', 'x', 'write', true, true);
+reset role;
+select 'forced late ignored', late from attempts where problem_id = 'x:1';
+\echo '--- teacher starts a 60 s timer; the student sees the end time'
+select pg_temp.as_user('11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select 'timer set', timer_sec, timer_end > now() + interval '59 seconds' from (select (public.start_timer(current_setting('test.cid')::uuid, 60)).*) x;
+select 'timer clamped', (public.start_timer(current_setting('test.cid')::uuid, 99999)).timer_sec;
+reset role;
+select pg_temp.as_user('22222222-2222-2222-2222-222222222222', true);
+set role authenticated;
+select 'student sees timer', timer_end is not null from classes;
+insert into attempts (class_id, problem_id, lesson, stage, ok) values (current_setting('test.cid')::uuid, 'x:2', 'x', 'write', true);
+\echo '--- after the end, answers are marked late'
+reset role;
+update classes set timer_end = now() - interval '1 second';
+select pg_temp.as_user('22222222-2222-2222-2222-222222222222', true);
+set role authenticated;
+insert into attempts (class_id, problem_id, lesson, stage, ok) values (current_setting('test.cid')::uuid, 'x:3', 'x', 'write', true);
+reset role;
+select 'on time / late', string_agg(problem_id || '=' || late, ' ' order by problem_id) from attempts where problem_id in ('x:2', 'x:3');
+\echo '--- teacher stops the timer; answers are on time again'
+select pg_temp.as_user('11111111-1111-1111-1111-111111111111', false);
+set role authenticated;
+select 'stopped', (public.stop_timer(current_setting('test.cid')::uuid)).timer_end is null;
+reset role;
+select pg_temp.as_user('22222222-2222-2222-2222-222222222222', true);
+set role authenticated;
+insert into attempts (class_id, problem_id, lesson, stage, ok) values (current_setting('test.cid')::uuid, 'x:4', 'x', 'write', true);
+reset role;
+select 'after stop', late from attempts where problem_id = 'x:4';

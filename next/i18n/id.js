@@ -599,5 +599,31 @@ export default {
   "words.keywords": "Kata kunci SQL",
   "words.sub": "Kata-kata penting dalam bahasa Anda, bahasa Jepang, dan bahasa Inggris.",
   "words.terms": "Kata dasar",
-  "words.title": "Istilah SQL"
+  "words.title": "Istilah SQL",
+  /* ---- timer ---- */
+  "timer.up": "Waktu habis!",
+  "timer.title": "Pengatur waktu guru",
+  "tc.timer": "Pengatur waktu",
+  "tc.timerMin": "{n} menit",
+  "tc.timerNote": "Memulai hitung mundur di layar semua siswa. Jawaban yang dikirim setelah waktu habis ditandai “terlambat” sampai pengatur waktu dihentikan.",
+  "tc.timerStop": "Hentikan",
+  "tc.timerBig": "Tampilkan besar",
+  "tc.timerClose": "Ketuk untuk menutup",
+  "tc.timerNeedsDb": "Untuk memakai pengatur waktu, jalankan lagi supabase/schema.sql di SQL Editor Supabase (lihat README).",
+  "tc.late": "Terlambat",
+  /* ---- ranking ---- */
+  "tc.rank": "Di mana siswa tersendat",
+  "tc.rankSub": "Soal yang membuat siswa tersendat. Buka untuk melihat jawaban yang salah.",
+  "tc.rankNow": "Sekarang (10 menit terakhir)",
+  "tc.rankAll": "Semua",
+  "tc.sortStuck": "Siswa tersendat",
+  "tc.sortWrong": "Jawaban salah",
+  "tc.sortNow": "Sedang dikerjakan",
+  "tc.colStuck": "tersendat",
+  "tc.colWrong": "salah",
+  "tc.colNow": "sekarang",
+  "tc.colSolved": "benar",
+  "tc.nowTip": "Siswa yang sedang mengerjakan soal ini (jawaban terakhir mereka dalam 10 menit terakhir)",
+  "tc.seeMistakes": "Lihat kesalahan",
+  "tc.rankEmpty": "Belum ada jawaban salah."
 };

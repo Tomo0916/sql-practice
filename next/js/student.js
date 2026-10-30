@@ -19,6 +19,7 @@ import { I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff,
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
+import { syncClock, secondsLeft, fmtClock, timerState } from './timer.js';
 
 const S = {
   settings: loadSettings(null),
@@ -891,15 +892,34 @@ async function watchKlass() {
     applyClassRow(c, false);
     if (unwatch) unwatch();
     unwatch = await backend.watchClass(S.klass.id, row => applyClassRow(row, true));
+    syncClock(backend.serverNow).then(tickTimer);
     backend.flushAttempts();
   } catch (e) { /* offline: keep cached class */ }
 }
 function applyClassRow(c, live) {
   const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy;
-  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy });
+  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null });
+  tickTimer();
   Store.set(KEYS.klass, S.klass);
   if (changed) { saveDraft(); S.runs = {}; render(); if (live) toast(T('class.updated')); }
 }
+
+/* ---------- class timer: the teacher's countdown, shown on every screen ---------- */
+let upSince = 0;
+function tickTimer() {
+  let el = document.getElementById('ctimer');
+  const left = S.klass ? secondsLeft(S.klass) : null;
+  const st = timerState(left);
+  if (!st) { if (el) el.remove(); upSince = 0; return; }
+  if (!el) { el = document.createElement('div'); el.id = 'ctimer'; el.setAttribute('role', 'timer'); el.setAttribute('aria-live', 'off'); document.body.appendChild(el); }
+  if (st === 'up' && !upSince) upSince = Date.now();
+  if (st !== 'up') upSince = 0;
+  const flash = st === 'up' && Date.now() - upSince < 8000;   // flashes for 8 seconds, then stays red
+  el.className = `ctimer ${st}${flash ? ' flash' : ''}`;
+  const html = st === 'up' ? `<b>${H('timer.up')}</b>` : `<span class="ct-ic">⏱</span><b class="mono">${fmtClock(left)}</b>`;
+  if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; el.title = T('timer.title'); }
+}
+setInterval(tickTimer, 250);
 
 /* ---------- start ---------- */
 (async function start() {

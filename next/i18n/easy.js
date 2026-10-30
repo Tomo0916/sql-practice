@@ -599,5 +599,31 @@ export default {
   "words.keywords": "SQL の キーワード",
   "words.sub": "{大切|たいせつ}な ことばを、あなたの ことば・{日本語|にほんご}・{英語|えいご}で {見|み}られます。",
   "words.terms": "{基本|きほん}の ことば",
-  "words.title": "SQL の ことば"
+  "words.title": "SQL の ことば",
+  /* ---- timer ---- */
+  "timer.up": "{時間|じかん}です！",
+  "timer.title": "{先生|せんせい}の タイマー",
+  "tc.timer": "タイマー",
+  "tc.timerMin": "{n}{分|ふん}",
+  "tc.timerNote": "{生徒|せいと} ぜんいんの {画面|がめん}で カウントダウンが はじまります。{時間|じかん}が すぎた {後|あと}の {答|こた}えは、タイマーを とめるまで「{時間外|じかんがい}」に なります。",
+  "tc.timerStop": "とめる",
+  "tc.timerBig": "{大|おお}きく {出|だ}す",
+  "tc.timerClose": "タップで とじる",
+  "tc.timerNeedsDb": "タイマーを {使|つか}うには、Supabase の SQL Editor で supabase/schema.sql を もう{一度|いちど} {動|うご}かしてください（README を {見|み}てください）。",
+  "tc.late": "{時間外|じかんがい}",
+  /* ---- ranking ---- */
+  "tc.rank": "つまずき ランキング",
+  "tc.rankSub": "{生徒|せいと}が とまっている {問題|もんだい}です。おすと、まちがいの {中身|なかみ}が {見|み}られます。",
+  "tc.rankNow": "{今|いま}（さいごの 10{分|ぷん}）",
+  "tc.rankAll": "ぜんぶ",
+  "tc.sortStuck": "つまずいている {人数|にんずう}",
+  "tc.sortWrong": "まちがえた {回数|かいすう}",
+  "tc.sortNow": "とりくみ{中|ちゅう}の {人数|にんずう}",
+  "tc.colStuck": "つまずき",
+  "tc.colWrong": "まちがい",
+  "tc.colNow": "とりくみ{中|ちゅう}",
+  "tc.colSolved": "{正解|せいかい}",
+  "tc.nowTip": "{今|いま} この {問題|もんだい}を やっている {人数|にんずう}（さいごの 10{分|ぷん}）",
+  "tc.seeMistakes": "まちがいを {見|み}る",
+  "tc.rankEmpty": "まだ まちがいは ありません。"
 };

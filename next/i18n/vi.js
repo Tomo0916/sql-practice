@@ -599,5 +599,31 @@ export default {
   "words.keywords": "Từ khóa SQL",
   "words.sub": "Các từ quan trọng bằng ngôn ngữ của bạn, tiếng Nhật và tiếng Anh.",
   "words.terms": "Từ cơ bản",
-  "words.title": "Thuật ngữ SQL"
+  "words.title": "Thuật ngữ SQL",
+  /* ---- timer ---- */
+  "timer.up": "Hết giờ!",
+  "timer.title": "Đồng hồ của giáo viên",
+  "tc.timer": "Đồng hồ",
+  "tc.timerMin": "{n} phút",
+  "tc.timerNote": "Bắt đầu đếm ngược trên màn hình của mọi học sinh. Bài nộp sau khi hết giờ sẽ được ghi là “trễ giờ” cho đến khi bạn dừng đồng hồ.",
+  "tc.timerStop": "Dừng",
+  "tc.timerBig": "Hiện to",
+  "tc.timerClose": "Chạm để đóng",
+  "tc.timerNeedsDb": "Để dùng đồng hồ, hãy chạy lại supabase/schema.sql trong SQL Editor của Supabase (xem README).",
+  "tc.late": "Trễ giờ",
+  /* ---- ranking ---- */
+  "tc.rank": "Học sinh đang vướng ở đâu",
+  "tc.rankSub": "Những bài học sinh đang bị vướng. Mở một bài để xem các câu trả lời sai.",
+  "tc.rankNow": "Bây giờ (10 phút gần nhất)",
+  "tc.rankAll": "Tất cả",
+  "tc.sortStuck": "Số học sinh bị vướng",
+  "tc.sortWrong": "Số lần sai",
+  "tc.sortNow": "Đang làm bây giờ",
+  "tc.colStuck": "vướng",
+  "tc.colWrong": "sai",
+  "tc.colNow": "đang làm",
+  "tc.colSolved": "đúng",
+  "tc.nowTip": "Số học sinh đang làm bài này (câu trả lời cuối của các em trong 10 phút gần nhất)",
+  "tc.seeMistakes": "Xem lỗi sai",
+  "tc.rankEmpty": "Chưa có câu trả lời sai."
 };

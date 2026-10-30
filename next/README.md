@@ -20,13 +20,14 @@
 - クラス作成・QR表示・参加受付の停止。
 - 課題：今日のレッスン、セット番号、模範解答の表示ルール（2回まちがえたら／正解したら／いつでも／表示しない）。保存すると生徒の画面にすぐ反映。
 - ライブ：生徒×問題の表がリアルタイムで更新。問題ごとの正解率。
+- タイマー：クラスの画面で 1・3・5・10 分を押すと、生徒全員の画面でカウントダウン（サーバーの時計に合わせるので全員そろう）。0 になると画面が光り、その後の解答はタイマーを止めるまで「時間外」（ライブ表で ⏱）として記録される。「大きく表示」でスクリーン用の全画面表示。
 - よくある間違い：まちがったSQLを人数順にまとめ、理由も表示（名前なしでそのまま投影可）。
 - 授業で見せる（発表モード）、紙テスト（A版/B版、11言語、併記、解答・データ表付き → PDF）。
 - 教科書（`teacher.html#/book`、ログイン不要）：印刷用の PDF（`book/sql-textbook-beginner.pdf`）を開く・ダウンロードする。PDF は `../textbook/` で作る（`node render.mjs` がここにコピーする）。生徒のレッスン画面には「教科書 p.N」（Lesson n は p.6+2n）が出る。
 
 ## Supabase の設定
 1. Supabase のプロジェクトを作り、Authentication → Sign In / Providers で **Allow anonymous sign-ins** をオン。
-2. SQL Editor に `supabase/schema.sql` を貼って Run（何度実行しても安全）。
+2. SQL Editor に `supabase/schema.sql` を貼って Run（何度実行しても安全）。**アプリを更新したときも、もう一度 Run してください**（例：タイマーは 2026-10-29 に追加した列と関数を使います）。
 3. `config.js` に Project URL と **anon / publishable key** を書く（service_role key は絶対に書かない）。
 4. 先生のアカウントは管理者が作ります（画面からの新規登録はできません）:
    - Supabase の Authentication → Users → **Add user** でメールアドレスとパスワードを入れ、**Auto Confirm User** にチェック

@@ -599,5 +599,31 @@ export default {
   "words.keywords": "SQL keywords",
   "words.sub": "Important words in your language, in Japanese, and in English.",
   "words.terms": "Basic words",
-  "words.title": "SQL words"
+  "words.title": "SQL words",
+  /* ---- timer ---- */
+  "timer.up": "Time's up!",
+  "timer.title": "Teacher's timer",
+  "tc.timer": "Timer",
+  "tc.timerMin": "{n} min",
+  "tc.timerNote": "Starts a countdown on every student's screen. Answers sent after the end are marked “late” until you stop the timer.",
+  "tc.timerStop": "Stop",
+  "tc.timerBig": "Show big",
+  "tc.timerClose": "Tap to close",
+  "tc.timerNeedsDb": "To use the timer, run supabase/schema.sql again in the Supabase SQL Editor (see README).",
+  "tc.late": "Late",
+  /* ---- ranking ---- */
+  "tc.rank": "Where students are stuck",
+  "tc.rankSub": "Problems students are stuck on. Open one to see the wrong answers.",
+  "tc.rankNow": "Now (last 10 min)",
+  "tc.rankAll": "All",
+  "tc.sortStuck": "Students stuck",
+  "tc.sortWrong": "Wrong answers",
+  "tc.sortNow": "Working on it now",
+  "tc.colStuck": "stuck",
+  "tc.colWrong": "wrong",
+  "tc.colNow": "now",
+  "tc.colSolved": "solved",
+  "tc.nowTip": "Students working on this problem now (their last answer in the last 10 minutes)",
+  "tc.seeMistakes": "See mistakes",
+  "tc.rankEmpty": "No wrong answers yet."
 };
