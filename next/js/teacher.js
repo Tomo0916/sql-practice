@@ -219,8 +219,8 @@ function assignHTML(c) {
       }).join('') || `<p class="muted">${H('tc.noLessons')}</p>`}</div></div>
   </form>`;
 }
-function stageNameH(p) { return p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : H('stage.' + p.stage); }
-function stageName(p) { return p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : T('stage.' + p.stage); }
+function stageNameH(p) { return p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage); }
+function stageName(p) { return p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? T('stage.orderN', { n: p.wn }) : T('stage.' + p.stage); }
 const isQuiz = p => LESSON_BY_KEY[p.lesson].kind === 'quiz';
 /** the answer of a problem: SQL, or the value for Lesson 0 */
 const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${esc(String(p.answer))}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>`);
@@ -268,7 +268,7 @@ function liveHTML(c) {
   </section>`;
 }
 
-const colLabel = p => (p.idx === 0 ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' : (p.stage === 'quiz' ? 'Q' : 'W') + p.wn);
+const colLabel = p => (p.idx === 0 ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' + (p.of > 1 ? p.wn : '') : (p.stage === 'quiz' ? 'Q' : 'W') + p.wn);
 const NOW_MS = 10 * 60000;   // "now" = the last 10 minutes
 /** per problem: students stuck (wrong, not solved), wrong answers, students on it now, students who solved it */
 function problemStats(all, atts) {

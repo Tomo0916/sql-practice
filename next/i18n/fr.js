@@ -347,6 +347,7 @@ export default {
   "order.pool": "Morceaux",
   "order.remove": "Retirer ce morceau",
   "order.tip": "Touchez un morceau dans « Votre SQL » pour le renvoyer en bas.",
+  "order.fine": "Niveau 2 : chaque morceau ne contient qu'un ou deux mots. Reconstituez tout le SQL dans l'ordre d'écriture.",
   /* ---- ph ---- */
   "ph.alias": "alias",
   "ph.col": "colonne",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "À résoudre ensemble",
   "stage.fill": "Texte à trous",
   "stage.order": "Remettre en ordre",
+  "stage.orderN": "Remettre en ordre {n}",
   "stage.quiz": "Question {n}",
   "stage.review": "Révision",
   "stage.write": "À vous {n}",

@@ -347,6 +347,7 @@ export default {
   "order.pool": "片段",
   "order.remove": "移除这个片段",
   "order.tip": "点击“你的 SQL”中的片段可以放回下面。",
+  "order.fine": "第2级：每个片段只有一两个词。按照书写 SQL 的顺序拼出完整语句。",
   /* ---- ph ---- */
   "ph.alias": "别名",
   "ph.col": "列名",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "大家一起解",
   "stage.fill": "填空",
   "stage.order": "排序",
+  "stage.orderN": "排序 {n}",
   "stage.quiz": "问题 {n}",
   "stage.review": "复习",
   "stage.write": "自己写 {n}",

@@ -347,6 +347,7 @@ export default {
   "order.pool": "Potongan",
   "order.remove": "Kembalikan potongan ini",
   "order.tip": "Ketuk potongan di “SQL Anda” untuk mengembalikannya.",
+  "order.fine": "Level 2: setiap potongan hanya satu atau dua kata. Susun seluruh SQL sesuai urutan menulisnya.",
   /* ---- ph ---- */
   "ph.alias": "nama alias",
   "ph.col": "kolom",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "Dikerjakan bersama",
   "stage.fill": "Isi bagian kosong",
   "stage.order": "Susun urutan",
+  "stage.orderN": "Susun urutan {n}",
   "stage.quiz": "Soal {n}",
   "stage.review": "Ulangan",
   "stage.write": "Tulis sendiri {n}",
