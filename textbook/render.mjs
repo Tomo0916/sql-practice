@@ -75,5 +75,5 @@ console.log(bad.length ? '✕ sticks out:\n  ' + bad.join('\n  ') : '✓ nothing
 await p.pdf({ path: pdf, preferCSSPageSize: true, printBackground: true });
 await b.close();
 // the app offers the PDF in its textbook tab
-fs.copyFileSync(pdf, path.join(here, '..', 'next', 'book', `sql-textbook-${name}.pdf`));
+fs.copyFileSync(pdf, path.join(here, '..', 'next', 'book', name === 'analysis' ? 'data-analysis-textbook.pdf' : `sql-textbook-${name}.pdf`));
 console.log('✓', path.relative(here, pdf));

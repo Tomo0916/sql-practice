@@ -103,6 +103,7 @@ export default {
   "book.inApp": "Manuel p.{n}",
   "book.inAppTip": "La page de cette leçon dans le manuel imprimé",
   "book.lv.advanced": "Avancé",
+  "book.lv.analysis": "Analyse de données",
   "book.lv.beginner": "Débutant",
   "book.lv.intermediate": "Intermédiaire",
   "book.nav": "Manuel",

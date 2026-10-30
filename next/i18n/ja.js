@@ -103,11 +103,12 @@ export default {
   "book.inApp": "教科書 p.{n}",
   "book.inAppTip": "印刷した教科書の、このレッスンのページ",
   "book.lv.advanced": "上級編",
+  "book.lv.analysis": "データ分析編",
   "book.lv.beginner": "初級編",
   "book.lv.intermediate": "中級編",
   "book.nav": "教科書",
   "book.open": "開く（PDF）",
-  "book.panelSub": "印刷用の SQL 教科書（PDF）です。アプリの各レッスンには、教科書のページが表示されます。",
+  "book.panelSub": "印刷用の教科書（PDF）です。SQL とデータ分析があります。アプリの各レッスンには、教科書のページが表示されます。",
   "book.panelTitle": "教科書",
   "book.soon": "準備中",
   /* ---- btn ---- */
