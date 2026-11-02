@@ -347,6 +347,7 @@ export default {
   "order.pool": "Các mảnh",
   "order.remove": "Bỏ mảnh này",
   "order.tip": "Chạm vào một mảnh trong “SQL của bạn” để trả nó về.",
+  "order.fine": "Cấp 2: mỗi mảnh chỉ có một hoặc hai từ. Hãy ghép cả câu SQL theo thứ tự bạn viết.",
   /* ---- ph ---- */
   "ph.alias": "tên gọi",
   "ph.col": "cột",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "Cùng nhau giải",
   "stage.fill": "Điền chỗ trống",
   "stage.order": "Sắp xếp",
+  "stage.orderN": "Sắp xếp {n}",
   "stage.quiz": "Câu hỏi {n}",
   "stage.review": "Ôn tập",
   "stage.write": "Tự viết {n}",

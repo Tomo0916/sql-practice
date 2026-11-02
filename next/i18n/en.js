@@ -347,6 +347,7 @@ export default {
   "order.pool": "Pieces",
   "order.remove": "Remove this piece",
   "order.tip": "Tap a piece in “Your SQL” to send it back.",
+  "order.fine": "Level 2: each piece is just one or two words. Build the whole SQL in the order you write it.",
   /* ---- ph ---- */
   "ph.alias": "alias",
   "ph.col": "column",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "Solve it together",
   "stage.fill": "Fill in the blanks",
   "stage.order": "Put in order",
+  "stage.orderN": "Put in order {n}",
   "stage.quiz": "Question {n}",
   "stage.review": "Review",
   "stage.write": "Write it {n}",

@@ -347,6 +347,7 @@ export default {
   "order.pool": "ぶひん",
   "order.remove": "この ぶひんを もどす",
   "order.tip": "「あなたの SQL」の ぶひんを おすと、{下|した}に もどります。",
+  "order.fine": "レベル2：ぶひんは 1〜2{語|ご}ずつです。SQL を {書|か}く {順番|じゅんばん}で、ぜんぶ {組|く}み{立|た}てましょう。",
   /* ---- ph ---- */
   "ph.alias": "{名前|なまえ}",
   "ph.col": "{列|れつ}の{名前|なまえ}",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "みんなで いっしょに",
   "stage.fill": "あなうめ",
   "stage.order": "ならべかえ",
+  "stage.orderN": "ならべかえ {n}",
   "stage.quiz": "{問題|もんだい} {n}",
   "stage.review": "ふくしゅう",
   "stage.write": "{書|か}いてみよう {n}",

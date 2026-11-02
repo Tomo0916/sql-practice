@@ -331,6 +331,14 @@ input.blank.bad, .blank-mirror.bad { border-bottom-color: var(--bad); background
 .ord-chip.placed { width: 100%; }
 .ord-chip.placed svg { margin-left: auto; color: var(--ink-3); }
 .ord-n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: .75rem; font-weight: 800; display: grid; place-items: center; }
+/* level 2: small pieces flow in a line, like writing the SQL */
+.order.fine .ord-ans { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
+.order.fine .ord-ans .ord-empty { width: 100%; }
+.order.fine .ord-chip { padding: 6px 10px; gap: 6px; }
+.order.fine .ord-chip.placed { width: auto; }
+.order.fine .ord-chip.placed svg { margin-left: 2px; width: 12px; height: 12px; }
+.order.fine .ord-n { display: none; }
+.ord-level { margin: 0 0 4px; font-size: .86rem; font-weight: 700; color: var(--accent); }
 
 /* feedback */
 .fb { border-radius: 12px; padding: 14px 18px; display: flex; gap: 14px; align-items: flex-start; animation: pop .18s ease-out; }

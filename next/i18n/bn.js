@@ -347,6 +347,7 @@ export default {
   "order.pool": "অংশগুলো",
   "order.remove": "এই অংশটি সরান",
   "order.tip": "“আপনার SQL”-এর কোনো অংশ চাপলে সেটি নিচে ফিরে যায়।",
+  "order.fine": "লেভেল ২: প্রতিটি অংশে মাত্র এক বা দুটি শব্দ। SQL লেখার ক্রমে পুরো বাক্যটি সাজান।",
   /* ---- ph ---- */
   "ph.alias": "ছদ্মনাম",
   "ph.col": "কলাম",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "সবাই মিলে সমাধান",
   "stage.fill": "শূন্যস্থান পূরণ",
   "stage.order": "ক্রম সাজান",
+  "stage.orderN": "ক্রম সাজান {n}",
   "stage.quiz": "প্রশ্ন {n}",
   "stage.review": "পুনরালোচনা",
   "stage.write": "নিজে লিখুন {n}",

@@ -347,6 +347,7 @@ export default {
   "order.pool": "කොටස්",
   "order.remove": "මෙම කොටස ඉවත් කරන්න",
   "order.tip": "“ඔබේ SQL” හි කොටසක් තට්ටු කළ විට එය නැවත පහළට යයි.",
+  "order.fine": "මට්ටම 2: සෑම කොටසකම වචන එකක් හෝ දෙකක් පමණි. SQL ලියන පිළිවෙළට සම්පූර්ණ වාක්‍යය ගොඩනඟන්න.",
   /* ---- ph ---- */
   "ph.alias": "අන්වර්ථ නාමය",
   "ph.col": "තීරුව",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "එකට විසඳමු",
   "stage.fill": "හිස්තැන් පුරවන්න",
   "stage.order": "පිළිවෙළට තබන්න",
+  "stage.orderN": "පිළිවෙළට තබන්න {n}",
   "stage.quiz": "ප්‍රශ්නය {n}",
   "stage.review": "පුනරීක්ෂණය",
   "stage.write": "ඔබම ලියන්න {n}",

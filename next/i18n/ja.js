@@ -347,6 +347,7 @@ export default {
   "order.pool": "部品",
   "order.remove": "この部品をもどす",
   "order.tip": "「あなたのSQL」の部品をタップすると、下にもどせます。",
+  "order.fine": "レベル2：部品は1〜2語ずつです。SQLを書く順番どおりに、全体を組み立てよう。",
   /* ---- ph ---- */
   "ph.alias": "別名",
   "ph.col": "列名",
@@ -419,6 +420,7 @@ export default {
   "stage.demoSub": "みんなで一緒に解く",
   "stage.fill": "穴うめ",
   "stage.order": "ならべかえ",
+  "stage.orderN": "ならべかえ {n}",
   "stage.quiz": "問題 {n}",
   "stage.review": "復習",
   "stage.write": "書いてみよう {n}",
