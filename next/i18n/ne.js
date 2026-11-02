@@ -103,6 +103,7 @@ export default {
   "book.inApp": "पाठ्यपुस्तक p.{n}",
   "book.inAppTip": "छापिएको पाठ्यपुस्तकमा यो पाठको पृष्ठ",
   "book.lv.advanced": "उच्च",
+  "book.lv.analysis": "डेटा विश्लेषण",
   "book.lv.beginner": "प्रारम्भिक",
   "book.lv.intermediate": "मध्यम",
   "book.nav": "पाठ्यपुस्तक",

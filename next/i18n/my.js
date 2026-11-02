@@ -103,6 +103,7 @@ export default {
   "book.inApp": "ဖတ်စာအုပ် p.{n}",
   "book.inAppTip": "ပုံနှိပ်ထားသော ဖတ်စာအုပ်ရှိ ဤသင်ခန်းစာ၏ စာမျက်နှာ",
   "book.lv.advanced": "အဆင့်မြင့်",
+  "book.lv.analysis": "ဒေတာ ခွဲခြမ်းစိတ်ဖြာခြင်း",
   "book.lv.beginner": "အခြေခံအဆင့်",
   "book.lv.intermediate": "အလယ်အဆင့်",
   "book.nav": "ဖတ်စာအုပ်",

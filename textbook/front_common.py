@@ -10,6 +10,7 @@ LEVEL_INFO = {
     'intermediate': dict(ja='{中級|ちゅうきゅう}', en='Intermediate', color='#0f8a6a', soft='#e6f5ef', lessons='19–35'),
     'advanced':     dict(ja='{上級|じょうきゅう}', en='Advanced',     color='#7b3fc4', soft='#f3ecfc', lessons='36–47'),
     'master':       dict(ja='マスター',          en='Master',       color='#c08400', soft='#fdf4dc', lessons='48'),
+    'analysis':     dict(ja='データ{分析|ぶんせき}', en='Data analysis', color='#c2410c', soft='#fdf0e7', lessons='A1–A6'),
 }
 ORDER = ['beginner', 'intermediate', 'advanced']
 

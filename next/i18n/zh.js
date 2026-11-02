@@ -103,6 +103,7 @@ export default {
   "book.inApp": "教材 p.{n}",
   "book.inAppTip": "打印的教材中本课所在的页面",
   "book.lv.advanced": "高级",
+  "book.lv.analysis": "数据分析篇",
   "book.lv.beginner": "初级",
   "book.lv.intermediate": "中级",
   "book.nav": "教材",

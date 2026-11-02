@@ -103,6 +103,7 @@ export default {
   "book.inApp": "পাঠ্যবই p.{n}",
   "book.inAppTip": "ছাপা পাঠ্যবইয়ে এই পাঠের পৃষ্ঠা",
   "book.lv.advanced": "উচ্চতর",
+  "book.lv.analysis": "ডেটা বিশ্লেষণ",
   "book.lv.beginner": "প্রাথমিক",
   "book.lv.intermediate": "মধ্যম",
   "book.nav": "পাঠ্যবই",

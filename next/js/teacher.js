@@ -436,8 +436,8 @@ function saveTest() { Store.set(KEYS.test, S.test); }
 /* ---------- textbook (PDF) ---------- */
 function bookPanelHTML() {
   const cards = TEXTBOOKS.map(b => `<article class="card tb-card ${b.ready ? '' : 'soon'}">
-      <div class="tb-cover tb-${b.key}"><span>SQL</span><b>${rubyHTML(raw('book.lv.' + b.key, L()))}</b></div>
-      <div class="tb-body"><h2>${H('book.lv.' + b.key)}</h2><p class="muted">Lesson ${b.from}–${b.to}</p>
+      <div class="tb-cover tb-${b.key}"><span>${b.mark}</span><b>${rubyHTML(raw('book.lv.' + b.key, L()))}</b></div>
+      <div class="tb-body"><h2>${H('book.lv.' + b.key)}</h2><p class="muted">${b.range}</p>
         ${b.ready ? `<div class="row-btns left"><a class="btn btn-primary" href="${b.file}" target="_blank" rel="noopener">${I.book}${H('book.open')}</a><a class="btn btn-ghost" href="${b.file}" download>${H('book.download')}</a></div>`
           : `<p class="muted small">${H('book.soon')}</p>`}</div></article>`).join('');
   return `<main class="wrap"><h1 class="page-title">${H('book.panelTitle')}</h1><p class="muted">${H('book.panelSub')}</p>

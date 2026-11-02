@@ -103,6 +103,7 @@ export default {
   "book.inApp": "Buku teks hlm. {n}",
   "book.inAppTip": "Halaman pelajaran ini di buku teks cetak",
   "book.lv.advanced": "Lanjutan",
+  "book.lv.analysis": "Analisis data",
   "book.lv.beginner": "Pemula",
   "book.lv.intermediate": "Menengah",
   "book.nav": "Buku teks",
