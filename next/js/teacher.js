@@ -30,6 +30,8 @@ const S = {
   liveOnlyToday: true,
   rankWindow: 'now',   // ranking of problems: 'now' = last 10 minutes, 'all' = everything shown
   rankSort: 'stuck',   // 'stuck' | 'wrong' | 'now'
+  liveSort: 'name',    // rows of the live grid: 'name' (join order) | 'progress'
+  boardBy: 'solved',   // progress ranking: 'solved' | 'first' | 'recent'
   unwatch: null,
   mistakeProb: null,
   busy: false,
@@ -49,7 +51,7 @@ const joinURL = code => `${studentURL()}?class=${encodeURIComponent(code)}`;
 /* ---------- routing ---------- */
 function parseRoute() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
-  if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['assign', 'live', 'mistakes', 'members'].includes(h[2]) ? h[2] : 'live' };
+  if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['assign', 'live', 'board', 'mistakes', 'members'].includes(h[2]) ? h[2] : 'live' };
   if (h[0] === 'present') return { view: 'present' };
   if (h[0] === 'test') return { view: 'test' };
   if (h[0] === 'book') return { view: 'book' };
@@ -74,7 +76,7 @@ function render() {
   else if (S.isTeacher === null) body = `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   else if (v === 'class') body = classHTML();
   else body = classesHTML();
-  app.innerHTML = headerHTML() + body;
+  keepView(() => { app.innerHTML = headerHTML() + body; });
   if (v === 'book') document.title = `${T('book.nav')} · SQL Practice`;
   if (v === 'test' && S.engine) document.title = `${S.test.title || t('test.headingDefault', S.test.tlang)} (${S.test.code})`;
 }
@@ -151,11 +153,12 @@ function classHTML() {
   if (!c) return `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   document.title = `${c.name} · SQL Practice`;
   const tab = S.route.tab;
-  const tabs = [['live', I.bolt, 'tc.tabLive'], ['assign', I.book, 'tc.tabAssign'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
+  const tabs = [['live', I.bolt, 'tc.tabLive'], ['board', I.check, 'tc.tabBoard'], ['assign', I.book, 'tc.tabAssign'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
   let body = '';
   if (tab === 'assign') body = assignHTML(c);
   else if (tab === 'mistakes') body = mistakesHTML(c);
   else if (tab === 'members') body = membersHTML(c);
+  else if (tab === 'board') body = boardHTML(c);
   else body = liveHTML(c);
   return `<main class="wrap">
     <div class="crumbs"><a href="#/">${H('tc.myClasses')}</a><span>›</span><span>${esc(c.name)}</span></div>
@@ -243,8 +246,10 @@ function liveHTML(c) {
   const all = groups.flatMap(g => g.probs);
   const solvedBy = p => S.members.filter(m => (cell[m.user_id + '|' + p.id] || {}).ok).length;
   const active = new Set(atts.filter(a => Date.now() - new Date(a.created_at) < 5 * 60000).map(a => a.user_id));
-  const rows = S.members.map(m => {
-    const done = all.filter(p => (cell[m.user_id + '|' + p.id] || {}).ok).length;
+  const doneOf = m => all.filter(p => (cell[m.user_id + '|' + p.id] || {}).ok).length;
+  const members = S.liveSort === 'progress' ? S.members.slice().sort((a, b) => doneOf(b) - doneOf(a)) : S.members;
+  const rows = members.map(m => {
+    const done = doneOf(m);
     return `<tr><th class="who">${active.has(m.user_id) ? '<i class="live-dot" title="active"></i>' : ''}${esc(m.nickname)}</th><td class="n sum">${done}/${all.length}</td>${groups.map(g => g.probs.map(p => {
       const x = cell[m.user_id + '|' + p.id];
       const late = x && x.ok && !x.onTime;   // solved only after the timer ended
@@ -257,9 +262,10 @@ function liveHTML(c) {
   const nowOn = new Map(stats.map(x => [x.p.id, x.now]));
   return `${rankHTML(groups, stats)}<section class="card live">
     <div class="live-bar"><label class="chk"><input type="checkbox" data-act2="today" ${S.liveOnlyToday ? 'checked' : ''}><span>${H('tc.todayOnly')}</span></label>
+      <div class="seg">${segBtn('liveSort', 'name', 'tc.sortName')}${segBtn('liveSort', 'progress', 'tc.sortProgress')}</div>
       <span class="muted small">${I.bolt} ${H('tc.liveNote')}</span><button class="btn btn-ghost btn-xs" data-act="reload">${I.reset}${H('tc.reload')}</button></div>
-    <div class="live-scroll"><table class="live-grid">
-      <thead><tr><th rowspan="2"></th><th rowspan="2" class="n">✓</th>${groups.map(g => `<th colspan="${g.probs.length}" class="lg-h" title="${esc(lessonTitle(g.lesson, L()))}">${g.lesson.no}. ${lessonTitleHTML(g.lesson, L())}</th>`).join('')}</tr>
+    <div class="live-scroll" data-keep="live"><table class="live-grid">
+      <thead><tr><th rowspan="2" class="corner"></th><th rowspan="2" class="n">✓</th>${groups.map(g => `<th colspan="${g.probs.length}" class="lg-h" title="${esc(lessonTitle(g.lesson, L()))}">${g.lesson.no}. ${lessonTitleHTML(g.lesson, L())}</th>`).join('')}</tr>
       <tr>${groups.map(g => g.probs.map(p => { const k = nowOn.get(p.id) || 0; return `<th class="pcol ${p.idx === 0 ? 'first' : ''}"><button data-act="openMistakes" data-p="${p.id}" title="${esc(stageName(p) + (k ? ' · ' + T('tc.colNow') + ' ' + k : ''))}">${colLabel(p)}${k ? `<i class="now-n">${k}</i>` : ''}</button></th>`; }).join('')).join('')}</tr></thead>
       <tbody>${rows || `<tr><td colspan="99" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody>
       <tfoot><tr><th>${H('tc.rate')}</th><td></td>${all.map(p => { const r = Math.round(solvedBy(p) / n * 100); return `<td class="rate ${p.idx === 0 ? 'first' : ''}"><span style="--r:${r}%">${S.members.length ? r + '%' : ''}</span></td>`; }).join('')}</tr></tfoot>
@@ -292,7 +298,7 @@ function rankHTML(groups, stats) {
     .sort((a, b) => b[key] - a[key] || b.stuck - a.stuck || b.wrong - a.wrong || b.now - a.now).slice(0, 8);
   const lessonOf = p => groups.find(g => g.lesson.key === p.lesson).lesson;
   const max = Math.max(1, ...list.map(x => x[key]));
-  const seg = (name, val, label) => `<button class="${S[name] === val ? 'on' : ''}" data-act="rankSet" data-k="${name}" data-v="${val}">${H(label)}</button>`;
+  const seg = segBtn;
   const rows = list.map((x, i) => `<li>
       <span class="rk-n">${i + 1}</span>
       <div class="rk-what"><b>Lesson ${lessonOf(x.p).no} · ${esc(stageName(x.p))}</b><small class="muted">${lessonTitleHTML(lessonOf(x.p), L())} · ${esc(x.p.stage === 'demo' ? T('stage.demoSub') : themeName(x.p, L()))}</small></div>
@@ -311,7 +317,92 @@ function rankHTML(groups, stats) {
   </section>`;
 }
 // "now" changes as time passes: redraw the live tab every 30 seconds
-setInterval(() => { if (S.route && S.route.view === 'class' && S.route.tab === 'live' && !document.querySelector('.modal')) refreshTab(); }, 30000);
+setInterval(() => { if (S.route && S.route.view === 'class' && ['live', 'board'].includes(S.route.tab) && (!document.querySelector('.modal') || document.querySelector('#modal .board.big'))) refreshTab(); }, 30000);
+
+/** a button of a segmented control that sets S[name] */
+const segBtn = (name, val, label) => `<button class="${S[name] === val ? 'on' : ''}" data-act="rankSet" data-k="${name}" data-v="${val}">${H(label)}</button>`;
+
+/* ---------- progress ranking: students by problems solved ---------- */
+/** per student: solved, first-try, solved in the last 10 minutes, finished lessons, time of the last first solve */
+function boardRows(c) {
+  const groups = classProblems(c);
+  const ids = new Set(groups.flatMap(g => g.probs.map(p => p.id)));
+  const atts = visibleAttempts().filter(a => ids.has(a.problem_id)).slice().sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+  const since = Date.now() - NOW_MS;
+  return S.members.map(m => {
+    const mine = atts.filter(a => a.user_id === m.user_id);
+    const firstSolve = new Map(), tried = new Map();
+    mine.forEach(a => { if (!tried.has(a.problem_id)) tried.set(a.problem_id, a); if (a.ok && !firstSolve.has(a.problem_id)) firstSolve.set(a.problem_id, a); });
+    const times = [...firstSolve.values()].map(a => new Date(a.created_at).getTime());
+    return {
+      m, total: ids.size, solved: firstSolve.size,
+      first: [...firstSolve.keys()].filter(id => tried.get(id).ok).length,
+      recent: times.filter(t => t >= since).length,
+      lessons: groups.filter(g => g.probs.every(p => firstSolve.has(p.id))).length,
+      last: times.length ? Math.max(...times) : null,
+      active: mine.some(a => Date.now() - new Date(a.created_at) < 5 * 60000)
+    };
+  });
+}
+/** sort and give ranks: with the same number, whoever reached it first is higher; only exact ties (or nothing yet) share a rank */
+function rankBoard(rows, by) {
+  const list = rows.slice().sort((a, b) => b[by] - a[by] || b.solved - a.solved || (a.last || Infinity) - (b.last || Infinity) || a.m.nickname.localeCompare(b.m.nickname));
+  const same = (x, y) => x[by] === y[by] && x.solved === y.solved && x.last === y.last;
+  let rank = 0;
+  list.forEach((r, i) => { rank = i && same(list[i - 1], r) ? rank : i + 1; r.rank = rank; });
+  return list;
+}
+const MEDAL = ['🥇', '🥈', '🥉'];
+function agoHTML(t) {
+  if (!t) return '—';
+  const min = Math.floor((Date.now() - t) / 60000);
+  return min < 1 ? H('tc.rkJustNow') : min < 60 ? H('tc.rkMinAgo', { n: min }) : esc(fmtTime(new Date(t).toISOString()));
+}
+function boardListHTML(list, by, big) {
+  return `<ol class="board ${big ? 'big' : ''}">${list.map(r => {
+    const pct = r.total ? Math.round(r.solved / r.total * 100) : 0;
+    return `<li class="${r.rank <= 3 && r[by] > 0 ? 'top top' + r.rank : ''}">
+      <span class="bd-rank">${r.rank <= 3 && r[by] > 0 ? MEDAL[r.rank - 1] : r.rank}</span>
+      <span class="bd-name">${r.active ? '<i class="live-dot"></i>' : ''}${esc(r.m.nickname)}</span>
+      <span class="bd-bar" title="${r.solved}/${r.total}"><i style="width:${pct}%"></i><b>${r.solved}/${r.total}</b></span>
+      <span class="bd-v ${by === 'solved' ? 'on' : ''}"><b>${r.solved}</b><small>${H('tc.rkBySolved')}</small></span>
+      <span class="bd-v ${by === 'first' ? 'on' : ''}" title="${esc(T('tc.rkFirstTip'))}"><b>${r.first}</b><small>${H('tc.rkByFirst')}</small></span>
+      <span class="bd-v ${by === 'recent' ? 'on' : ''}"><b>${r.recent}</b><small>${H('tc.rkByRecent')}</small></span>
+      ${big ? '' : `<span class="bd-v"><b>${r.lessons}</b><small>${H('tc.rkLessons')}</small></span><span class="bd-last muted small">${agoHTML(r.last)}</span>`}
+    </li>`;
+  }).join('')}</ol>`;
+}
+function boardHTML(c) {
+  if (!classProblems(c).length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/assign">${H('tc.tabAssign')}</a></section>`;
+  const by = S.boardBy;
+  const list = rankBoard(boardRows(c), by);
+  return `<section class="card board-card">
+    <div class="rk-head"><div><h2>${H('tc.rkTitle')}</h2><p class="muted small">${H('tc.rkSub')}</p></div>
+      <div class="rk-ctl"><div class="seg">${segBtn('boardBy', 'solved', 'tc.rkBySolved')}${segBtn('boardBy', 'first', 'tc.rkByFirst')}${segBtn('boardBy', 'recent', 'tc.rkByRecent')}</div>
+        <label class="chk"><input type="checkbox" data-act2="today" ${S.liveOnlyToday ? 'checked' : ''}><span>${H('tc.todayOnly')}</span></label>
+        <button class="btn btn-ghost btn-sm" data-act="projectBoard">${I.screen}${H('tc.project')}</button></div></div>
+    ${S.members.length ? boardListHTML(list, by, false) : `<p class="res-empty">${H('tc.noMembers')}</p>`}
+  </section>`;
+}
+
+/** keep what the teacher is looking at while a part of the page is redrawn:
+ *  the page scroll, the scroll of boxes marked data-keep, and which data-keep details are open */
+function keepView(redraw) {
+  const y = window.scrollY;
+  const boxes = {}, open = {};
+  document.querySelectorAll('[data-keep]').forEach(el => {
+    const k = el.dataset.keep;
+    if (el.tagName === 'DETAILS') open[k] = el.open;
+    else boxes[k] = [el.scrollTop, el.scrollLeft];
+  });
+  redraw();
+  document.querySelectorAll('[data-keep]').forEach(el => {
+    const k = el.dataset.keep;
+    if (el.tagName === 'DETAILS') { if (k in open) el.open = open[k]; }
+    else if (boxes[k]) { el.scrollTop = boxes[k][0]; el.scrollLeft = boxes[k][1]; }
+  });
+  if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+}
 
 /* common wrong answers, grouped */
 function normSql(s) { return String(s || '').replace(/\s+/g, ' ').replace(/\s*;\s*$/, '').trim(); }
@@ -342,7 +433,7 @@ function mistakesHTML(c) {
       <div class="mk-stats"><b>${solvedUsers.size}</b> ${H('tc.solvedN')} · <b>${triedUsers.size - solvedUsers.size}</b> ${H('tc.stuckN')}</div>
       <button class="btn btn-ghost btn-sm" data-act="projectMistakes">${I.screen}${H('tc.project')}</button>
     </div>
-    <div class="mk-prob"><p class="prob-text">${problemHTML(prob, L())}</p><details><summary class="muted small">${H('hint.answer')}</summary>${answerHTML(prob)}</details></div>
+    <div class="mk-prob"><p class="prob-text">${problemHTML(prob, L())}</p><details data-keep="mk-ans"><summary class="muted small">${H('hint.answer')}</summary>${answerHTML(prob)}</details></div>
     <div id="mk-list">${list.length ? `<ol class="mk-list">${list.map(x => `<li><div class="mk-n"><b>${x.users.size}</b><small>${H('tc.people')}</small></div><div class="mk-body">${isQuiz(prob) ? `<p class="quiz-ans bad">${esc(x.sql)}</p>` : `<pre class="sql">${highlightSQL(x.sql)}</pre>`}<p class="mk-why">${why(x.sql)}</p></div></li>`).join('')}</ol>` : `<p class="res-empty">${H('tc.noMistakes')}</p>`}</div>
     <p class="muted small">${H('tc.anonNote')}</p>
   </section>`;
@@ -481,17 +572,28 @@ async function startWatch() {
   syncClock(backend.serverNow);
   const id = S.klass.id;
   let pending = null;
-  const soon = () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view === 'class' && ['live', 'mistakes', 'members'].includes(S.route.tab)) refreshTab(); }, 300); };
+  const soon = () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view === 'class' && ['live', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab(); }, 300); };
   S.unwatch = await backend.watchDashboard(id, row => { S.attempts.push(row); soon(); }, async () => { S.members = await backend.members(id); soon(); });
 }
 function stopWatch() { if (S.unwatch) { S.unwatch(); S.unwatch = null; } }
+let refreshLater = null;
 function refreshTab() {
   const el = document.getElementById('tab-body');
   if (!el || !S.klass) return;
+  // a menu or field in the tab is in use (for example the problem list is open): redraw when the teacher is done
+  const f = document.activeElement;
+  if (f && el.contains(f) && /^(SELECT|INPUT|TEXTAREA)$/.test(f.tagName) && f.type !== 'checkbox') {
+    clearTimeout(refreshLater); refreshLater = setTimeout(refreshTab, 1500); return;
+  }
   const tab = S.route.tab;
-  if (tab === 'live') el.innerHTML = liveHTML(S.klass);
-  else if (tab === 'mistakes') { const sc = document.querySelector('.mk-list'); el.innerHTML = mistakesHTML(S.klass); }
-  else if (tab === 'members') el.innerHTML = membersHTML(S.klass);
+  keepView(() => {
+    if (tab === 'live') el.innerHTML = liveHTML(S.klass);
+    else if (tab === 'board') el.innerHTML = boardHTML(S.klass);
+    else if (tab === 'mistakes') el.innerHTML = mistakesHTML(S.klass);
+    else if (tab === 'members') el.innerHTML = membersHTML(S.klass);
+  });
+  const big = document.querySelector('#modal .board.big');
+  if (big) big.outerHTML = boardListHTML(rankBoard(boardRows(S.klass), S.boardBy).slice(0, 10), S.boardBy, true);
   const h = document.querySelector('.class-head .muted'); if (h) h.innerHTML = `${H('tc.members', { n: S.members.length })} · ${H('set.code')} <b class="mono">${esc(S.klass.set_code)}</b> · ${H('tc.policy.' + S.klass.answer_policy)}`;
 }
 
@@ -532,6 +634,11 @@ const actions = {
   setRandom() { document.querySelector('[name="set_code"]').value = randomCode(); },
   async reload() { await reloadClassData(); refreshTab(); toast(T('tc.reloaded')); },
   rankSet(el) { S[el.dataset.k] = el.dataset.v; refreshTab(); },
+  projectBoard() {
+    const list = rankBoard(boardRows(S.klass), S.boardBy).slice(0, 10);
+    modal(`<div class="modal-head"><h2>🏆 ${H('tc.rkTitle')} · ${H(S.boardBy === 'first' ? 'tc.rkByFirst' : S.boardBy === 'recent' ? 'tc.rkByRecent' : 'tc.rkBySolved')}</h2><button class="icon-btn" data-act="closeModal">${I.x}</button></div><div class="modal-body projector">${boardListHTML(list, S.boardBy, true)}</div>`, { wide: true });
+    document.getElementById('modal').classList.add('full');
+  },
   openMistakes(el) { S.mistakeProb = el.dataset.p; location.hash = `#/c/${S.klass.id}/mistakes`; },
   projectMistakes() {
     const list = document.getElementById('mk-list'), pr = document.querySelector('.mk-prob');
