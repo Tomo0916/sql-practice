@@ -14,10 +14,10 @@ import initSqlJs from 'sql.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { lessonState } from '../next/js/store.js';
-import { SqlEngine, LESSON_BY_KEY, stagesOf, grade, todayCode, splitClauses } from '../next/js/engine.js';
-import { diagnose, findFix } from '../next/js/diagnose.js';
-import { LESSONS } from '../next/js/lessons.js';
+import { lessonState } from '../js/store.js';
+import { SqlEngine, LESSON_BY_KEY, stagesOf, grade, todayCode, splitClauses } from '../js/engine.js';
+import { diagnose, findFix } from '../js/diagnose.js';
+import { LESSONS } from '../js/lessons.js';
 import { usedKeys, ANALYSIS_KEY, ANALYSIS_LANGS } from './build-i18n.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +29,7 @@ const warn = (...a) => { warnings++; console.log('  !', ...a); };
 console.log('1. Language files');
 const LANGS = ['ja', 'easy', 'en', 'ne', 'fr', 'my', 'bn', 'si', 'id', 'vi', 'zh'];
 const dicts = {};
-for (const l of LANGS) dicts[l] = (await import(path.join(here, '../next/i18n', l + '.js'))).default;
+for (const l of LANGS) dicts[l] = (await import(path.join(here, '../i18n', l + '.js'))).default;
 const en = dicts.en;
 const need = usedKeys();
 need.forEach(k => { if (!(k in en)) err(`en.js is missing "${k}" (used by the app)`); });
@@ -170,7 +170,7 @@ for (const code of ['T1', 'T2', 'T3']) for (const type of ['write', 'predict', '
 /* ---------- 5. data-analysis course texts ---------- */
 console.log('5. Data-analysis texts (statistics basics, Excel / Python guides)');
 {
-  const { STAT, GUIDE } = await import('../next/js/analysis-content.js');
+  const { STAT, GUIDE } = await import('../js/analysis-content.js');
   const texts = [];
   for (const [k, c] of Object.entries(STAT)) for (const l of ['en', 'ja', 'easy']) { if (!c[l]) err(`STAT ${k} has no ${l}`); else c[l].forEach(([, x]) => (Array.isArray(x) ? x : [x]).forEach(s => texts.push([`STAT ${k}`, l, s]))); }
   for (const [k, vs] of Object.entries(GUIDE)) for (const [w, tools] of Object.entries(vs)) for (const [tool, steps] of Object.entries(tools)) steps.forEach((s, i) => {

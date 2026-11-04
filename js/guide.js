@@ -1,6 +1,6 @@
 /* =========================================================
  * guide.js — the same problem in Excel or Python (opens in its own window).
- * guide.html?l=<lesson>&i=<problem index>&set=<set code>&tool=excel|python&lang=<code>
+ * guide/?l=<lesson>&i=<problem index>&set=<set code>&tool=excel|python&lang=<code>
  * The steps use the problem's real table and column names, and the answer
  * comes from the app's SQL engine, so the numbers can be compared.
  * ========================================================= */
@@ -62,7 +62,7 @@ function notebook(steps, vars, L) {
 (async function start() {
   await Promise.all([loadLang('en'), loadLang(lang)]);
   app.innerHTML = `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
-  engine = new SqlEngine(await window.initSqlJs({ locateFile: f => 'vendor/' + f }));
+  engine = new SqlEngine(await window.initSqlJs({ locateFile: f => '../vendor/' + f }));
   const lesson = LESSON_BY_KEY[q.get('l')] || LESSON_BY_KEY.an_overview;
   const probs = engine.lessonProblems(lesson, q.get('set') || 'demo');
   prob = probs[Math.max(0, Math.min(probs.length - 1, parseInt(q.get('i'), 10) || 0))];

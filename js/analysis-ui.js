@@ -107,7 +107,7 @@ export function saveFile(filename, text, type) {
 /** buttons under the problem: the same question in Excel / Python */
 export function toolsHTML(prob, lang, setCode) {
   if (prob.kind === 'review') return '';
-  const q = tool => `guide.html?l=${encodeURIComponent(prob.lesson)}&i=${prob.idx}&set=${encodeURIComponent(setCode)}&tool=${tool}&lang=${encodeURIComponent(lang)}`;
+  const q = tool => `guide/?l=${encodeURIComponent(prob.lesson)}&i=${prob.idx}&set=${encodeURIComponent(setCode)}&tool=${tool}&lang=${encodeURIComponent(lang)}`;
   return `<div class="an-tools"><span class="muted small">${th('an.toolsTip', lang)}</span>
     <a class="btn btn-ghost btn-sm" href="${q('excel')}" target="_blank" rel="noopener"><span class="tool-ic xl">X</span>${th('an.excel', lang)}</a>
     <a class="btn btn-ghost btn-sm" href="${q('python')}" target="_blank" rel="noopener"><span class="tool-ic py">Py</span>${th('an.python', lang)}</a></div>`;

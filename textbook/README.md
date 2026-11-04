@@ -14,7 +14,7 @@ node check-sql.mjs          # 教科書の SQL をアプリのエンジン（sql
 
 ```
 python3 build.py analysis   # out/analysis.html（図は analysis-figs.mjs がアプリと同じ charts.js で描く）
-node render.mjs analysis    # out/analysis.pdf → next/book/data-analysis-textbook.pdf
+node render.mjs analysis    # out/analysis.pdf → book/data-analysis-textbook.pdf
 python3 pages.py analysis
 node check-sql.mjs analysis
 ```
@@ -28,7 +28,7 @@ node check-sql.mjs analysis
 - `front_beginner.py` … 表紙・使い方・学びの地図・目次・例題の表
 - `build.py` … 生成プログラム。`{漢字|かんじ}` でふりがなを付ける
 - `page.css` … 見た目
-- `export-data.mjs` … アプリの表（`next/js/datasets.js`）を読み出す。教科書専用の表 members は `build.py` にある
+- `export-data.mjs` … アプリの表（`js/datasets.js`）を読み出す。教科書専用の表 members は `build.py` にある
 
 ## ビルド時に自動で止まるもの
 

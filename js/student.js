@@ -1,5 +1,5 @@
 /* =========================================================
- * student.js — the student app (index.html)
+ * student.js — the student app (index.html, the top address)
  *
  * Routes:  #/            home
  *          #/l/<lesson>/<n>   lesson, problem n (0 = example)
@@ -158,7 +158,7 @@ function headerHTML() {
   </div></header>`;
 }
 function footerHTML() {
-  return `<footer class="foot"><span>${H('foot.saved')}</span><a href="teacher.html">${H('foot.teacher')}</a></footer>`;
+  return `<footer class="foot"><span>${H('foot.saved')}</span><a href="teacher/">${H('foot.teacher')}</a></footer>`;
 }
 
 /* ---------- home ---------- */

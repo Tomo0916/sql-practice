@@ -1,5 +1,5 @@
 /* =========================================================
- * teacher.js — the teacher page (teacher.html)
+ * teacher.js — the teacher page (teacher/index.html, address /teacher/)
  *   #/            sign in · my classes
  *   #/c/<id>/<tab>  class: assign | live | mistakes | members
  *   #/present     open an example in presenter mode
@@ -54,7 +54,7 @@ const app = document.getElementById('app');
 const L = () => S.settings.lang;
 const T = (k, v) => t(k, L(), v);
 const H = (k, v) => `<span class="tx">${th(k, L(), v && Object.fromEntries(Object.entries(v).map(([a, b]) => [a, esc(b)])))}</span>`;
-const studentURL = () => new URL('index.html', location.href).toString();
+const studentURL = () => new URL('../', location.href).toString();   // the student app is one level up
 const joinURL = code => `${studentURL()}?class=${encodeURIComponent(code)}`;
 
 /* ---------- routing ---------- */
@@ -530,7 +530,7 @@ function presentHTML() {
   return `<main class="wrap">
     <h1 class="page-title">${H('tc.present')}</h1><p class="muted">${H('tc.presentSub')}</p>
     <div class="chapters">${CHAPTERS.map(ch => `<article class="card chapter" style="--cc:var(--c-${ch.key})"><div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div><h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2></div></div>
-      <ul class="lesson-list">${LESSONS.filter(l => l.ch === ch.key).map(l => `<li><a class="lesson-link" target="_blank" rel="noopener" href="index.html?present=1&set=${encodeURIComponent(code)}#/l/${l.key}/0"><span class="lesson-num">${l.no}</span><span class="lesson-name">${lessonTitleHTML(l, L())}</span>${I.screen}</a></li>`).join('')}</ul></article>`).join('')}</div>
+      <ul class="lesson-list">${LESSONS.filter(l => l.ch === ch.key).map(l => `<li><a class="lesson-link" target="_blank" rel="noopener" href="../?present=1&set=${encodeURIComponent(code)}#/l/${l.key}/0"><span class="lesson-num">${l.no}</span><span class="lesson-name">${lessonTitleHTML(l, L())}</span>${I.screen}</a></li>`).join('')}</ul></article>`).join('')}</div>
   </main>`;
 }
 
@@ -855,12 +855,12 @@ async function openQR(c) {
   S.route = parseRoute();
   await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null]);
   render();
-  try { S.engine = new SqlEngine(await window.initSqlJs({ locateFile: f => 'vendor/' + f })); }
+  try { S.engine = new SqlEngine(await window.initSqlJs({ locateFile: f => '../vendor/' + f })); }
   catch (e) { console.error(e); app.innerHTML = headerHTML() + `<div class="loading"><div>${H('misc.loadError')}</div></div>`; return; }
   if (backend.enabled) {
     const sb = await backend.client();
     sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') { S.session = null; render(); } if (ev === 'PASSWORD_RECOVERY') { const pw = prompt(T('tc.newPassword')); if (pw) sb.auth.updateUser({ password: pw }).then(() => toast(T('tc.saved'))); } });
   }
   load();
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('../sw.js').catch(() => {});
 })();

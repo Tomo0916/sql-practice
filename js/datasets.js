@@ -1,5 +1,6 @@
 /* =========================================================
- * datasets.js — all tables used by demos, practice and tests
+ * datasets.js — all tables used by examples, practice and tests
+ * 表の名前（日本語・英語…）は i18n/<言語>.js の ds.<table> にあります。
  * ---------------------------------------------------------
  * 演習データの追加方法（Adding a new practice theme）:
  *   1. SINGLE_DATASETS か JOIN_DATASETS にオブジェクトを1つ足すだけ。
@@ -9,10 +10,9 @@
  * ========================================================= */
 
 /** Demo tables (from the original Lesson 1–5 / GROUP BY pages). */
-const DEMO_DATASETS = {
+export const DEMO_DATASETS = {
   products: {
     table: 'products',
-    label: { ja: '商品（ECサイト）', en: 'Products (online shop)', ne: 'उत्पादनहरू (अनलाइन पसल)', fr: 'Produits (boutique en ligne)', my: 'ကုန်ပစ္စည်းများ (အွန်လိုင်းဆိုင်)', bn: 'পণ্য (অনলাইন দোকান)', si: 'භාණ්ඩ (ඔන්ලයින් සාප්පුව)', id: 'Produk (toko online)', vi: 'Sản phẩm (cửa hàng online)', zh: '商品（网店）' },
     columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['category', 'TEXT'], ['price', 'INTEGER'], ['stock', 'INTEGER'], ['release_year', 'INTEGER']],
     roles: { name: 'name', cat: 'category', n1: 'price', n2: 'stock', yr: 'release_year' },
     rows: [
@@ -30,7 +30,6 @@ const DEMO_DATASETS = {
   },
   students: {
     table: 'students',
-    label: { ja: '学生（学校）', en: 'Students (school)', ne: 'विद्यार्थीहरू (विद्यालय)', fr: 'Étudiants (école)', my: 'ကျောင်းသားများ (ကျောင်း)', bn: 'শিক্ষার্থী (স্কুল)', si: 'සිසුන් (පාසල)', id: 'Siswa (sekolah)', vi: 'Sinh viên (trường học)', zh: '学生（学校）' },
     columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['major', 'TEXT'], ['score', 'INTEGER'], ['age', 'INTEGER'], ['enrollment_year', 'INTEGER']],
     roles: { name: 'name', cat: 'major', n1: 'score', n2: 'age', yr: 'enrollment_year' },
     rows: [
@@ -46,27 +45,38 @@ const DEMO_DATASETS = {
       [10, 'Ali Santos', 'IT', 62, 22, 2022]
     ]
   },
+  contacts: {
+    table: 'contacts',
+    columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['email', 'TEXT'], ['phone', 'TEXT']],
+    roles: { name: 'name', opt: 'email', opt2: 'phone' },
+    rows: [
+      [1, 'Aiko Sato', 'aiko@example.com', '090-1111-2222'],
+      [2, 'Ben Clark', null, '080-3333-4444'],
+      [3, 'Chen Li', 'chen@example.com', null],
+      [4, 'Dina Rai', null, null],
+      [5, 'Emma Hill', 'emma@example.com', '070-5555-6666'],
+      [6, 'Farid Khan', 'farid@example.com', null]
+    ]
+  },
   table_a: {
     table: 'table_a',
-    label: { ja: 'table_a（JOIN練習用）', en: 'table_a (JOIN demo)', ne: 'table_a (JOIN अभ्यास)', fr: 'table_a (démo JOIN)', my: 'table_a (JOIN လေ့ကျင့်ရန်)', bn: 'table_a (JOIN অনুশীলন)', si: 'table_a (JOIN පුහුණුව)', id: 'table_a (latihan JOIN)', vi: 'table_a (luyện JOIN)', zh: 'table_a（JOIN练习）' },
     columns: [['id', 'INTEGER'], ['class', 'TEXT'], ['column_a1', 'TEXT']],
     rows: [[1, 'A', 'data_a1'], [2, 'A', 'data_a2'], [3, 'B', 'data_a3'], [4, 'B', 'data_a4']]
   },
   table_b: {
     table: 'table_b',
-    label: { ja: 'table_b（JOIN練習用）', en: 'table_b (JOIN demo)', ne: 'table_b (JOIN अभ्यास)', fr: 'table_b (démo JOIN)', my: 'table_b (JOIN လေ့ကျင့်ရန်)', bn: 'table_b (JOIN অনুশীলন)', si: 'table_b (JOIN පුහුණුව)', id: 'table_b (latihan JOIN)', vi: 'table_b (luyện JOIN)', zh: 'table_b（JOIN练习）' },
     columns: [['id', 'INTEGER'], ['column_b1', 'TEXT'], ['column_b2', 'INTEGER']],
     rows: [[2, 'data_b2', 200], [3, 'data_b3', 300], [4, 'data_b4', 400], [5, 'data_b5', 500]]
   }
 };
 
 /** Practice themes for one-table lessons (Basics & Aggregation). */
-const SINGLE_DATASETS = [
+export const SINGLE_DATASETS = [
   {
     table: 'books',
-    label: { ja: '本', en: 'Books', ne: 'किताबहरू', fr: 'Livres', my: 'စာအုပ်များ', bn: 'বই', si: 'පොත්', id: 'Buku', vi: 'Sách', zh: '书籍' },
     columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['genre', 'TEXT'], ['price', 'INTEGER'], ['pages', 'INTEGER'], ['published_year', 'INTEGER']],
     roles: { name: 'title', cat: 'genre', n1: 'price', n2: 'pages', yr: 'published_year' },
+    newRows: [[13, 'Winter Garden', 'Novel', 1700, 290, 2024], [14, 'Planet Kids', 'Comic', 600, 180, 2024]],
     likeTerms: ['Sun', 'The', 'Star', 'Night', 'Ocean', 'Water', 'Space'],
     rows: [
       [1, 'The Silent Sea', 'Novel', 1800, 320, 2019],
@@ -85,9 +95,9 @@ const SINGLE_DATASETS = [
   },
   {
     table: 'employees',
-    label: { ja: '社員', en: 'Employees', ne: 'कर्मचारीहरू', fr: 'Employés', my: 'ဝန်ထမ်းများ', bn: 'কর্মচারী', si: 'සේවකයින්', id: 'Karyawan', vi: 'Nhân viên', zh: '员工' },
     columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['department', 'TEXT'], ['salary', 'INTEGER'], ['age', 'INTEGER'], ['hire_year', 'INTEGER']],
     roles: { name: 'name', cat: 'department', n1: 'salary', n2: 'age', yr: 'hire_year' },
+    newRows: [[13, 'Hana Kim', 'IT', 340000, 26, 2024], [14, 'Paul Martin', 'HR', 305000, 39, 2024]],
     likeTerms: ['an', 'ar', 'Ra', 'in', 'Li'],
     rows: [
       [1, 'Yuki Sato', 'Sales', 320000, 29, 2018],
@@ -106,9 +116,9 @@ const SINGLE_DATASETS = [
   },
   {
     table: 'menu',
-    label: { ja: 'カフェのメニュー', en: 'Café menu', ne: 'क्याफेको मेनु', fr: 'Menu du café', my: 'ကော်ဖီဆိုင် မီနူး', bn: 'ক্যাফের মেনু', si: 'කැෆේ මෙනුව', id: 'Menu kafe', vi: 'Thực đơn quán cà phê', zh: '咖啡店菜单' },
     columns: [['id', 'INTEGER'], ['item', 'TEXT'], ['type', 'TEXT'], ['price', 'INTEGER'], ['calories', 'INTEGER'], ['added_year', 'INTEGER']],
     roles: { name: 'item', cat: 'type', n1: 'price', n2: 'calories', yr: 'added_year' },
+    newRows: [[13, 'Lemon Tea', 'Drink', 430, 60, 2024], [14, 'Cheese Cake', 'Dessert', 560, 330, 2024]],
     likeTerms: ['Mango', 'Chocolate', 'Tea', 'Coffee', 'Rice', 'Cake'],
     rows: [
       [1, 'Iced Coffee', 'Drink', 450, 15, 2019],
@@ -127,9 +137,9 @@ const SINGLE_DATASETS = [
   },
   {
     table: 'movies',
-    label: { ja: '映画', en: 'Movies', ne: 'चलचित्रहरू', fr: 'Films', my: 'ရုပ်ရှင်များ', bn: 'চলচ্চিত্র', si: 'චිත්‍රපට', id: 'Film', vi: 'Phim', zh: '电影' },
     columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['genre', 'TEXT'], ['minutes', 'INTEGER'], ['rating', 'INTEGER'], ['release_year', 'INTEGER']],
     roles: { name: 'title', cat: 'genre', n1: 'minutes', n2: 'rating', yr: 'release_year' },
+    newRows: [[13, 'Blue Harbor', 'Drama', 112, 79, 2024], [14, 'Star Runner', 'Action', 133, 74, 2024]],
     likeTerms: ['Night', 'Party', 'Dragon', 'Fire', 'Star'],
     rows: [
       [1, 'Fast River', 'Action', 128, 72, 2019],
@@ -148,9 +158,9 @@ const SINGLE_DATASETS = [
   },
   {
     table: 'hotels',
-    label: { ja: 'ホテル', en: 'Hotels', ne: 'होटलहरू', fr: 'Hôtels', my: 'ဟိုတယ်များ', bn: 'হোটেল', si: 'හෝටල්', id: 'Hotel', vi: 'Khách sạn', zh: '酒店' },
     columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['city', 'TEXT'], ['price', 'INTEGER'], ['rooms', 'INTEGER'], ['opened_year', 'INTEGER']],
     roles: { name: 'name', cat: 'city', n1: 'price', n2: 'rooms', yr: 'opened_year' },
+    newRows: [[13, 'Hill Lodge', 'Sapporo', 9800, 35, 2024], [14, 'Bay Hostel', 'Fukuoka', 3600, 30, 2024]],
     likeTerms: ['Hotel', 'Hostel', 'Inn', 'House', 'Park'],
     rows: [
       [1, 'Sakura Inn', 'Osaka', 8500, 40, 2015],
@@ -169,9 +179,9 @@ const SINGLE_DATASETS = [
   },
   {
     table: 'smartphones',
-    label: { ja: 'スマートフォン', en: 'Smartphones', ne: 'स्मार्टफोनहरू', fr: 'Smartphones', my: 'စမတ်ဖုန်းများ', bn: 'স্মার্টফোন', si: 'ස්මාර්ට් ජංගම දුරකථන', id: 'Ponsel pintar', vi: 'Điện thoại thông minh', zh: '智能手机' },
     columns: [['id', 'INTEGER'], ['model', 'TEXT'], ['brand', 'TEXT'], ['price', 'INTEGER'], ['battery', 'INTEGER'], ['release_year', 'INTEGER']],
     roles: { name: 'model', cat: 'brand', n1: 'price', n2: 'battery', yr: 'release_year' },
+    newRows: [[13, 'Nova 13', 'Nova', 79800, 5000, 2024], [14, 'Kite Mini', 'Kite', 29800, 3900, 2024]],
     likeTerms: ['Lite', 'Mini', 'Pro', 'Plus', '12'],
     rows: [
       [1, 'Nova 10', 'Nova', 59800, 4500, 2021],
@@ -190,9 +200,9 @@ const SINGLE_DATASETS = [
   },
   {
     table: 'players',
-    label: { ja: 'サッカー選手', en: 'Football players', ne: 'फुटबल खेलाडीहरू', fr: 'Joueurs de football', my: 'ဘောလုံးကစားသမားများ', bn: 'ফুটবল খেলোয়াড়', si: 'පාපන්දු ක්‍රීඩකයින්', id: 'Pemain sepak bola', vi: 'Cầu thủ bóng đá', zh: '足球运动员' },
     columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['team', 'TEXT'], ['goals', 'INTEGER'], ['matches', 'INTEGER'], ['join_year', 'INTEGER']],
     roles: { name: 'name', cat: 'team', n1: 'goals', n2: 'matches', yr: 'join_year' },
+    newRows: [[13, 'Taro Ueda', 'Tigers', 0, 0, 2024], [14, 'Ivan Petrov', 'Eagles', 0, 0, 2024]],
     likeTerms: ['Ma', 'os', 'ar', 'Ra', 'Sa'],
     rows: [
       [1, 'Kenji Mori', 'Tigers', 12, 30, 2019],
@@ -211,9 +221,9 @@ const SINGLE_DATASETS = [
   },
   {
     table: 'courses',
-    label: { ja: 'オンライン講座', en: 'Online courses', ne: 'अनलाइन कोर्सहरू', fr: 'Cours en ligne', my: 'အွန်လိုင်းသင်တန်းများ', bn: 'অনলাইন কোর্স', si: 'ඔන්ලයින් පාඨමාලා', id: 'Kursus online', vi: 'Khóa học online', zh: '在线课程' },
     columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['level', 'TEXT'], ['fee', 'INTEGER'], ['hours', 'INTEGER'], ['start_year', 'INTEGER']],
     roles: { name: 'title', cat: 'level', n1: 'fee', n2: 'hours', yr: 'start_year' },
+    newRows: [[13, 'Data Basics', 'Beginner', 9000, 16, 2024], [14, 'AI Project', 'Advanced', 30000, 40, 2024]],
     likeTerms: ['Python', 'Web', 'Japanese', 'Data', 'Basics'],
     rows: [
       [1, 'Python Basics', 'Beginner', 12000, 20, 2020],
@@ -232,6 +242,55 @@ const SINGLE_DATASETS = [
   }
 ];
 
+
+/**
+ * Practice themes for the NULL lesson: every table has a column (roles.opt) where some values are missing.
+ */
+export const NULL_DATASETS = [
+  {
+    table: 'applicants',
+    columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['course', 'TEXT'], ['phone', 'TEXT']],
+    roles: { name: 'name', cat: 'course', opt: 'phone' },
+    rows: [[1, 'Mika Ono', 'Design', '090-1234-0001'], [2, 'Raj Patel', 'IT', null], [3, 'Lena Berg', 'Business', '080-2345-0002'],
+      [4, 'Tuan Le', 'IT', null], [5, 'Sofia Ruiz', 'Design', '070-3456-0003'], [6, 'Arif Hasan', 'Tourism', null], [7, 'Kana Mori', 'IT', '090-4567-0004'], [8, 'Ola Nilsen', 'Business', null]]
+  },
+  {
+    table: 'tasks',
+    columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['team', 'TEXT'], ['due_date', 'TEXT']],
+    roles: { name: 'title', cat: 'team', opt: 'due_date' },
+    rows: [[1, 'Make poster', 'Design', '2025-05-10'], [2, 'Fix login', 'IT', null], [3, 'Order paper', 'Office', '2025-05-02'],
+      [4, 'Update website', 'IT', '2025-05-20'], [5, 'Plan party', 'Office', null], [6, 'New logo', 'Design', null], [7, 'Backup server', 'IT', '2025-05-15']]
+  },
+  {
+    table: 'animals',
+    columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['species', 'TEXT'], ['chip_no', 'TEXT']],
+    roles: { name: 'name', cat: 'species', opt: 'chip_no' },
+    rows: [[1, 'Momo', 'Cat', 'C-1001'], [2, 'Rex', 'Dog', 'D-2001'], [3, 'Kiki', 'Bird', null], [4, 'Leo', 'Cat', null],
+      [5, 'Pochi', 'Dog', 'D-2002'], [6, 'Sora', 'Bird', null], [7, 'Tama', 'Cat', 'C-1002'], [8, 'Hachi', 'Dog', null]]
+  },
+  {
+    table: 'borrowings',
+    columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['borrower', 'TEXT'], ['returned_date', 'TEXT']],
+    roles: { name: 'title', cat: 'borrower', opt: 'returned_date' },
+    rows: [[1, 'Ocean of Stars', 'Ken', '2025-04-12'], [2, 'Ninja Cats', 'Mai', null], [3, 'Data and Society', 'Ken', null],
+      [4, 'Rain in Tokyo', 'Ali', '2025-04-20'], [5, 'Space Pirates', 'Mai', '2025-04-18'], [6, 'Sun Warriors', 'Ali', null], [7, 'The Silent Sea', 'Ken', '2025-04-25']]
+  },
+  {
+    table: 'parcels',
+    columns: [['id', 'INTEGER'], ['item', 'TEXT'], ['city', 'TEXT'], ['delivered_date', 'TEXT']],
+    roles: { name: 'item', cat: 'city', opt: 'delivered_date' },
+    rows: [[1, 'Laptop', 'Tokyo', '2025-03-03'], [2, 'Books', 'Osaka', null], [3, 'Shoes', 'Tokyo', '2025-03-05'],
+      [4, 'Camera', 'Nagoya', null], [5, 'Desk', 'Osaka', '2025-03-07'], [6, 'Guitar', 'Tokyo', null], [7, 'Rice cooker', 'Nagoya', '2025-03-08'], [8, 'Bicycle', 'Osaka', null]]
+  },
+  {
+    table: 'volunteers',
+    columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['area', 'TEXT'], ['email', 'TEXT']],
+    roles: { name: 'name', cat: 'area', opt: 'email' },
+    rows: [[1, 'Yui Abe', 'Park', 'yui@example.com'], [2, 'Sam Lee', 'Library', null], [3, 'Nina Rossi', 'Park', null],
+      [4, 'Omar Ali', 'Station', 'omar@example.com'], [5, 'Rina Goto', 'Library', 'rina@example.com'], [6, 'Hugo Blanc', 'Station', null], [7, 'Mei Wong', 'Park', 'mei@example.com']]
+  }
+];
+
 /**
  * Practice themes for JOIN lessons. Each is a pair of tables:
  *   left  : id, name, group
@@ -239,10 +298,9 @@ const SINGLE_DATASETS = [
  * Some left rows have no partner, some right rows point to ids that do not exist —
  * exactly like table_a / table_b in the demo.
  */
-const JOIN_DATASETS = [
+export const JOIN_DATASETS = [
   {
     key: 'shop',
-    label: { ja: '顧客と注文', en: 'Customers & orders', ne: 'ग्राहक र अर्डर', fr: 'Clients et commandes', my: 'ဖောက်သည်များနှင့် အော်ဒါများ', bn: 'গ্রাহক ও অর্ডার', si: 'පාරිභෝගිකයින් සහ ඇණවුම්', id: 'Pelanggan & pesanan', vi: 'Khách hàng & đơn hàng', zh: '顾客与订单' },
     left: { table: 'customers', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['city', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'city' },
       rows: [[1, 'Aiko', 'Osaka'], [2, 'Ben', 'Tokyo'], [3, 'Chandra', 'Osaka'], [4, 'Dina', 'Tokyo'], [5, 'Eko', 'Osaka']] },
     right: { table: 'orders', columns: [['customer_id', 'INTEGER'], ['item', 'TEXT'], ['amount', 'INTEGER']], roles: { key: 'customer_id', text: 'item', num: 'amount' },
@@ -250,7 +308,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'office',
-    label: { ja: 'スタッフと駐車場', en: 'Staff & parking', ne: 'कर्मचारी र पार्किङ', fr: 'Personnel et parking', my: 'ဝန်ထမ်းများနှင့် ကားပါကင်', bn: 'কর্মী ও পার্কিং', si: 'කාර්ය මණ්ඩලය සහ වාහන නැවතුම', id: 'Staf & parkir', vi: 'Nhân viên & bãi đỗ xe', zh: '员工与停车位' },
     left: { table: 'staff', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['team', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'team' },
       rows: [[1, 'Hana', 'Sales'], [2, 'Ivan', 'Dev'], [3, 'Jun', 'Dev'], [4, 'Kim', 'Sales'], [5, 'Lea', 'Dev'], [6, 'Mo', 'Sales']] },
     right: { table: 'parking', columns: [['staff_id', 'INTEGER'], ['spot', 'TEXT'], ['fee', 'INTEGER']], roles: { key: 'staff_id', text: 'spot', num: 'fee' },
@@ -258,7 +315,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'library',
-    label: { ja: '会員と貸出', en: 'Members & loans', ne: 'सदस्य र किताब ऋण', fr: 'Membres et prêts', my: 'အသင်းဝင်များနှင့် စာအုပ်ငှားခြင်း', bn: 'সদস্য ও বই ধার', si: 'සාමාජිකයින් සහ පොත් ණය', id: 'Anggota & peminjaman', vi: 'Thành viên & mượn sách', zh: '会员与借阅' },
     left: { table: 'members', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['plan', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'plan' },
       rows: [[1, 'Nina', 'Gold'], [2, 'Oscar', 'Basic'], [3, 'Priya', 'Gold'], [4, 'Quan', 'Basic'], [5, 'Rosa', 'Basic']] },
     right: { table: 'loans', columns: [['member_id', 'INTEGER'], ['book', 'TEXT'], ['days', 'INTEGER']], roles: { key: 'member_id', text: 'book', num: 'days' },
@@ -266,7 +322,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'pets',
-    label: { ja: 'ペットと健康診断', en: 'Pets & check-ups', ne: 'घरपालुवा जनावर र स्वास्थ्य जाँच', fr: 'Animaux et bilans de santé', my: 'အိမ်မွေးတိရစ္ဆာန်များနှင့် ဆေးစစ်ခြင်း', bn: 'পোষা প্রাণী ও স্বাস্থ্য পরীক্ষা', si: 'සුරතල් සතුන් සහ සෞඛ්‍ය පරීක්ෂා', id: 'Hewan peliharaan & pemeriksaan', vi: 'Thú cưng & khám sức khỏe', zh: '宠物与体检' },
     left: { table: 'pets', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['species', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'species' },
       rows: [[1, 'Coco', 'Dog'], [2, 'Momo', 'Cat'], [3, 'Rex', 'Dog'], [4, 'Luna', 'Cat'], [5, 'Pochi', 'Dog'], [6, 'Tama', 'Cat']] },
     right: { table: 'checkups', columns: [['pet_id', 'INTEGER'], ['clinic', 'TEXT'], ['weight', 'INTEGER']], roles: { key: 'pet_id', text: 'clinic', num: 'weight' },
@@ -274,7 +329,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'streaming',
-    label: { ja: 'ユーザーと有料プラン', en: 'Users & subscriptions', ne: 'प्रयोगकर्ता र सदस्यता', fr: 'Utilisateurs et abonnements', my: 'အသုံးပြုသူများနှင့် စာရင်းသွင်းမှုများ', bn: 'ব্যবহারকারী ও সাবস্ক্রিপশন', si: 'පරිශීලකයින් සහ දායකත්ව', id: 'Pengguna & langganan', vi: 'Người dùng & gói đăng ký', zh: '用户与订阅' },
     left: { table: 'users', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['country', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'country' },
       rows: [[1, 'Sam', 'Japan'], [2, 'Tina', 'Nepal'], [3, 'Umar', 'Japan'], [4, 'Vera', 'Vietnam'], [5, 'Wan', 'Nepal']] },
     right: { table: 'subscriptions', columns: [['user_id', 'INTEGER'], ['plan', 'TEXT'], ['price', 'INTEGER']], roles: { key: 'user_id', text: 'plan', num: 'price' },
@@ -282,7 +336,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'delivery',
-    label: { ja: 'ドライバーと配達', en: 'Drivers & deliveries', ne: 'चालक र डेलिभरी', fr: 'Chauffeurs et livraisons', my: 'ယာဉ်မောင်းများနှင့် ပို့ဆောင်မှုများ', bn: 'চালক ও ডেলিভারি', si: 'රියදුරන් සහ බෙදාහැරීම්', id: 'Pengemudi & pengiriman', vi: 'Tài xế & giao hàng', zh: '司机与配送' },
     left: { table: 'drivers', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['area', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'area' },
       rows: [[1, 'Ali', 'North'], [2, 'Bao', 'South'], [3, 'Chloe', 'North'], [4, 'Dev', 'South'], [5, 'Ema', 'North']] },
     right: { table: 'deliveries', columns: [['driver_id', 'INTEGER'], ['package', 'TEXT'], ['distance', 'INTEGER']], roles: { key: 'driver_id', text: 'package', num: 'distance' },
@@ -290,7 +343,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'school',
-    label: { ja: '生徒と部活動', en: 'Pupils & clubs', ne: 'विद्यार्थी र क्लब', fr: 'Élèves et clubs', my: 'ကျောင်းသားများနှင့် အသင်းများ', bn: 'ছাত্রছাত্রী ও ক্লাব', si: 'සිසුන් සහ සමාජ', id: 'Murid & klub', vi: 'Học sinh & câu lạc bộ', zh: '学生与社团' },
     left: { table: 'pupils', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['grade', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'grade' },
       rows: [[1, 'Aya', 'G1'], [2, 'Binod', 'G2'], [3, 'Carla', 'G1'], [4, 'Duc', 'G2'], [5, 'Elif', 'G1'], [6, 'Farah', 'G2']] },
     right: { table: 'clubs', columns: [['pupil_id', 'INTEGER'], ['club', 'TEXT'], ['hours', 'INTEGER']], roles: { key: 'pupil_id', text: 'club', num: 'hours' },
@@ -298,7 +350,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'hotel',
-    label: { ja: '客室と予約', en: 'Rooms & bookings', ne: 'कोठा र बुकिङ', fr: 'Chambres et réservations', my: 'အခန်းများနှင့် ကြိုတင်မှာယူမှုများ', bn: 'রুম ও বুকিং', si: 'කාමර සහ වෙන්කිරීම්', id: 'Kamar & pemesanan', vi: 'Phòng & đặt phòng', zh: '客房与预订' },
     left: { table: 'rooms', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['floor', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'floor' },
       rows: [[1, 'R101', '1F'], [2, 'R102', '1F'], [3, 'R201', '2F'], [4, 'R202', '2F'], [5, 'R301', '3F']] },
     right: { table: 'bookings', columns: [['room_id', 'INTEGER'], ['guest', 'TEXT'], ['nights', 'INTEGER']], roles: { key: 'room_id', text: 'guest', num: 'nights' },
@@ -306,7 +357,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'farm',
-    label: { ja: '農家と出荷', en: 'Farms & shipments', ne: 'खेत र ढुवानी', fr: 'Fermes et livraisons', my: 'လယ်ယာများနှင့် ပို့ဆောင်မှုများ', bn: 'খামার ও চালান', si: 'ගොවිපළ සහ නැව්ගත කිරීම්', id: 'Pertanian & pengiriman', vi: 'Nông trại & lô hàng', zh: '农场与发货' },
     left: { table: 'farms', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['region', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'region' },
       rows: [[1, 'Green Field', 'East'], [2, 'Sunny Hill', 'West'], [3, 'River Farm', 'East'], [4, 'Blue Sky', 'West'], [5, 'Old Oak', 'East'], [6, 'Rice Valley', 'West']] },
     right: { table: 'shipments', columns: [['farm_id', 'INTEGER'], ['crop', 'TEXT'], ['kg', 'INTEGER']], roles: { key: 'farm_id', text: 'crop', num: 'kg' },
@@ -314,7 +364,6 @@ const JOIN_DATASETS = [
   },
   {
     key: 'clinic',
-    label: { ja: '患者と予約', en: 'Patients & appointments', ne: 'बिरामी र भेटघाट', fr: 'Patients et rendez-vous', my: 'လူနာများနှင့် ချိန်းဆိုမှုများ', bn: 'রোগী ও অ্যাপয়েন্টমেন্ট', si: 'රෝගීන් සහ හමුවීම්', id: 'Pasien & janji temu', vi: 'Bệnh nhân & lịch hẹn', zh: '患者与预约' },
     left: { table: 'patients', columns: [['id', 'INTEGER'], ['name', 'TEXT'], ['blood', 'TEXT']], roles: { id: 'id', name: 'name', grp: 'blood' },
       rows: [[1, 'Ana', 'A'], [2, 'Bilal', 'O'], [3, 'Chika', 'A'], [4, 'Dmitri', 'B'], [5, 'Esra', 'O']] },
     right: { table: 'appointments', columns: [['patient_id', 'INTEGER'], ['doctor', 'TEXT'], ['minutes', 'INTEGER']], roles: { key: 'patient_id', text: 'doctor', num: 'minutes' },
@@ -323,7 +372,7 @@ const JOIN_DATASETS = [
 ];
 
 /** Build the CREATE/INSERT script for a list of table objects. */
-function datasetSQL(tables) {
+export function datasetSQL(tables) {
   const q = v => (v === null ? 'NULL' : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
   return tables.map(t =>
     `CREATE TABLE ${t.table} (${t.columns.map(([n, ty]) => `${n} ${ty}`).join(', ')});\n` +
@@ -332,12 +381,16 @@ function datasetSQL(tables) {
 }
 
 /** Every table by name (so the engine can build a DB for any problem). */
-const ALL_TABLES = (() => {
+import { ANALYSIS_DEMO, ANALYSIS_THEMES } from './analysis-data.js';
+export { ANALYSIS_DEMO, ANALYSIS_THEMES };
+export const ALL_TABLES = (() => {
   const m = {};
+  Object.values(ANALYSIS_DEMO).forEach(t => (m[t.table] = t));
+  ANALYSIS_THEMES.forEach(t => (m[t.table] = t));
   Object.values(DEMO_DATASETS).forEach(t => (m[t.table] = t));
   SINGLE_DATASETS.forEach(t => (m[t.table] = t));
-  JOIN_DATASETS.forEach(p => { m[p.left.table] = Object.assign({ label: p.label }, p.left); m[p.right.table] = Object.assign({ label: p.label }, p.right); });
+  NULL_DATASETS.forEach(t => (m[t.table] = t));
+  JOIN_DATASETS.forEach(p => { m[p.left.table] = Object.assign({ pair: p.key }, p.left); m[p.right.table] = Object.assign({ pair: p.key }, p.right); });
   return m;
 })();
 
-if (typeof module !== 'undefined') module.exports = { DEMO_DATASETS, SINGLE_DATASETS, JOIN_DATASETS, ALL_TABLES, datasetSQL };
