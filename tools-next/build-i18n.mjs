@@ -1,10 +1,10 @@
 // usedKeys(): every text key the app needs (used by check.mjs).
-// The generator below was used once to create next/i18n/*.js; those files are now the ones to edit.
+// The generator below was used once to create i18n/*.js; those files are now the ones to edit.
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const here = path.dirname(fileURLToPath(import.meta.url));
-const root = path.join(here, '..', 'next');
+const root = path.join(here, '..');
 const { LESSONS, CHAPTERS } = await import(path.join(root, 'js/lessons.js'));
 const { SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES } = await import(path.join(root, 'js/datasets.js'));
 

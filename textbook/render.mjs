@@ -75,5 +75,9 @@ console.log(bad.length ? '✕ sticks out:\n  ' + bad.join('\n  ') : '✓ nothing
 await p.pdf({ path: pdf, preferCSSPageSize: true, printBackground: true });
 await b.close();
 // the app offers the PDF in its textbook tab
-fs.copyFileSync(pdf, path.join(here, '..', 'next', 'book', name === 'analysis' ? 'data-analysis-textbook.pdf' : `sql-textbook-${name}.pdf`));
+const file = name === 'analysis' ? 'data-analysis-textbook.pdf' : `sql-textbook-${name}.pdf`;
+fs.copyFileSync(pdf, path.join(here, '..', 'book', file));
+// the same file at the old address (/next/book/…), for links shared before the move
+fs.mkdirSync(path.join(here, '..', 'next', 'book'), { recursive: true });
+fs.copyFileSync(pdf, path.join(here, '..', 'next', 'book', file));
 console.log('✓', path.relative(here, pdf));

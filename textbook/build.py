@@ -17,7 +17,7 @@ import re, html, json, sqlite3, subprocess, sys, os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'out')
-APP_URL = 'https://tomo0916.github.io/sql-practice/next/'
+APP_URL = 'https://tomo0916.github.io/sql-practice/'
 
 # ------------------------------------------------------------------ text helpers
 KANJI = re.compile(r'[一-鿿々]')
@@ -408,7 +408,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'analysis':
         import content_analysis as CA
         import front_analysis as FA
-        app = dict(json.loads(subprocess.run(['node', '-e', 'import("../next/js/lessons.js").then(m => console.log(JSON.stringify(m.LESSONS.map(l => [l.key, l.no]))))'],
+        app = dict(json.loads(subprocess.run(['node', '-e', 'import("../js/lessons.js").then(m => console.log(JSON.stringify(m.LESSONS.map(l => [l.key, l.no]))))'],
                                              cwd=HERE, capture_output=True, text=True, check=True).stdout))
         bad = [f"{L['no']} '{L['key']}'" for L in CA.UNITS if app.get(L['key']) != L['no']]
         if bad:
@@ -418,7 +418,7 @@ if __name__ == '__main__':
     import content_beginner as C
     import front_beginner as F
     # every Lesson must exist in the app with the same number (the QR codes open #/l/<key>)
-    app = json.loads(subprocess.run(['node', '-e', 'import("../next/js/lessons.js").then(m => console.log(JSON.stringify(m.LESSONS.map(l => [l.key, l.no]))))'],
+    app = json.loads(subprocess.run(['node', '-e', 'import("../js/lessons.js").then(m => console.log(JSON.stringify(m.LESSONS.map(l => [l.key, l.no]))))'],
                                     cwd=HERE, capture_output=True, text=True, check=True).stdout)
     app = dict(app)
     bad = [f"Lesson {L['no']} '{L['key']}'" for L in C.LESSONS if app.get(L['key']) != L['no']]

@@ -1,7 +1,7 @@
 // Print the figures of the data-analysis textbook as JSON {name: svg}.
-// The same chart code as the app (next/js/charts.js), drawn from the same data.
-import { ALL_TABLES } from '../next/js/datasets.js';
-import { barChart, histChart, boxChart, normalChart, fillChart } from '../next/js/charts.js';
+// The same chart code as the app (js/charts.js), drawn from the same data.
+import { ALL_TABLES } from '../js/datasets.js';
+import { barChart, histChart, boxChart, normalChart, fillChart } from '../js/charts.js';
 
 const col = (t, c) => { const tb = ALL_TABLES[t]; const i = tb.columns.findIndex(x => x[0] === c); return tb.rows.map(r => r[i]); };
 const mean = a => a.reduce((x, y) => x + y, 0) / a.length;

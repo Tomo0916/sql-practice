@@ -1,5 +1,5 @@
 // Print a QR code for argv[2] as an inline SVG (uses the app's vendored qrcode-generator).
-import qrcode from '../next/vendor/qrcode.js';
+import qrcode from '../vendor/qrcode.js';
 const qr = qrcode(0, 'M');
 qr.addData(process.argv[2]);
 qr.make();

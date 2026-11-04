@@ -5,10 +5,10 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { execFileSync } from 'child_process';
-import { SqlEngine, LESSON_BY_KEY } from '../next/js/engine.js';
-import { LESSONS } from '../next/js/lessons.js';
-import { ALL_TABLES } from '../next/js/datasets.js';
-import { guideSteps } from '../next/js/analysis-content.js';
+import { SqlEngine, LESSON_BY_KEY } from '../js/engine.js';
+import { LESSONS } from '../js/lessons.js';
+import { ALL_TABLES } from '../js/datasets.js';
+import { guideSteps } from '../js/analysis-content.js';
 
 const eng = new SqlEngine(await initSqlJs());
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'guides-'));
