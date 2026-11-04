@@ -32,6 +32,11 @@ const S = {
   rankSort: 'stuck',   // 'stuck' | 'wrong' | 'now'
   liveSort: 'name',    // rows of the live grid: 'name' (join order) | 'progress'
   boardBy: 'solved',   // progress ranking: 'solved' | 'first' | 'recent'
+  boardTop: '10',      // projector: how many students ('all' | '10' | '5' | '3')
+  boardHide: false,    // projector: hide nicknames
+  rankOpen: true,      // the "stuck problems" card of the live tab is open
+  conn: 'off',         // live connection: 'off' | 'connecting' | 'ok' | 'lost'
+  viewStudent: null,   // user id shown in the student detail window
   unwatch: null,
   mistakeProb: null,
   busy: false,
@@ -39,6 +44,10 @@ const S = {
   test: Object.assign({ title: '', tlang: null, bilingual: null, lessons: LESSONS.map(l => l.key), per: 1, type: 'write', key: true, results: true, code: randomCode(), ab: false }, Store.get(KEYS.test, {}))
 };
 S.settings.lang = detectLang(S.settings.lang);
+// the teacher's view choices (sorting, ranking options, open cards) are remembered on this computer
+const VIEW_KEY = 'sqln.tcView', VIEW_FIELDS = ['liveSort', 'boardBy', 'boardTop', 'boardHide', 'rankOpen', 'rankWindow', 'rankSort'];
+Object.assign(S, Object.fromEntries(Object.entries(Store.get(VIEW_KEY, {})).filter(([k]) => VIEW_FIELDS.includes(k))));
+const saveView = () => Store.set(VIEW_KEY, Object.fromEntries(VIEW_FIELDS.map(k => [k, S[k]])));
 S.settings.presenter = false;
 if (!S.test.tlang) S.test.tlang = S.settings.lang;
 const app = document.getElementById('app');
@@ -164,7 +173,8 @@ function classHTML() {
     <div class="crumbs"><a href="#/">${H('tc.myClasses')}</a><span>›</span><span>${esc(c.name)}</span></div>
     <section class="card class-head">
       <div><h1>${esc(c.name)}</h1>
-        <div class="muted small">${H('tc.members', { n: S.members.length })} · ${H('set.code')} <b class="mono">${esc(c.set_code)}</b> · ${H('tc.policy.' + c.answer_policy)}</div></div>
+        <div class="muted small">${H('tc.members', { n: S.members.length })} · ${H('set.code')} <b class="mono">${esc(c.set_code)}</b> · ${H('tc.policy.' + c.answer_policy)}</div>
+        ${connHTML()}</div>
       <button class="code-big" data-act="showQR" title="${esc(T('tc.showQR'))}"><small>${H('class.code')}</small><b class="mono">${esc(c.code)}</b><span>${I.qr} ${H('tc.showQR')}</span></button>
       <div class="tbox" id="tbox">${timerBoxHTML(c)}</div>
       <div class="class-actions">
@@ -237,6 +247,28 @@ function visibleAttempts() {
   const d = new Date(); d.setHours(0, 0, 0, 0);
   return S.attempts.filter(a => new Date(a.created_at) >= d);
 }
+const IDLE_MS = 5 * 60000;   // no answer for 5 minutes → "idle"
+/** per student: time of the last answer (in the shown attempts) and the problem they are on now */
+function activity(all, atts) {
+  const last = new Map(), latest = new Map();
+  atts.forEach(a => { const t = new Date(a.created_at).getTime(); if (!last.has(a.user_id) || t >= last.get(a.user_id)) { last.set(a.user_id, t); latest.set(a.user_id, a); } });
+  const solved = new Set(atts.filter(a => a.ok).map(a => a.user_id + '|' + a.problem_id));
+  const cur = new Map();
+  latest.forEach((a, u) => {
+    if (Date.now() - new Date(a.created_at) > NOW_MS) return;
+    let i = all.findIndex(p => p.id === a.problem_id);
+    if (i < 0) return;
+    if (a.ok) { i = all.findIndex((p, j) => j > i && !solved.has(u + '|' + p.id)); if (i < 0) return; }   // solved it: on the next unsolved problem
+    cur.set(u, all[i].id);
+  });
+  return { last, cur, state: (u, finished) => { const t = last.get(u); if (!t) return { kind: 'none' }; const ms = Date.now() - t; return ms < IDLE_MS ? { kind: 'active' } : finished ? { kind: 'done' } : { kind: 'idle', min: Math.floor(ms / 60000) }; } };
+}
+/** the name cell: active dot or idle badge; opens the student's answers */
+function whoHTML(m, st) {
+  const badge = st.kind === 'active' ? '<i class="live-dot" title="active"></i>' : '';
+  const idle = st.kind === 'idle' && st.min < 90 ? `<span class="idle-b" title="${esc(T('tc.idleTip'))}">⏸ ${H('tc.idle', { n: st.min })}</span>` : '';
+  return `<button class="who-btn ${st.kind === 'idle' && st.min < 90 ? 'idle' : ''}" data-act="openStudent" data-u="${esc(m.user_id)}" title="${esc(T('tc.stuOpen'))}">${badge}<span>${esc(m.nickname)}</span>${idle}</button>`;
+}
 function liveHTML(c) {
   const groups = classProblems(c);
   if (!groups.length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/assign">${H('tc.tabAssign')}</a></section>`;
@@ -245,16 +277,17 @@ function liveHTML(c) {
   atts.forEach(a => { const k = a.user_id + '|' + a.problem_id; const x = cell[k] || (cell[k] = { ok: false, n: 0, onTime: false }); if (a.ok) { x.ok = true; if (!a.late) x.onTime = true; } else x.n++; });
   const all = groups.flatMap(g => g.probs);
   const solvedBy = p => S.members.filter(m => (cell[m.user_id + '|' + p.id] || {}).ok).length;
-  const active = new Set(atts.filter(a => Date.now() - new Date(a.created_at) < 5 * 60000).map(a => a.user_id));
+  const act = activity(all, atts);
   const doneOf = m => all.filter(p => (cell[m.user_id + '|' + p.id] || {}).ok).length;
   const members = S.liveSort === 'progress' ? S.members.slice().sort((a, b) => doneOf(b) - doneOf(a)) : S.members;
   const rows = members.map(m => {
     const done = doneOf(m);
-    return `<tr><th class="who">${active.has(m.user_id) ? '<i class="live-dot" title="active"></i>' : ''}${esc(m.nickname)}</th><td class="n sum">${done}/${all.length}</td>${groups.map(g => g.probs.map(p => {
+    const st = act.state(m.user_id, done === all.length), cur = act.cur.get(m.user_id);
+    return `<tr class="${st.kind === 'idle' && st.min < 90 ? 'idle' : ''}"><th class="who">${whoHTML(m, st)}</th><td class="n sum">${done}/${all.length}</td>${groups.map(g => g.probs.map(p => {
       const x = cell[m.user_id + '|' + p.id];
       const late = x && x.ok && !x.onTime;   // solved only after the timer ended
-      const cls = !x ? '' : late ? 'ok late' : x.ok ? 'ok' : 'bad';
-      return `<td class="lc ${cls} ${p.idx === 0 ? 'first' : ''}" title="${esc(stageName(p) + (late ? ' · ' + T('tc.late') : ''))}">${!x ? '' : x.ok ? (late ? '⏱' : '✓') : x.n}</td>`;
+      const cls = (!x ? '' : late ? 'ok late' : x.ok ? 'ok' : 'bad') + (cur === p.id ? ' cur' : '');
+      return `<td class="lc ${cls} ${p.idx === 0 ? 'first' : ''}" title="${esc(stageName(p) + (late ? ' · ' + T('tc.late') : '') + (cur === p.id ? ' · ' + T('tc.cur') : ''))}">${!x ? '' : x.ok ? (late ? '⏱' : '✓') : x.n}</td>`;
     }).join('')).join('')}</tr>`;
   }).join('');
   const n = S.members.length || 1;
@@ -270,7 +303,7 @@ function liveHTML(c) {
       <tbody>${rows || `<tr><td colspan="99" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody>
       <tfoot><tr><th>${H('tc.rate')}</th><td></td>${all.map(p => { const r = Math.round(solvedBy(p) / n * 100); return `<td class="rate ${p.idx === 0 ? 'first' : ''}"><span style="--r:${r}%">${S.members.length ? r + '%' : ''}</span></td>`; }).join('')}</tr></tfoot>
     </table></div>
-    <p class="muted small legend-line"><span class="lc ok">✓</span> ${H('tc.legendOk')} <span class="lc bad">2</span> ${H('tc.legendBad')} <span class="lc ok late">⏱</span> ${H('tc.late')} · Ex = ${H('stage.demo')} · □ = ${H('stage.fill')} · ⇅ = ${H('stage.order')} · W = ${H('stage.write', { n: '' }).trim()}</p>
+    <p class="muted small legend-line"><span class="lc ok">✓</span> ${H('tc.legendOk')} <span class="lc bad">2</span> ${H('tc.legendBad')} <span class="lc ok late">⏱</span> ${H('tc.late')} <span class="lc cur"></span> ${H('tc.cur')} <span class="idle-b">⏸</span> ${H('tc.idleTip')} · Ex = ${H('stage.demo')} · □ = ${H('stage.fill')} · ⇅ = ${H('stage.order')} · W = ${H('stage.write', { n: '' }).trim()}</p>
   </section>`;
 }
 
@@ -309,18 +342,19 @@ function rankHTML(groups, stats) {
       <span class="rk-v ok"><b>${x.solved}</b><small>${H('tc.colSolved')}</small></span>
       <button class="btn btn-ghost btn-xs" data-act="openMistakes" data-p="${x.p.id}">${I.eye}${H('tc.seeMistakes')}</button>
     </li>`).join('');
-  return `<section class="card rank">
-    <div class="rk-head"><div><h2>${H('tc.rank')}</h2><p class="muted small">${H('tc.rankSub')}</p></div>
+  return `<details class="card rank" ${S.rankOpen ? 'open' : ''} data-toggle="rankOpen">
+    <summary><h2>${H('tc.rank')}</h2>${list.length ? `<span class="rk-count">${H('tc.rankCount', { n: list.length })}</span>` : ''}<span class="muted small rk-sub">${H('tc.rankSub')}</span></summary>
+    <div class="rk-head">
       <div class="rk-ctl"><div class="seg">${seg('rankWindow', 'now', 'tc.rankNow')}${seg('rankWindow', 'all', 'tc.rankAll')}</div>
         <div class="seg">${seg('rankSort', 'stuck', 'tc.sortStuck')}${seg('rankSort', 'wrong', 'tc.sortWrong')}${seg('rankSort', 'now', 'tc.sortNow')}</div></div></div>
     ${rows ? `<ol class="rk-list">${rows}</ol>` : `<p class="res-empty">${H('tc.rankEmpty')}</p>`}
-  </section>`;
+  </details>`;
 }
 // "now" changes as time passes: redraw the live tab every 30 seconds
 setInterval(() => { if (S.route && S.route.view === 'class' && ['live', 'board'].includes(S.route.tab) && (!document.querySelector('.modal') || document.querySelector('#modal .board.big'))) refreshTab(); }, 30000);
 
 /** a button of a segmented control that sets S[name] */
-const segBtn = (name, val, label) => `<button class="${S[name] === val ? 'on' : ''}" data-act="rankSet" data-k="${name}" data-v="${val}">${H(label)}</button>`;
+const segBtn = (name, val, label, vars) => `<button class="${S[name] === val ? 'on' : ''}" data-act="rankSet" data-k="${name}" data-v="${val}">${H(label, vars)}</button>`;
 
 /* ---------- progress ranking: students by problems solved ---------- */
 /** per student: solved, first-try, solved in the last 10 minutes, finished lessons, time of the last first solve */
@@ -340,7 +374,8 @@ function boardRows(c) {
       recent: times.filter(t => t >= since).length,
       lessons: groups.filter(g => g.probs.every(p => firstSolve.has(p.id))).length,
       last: times.length ? Math.max(...times) : null,
-      active: mine.some(a => Date.now() - new Date(a.created_at) < 5 * 60000)
+      active: mine.some(a => Date.now() - new Date(a.created_at) < IDLE_MS),
+      idle: mine.length && firstSolve.size < ids.size ? Math.floor((Date.now() - new Date(mine[mine.length - 1].created_at)) / 60000) : null
     };
   });
 }
@@ -358,12 +393,14 @@ function agoHTML(t) {
   const min = Math.floor((Date.now() - t) / 60000);
   return min < 1 ? H('tc.rkJustNow') : min < 60 ? H('tc.rkMinAgo', { n: min }) : esc(fmtTime(new Date(t).toISOString()));
 }
+/** nickname for the projector: hidden as the first letter + ＊＊ when the teacher chose so */
+const shownName = (n, big) => (big && S.boardHide ? [...n][0] + '＊＊' : n);
 function boardListHTML(list, by, big) {
   return `<ol class="board ${big ? 'big' : ''}">${list.map(r => {
     const pct = r.total ? Math.round(r.solved / r.total * 100) : 0;
     return `<li class="${r.rank <= 3 && r[by] > 0 ? 'top top' + r.rank : ''}">
       <span class="bd-rank">${r.rank <= 3 && r[by] > 0 ? MEDAL[r.rank - 1] : r.rank}</span>
-      <span class="bd-name">${r.active ? '<i class="live-dot"></i>' : ''}${esc(r.m.nickname)}</span>
+      <span class="bd-name">${r.active ? '<i class="live-dot"></i>' : ''}${big ? esc(shownName(r.m.nickname, big)) : `<button class="who-btn" data-act="openStudent" data-u="${esc(r.m.user_id)}">${esc(r.m.nickname)}</button>${r.idle != null && r.idle >= 5 && r.idle < 90 ? `<span class="idle-b" title="${esc(T('tc.idleTip'))}">⏸ ${H('tc.idle', { n: r.idle })}</span>` : ''}`}</span>
       <span class="bd-bar" title="${r.solved}/${r.total}"><i style="width:${pct}%"></i><b>${r.solved}/${r.total}</b></span>
       <span class="bd-v ${by === 'solved' ? 'on' : ''}"><b>${r.solved}</b><small>${H('tc.rkBySolved')}</small></span>
       <span class="bd-v ${by === 'first' ? 'on' : ''}" title="${esc(T('tc.rkFirstTip'))}"><b>${r.first}</b><small>${H('tc.rkByFirst')}</small></span>
@@ -380,9 +417,40 @@ function boardHTML(c) {
     <div class="rk-head"><div><h2>${H('tc.rkTitle')}</h2><p class="muted small">${H('tc.rkSub')}</p></div>
       <div class="rk-ctl"><div class="seg">${segBtn('boardBy', 'solved', 'tc.rkBySolved')}${segBtn('boardBy', 'first', 'tc.rkByFirst')}${segBtn('boardBy', 'recent', 'tc.rkByRecent')}</div>
         <label class="chk"><input type="checkbox" data-act2="today" ${S.liveOnlyToday ? 'checked' : ''}><span>${H('tc.todayOnly')}</span></label>
-        <button class="btn btn-ghost btn-sm" data-act="projectBoard">${I.screen}${H('tc.project')}</button></div></div>
+      </div></div>
+    <div class="bd-proj"><b class="small">${I.screen} ${H('tc.rkProjOpts')}</b>
+      <div class="seg">${['all', '10', '5', '3'].map(v => segBtn('boardTop', v, v === 'all' ? 'tc.rkTopAll' : 'tc.rkTopN', v === 'all' ? null : { n: v })).join('')}</div>
+      <label class="chk"><input type="checkbox" data-act2="boardHide" ${S.boardHide ? 'checked' : ''}><span>${H('tc.rkHide')}</span></label>
+      <button class="btn btn-primary btn-sm" data-act="projectBoard">${I.screen}${H('tc.project')}</button></div>
     ${S.members.length ? boardListHTML(list, by, false) : `<p class="res-empty">${H('tc.noMembers')}</p>`}
   </section>`;
+}
+
+/** the projector list: ranked, cut to the chosen number */
+function projected() {
+  const list = rankBoard(boardRows(S.klass), S.boardBy);
+  return S.boardTop === 'all' ? list : list.slice(0, +S.boardTop);
+}
+
+/* ---------- one student's answers, problem by problem ---------- */
+const hhmm = iso => { try { return new Date(iso).toLocaleTimeString(htmlLang(L()) === 'my' ? 'en' : htmlLang(L()), { hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+function studentBodyHTML(u) {
+  const groups = classProblems(S.klass);
+  const all = groups.flatMap(g => g.probs.map(p => ({ p, lesson: g.lesson })));
+  const mine = visibleAttempts().filter(a => a.user_id === u).slice().sort((a, b) => (a.created_at < b.created_at ? -1 : 1));
+  if (!mine.length) return `<p class="res-empty">${H('tc.stuNone')}</p>`;
+  const ids = new Set(all.map(x => x.p.id));
+  const solved = all.filter(x => mine.some(a => a.problem_id === x.p.id && a.ok)).length;
+  const last = mine[mine.length - 1];
+  const tries = list => `<ol class="stu-tries">${list.map(a => `<li class="${a.ok ? 'ok' : 'bad'}"><span class="st-mark">${a.ok ? (a.late ? '⏱' : '✓') : '✗'}</span><span class="st-time mono">${esc(hhmm(a.created_at))}</span>${a.sql == null ? '' : /^\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE)\b/i.test(a.sql) ? `<pre class="sql">${highlightSQL(a.sql)}</pre>` : `<span class="quiz-ans">${esc(a.sql)}</span>`}</li>`).join('')}</ol>`;
+  const blocks = all.filter(x => mine.some(a => a.problem_id === x.p.id)).map(x => {
+    const list = mine.filter(a => a.problem_id === x.p.id);
+    return `<section class="stu-prob ${list.some(a => a.ok) ? 'ok' : 'bad'}"><h3>Lesson ${x.lesson.no} · ${esc(stageName(x.p))} <small class="muted">${esc(x.p.stage === 'demo' ? T('stage.demoSub') : themeName(x.p, L()))}</small></h3>
+      <details class="stu-q"><summary class="muted small">${H('tc.problem')}</summary><p class="prob-text">${problemHTML(x.p, L())}</p>${answerHTML(x.p)}</details>${tries(list)}</section>`;
+  }).join('');
+  const other = mine.filter(a => !ids.has(a.problem_id));
+  return `<div class="stu-sum"><span><b>${solved}/${all.length}</b> ${H('tc.rkBySolved')}</span><span><b>${mine.length}</b> ${H('tc.stuAnswers')}</span><span>${H('tc.lastActive')} <b>${esc(hhmm(last.created_at))}</b></span></div>
+    ${blocks}${other.length ? `<section class="stu-prob"><h3>${H('tc.stuOther')}</h3>${tries(other)}</section>` : ''}`;
 }
 
 /** keep what the teacher is looking at while a part of the page is redrawn:
@@ -567,15 +635,50 @@ async function reloadClassData() {
   const [m, a] = await Promise.all([backend.members(c.id), backend.attempts(c.id)]);
   S.members = m; S.attempts = a;
 }
+/* live connection: shown in the class header; when it drops, it reconnects by itself and
+ * reloads the answers so nothing sent in the meantime is missed */
+let watchGen = 0, retryTimer = null, retryDelay = 3000;
+function setConn(st) {
+  S.conn = st;
+  const el = document.getElementById('conn');
+  if (el) el.outerHTML = connHTML();
+}
+function connHTML() {
+  const k = S.conn === 'ok' ? 'ok' : S.conn === 'lost' ? 'lost' : 'connecting';
+  return `<span id="conn" class="conn ${k}" title="${esc(T('tc.conn.' + k))}"><i></i>${H('tc.conn.' + k)}${k === 'lost' ? ` <button class="btn btn-ghost btn-xs" data-act="reconnect">${H('tc.conn.retry')}</button>` : ''}</span>`;
+}
+const soonRefresh = (() => { let pending = null; return () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view === 'class' && ['live', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab(); }, 300); }; })();
 async function startWatch() {
   stopWatch();
+  clearTimeout(retryTimer);
   syncClock(backend.serverNow);
-  const id = S.klass.id;
-  let pending = null;
-  const soon = () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view === 'class' && ['live', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab(); }, 300); };
-  S.unwatch = await backend.watchDashboard(id, row => { S.attempts.push(row); soon(); }, async () => { S.members = await backend.members(id); soon(); });
+  const id = S.klass.id, gen = ++watchGen;
+  let wasLost = S.conn === 'lost';
+  setConn('connecting');
+  S.unwatch = await backend.watchDashboard(id, row => { if (!S.attempts.some(a => a.id === row.id)) S.attempts.push(row); soonRefresh(); },
+    async () => { S.members = await backend.members(id); soonRefresh(); },
+    async status => {
+      if (gen !== watchGen) return;   // an old connection
+      if (status === 'SUBSCRIBED') {
+        retryDelay = 3000;
+        if (wasLost) { try { await reloadClassData(); soonRefresh(); } catch (e) { /* the next try reloads */ } }
+        wasLost = false; setConn('ok');
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        wasLost = true; setConn('lost');
+        clearTimeout(retryTimer);
+        retryTimer = setTimeout(() => { if (gen === watchGen && S.klass && S.klass.id === id) startWatch(); }, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30000);
+      }
+    });
 }
-function stopWatch() { if (S.unwatch) { S.unwatch(); S.unwatch = null; } }
+function stopWatch() { watchGen++; clearTimeout(retryTimer); if (S.unwatch) { S.unwatch(); S.unwatch = null; } S.conn = 'off'; }
+// back online, or back to this tab after a while: reconnect and fetch what was missed
+window.addEventListener('online', () => { if (S.klass && S.route.view === 'class') { S.conn = 'lost'; startWatch(); } });
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', async () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (S.klass && S.route.view === 'class' && Date.now() - hiddenAt > 60000) { try { await reloadClassData(); soonRefresh(); } catch (e) { /* ignore */ } }
+});
 let refreshLater = null;
 function refreshTab() {
   const el = document.getElementById('tab-body');
@@ -593,7 +696,9 @@ function refreshTab() {
     else if (tab === 'members') el.innerHTML = membersHTML(S.klass);
   });
   const big = document.querySelector('#modal .board.big');
-  if (big) big.outerHTML = boardListHTML(rankBoard(boardRows(S.klass), S.boardBy).slice(0, 10), S.boardBy, true);
+  if (big) big.outerHTML = boardListHTML(projected(), S.boardBy, true);
+  const stu = document.querySelector('#modal .stu-body');
+  if (stu) stu.innerHTML = studentBodyHTML(S.viewStudent);
   const h = document.querySelector('.class-head .muted'); if (h) h.innerHTML = `${H('tc.members', { n: S.members.length })} · ${H('set.code')} <b class="mono">${esc(S.klass.set_code)}</b> · ${H('tc.policy.' + S.klass.answer_policy)}`;
 }
 
@@ -633,9 +738,15 @@ const actions = {
   setToday() { document.querySelector('[name="set_code"]').value = todayCode(); },
   setRandom() { document.querySelector('[name="set_code"]').value = randomCode(); },
   async reload() { await reloadClassData(); refreshTab(); toast(T('tc.reloaded')); },
-  rankSet(el) { S[el.dataset.k] = el.dataset.v; refreshTab(); },
+  reconnect() { S.conn = 'lost'; startWatch(); },
+  rankSet(el) { S[el.dataset.k] = el.dataset.v; saveView(); refreshTab(); },
+  openStudent(el) {
+    S.viewStudent = el.dataset.u;
+    const m = S.members.find(x => x.user_id === S.viewStudent);
+    modal(`<div class="modal-head"><h2>${I.users} ${esc(m ? m.nickname : '')}</h2><button class="icon-btn" data-act="closeModal" aria-label="${esc(T('btn.close'))}">${I.x}</button></div><div class="modal-body stu-body">${studentBodyHTML(S.viewStudent)}</div>`, { wide: true });
+  },
   projectBoard() {
-    const list = rankBoard(boardRows(S.klass), S.boardBy).slice(0, 10);
+    const list = projected();
     modal(`<div class="modal-head"><h2>🏆 ${H('tc.rkTitle')} · ${H(S.boardBy === 'first' ? 'tc.rkByFirst' : S.boardBy === 'recent' ? 'tc.rkByRecent' : 'tc.rkBySolved')}</h2><button class="icon-btn" data-act="closeModal">${I.x}</button></div><div class="modal-body projector">${boardListHTML(list, S.boardBy, true)}</div>`, { wide: true });
     document.getElementById('modal').classList.add('full');
   },
@@ -673,6 +784,7 @@ document.addEventListener('change', async e => {
   const el = e.target;
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }
+  if (el.dataset.act2 === 'boardHide') { S.boardHide = el.checked; saveView(); return; }
   if (el.dataset.act2 === 'mistakeProb') { S.mistakeProb = el.value; refreshTab(); return; }
   const k = el.dataset.tk;
   if (k) {
@@ -695,6 +807,8 @@ document.addEventListener('change', async e => {
     rerenderPaper();
   }
 });
+// open / closed cards (details with data-toggle) are remembered
+document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.toggle) { S[d.dataset.toggle] = d.open; saveView(); } }, true);
 document.addEventListener('input', e => {
   if (e.target.dataset.tk === 'title') { S.test.title = e.target.value; rerenderPaper(); }
 });

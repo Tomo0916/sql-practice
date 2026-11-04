@@ -371,3 +371,54 @@ ol.board.big .bd-v small { font-size: .9rem; }
 }
 :root[data-theme="dark"] ol.board li.top1 { background: #3a3317; } :root[data-theme="dark"] ol.board li.top2 { background: #2a2e36; } :root[data-theme="dark"] ol.board li.top3 { background: #3a2a1e; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) ol.board li.top1 { background: #3a3317; } :root:not([data-theme="light"]) ol.board li.top2 { background: #2a2e36; } :root:not([data-theme="light"]) ol.board li.top3 { background: #3a2a1e; } }
+
+/* ---------- names: open the student's answers; idle badge ---------- */
+.who-btn { border: 0; background: none; font: inherit; font-weight: 700; color: inherit; cursor: pointer; padding: 2px 4px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; text-align: left; max-width: 100%; }
+.who-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.idle-b { display: inline-flex; align-items: center; gap: 2px; font-size: .7rem; font-weight: 800; color: var(--warn); background: var(--warn-soft); border-radius: 6px; padding: 1px 5px; margin-left: 4px; white-space: nowrap; }
+.live-grid tr.idle th.who { box-shadow: inset 3px 0 var(--warn); }
+.live-grid td.lc.cur { outline: 2.5px solid var(--accent); outline-offset: -3px; border-radius: 4px; }
+.legend-line .lc.cur { display: inline-block; width: 18px; height: 14px; vertical-align: middle; outline: 2.5px solid var(--accent); outline-offset: -3px; border-radius: 4px; }
+
+/* ---------- live connection ---------- */
+.conn { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: .76rem; font-weight: 700; border-radius: 999px; padding: 2px 10px 2px 8px; }
+.conn i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.conn.ok { color: var(--ok); background: var(--ok-soft, color-mix(in srgb, var(--ok) 12%, transparent)); }
+.conn.connecting { color: var(--ink-3); background: var(--surface-2); }
+.conn.lost { color: var(--bad); background: var(--bad-soft, color-mix(in srgb, var(--bad) 12%, transparent)); }
+.conn.lost i { animation: conn-blink 1s infinite; }
+@keyframes conn-blink { 50% { opacity: .2; } }
+.conn .btn { margin-left: 4px; }
+
+/* ---------- stuck problems: a card that can be closed ---------- */
+details.rank > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+details.rank > summary::-webkit-details-marker { display: none; }
+details.rank > summary::before { content: "▸"; color: var(--ink-3); transition: transform .15s; display: inline-block; }
+details.rank[open] > summary::before { transform: rotate(90deg); }
+details.rank > summary h2 { margin: 0; font-size: 1.1rem; }
+.rk-count { font-size: .76rem; font-weight: 800; color: var(--bad); background: var(--bad-soft, color-mix(in srgb, var(--bad) 12%, transparent)); border-radius: 999px; padding: 1px 8px; }
+details.rank[open] > .rk-head { margin-top: 10px; }
+details.rank .rk-head { justify-content: flex-end; }
+
+/* ---------- ranking: projector options ---------- */
+.bd-proj { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 10px; background: var(--surface-2); border-radius: 10px; }
+.bd-proj .seg button { border: 0; background: none; padding: 4px 10px; border-radius: 8px; font: inherit; font-size: .8rem; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.bd-proj .seg button.on { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+.bd-proj .btn-primary { margin-left: auto; }
+.bd-name .who-btn { padding: 0 4px; }
+
+/* ---------- one student's answers ---------- */
+.stu-sum { display: flex; gap: 18px; flex-wrap: wrap; padding: 4px 0 12px; border-bottom: 1px solid var(--line); margin-bottom: 10px; color: var(--ink-2); }
+.stu-sum b { font-family: var(--mono); color: var(--ink); font-size: 1.05rem; }
+.stu-prob { border-left: 3px solid var(--line-2); padding: 2px 0 8px 12px; margin-bottom: 12px; }
+.stu-prob.ok { border-left-color: var(--ok); } .stu-prob.bad { border-left-color: var(--bad); }
+.stu-prob h3 { margin: 0 0 4px; font-size: .95rem; }
+.stu-q { margin-bottom: 6px; }
+.stu-q .prob-text { margin: 6px 0; }
+.stu-tries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.stu-tries li { display: grid; grid-template-columns: 22px 52px 1fr; gap: 6px; align-items: start; }
+.st-mark { font-weight: 800; text-align: center; padding-top: 6px; }
+.stu-tries li.ok .st-mark { color: var(--ok); } .stu-tries li.bad .st-mark { color: var(--bad); }
+.st-time { font-size: .78rem; color: var(--ink-3); padding-top: 7px; }
+.stu-tries pre.sql { margin: 0; font-size: .82rem; }
+.stu-tries .quiz-ans { padding-top: 5px; }

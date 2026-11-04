@@ -127,7 +127,7 @@ export function createClient() {
       const subs = [];
       const ch = {
         on(_kind, opt, cb) { subs.push({ opt, cb }); return ch; },
-        subscribe() { ch.h = e => { for (const s of subs) { if (s.opt.table !== e.data.table) continue; if (s.opt.event !== '*' && s.opt.event !== e.data.type) continue; const [col, val] = (s.opt.filter || '=eq.').split('=eq.'); if (s.opt.filter && String(e.data.row[col]) !== val) continue; s.cb({ new: e.data.row }); } }; bc.addEventListener('message', ch.h); return ch; },
+        subscribe(status) { if (status) setTimeout(() => status(window.__mockRtFail ? 'CHANNEL_ERROR' : 'SUBSCRIBED'), 50); ch.h = e => { for (const s of subs) { if (s.opt.table !== e.data.table) continue; if (s.opt.event !== '*' && s.opt.event !== e.data.type) continue; const [col, val] = (s.opt.filter || '=eq.').split('=eq.'); if (s.opt.filter && String(e.data.row[col]) !== val) continue; s.cb({ new: e.data.row }); } }; bc.addEventListener('message', ch.h); return ch; },
         unsubscribe() { bc.removeEventListener('message', ch.h); }
       };
       return ch;
