@@ -134,11 +134,11 @@ export async function attempts(classId, sinceIso) {
 }
 export async function clearAttempts(classId) { const sb = await client(); check(await sb.from('attempts').delete().eq('class_id', classId)); }
 /** Live attempts + new members for the teacher dashboard. */
-export async function watchDashboard(classId, onAttempt, onMember) {
+export async function watchDashboard(classId, onAttempt, onMember, onStatus) {
   const sb = await client();
   const ch = sb.channel('dash-' + classId)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'attempts', filter: `class_id=eq.${classId}` }, p => onAttempt(p.new))
     .on('postgres_changes', { event: '*', schema: 'public', table: 'members', filter: `class_id=eq.${classId}` }, () => onMember())
-    .subscribe();
+    .subscribe(status => { if (onStatus) onStatus(status); });   // SUBSCRIBED · CHANNEL_ERROR · TIMED_OUT · CLOSED
   return () => sb.removeChannel(ch);
 }

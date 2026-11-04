@@ -48,8 +48,8 @@ def H(ja, en):
 
 # ------------------------------------------------------------------ SQL colouring
 KW = (r'\b(SELECT|FROM|WHERE|AND|OR|NOT|IN|BETWEEN|LIKE|IS|NULL|AS|ORDER|BY|ASC|DESC|DISTINCT|LIMIT|OFFSET|FETCH|FIRST|NEXT|ROWS|ONLY|'
-      r'INSERT|INTO|VALUES|UPDATE|SET|DELETE|GROUP|HAVING|COUNT|SUM|AVG|MAX|MIN|CREATE|TABLE|INTEGER|TEXT|DATE)\b')
-FN = {'COUNT', 'SUM', 'AVG', 'MAX', 'MIN'}
+      r'INSERT|INTO|VALUES|UPDATE|SET|DELETE|GROUP|HAVING|COUNT|SUM|AVG|MAX|MIN|CREATE|TABLE|INTEGER|TEXT|DATE|ROUND|SQRT|FLOOR|ABS)\b')
+FN = {'COUNT', 'SUM', 'AVG', 'MAX', 'MIN', 'ROUND', 'SQRT', 'FLOOR', 'ABS'}
 
 def color(t):
     """t is already HTML-escaped"""
@@ -227,7 +227,7 @@ def flow(left, arrow, right, cls=''):
     return f'<div class="flow {cls}"><div class="fl-col">{left}</div><div class="fl-arrow">{arrow}<b>→</b></div><div class="fl-col">{right}</div></div>'
 
 # ------------------------------------------------------------------ common mistakes
-def effect(wrong, right, dml_table=None):
+def effect(wrong, right, dml_table=None, max_rows=None):
     """what happens when the wrong SQL runs → (ja, en, visual html)"""
     if dml_table:
         try:
@@ -282,10 +282,14 @@ def effect(wrong, right, dml_table=None):
         t = (f'→ {len(wr)} {{行|ぎょう}}になる（{{正|ただ}}しくは {len(rr)} {{行|ぎょう}}）', f'→ {len(wr)} rows (correct: {len(rr)} rows)')
     else:
         t = ('→ {結果|けっか}の{値|あたい}がちがう', '→ different values in the result')
-    return t, cap('{実行|じっこう}{結果|けっか}', len(wr), 'bad') + table_html(wc, rows, cls)
+    more = ''
+    if max_rows and len(rows) > max_rows:      # a long result: the first rows only
+        more = f'<div class="more">… {J(f"{{全部|ぜんぶ}}で {len(wr)} {{行|ぎょう}}")}</div>'
+        rows, cls = rows[:max_rows], cls[:max_rows]
+    return t, cap('{実行|じっこう}{結果|けっか}', len(wr), 'bad') + table_html(wc, rows, cls) + more
 
 def mistake(m, dml_table=None):
-    (eja, een), out = effect(m['wrong'], m['right'], dml_table)
+    (eja, een), out = effect(m['wrong'], m['right'], dml_table, m.get('max_rows'))
     eff = f'<div class="eff">{B((eja, een))}</div>'
     if out:
         side = eff + (f'<div class="lost-note">{B(m["note"])}</div>' if m.get('note') else '')
@@ -323,7 +327,8 @@ def qr(url):
         QR_CACHE[url] = subprocess.run(['node', os.path.join(HERE, 'qr.mjs'), url], capture_output=True, text=True, check=True, cwd=HERE).stdout
     return QR_CACHE[url]
 
-LEVELS = {'beginner': ('{初級|しょきゅう}', 'Beginner', 3), 'intermediate': ('{中級|ちゅうきゅう}', 'Intermediate', 2), 'advanced': ('{上級|じょうきゅう}', 'Advanced', 1)}
+LEVELS = {'beginner': ('{初級|しょきゅう}', 'Beginner', 3), 'intermediate': ('{中級|ちゅうきゅう}', 'Intermediate', 2), 'advanced': ('{上級|じょうきゅう}', 'Advanced', 1),
+          'analysis': ('{分析|ぶんせき}', 'Data analysis', 0)}
 
 def mini_map(level):
     """three steps, one per volume; this volume's step is filled in its colour"""
@@ -335,7 +340,8 @@ def mini_map(level):
         out += f'<rect x="{6 + i * 38}" y="{80 - h}" width="32" height="{h}" rx="4" fill="{fill}" stroke="{c}" stroke-width="3"/>'
     return f'<svg class="map" viewBox="0 0 120 84" aria-hidden="true">{out}</svg>'
 
-TAGS = {'fe': ('{基本|きほん}{情報|じょうほう}', 'FE exam'), 'silver': ('Silver SQL', '')}
+TAGS = {'fe': ('{基本|きほん}{情報|じょうほう}', 'FE exam'), 'silver': ('Silver SQL', ''),
+        'sql': ('SQL', ''), 'excel': ('Excel', ''), 'python': ('Python', '')}
 
 def dialect(n):
     """a note about differences between DBMSs; (ja, en, 'mysql') is a note about MySQL"""
@@ -346,12 +352,12 @@ def lesson_html(L, level='beginner'):
     dml = L.get('dml_table')
     tags = ''.join(f'<span class="tag">{ruby(TAGS[t][0])}{f"<small>{TAGS[t][1]}</small>" if TAGS[t][1] else ""}</span>' for t in L.get('tags', ['fe', 'silver']))
     parts = [f'''<span class="marker">@@LESSON{L["no"]}@@</span><header class="head">
-  <div class="lvl"><span class="lvl-name">{ruby(lv_ja)}</span><span class="lvl-en">Lesson</span><span class="lvl-no">{L["no"]}</span></div>
+  <div class="lvl"><span class="lvl-name">{ruby(lv_ja)}</span><span class="lvl-en">{"Unit" if level == "analysis" else "Lesson"}</span><span class="lvl-no">{L["no"]}</span></div>
   <div class="title"><h1><span>{ruby(L["title"][0])}</span>{f'<span class="kwt">{ruby(L["kw"])}</span>' if L.get("kw") else ""}</h1><p class="h1en">{esc(L["title"][1])}</p></div>
   <div class="hqr">{qr(APP_URL + "#/l/" + L["key"])}<div>{ruby("アプリで{練習|れんしゅう}")}</div><div class="en">Practice in the app</div></div>
-  <div class="where-am-i">{mini_map(level)}<div class="tags">{tags}</div></div>
+  <div class="where-am-i">{"" if level == "analysis" else mini_map(level)}<div class="tags">{tags}</div></div>
 </header>
-<div class="goal">{B(L["goal"])}</div>''']
+{f'<div class="ask"><span class="ask-who">{ruby(L["ask"][0])}<small>{esc(L["ask"][1])}</small></span>{B(L["ask"][2:])}</div>' if L.get("ask") else ""}<div class="goal">{B(L["goal"])}</div>''']
     if L.get('syntax'):
         rows = ''.join(f'<div class="syn-row{" new" if r[3] else ""}"><div class="syn-sql">{slot_sql(r[0])}</div>{B((r[1], r[2]), cls="syn-lab")}</div>' for r in L['syntax'])
         notes = ''.join(dialect(n) for n in L.get('syntax_notes', []))
@@ -362,6 +368,8 @@ def lesson_html(L, level='beginner'):
         S = L['see']
         parts.append(f'''<section class="box see">{H("{見|み}てみる", "See it")}
   {B(S["q"], "p", "q")}{sql(S["sql"], S.get("mark"), "big")}{viz(S["viz"], S["sql"]) if S.get("viz") else ""}{B(S["note"], cls="note") if S.get("note") else ""}</section>''')
+    for extra in L.get('after_see', []):
+        parts.append(extra)
     if L.get('points'):
         lis = ''.join(f'<li>{B(p[0])}{p[1] if len(p) > 1 else ""}</li>' for p in L['points'])
         notes = ''.join(dialect(n) for n in L.get('notes', []))
@@ -370,6 +378,8 @@ def lesson_html(L, level='beginner'):
         parts.append(extra)
     if L.get('mistakes'):
         parts.append(f'<section class="box">{H("よくある{間違|まちが}い", "Common mistakes")}{"".join(mistake(m, dml) for m in L["mistakes"])}</section>')
+    if L.get('tools'):
+        parts.append(f'<div class="tools-pair">{"".join(L["tools"])}</div>')
     if L.get('try'):
         tt = L.get('try_title', ('やってみよう', 'Try it'))
         parts.append(f'<section class="box try">{H(*tt)}<ol class="tq">{"".join(task(i + 1, t, dml, L.get("dml_verb")) for i, t in enumerate(L["try"]))}</ol></section>')
@@ -381,11 +391,12 @@ def lesson_html(L, level='beginner'):
     return (f'<article class="lesson" id="L{L["no"]}"><div class="half"><div class="fit">' + '\n'.join(p1) +
             '</div></div><div class="half"><div class="fit">' + '\n'.join(p2) + '</div></div></article>')
 
-def build(name, front, lessons, level):
+def build(name, front, lessons, level, back='', title='SQL Textbook'):
     from front_common import theme_css
-    body = front + '\n'.join(lesson_html(L, level) for L in lessons)
-    doc = f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>SQL Textbook</title>
-<link rel="stylesheet" href="../page.css">{theme_css(level)}</head><body><main class="doc">{body}</main></body></html>'''
+    body = front + '\n'.join(lesson_html(L, level) for L in lessons) + back
+    foot = f'<style>@page {{ @bottom-left {{ content: "{title} · {LEVELS[level][1]}"; }} }}</style>'
+    doc = f'''<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>{title}</title>
+<link rel="stylesheet" href="../page.css">{theme_css(level)}{foot}</head><body><main class="doc {level}">{body}</main></body></html>'''
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, name + '.html'), 'w') as f:
         f.write(doc)
@@ -394,6 +405,16 @@ def build(name, front, lessons, level):
     print(f'✓ {name}: {len(lessons)} lessons, {len(MANIFEST)} SQL statements run')
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == 'analysis':
+        import content_analysis as CA
+        import front_analysis as FA
+        app = dict(json.loads(subprocess.run(['node', '-e', 'import("../next/js/lessons.js").then(m => console.log(JSON.stringify(m.LESSONS.map(l => [l.key, l.no]))))'],
+                                             cwd=HERE, capture_output=True, text=True, check=True).stdout))
+        bad = [f"{L['no']} '{L['key']}'" for L in CA.UNITS if app.get(L['key']) != L['no']]
+        if bad:
+            sys.exit('✕ not in the app with the same number: ' + ', '.join(bad))
+        build('analysis', FA.front(), CA.UNITS, 'analysis', FA.back(), 'Data Analysis Textbook')
+        sys.exit(0)
     import content_beginner as C
     import front_beginner as F
     # every Lesson must exist in the app with the same number (the QR codes open #/l/<key>)
