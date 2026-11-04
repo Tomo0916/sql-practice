@@ -348,6 +348,7 @@ export default {
   "order.pool": "Các mảnh",
   "order.remove": "Bỏ mảnh này",
   "order.tip": "Chạm vào một mảnh trong “SQL của bạn” để trả nó về.",
+  "order.dragTip": "Bạn cũng có thể kéo các mảnh vào vị trí, và kéo mảnh đã đặt để đổi thứ tự.",
   "order.fine": "Cấp 2: mỗi mảnh chỉ có một hoặc hai từ. Hãy ghép cả câu SQL theo thứ tự bạn viết.",
   /* ---- ph ---- */
   "ph.alias": "tên gọi",

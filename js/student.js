@@ -516,7 +516,7 @@ function orderHTML(prob) {
       <ol class="ord-ans ${run && run.grade && run.grade.ok ? 'ok' : ''}" aria-live="polite">${placed.length ? placed.map((id, i) => `<li><button class="ord-chip placed" data-act="unplace" data-id="${id}" aria-label="${esc(T('order.remove'))}"><span class="ord-n">${i + 1}</span><code>${highlightSQL(byId[id].text)}</code>${I.x}</button></li>`).join('') : `<li class="ord-empty">${H('order.empty')}</li>`}</ol>
       <div class="ord-label">${H('order.pool')}</div>
       <div class="ord-pool">${pool.map(c => `<button class="ord-chip" data-act="place" data-id="${c.id}"><code>${highlightSQL(c.text)}</code></button>`).join('') || `<span class="muted small">${H('order.allUsed')}</span>`}</div>
-      ${task.fine ? `<p class="ord-level">${H('order.fine')}</p>` : ''}<p class="muted small">${H('order.tip')}</p>
+      ${task.fine ? `<p class="ord-level">${H('order.fine')}</p>` : ''}<p class="muted small">${H('order.tip')} ${H('order.dragTip')}</p>
       <div class="actions">
         <button class="btn btn-primary btn-run" data-act="checkOrder" ${placed.length ? '' : 'disabled'}>${I.check}${H('fill.check')}</button>
         <button class="btn btn-ghost" data-act="resetOrder">${I.reset}${H('ed.reset')}</button>
@@ -760,6 +760,78 @@ const actions = {
   todaySet() { changeSet(null); },
   gloss(el) { openGloss(el.dataset.kw); }
 };
+/* ---------- ordering: pieces can also be dragged (mouse, pen and touch) ----------
+ * Tap still works as before. Drag a piece into "Your SQL" to put it at that place,
+ * drag a placed piece to change the order, or drag it back to the pieces. */
+let drag = null, justDragged = false;
+function dropSpot(x, y) {
+  const ans = document.querySelector('.order .ord-ans'), pool = document.querySelector('.order .ord-pool');
+  const inside = (el, pad) => { if (!el) return false; const r = el.getBoundingClientRect(); return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad; };
+  if (inside(ans, 16)) {
+    const items = [...ans.querySelectorAll('li > .ord-chip')].filter(b => b !== drag.chip);
+    // the first placed piece that the pointer is before (rows wrap in level 2)
+    const i = items.findIndex(b => { const r = b.getBoundingClientRect(); return y < r.top || (y <= r.bottom && x < r.left + r.width / 2); });
+    return { where: 'ans', before: i < 0 ? null : items[i] };
+  }
+  if (inside(pool, 16)) return { where: 'pool' };
+  return null;
+}
+function showSpot(spot) {
+  document.querySelectorAll('.drop-before, .drop-end, .drop-pool').forEach(el => el.classList.remove('drop-before', 'drop-end', 'drop-pool'));
+  if (!spot) return;
+  if (spot.where === 'pool') document.querySelector('.order .ord-pool').classList.add('drop-pool');
+  else if (spot.before) spot.before.parentNode.classList.add('drop-before');
+  else document.querySelector('.order .ord-ans').classList.add('drop-end');
+}
+function endDrag(apply) {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.ghost) d.ghost.remove();
+  d.chip.classList.remove('dragging');
+  document.body.classList.remove('ord-dragging');
+  showSpot(null);
+  if (!d.on) return;
+  justDragged = true; setTimeout(() => { justDragged = false; }, 0);
+  if (!apply || !d.spot) return;
+  const c = current(); if (!c) return;
+  const k = 'o:' + c.prob.id;
+  const list = (S.progress.drafts[k] || []).filter(x => x !== d.id);
+  if (d.spot.where === 'ans') {
+    const at = d.spot.before ? list.indexOf(d.spot.before.dataset.id) : -1;
+    if (at < 0) list.push(d.id); else list.splice(at, 0, d.id);
+  }
+  S.progress.drafts[k] = list; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']);
+}
+document.addEventListener('pointerdown', e => {
+  const chip = e.target.closest('.order .ord-chip');
+  if (!chip || e.button > 0 || drag) return;
+  drag = { chip, id: chip.dataset.id, x: e.clientX, y: e.clientY, on: false, pid: e.pointerId };
+});
+document.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.pid) return;
+  if (!drag.on) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;   // a small move is still a tap
+    drag.on = true;
+    const r = drag.chip.getBoundingClientRect();
+    drag.dx = drag.x - r.left; drag.dy = drag.y - r.top;
+    drag.ghost = drag.chip.cloneNode(true);
+    drag.ghost.className += ' ord-ghost';
+    drag.ghost.style.width = r.width + 'px';
+    document.body.appendChild(drag.ghost);
+    drag.chip.classList.add('dragging');
+    document.body.classList.add('ord-dragging');
+  }
+  e.preventDefault();
+  drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy}px)`;
+  drag.spot = dropSpot(e.clientX, e.clientY);
+  showSpot(drag.spot);
+}, { passive: false });
+document.addEventListener('pointerup', e => { if (drag && e.pointerId === drag.pid) endDrag(true); });
+document.addEventListener('pointercancel', () => endDrag(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drag) endDrag(false); });
+// the click that ends a drag must not also place / remove the piece
+document.addEventListener('click', e => { if (justDragged && e.target.closest('.order')) { e.stopPropagation(); e.preventDefault(); justDragged = false; } }, true);
+
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.tagName === 'SELECT') return;

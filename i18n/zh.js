@@ -348,6 +348,7 @@ export default {
   "order.pool": "片段",
   "order.remove": "移除这个片段",
   "order.tip": "点击“你的 SQL”中的片段可以放回下面。",
+  "order.dragTip": "也可以拖动片段来排列；拖动已放好的片段可以调整顺序。",
   "order.fine": "第2级：每个片段只有一两个词。按照书写 SQL 的顺序拼出完整语句。",
   /* ---- ph ---- */
   "ph.alias": "别名",

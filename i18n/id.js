@@ -348,6 +348,7 @@ export default {
   "order.pool": "Potongan",
   "order.remove": "Kembalikan potongan ini",
   "order.tip": "Ketuk potongan di “SQL Anda” untuk mengembalikannya.",
+  "order.dragTip": "Potongan juga bisa diseret ke tempatnya, dan potongan yang sudah diletakkan bisa diseret untuk mengubah urutan.",
   "order.fine": "Level 2: setiap potongan hanya satu atau dua kata. Susun seluruh SQL sesuai urutan menulisnya.",
   /* ---- ph ---- */
   "ph.alias": "nama alias",

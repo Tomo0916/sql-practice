@@ -348,6 +348,7 @@ export default {
   "order.pool": "Morceaux",
   "order.remove": "Retirer ce morceau",
   "order.tip": "Touchez un morceau dans « Votre SQL » pour le renvoyer en bas.",
+  "order.dragTip": "Vous pouvez aussi faire glisser les morceaux, et déplacer ceux déjà placés pour changer l’ordre.",
   "order.fine": "Niveau 2 : chaque morceau ne contient qu'un ou deux mots. Reconstituez tout le SQL dans l'ordre d'écriture.",
   /* ---- ph ---- */
   "ph.alias": "alias",

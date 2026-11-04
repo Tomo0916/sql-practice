@@ -348,6 +348,7 @@ export default {
   "order.pool": "Pieces",
   "order.remove": "Remove this piece",
   "order.tip": "Tap a piece in “Your SQL” to send it back.",
+  "order.dragTip": "You can also drag pieces into place, and drag placed pieces to change the order.",
   "order.fine": "Level 2: each piece is just one or two words. Build the whole SQL in the order you write it.",
   /* ---- ph ---- */
   "ph.alias": "alias",
