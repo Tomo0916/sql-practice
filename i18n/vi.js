@@ -32,6 +32,7 @@ export default {
   "L.groupby.point": "GROUP BY cột gom các dòng có cùng giá trị thành một nhóm. Hàm tổng hợp tính theo từng nhóm, nên mỗi nhóm cho ra một dòng.",
   "L.groupby.title": "Tổng hợp theo nhóm: GROUP BY",
   "L.having.desc": "Trong bảng {t}, với mỗi {cat}, tính {f} của {c}, rồi chỉ hiển thị {cat} và giá trị đó cho những nhóm có giá trị từ {x} trở lên.",
+  "L.having.descCount": "Trong bảng {t}, đếm số hàng của mỗi {cat}, rồi chỉ hiển thị {cat} và số hàng cho những nhóm có từ {x} hàng trở lên.",
   "L.having.point": "HAVING đặt điều kiện cho nhóm sau khi tổng hợp. WHERE lọc dòng trước khi gom nhóm, HAVING lọc nhóm sau đó.",
   "L.having.title": "Lọc nhóm: HAVING",
   "L.inner.desc": "Nối {L} và {R} bằng INNER JOIN với điều kiện {on}, rồi lấy tất cả các cột.",

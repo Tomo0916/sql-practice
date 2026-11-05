@@ -208,7 +208,7 @@ export const LESSONS = [
     key: 'between', no: 6, ch: 'filter', kind: 'single',
     syntax: 'SELECT * FROM {table} WHERE {col} BETWEEN {min} AND {max};   -- IN (…)',
     keywords: ['SELECT', '*', 'FROM', 'WHERE', 'BETWEEN', 'AND', 'IN', '()', "''"],
-    demo: { ds: 'products', p: { t: 'products', c: 'price', lo: 2000, hi: 4000 } },
+    demo: { ds: 'products', p: { t: 'products', c: 'price', lo: 2200, hi: 3500 } },   // both ends are prices in the table: BETWEEN includes them
     gen(ds, R) {
       if (IN_THEMES.has(ds.table)) {   // a list of candidates: IN (…)
         const g = groupsOf(ds, ds.roles.cat);
@@ -291,7 +291,7 @@ export const LESSONS = [
     key: 'limit', no: 11, ch: 'sort', kind: 'single',
     syntax: 'SELECT {col}, {col} FROM {table} ORDER BY {col} DESC LIMIT {n};   -- OFFSET {skip}',
     keywords: ['SELECT', 'FROM', 'ORDER BY', 'ASC', 'DESC', 'LIMIT', 'OFFSET'],
-    demo: { ds: 'products', p: { t: 'products', name: 'name', c: 'price', ord: 'desc', k: 3, skip: 0 } },
+    demo: { ds: 'products', p: { t: 'products', name: 'name', c: 'price', ord: 'desc', k: 3, skip: 2, a: 3 } },   // shows OFFSET too
     gen(ds, R) {
       const r = ds.roles, skip = R.next() < 0.35 ? R.int(2, 4) : 0;
       return { t: ds.table, name: r.name, c: R.pick([r.n1, r.n2]), ord: R.pick(['desc', 'asc']), k: R.int(2, 4), skip, a: skip + 1 };
@@ -378,7 +378,7 @@ export const LESSONS = [
     key: 'groupby', no: 16, ch: 'agg', kind: 'single',
     syntax: 'SELECT {group}, COUNT(*), AVG({num}) FROM {table} GROUP BY {group};',
     keywords: ['SELECT', 'COUNT(*)', 'SUM()', 'AVG()', 'MAX()', 'MIN()', 'FROM', 'GROUP BY'],
-    demo: { ds: 'products', p: { t: 'products', cat: 'category', f: 'AVG', c: 'price' } },
+    demo: { ds: 'products', p: { t: 'products', cat: 'category', f: 'MAX', c: 'price' } },   // MAX: whole numbers on the screen (AVG gives 4166.666…)
     gen(ds, R) { return { t: ds.table, cat: ds.roles.cat, f: R.pick(AGG4), c: R.pick([ds.roles.n1, ds.roles.n2]) }; },
     sql: p => `SELECT ${p.cat}, COUNT(*), ${fn(p.f, p.c)} FROM ${p.t} GROUP BY ${p.cat};`,
     blanks: ['cat'],
@@ -389,6 +389,7 @@ export const LESSONS = [
     syntax: 'SELECT {group}, AVG({num}) FROM {table} GROUP BY {group} HAVING AVG({num}) >= {value};',
     keywords: ['SELECT', 'COUNT(*)', 'SUM()', 'AVG()', 'MAX()', 'MIN()', 'FROM', 'GROUP BY', 'HAVING', '>='],
     demo: { ds: 'products', p: { t: 'products', cat: 'category', f: 'COUNT', c: 'price', x: 2 } },
+    descKey: p => (p.f === 'COUNT' ? 'L.having.descCount' : 'L.having.desc'),   // COUNT(*) counts rows, not a column
     gen(ds, R, ctx) {
       const f = R.pick(AGG4), c = R.pick([ds.roles.n1, ds.roles.n2]);
       const vals = ctx.values(`SELECT ${fn(f, c)} FROM ${ds.table} GROUP BY ${ds.roles.cat};`).map(r => r[0]).sort((a, b) => a - b);

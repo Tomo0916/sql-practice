@@ -32,6 +32,7 @@ export default {
   "L.groupby.point": "GROUP BY 列 会把该列值相同的行分成一组。聚合函数按组计算，每组得到一行。",
   "L.groupby.title": "按组汇总：GROUP BY",
   "L.having.desc": "在 {t} 表中，按 {cat} 求 {c} 的{f}，只取出该值大于等于 {x} 的组的 {cat} 和{f}。",
+  "L.having.descCount": "在 {t} 表中，按 {cat} 统计行数，只取出行数大于等于 {x} 的组的 {cat} 和行数。",
   "L.having.point": "HAVING 在聚合之后对分组设置条件。WHERE 在分组前筛选“行”，HAVING 在分组后筛选“组”。",
   "L.having.title": "筛选组：HAVING",
   "L.inner.desc": "用 INNER JOIN 按 {on} 连接 {L} 和 {R}，取出所有列。",
