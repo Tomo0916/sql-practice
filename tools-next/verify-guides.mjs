@@ -18,6 +18,7 @@ for (const L of LESSONS.filter(l => l.themes === 'analysis')) for (const code of
     if (seen.has(p.sql)) continue; seen.add(p.sql);
     const fill = s => s.replace(/\{(\w+)\}/g, (m, k) => (k in p.p ? String(p.p[k]) : m));
     const cells = guideSteps(L.key, p.p.w, 'python').filter(s => s.code && !/plt\./.test(s.code)).map(s => fill(s.code));
+    if (p.answer !== undefined) continue;   // a reading question: no guide
     const res = eng.exec(p.sql);
     cases.push({ id: `${L.key}/${p.p.w || '_'}/${p.p.t}`, tables: p.tables, cells, expect: res.values.flat().filter(v => typeof v === 'number') });
   }

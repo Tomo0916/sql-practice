@@ -873,5 +873,8 @@ export default {
   "step.dmlLook": "先看看修改前的表（INSERT、UPDATE、DELETE 会改写表本身，所以先确认原来的样子）。",
   "step.updTarget": "用 SELECT 试一下 WHERE 的条件，确认要修改的行。只有这些行会改变。",
   "step.delTarget": "用 SELECT 试一下 WHERE 的条件，确认要删除的行。这些行会消失。",
-  "pres.deleted": "被删除的行"
+  "pres.deleted": "被删除的行",
+  "read.result": "要读取的结果",
+  "inst.choice": "阅读结果，选择正确答案。",
+  "dx.choiceWrong": "不对。请再读一遍结果和题目。"
 };

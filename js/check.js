@@ -17,7 +17,7 @@ export const CHECK_PRESETS = {
   orderOnly: { fill: 0, order1: 2, order2: 2, write: 0 },
   writeMain: { fill: 0, order1: 0, order2: 0, write: 2 },
 };
-export const checkLessons = () => LESSONS.filter(l => l.kind !== 'quiz');
+export const checkLessons = () => LESSONS.filter(l => l.kind !== 'quiz' && !l.noTest);
 
 export function normCheck(c) {
   c = c || {};

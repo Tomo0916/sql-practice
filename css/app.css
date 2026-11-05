@@ -804,3 +804,14 @@ body.pj-open { overflow: hidden; }
 .raw-vals .rv { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; background: var(--surface-2); }
 .raw-vals .rv code { font-family: var(--mono); white-space: pre; }
 .raw-vals .rv b { color: var(--ink-3); font-size: .85em; }
+/* reading questions (A13) and the project's last step */
+.quiz-read { display: flex; flex-direction: column; gap: 14px; }
+.read-box { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--surface-2); }
+.read-box .data-box { margin-top: 6px; max-height: 320px; overflow: auto; background: var(--surface); border-radius: 8px; }
+.choices { display: grid; gap: 8px; }
+.choice { text-align: left; font: inherit; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line-2); background: var(--surface); color: var(--ink); cursor: pointer; line-height: 1.5; }
+.choice:hover { border-color: var(--accent); }
+.choice.ok { border-color: var(--ok); background: var(--ok-soft); }
+.choice.bad { border-color: var(--bad); background: var(--bad-soft); }
+.choice code { font-family: var(--mono); font-size: .92em; }
+.hint-body .why { margin: 8px 0 0; color: var(--ink-2); }

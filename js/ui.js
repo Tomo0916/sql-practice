@@ -131,6 +131,15 @@ export function problemHTML(prob, lang) {
   if (lesson.phrases) Object.entries(lesson.phrases(p)).forEach(([k, [key, v]]) => { vars[k] = th(key, lang, Object.fromEntries(Object.entries(v).map(([a, b]) => [a, `<code>${esc(b)}</code>`]))); });
   return th(lesson.descKey ? lesson.descKey(p) : `L.${prob.lesson}.desc`, lang, vars);
 }
+/** the text of a choice (a key like 'median' → its words; raw choices are data values) */
+export function choiceHTML(prob, key, lang) {
+  if (prob.p.raw) return esc(String(key));
+  const vars = {};
+  Object.keys(prob.p).forEach(k => { if (typeof prob.p[k] !== 'object') vars[k] = `<code>${esc(prob.p[k])}</code>`; });
+  return th(`L.${prob.lesson}.c_${key}`, lang, vars);
+}
+/** the answer of a question, as words */
+export function answerTextHTML(prob, lang) { return prob.p && prob.p.choices ? choiceHTML(prob, prob.answer, lang) : esc(String(prob.answer)); }
 export function syntaxHint(lesson, lang) {
   return lesson.syntax.replace(/\{(\w+)\}/g, (m, k) => `‹${t('ph.' + k, lang)}›`);
 }

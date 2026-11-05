@@ -795,8 +795,104 @@ export const LESSONS = [
         : [['step.from', `SELECT * FROM ${p.t} ORDER BY ${p.a};`], ['step.case', `SELECT ${p.a}, CASE WHEN ${p.a} < ${p.c1} THEN ${lit(p.l1)} WHEN ${p.a} < ${p.c2} THEN ${lit(p.l2)} ELSE ${lit(p.l3)} END AS band FROM ${p.t};`], ['step.group', LESSON_SQL.an_clean(p)]],
     chart: p => ({ type: 'bar', label: 0, value: 1 }),
     stat: 'clean'
+  },
+  /* =================== A13: reading results (choose the right reading) =================== */
+  {
+    key: 'an_read', no: 'A13', ch: 'analysis', kind: 'quiz', themes: 'analysis',
+    stages: ['demo', 'quiz', 'quiz', 'quiz', 'quiz', 'quiz'],
+    syntax: '',
+    keywords: [],
+    demo: { ds: 'kumo_orders', p: { q: 'center' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, q = (want && want.q) || R.pick(['center', 'corr', 'cause', 'share', 'trend', 'outlier']);
+      const base = { t: ds.table, q, g: r.g, v: r.v, v3: r.v3, opt: r.opt, dt: r.dt, id: r.id };
+      if (q === 'center') {
+        const p = Object.assign(base, { k: (ds.rows.length - 1) / 2 });
+        const [mean, med] = ctx.values(LESSON_SQL.an_read(p))[0];
+        const gap = Math.abs(mean - med) / Math.abs(med);
+        if (gap > 0.03 && gap < 0.06) return null;   // clearly the same, or clearly apart
+        return Object.assign(p, { choices: ['mean', 'median', 'same'], ans: gap <= 0.03 ? 'same' : 'median' });
+      }
+      if (q === 'corr') {
+        const rows = ctx.values(LESSON_SQL.an_corr({ t: ds.table, w: 'group', g: r.g, v: r.v, v3: r.v3, sq: 'SQRT' }));
+        const cat = x => (Math.abs(x) >= 0.7 ? 'strong' : Math.abs(x) >= 0.4 ? 'moderate' : Math.abs(x) >= 0.2 ? 'weak' : 'none');
+        const near = x => [0.2, 0.4, 0.7].some(b => Math.abs(Math.abs(x) - b) < 0.03);
+        const ok = rows.filter(x => !near(x[2]));
+        if (!ok.length) return null;
+        const pick = R.pick(ok);
+        return Object.assign(base, { x: pick[0], choices: ['strong', 'moderate', 'weak', 'none'], ans: cat(pick[2]) });
+      }
+      if (q === 'cause') {
+        const rv = ctx.values(LESSON_SQL.an_corr({ t: ds.table, w: 'r', g: r.g, v: r.v, v3: r.v3, sq: 'SQRT' }))[0][1];
+        if (Math.abs(rv) < 0.4) return null;
+        return Object.assign(base, { choices: R.shuffle(['tend', 'cause', 'noRel']), ans: 'tend' });
+      }
+      if (q === 'share') {
+        const rows = ctx.values(LESSON_SQL.an_cross({ t: ds.table, w: 'rate', g: r.g, opt: r.opt, v: r.v, k: '100.0' }));
+        const most = rows.slice().sort((a, b) => b[2] - a[2])[0][0];
+        if (most === rows[0][0] || rows[0][3] === rows[1][3]) return null;   // the count and the share must point to different groups
+        return Object.assign(base, { choices: rows.map(x => x[0]).sort(), raw: true, ans: rows[0][0] });
+      }
+      if (q === 'trend') {
+        const rows = ctx.values(LESSON_SQL.an_trend({ t: ds.table, w: 'mom', dt: r.dt, v: r.v, lag: 'LAG' })).filter(x => x[2] !== null);
+        const best = rows.slice().sort((a, b) => b[2] - a[2]), top = rows.slice().sort((a, b) => b[1] - a[1])[0][0];
+        if (best[0][2] === best[1][2] || top === best[0][0]) return null;
+        const others = R.shuffle(rows.map(x => x[0]).filter(m => m !== best[0][0] && m !== top)).slice(0, 2);
+        return Object.assign(base, { choices: [best[0][0], top, ...others].sort(), raw: true, ans: best[0][0] });
+      }
+      // outlier: how many of the 5 largest z-scores are 3 or more
+      const [m, sd] = ctx.values(`SELECT ROUND(AVG(${r.v}), 1), ROUND(SQRT((SUM(${r.v} * ${r.v}) - 1.0 * SUM(${r.v}) * SUM(${r.v}) / COUNT(*)) / (COUNT(*) - 1)), 1) FROM ${ds.table};`)[0];
+      const p = Object.assign(base, { q: 'outlier', w: 'top', m: Number(m).toFixed(1), s: Number(sd).toFixed(1), ab: 'ABS' });
+      const z = ctx.values(LESSON_SQL.an_zscore(p)).map(x => x[2]);
+      if (z.some(x => Math.abs(x - 3) < 0.05)) return null;
+      return Object.assign(p, { choices: ['0', '1', '2', '3', '4', '5'], raw: true, ans: String(z.filter(x => x >= 3).length) });
+    },
+    descKey: p => `L.an_read.q_${p.q}`,
+    sql: p => p.q === 'center' ? `SELECT ROUND(AVG(${p.v}), 1) AS mean_${p.v}, (SELECT ${p.v} FROM ${p.t} ORDER BY ${p.v} LIMIT 1 OFFSET ${p.k}) AS median_${p.v}, MAX(${p.v}) AS max_${p.v} FROM ${p.t};`
+      : p.q === 'corr' ? LESSON_SQL.an_corr({ t: p.t, w: 'group', g: p.g, v: p.v, v3: p.v3, sq: 'SQRT' })
+      : p.q === 'cause' ? LESSON_SQL.an_corr({ t: p.t, w: 'r', g: p.g, v: p.v, v3: p.v3, sq: 'SQRT' })
+      : p.q === 'share' ? LESSON_SQL.an_cross({ t: p.t, w: 'rate', g: p.g, opt: p.opt, v: p.v, k: '100.0' })
+      : p.q === 'trend' ? LESSON_SQL.an_trend({ t: p.t, w: 'mom', dt: p.dt, v: p.v, lag: 'LAG' })
+      : LESSON_SQL.an_zscore(p),
+    chart: p => (p.q === 'share' ? { type: 'bar', label: 0, value: 3 } : p.q === 'trend' ? { type: 'line', label: 0, value: 1 } : p.q === 'corr' ? { type: 'bar', label: 0, value: 2 } : null),
+    blanks: [],
+    stat: 'read'
+  },
+
+  /* =================== A14: a small project (the same data, step by step, to one decision) =================== */
+  {
+    key: 'an_case', no: 'A14', ch: 'analysis', kind: 'single', themes: 'analysis', noTest: true,
+    stages: ['demo', 'write', 'write', 'write', 'write', 'quiz'],
+    syntax: 'SELECT {group}, SUM(CASE WHEN {cond} THEN {num} ELSE 0 END) FROM {table} GROUP BY {group};',
+    keywords: ['SELECT', 'COUNT(*)', 'COUNT()', 'SUM()', 'AVG()', 'ROUND()', 'CASE WHEN', 'THEN', 'ELSE', 'END', 'IS NULL', 'IS NOT NULL', 'FROM', 'INNER JOIN', 'ON', 'GROUP BY', 'ORDER BY', 'DESC', 'AS', '()', '<', '>='],
+    demo: { ds: 'kumo_orders', p: { w: 'overview' } },
+    fixed: [
+      { w: 'overview', t: 'kumo_orders' },
+      { w: 'coupon', t: 'kumo_orders' },
+      { w: 'half', t: 'kumo_orders' },
+      { w: 'effect', t: 'kumo_orders' },
+      { w: 'members', t: 'kumo_orders', t2: 'kumo_accounts' },
+      { w: 'decide', t: 'kumo_orders', raw: true, choices: ['Online', 'Sakae', 'Shibuya', 'Umeda'] }
+    ],
+    gen() { return null; },
+    descKey: p => `L.an_case.desc_${p.w}`,
+    sql: p => ({
+      overview: 'SELECT store, COUNT(*) AS n, SUM(amount) AS total_amount, ROUND(AVG(amount), 1) AS mean_amount FROM kumo_orders GROUP BY store ORDER BY total_amount DESC;',
+      coupon: 'SELECT store, COUNT(*) AS n, ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS pct_coupon FROM kumo_orders GROUP BY store ORDER BY pct_coupon;',
+      half: "SELECT store, SUM(CASE WHEN order_date < '2025-07-01' THEN amount ELSE 0 END) AS first_half, SUM(CASE WHEN order_date >= '2025-07-01' THEN amount ELSE 0 END) AS second_half FROM kumo_orders GROUP BY store ORDER BY store;",
+      effect: 'SELECT store, ROUND(AVG(CASE WHEN coupon IS NOT NULL THEN amount END), 1) AS with_coupon, ROUND(AVG(CASE WHEN coupon IS NULL THEN amount END), 1) AS without_coupon FROM kumo_orders GROUP BY store ORDER BY store;',
+      members: "SELECT kumo_orders.store, COUNT(*) AS n, ROUND(100.0 * SUM(CASE WHEN kumo_accounts.plan = 'Regular' THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_regular FROM kumo_orders INNER JOIN kumo_accounts ON kumo_orders.customer_id = kumo_accounts.customer_id GROUP BY kumo_orders.store ORDER BY pct_regular DESC;",
+      decide: "SELECT store, ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS pct_coupon, SUM(CASE WHEN order_date >= '2025-07-01' THEN amount ELSE 0 END) - SUM(CASE WHEN order_date < '2025-07-01' THEN amount ELSE 0 END) AS growth FROM kumo_orders GROUP BY store ORDER BY store;"
+    })[p.w],
+    /* the answer of the last step: of the stores whose sales grew in the second half, the one with the lowest coupon use */
+    answerOf(rows) { const grew = rows.filter(x => x[2] > 0); return (grew.length ? grew : rows).slice().sort((a, b) => a[1] - b[1])[0][0]; },
+    blanks: [],
+    steps: p => [['step.from', `SELECT * FROM ${p.t};`], ['step.group', ({ overview: 'SELECT store, COUNT(*) AS n FROM kumo_orders GROUP BY store;', coupon: 'SELECT store, COUNT(*) AS n, COUNT(coupon) AS with_coupon FROM kumo_orders GROUP BY store;', half: "SELECT store, order_date, amount, CASE WHEN order_date < '2025-07-01' THEN 'first' ELSE 'second' END AS half FROM kumo_orders;", effect: "SELECT store, coupon, amount FROM kumo_orders ORDER BY store;", members: 'SELECT kumo_orders.store, kumo_accounts.plan FROM kumo_orders INNER JOIN kumo_accounts ON kumo_orders.customer_id = kumo_accounts.customer_id;', decide: 'SELECT store FROM kumo_orders GROUP BY store;' })[p.w]]],
+    chart: p => ({ overview: { type: 'bar', label: 0, value: 2 }, coupon: { type: 'bar', label: 0, value: 2 }, half: { type: 'bar', label: 0, value: [1, 2] }, effect: { type: 'bar', label: 0, value: [1, 2] }, members: { type: 'bar', label: 0, value: 2 }, decide: { type: 'bar', label: 0, value: 1 } })[p.w],
+    stat: 'case'
   }
 ];
+
 
 
 /** themes where Lesson 6 asks for IN (…) instead of BETWEEN */

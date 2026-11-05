@@ -591,3 +591,71 @@ Object.assign(GUIDE, {
     }
   }
 });
+
+/* A13 / A14: reading results, and a small project */
+Object.assign(STAT, {
+  an_read: {
+    en: [
+      ['h', 'Five questions before you believe a number'],
+      ['li', ['Typical value: mean or median? (Are there very large values?)', 'Count or share? (Are the groups the same size?)', 'How strong? (Look at r, and at the scatter plot)', 'Cause or only together? (Could a third thing move both?)', 'Unusual or normal? (How far from the mean, in standard deviations?)']],
+      ['p', 'Wrong readings are more dangerous than wrong SQL: the SQL is checked by the computer, the reading only by you.']
+    ],
+    ja: [
+      ['h', '数字を信じる前の 5つの問い'],
+      ['li', ['ふつうの値：平均？中央値？（とても大きな値はない？）', '数？割合？（グループの大きさは同じ？）', 'どれくらい強い？（r と散布図を見る）', '原因？いっしょに動くだけ？（第3のものが両方を動かしていない？）', 'めずらしい？ふつう？（平均から標準偏差いくつ分？）']],
+      ['p', '読み間違いは、SQL の間違いより危険です。SQL はコンピュータが確かめてくれますが、読み取りを確かめるのは自分だけです。']
+    ],
+    easy: [
+      ['h', '{数字|すうじ}を {信|しん}じる {前|まえ}の 5つの {問|と}い'],
+      ['li', ['ふつうの {値|あたい}：{平均|へいきん}？{中央値|ちゅうおうち}？', '{数|かず}？{割合|わりあい}？（グループの {大|おお}きさは {同|おな}じ？）', 'どれくらい {強|つよ}い？（r と {散布図|さんぷず}）', '{原因|げんいん}？いっしょに {動|うご}くだけ？', 'めずらしい？ふつう？（z を {見|み}る）']],
+      ['p', '{読|よ}み{間違|まちが}いは、SQL の {間違|まちが}いより あぶないです。{読|よ}みとりを たしかめるのは {自分|じぶん}だけです。']
+    ]
+  },
+  an_case: {
+    en: [
+      ['h', 'From a question to a decision'],
+      ['li', ['1. Make the question clear (what will be decided?)', '2. Look at the whole picture', '3. Compare (shares, before/after, with/without)', '4. Check who is behind the numbers (JOIN)', '5. Decide, and say why with numbers']],
+      ['h', 'A one-sentence report'],
+      ['f', 'Conclusion + reason with numbers + what to watch'],
+      ['p', 'Example: “Give the coupons in Umeda: its sales grew in the second half, but only 30% of its orders use a coupon. Watch whether the mean amount falls.”']
+    ],
+    ja: [
+      ['h', '問いから決定まで'],
+      ['li', ['1. 問いをはっきりさせる（何を決める？）', '2. 全体像を見る', '3. 比べる（割合、前と後、あり・なし）', '4. 数字の後ろにいる人を見る（JOIN）', '5. 決めて、数字で理由を言う']],
+      ['h', '1文の報告'],
+      ['f', '結論 ＋ 数字の理由 ＋ 気をつけること'],
+      ['p', '例：「クーポンは梅田店で配る。下半期に売上が伸びているのに、クーポンを使う注文は 30% しかない。平均金額が下がらないか見ていく。」']
+    ],
+    easy: [
+      ['h', '{問|と}いから きめるまで'],
+      ['li', ['1. {問|と}いを はっきり させる', '2. ぜんたいを {見|み}る', '3. くらべる（{割合|わりあい}、{前|まえ}と {後|あと}、あり・なし）', '4. {数字|すうじ}の うしろの {人|ひと}を {見|み}る（JOIN）', '5. きめて、{数字|すうじ}で {理由|りゆう}を {言|い}う']],
+      ['h', '1{文|ぶん}の {報告|ほうこく}'],
+      ['f', '{結論|けつろん} ＋ {数字|すうじ}の {理由|りゆう} ＋ {気|き}を つける こと'],
+      ['p', '{例|れい}：「クーポンは {梅田|うめだ}{店|てん}で くばる。{売上|うりあげ}が のびているのに、クーポンを {使|つか}う {注文|ちゅうもん}は 30% しか ない。」']
+    ]
+  }
+});
+Object.assign(GUIDE, {
+  an_case: {
+    overview: {
+      excel: [...XL_OPEN, PIVOT('store', 'amount (3 times)'), S('Value Field Settings: Count, Sum, Average. Sort by the sum, largest first.', '値フィールドの設定：「個数」「合計」「平均」。合計の大きい順に。', '「{個数|こすう}」「{合計|ごうけい}」「{平均|へいきん}」。{合計|ごうけい}の {大|おお}きい {順|じゅん}に。')],
+      python: [...PY_OPEN, S('Per store:', '店舗ごとに：', '{店|みせ}ごとに：', 'df.groupby("store")["amount"].agg(["count", "sum", "mean"]).round(1).sort_values("sum", ascending=False)')]
+    },
+    coupon: {
+      excel: [...XL_OPEN, PIVOT('store', 'store and coupon'), S('Both Count; next to it: coupon ÷ orders × 100, 1 decimal place.', 'どちらも「個数」。横に：クーポン ÷ 注文数 × 100（小数第1位）。', 'どちらも「{個数|こすう}」。{横|よこ}に {割合|わりあい}を {計算|けいさん}します。', '=ROUND(100*C5/B5,1)')],
+      python: [...PY_OPEN, S('Orders and coupon share per store:', '店舗ごとの注文数とクーポンの割合：', '{店|みせ}ごとの {注文|ちゅうもん}と クーポンの {割合|わりあい}：', 's = df.groupby("store").agg(n=("coupon", "size"), used=("coupon", "count"))\ns["pct_coupon"] = (100 * s["used"] / s["n"]).round(1)\ns.sort_values("pct_coupon")')]
+    },
+    half: {
+      excel: [...XL_OPEN, S('Add a column half:', '列 half を足します：', '{列|れつ} half を {足|た}します：', '=IF([@order_date]<DATE(2025,7,1),"first_half","second_half")'), S('Insert → PivotTable: store to Rows, half to Columns, Sum of amount to Values.', '挿入 → ピボットテーブル：store を「行」、half を「列」、amount の合計を「値」に。', 'store を「{行|ぎょう}」、half を「{列|れつ}」、amount の {合計|ごうけい}を「{値|あたい}」に。')],
+      python: [...PY_OPEN, S('Before and from 2025-07-01:', '2025-07-01 より前と後：', '2025-07-01 より {前|まえ}と {後|あと}：', 'df["half"] = (df["order_date"] >= "2025-07-01").map({False: "first_half", True: "second_half"})\ndf.pivot_table(index="store", columns="half", values="amount", aggfunc="sum")')]
+    },
+    effect: {
+      excel: [...XL_OPEN, S('Add a column has_coupon: =IF([@coupon]="","no","yes"). PivotTable: store to Rows, has_coupon to Columns, Average of amount to Values.', '列 has_coupon（=IF([@coupon]="","no","yes")）を足し、ピボットテーブル：store を「行」、has_coupon を「列」、amount の平均を「値」に。', '{列|れつ} has_coupon を {足|た}し、store を「{行|ぎょう}」、has_coupon を「{列|れつ}」、amount の {平均|へいきん}を「{値|あたい}」に。')],
+      python: [...PY_OPEN, S('Mean amount with and without coupon, per store:', '店舗ごとの、クーポンあり・なしの平均金額：', '{店|みせ}ごとの クーポン あり・なしの {平均|へいきん}：', 'df["has_coupon"] = df["coupon"].notna()\ndf.pivot_table(index="store", columns="has_coupon", values="amount", aggfunc="mean").round(1)')]
+    },
+    members: {
+      excel: [...XL_OPEN, S('Download kumo_accounts too and make it a table. In kumo_orders add the plan:', 'kumo_accounts もダウンロードしてテーブルにし、kumo_orders に plan を足します：', 'kumo_accounts も テーブルに し、kumo_orders に plan を {足|た}します：', '=XLOOKUP([@customer_id],kumo_accounts[customer_id],kumo_accounts[plan])'), S('PivotTable: store to Rows, plan to Columns, Count to Values; Show Values As → % of Row Total.', 'ピボットテーブル：store を「行」、plan を「列」、個数を「値」に。計算の種類 → 行集計に対する比率。', 'store を「{行|ぎょう}」、plan を「{列|れつ}」に し、{行|ぎょう}の {合計|ごうけい}に {対|たい}する {比率|ひりつ}を {出|だ}します。')],
+      python: [...PY_OPEN, S('Join the customers and find the Regular share per store:', '顧客を合わせ、店舗ごとの Regular の割合：', 'お{客|きゃく}を あわせ、{店|みせ}ごとの Regular の {割合|わりあい}：', 'acc = pd.read_csv("kumo_accounts.csv")\nm = df.merge(acc, on="customer_id")\ns = m.groupby("store").agg(n=("plan", "size"), pct_regular=("plan", lambda x: round(100 * (x == "Regular").mean(), 1)))\ns.sort_values("pct_regular", ascending=False)')]
+    }
+  }
+});

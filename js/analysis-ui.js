@@ -145,7 +145,7 @@ export function saveFile(filename, text, type) {
 
 /** buttons under the problem: the same question in Excel / Python */
 export function toolsHTML(prob, lang, setCode, fmtKey) {
-  if (prob.kind === 'review') return '';
+  if (prob.kind === 'review' || prob.answer !== undefined) return '';   // a question to read and choose: no Excel / Python steps
   const q = tool => `guide/?l=${encodeURIComponent(prob.lesson)}&i=${prob.idx}&set=${encodeURIComponent(setCode)}&tool=${tool}&lang=${encodeURIComponent(lang)}${fmtKey ? '&f=' + fmtKey : ''}`;
   return `<div class="an-tools"><span class="muted small">${th('an.toolsTip', lang)}</span>
     <a class="btn btn-ghost btn-sm" href="${q('excel')}" target="_blank" rel="noopener"><span class="tool-ic xl">X</span>${th('an.excel', lang)}</a>

@@ -20,7 +20,7 @@ import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
 import * as backend from './backend.js';
-import { I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
+import { answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -315,9 +315,9 @@ function updateFormatSummary() {
 
 function stageName(p) { return (p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? T('stage.orderN', { n: p.wn }) : T('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + T('drill.lv2') : ''); }
 function stageNameH(p) { return (p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + H('drill.lv2') : ''); }
-const isQuiz = p => LESSON_BY_KEY[p.lesson].kind === 'quiz';
+const isQuiz = p => p.answer !== undefined || LESSON_BY_KEY[p.lesson].kind === 'quiz';
 /** the answer of a problem: SQL, or the value for Lesson 0 */
-const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${esc(String(p.answer))}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>${altsHTML(p)}`);
+const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${answerTextHTML(p, L())}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>${altsHTML(p)}`);
 /** other correct answers (別解), closed */
 function altsHTML(p) {
   const alts = altAnswers(S.engine, p);
@@ -653,7 +653,7 @@ function testHTML() {
     <label class="fld"><span>${H('test.second')}</span><select data-tk="bilingual"><option value="">${esc(T('set.secondNone'))}</option>${LANGS.filter(l => l.code !== o.tlang).map(l => `<option value="${l.code}" ${o.bilingual === l.code ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label>
     <div class="fld"><span>${H('test.lessons')}</span>
       <div class="row-btns left"><button class="btn btn-ghost btn-xs" data-act="testAll">${H('test.all')}</button><button class="btn btn-ghost btn-xs" data-act="testNone">${H('test.none')}</button>${S.klass ? `<button class="btn btn-ghost btn-xs" data-act="testClass">${H('tc.fromClass')}</button>` : ''}</div>
-      <div class="lesson-pick compact">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>${LESSONS.filter(l => l.ch === ch.key && l.kind !== 'quiz').map(l => `<label class="chk"><input type="checkbox" data-tl="${l.key}" ${o.lessons.includes(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
+      <div class="lesson-pick compact">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>${LESSONS.filter(l => l.ch === ch.key && l.kind !== 'quiz' && !l.noTest).map(l => `<label class="chk"><input type="checkbox" data-tl="${l.key}" ${o.lessons.includes(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
     <div class="fld"><span>${H('test.perLesson')}</span><div class="seg">${radio('per', 1, '1')}${radio('per', 2, '2')}${radio('per', 3, '3')}</div></div>
     <div class="fld"><span>${H('test.type')}</span><div class="seg">${radio('type', 'write', T('test.typeWrite'))}${radio('type', 'predict', T('test.typePredict'))}${radio('type', 'mix', T('test.typeMix'))}</div></div>
     <div class="fld"><span>${H('test.versions')}</span><div class="seg">${radio('ab', false, T('test.versionA'))}${radio('ab', true, T('test.versionAB'))}</div><small class="muted">${H('test.versionTip')}</small></div>
