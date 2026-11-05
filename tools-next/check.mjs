@@ -271,5 +271,17 @@ console.log('8. Lectures');
   console.log(`   ${Object.keys(LECTURES).length} lectures`);
 }
 
+console.log('9. Table library');
+{
+  const { ALL_TABLES, listedTables } = await import('../js/datasets.js');
+  const listed = new Set(listedTables()), used = new Set();
+  for (const L of LESSONS) for (const code of ['TEST1', 'X', 'ABC']) eng.lessonProblems(L, code).forEach(p => (p.tables || []).forEach(n => used.add(n)));
+  for (const n of used) if (!listed.has(n)) err(`table ${n} is used by a problem but not in the table library`);
+  for (const n of listed) {
+    const d = eng.tableData(n), a = ALL_TABLES[n];
+    if (JSON.stringify(d.values) !== JSON.stringify(a.rows) || JSON.stringify(d.columns) !== JSON.stringify(a.columns.map(c => c[0]))) err(`table ${n}: library data differs from the database`);
+  }
+  console.log(`   ${listed.size} tables listed; ${used.size} used by problems`);
+}
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

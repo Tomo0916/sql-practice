@@ -394,3 +394,15 @@ export const ALL_TABLES = (() => {
   return m;
 })();
 
+/** groups of tables, in the order the lessons meet them */
+export function tableGroups() {
+  return [
+    { key: 'demo', sets: [{ tables: ['products', 'students', 'contacts'].filter(n => ALL_TABLES[n]) }, { tables: ['table_a', 'table_b'] }] },
+    { key: 'single', sets: SINGLE_DATASETS.map(d => ({ label: 'ds.' + d.table, tables: [d.table] })) },
+    { key: 'null', sets: NULL_DATASETS.map(d => ({ label: 'ds.' + d.table, tables: [d.table] })) },
+    { key: 'join', sets: JOIN_DATASETS.map(p => ({ label: 'ds.' + p.key, tables: [p.left.table, p.right.table] })) },
+    { key: 'analysis', sets: [{ label: 'tb.kumo', tables: Object.values(ANALYSIS_DEMO).map(d => d.table) }].concat(ANALYSIS_THEMES.map(d => ({ label: 'ds.' + d.table, tables: [d.table] }))) },
+  ];
+}
+/** every table name, once (a check uses this) */
+export function listedTables() { return [...new Set(tableGroups().flatMap(g => g.sets.flatMap(s => s.tables)))]; }

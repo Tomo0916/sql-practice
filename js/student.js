@@ -23,6 +23,7 @@ import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft }
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
 import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep } from './lecture-ui.js';
+import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -99,12 +100,13 @@ function parseRoute() {
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
+  if (h[0] === 'tables') return { view: 'tables' };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
   if (h[0] === 'live') return { view: 'live', key: LESSON_BY_KEY[h[1]] ? h[1] : h[1] === 'done' ? 'done' : null, idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };
   return { view: 'home' };
 }
 window.addEventListener('hashchange', () => {
-  saveDraft(); stopAuto();
+  saveDraft(); stopAuto(); closeProjector();
   S.route = parseRoute(); S.step = null; S.tab = 'user';
   if (S.route.view !== 'session') S.session = null;
   render(); window.scrollTo(0, 0);
@@ -154,6 +156,7 @@ function render() {
   else if (r.view === 'live') body = liveViewHTML();
   else if (r.view === 'solved') body = solvedHTML();
   else if (r.view === 'lecture') body = lectureHTML();
+  else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
   app.innerHTML = head + liveBannerHTML() + body + footerHTML();
   mountWorkspace();
@@ -170,6 +173,7 @@ function headerHTML() {
       ${S.klass && (S.klass.lessons || []).length ? `<a href="#/live" class="${v === 'live' ? 'on' : ''}">${liveOn(S.klass) ? '<i class="live-dot"></i>' : I.users}<span>${H('nav.assign')}</span></a>` : ''}
       <a href="#/review" class="${v === 'session' ? 'on' : ''}">${I.repeat}<span>${H('nav.review')}</span>${due ? `<b class="badge">${due}</b>` : ''}</a>
       <a href="#/words" class="${v === 'words' ? 'on' : ''}">${I.globe}<span>${H('nav.words')}</span></a>
+      <a href="#/tables" class="${v === 'tables' ? 'on' : ''}">${I.table}<span>${H('nav.tables')}</span></a>
     </nav>
     <div class="topbar-right">
       ${S.klass ? `<button class="class-chip" data-act="classInfo" title="${esc(S.klass.name)}">${I.users}<span>${esc(S.klass.name)}</span></button>` : ''}
@@ -582,6 +586,7 @@ function tableBlockHTML(name, prob) {
     <div class="tbl-head">
       <span class="tbl-name">${I.table}${esc(name)}</span><span class="muted small">${H('prob.rows', { n: tbl.rows.length })}</span>
       ${tbl.analysis ? `<button class="btn btn-ghost btn-xs" data-act="csv" data-t="${esc(name)}" title="${esc(T('an.csv'))}">⤓ CSV</button>` : ''}
+      <button class="btn btn-ghost btn-xs" data-tb-open="${esc(prob.tables.join(','))}" data-tb-at="${prob.tables.indexOf(name)}" title="${esc(T('tb.project'))}" aria-label="${esc(T('tb.project'))}">${I.screen}</button>
       <button class="btn btn-ghost btn-xs data-toggle" data-act="toggleData" data-t="${esc(name)}" aria-expanded="${open}">${I.eye}${esc(open ? T('prob.hideData') : T('prob.showData'))}</button>
     </div>
     <div class="cols">${tbl.columns.map(([c, ty]) => `<button class="col-chip" data-act="insert" data-text="${esc(qualify ? name + '.' + c : c)}" title="${esc(T('prob.colsTip'))}">${esc(c)}<small>${ty === 'INTEGER' ? '123' : 'abc'}</small></button>`).join('')}</div>
@@ -1315,6 +1320,7 @@ window.addEventListener('storage', e => {
 
 /* ---------- start ---------- */
 (async function start() {
+  installTables(); setTablesLang(L);
   S.route = parseRoute();
   await Promise.all([loadLang('en'), loadLang(L()), S.settings.second ? loadLang(S.settings.second) : null]);
   render();
