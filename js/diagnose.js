@@ -69,14 +69,16 @@ export function diagnose(o) {
   const msg = o.error && o.error.message ? o.error.message : '';
   if (msg) {
     let m;
-    if ((m = /no such column: ([^\s]+)/i.exec(msg))) {
+    if ((m = /no such column: ([^\s]+)/i.exec(msg)) || (m = /has no column named ([^\s]+)/i.exec(msg))) {
       const bad = m[1];
       const bare = bad.includes('.') ? bad.split('.').pop() : bad;
-      if (values.has(bare.toLowerCase())) { add('quote', { v: bare }); }
+      const inValues = new RegExp(`VALUES\\s*\\([^)]*\\b${bare.replace(/[^\w]/g, '')}\\b`, 'i').test(sql);
+      const asValue = new RegExp(`(=|<>|!=|<|>|\\bIN\\s*\\([^)]*)\\s*${bare.replace(/[^\w]/g, '')}\\b`, 'i').test(stripLiterals(sql)) && !cols.some(c => c.toLowerCase() === bare.toLowerCase());
+      if (values.has(bare.toLowerCase()) || inValues || asValue) { add('quote', { v: bare }); }
       else if (/"/.test(sql) && new RegExp(`"${bare}"`, 'i').test(sql)) { add('doubleQuote', { v: bare }); }
       else {
         const good = closest(bare, cols);
-        if (good && good.toLowerCase() !== bare.toLowerCase()) add('column', { bad, good });
+        if (good && good.toLowerCase() !== bare.toLowerCase()) add('column', { bad, good: bad.includes('.') ? bad.split('.')[0] + '.' + good : good });
         else if (bad.includes('.')) {
           const tbl = bad.split('.')[0];
           if (!tables.includes(tbl)) add('tablePrefix', { bad, t: tables.join(' / ') });
@@ -105,6 +107,7 @@ export function diagnose(o) {
       if (co) { add('clauseOrder', co); mark = mark || co.mark; }
       else if (/^(FROM|WHERE)$/i.test(m[1]) && /,\s*(FROM|WHERE)\b/i.test(sql)) add('trailingComma');
       else if (/\bSELECT\b\s+[A-Za-z_]+\s+[A-Za-z_]+\s+FROM/i.test(stripLiterals(sql)) && /^[A-Za-z_]+$/.test(m[1]) && !/^(FROM|WHERE|BY)$/i.test(m[1])) add('missingComma');
+      else if (/^[(+\-*/]$/.test(m[1]) && /\bSELECT\s+(?:DISTINCT\s+)?(?:[^,]*,\s*)*[A-Za-z_][\w.]*\s+[A-Za-z_]\w*\s*[(+\-*/]/i.test(stripLiterals(sql))) add('missingComma');
       else add('near', { tok: m[1] });
       mark = mark || findWord(sql, m[1]);
     }
@@ -120,6 +123,10 @@ export function diagnose(o) {
   const verb = o.prob && o.prob.sql ? /^\s*(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\b/i.exec(o.prob.sql) : null;
   if (verb && !new RegExp('\\b' + verb[1].split(/\s+/)[0] + '\\b', 'i').test(plain)) add('needVerb', { kw: verb[1].replace(/\s+/g, ' ').toUpperCase() });
 
+  // which clauses the model answer uses: the advice names only those
+  const model = o.prob && o.prob.sql ? stripLiterals(o.prob.sql) : '';
+  const cl = [/\bJOIN\b/i.test(model) ? 'JOIN … ON' : null, /\bWHERE\b/i.test(model) ? 'WHERE' : null, /\bGROUP\s+BY\b/i.test(model) ? 'GROUP BY' : null,
+    /\bHAVING\b/i.test(model) ? 'HAVING' : null, /\bLIMIT\b/i.test(model) ? 'LIMIT' : null].filter(Boolean).join(' / ') || 'WHERE';
   const g = o.grade;
   if (g && !g.ok && o.prob) {
     // "SELECT name price" is valid SQL (price becomes an alias), so check it explicitly
@@ -129,19 +136,27 @@ export function diagnose(o) {
       if (cols.some(c => c.toLowerCase() === w.toLowerCase()) && !/^AS$/i.test(w)) { add('missingComma'); mark = mark || findWord(sql, w); }
     }
     if (o.prob.ordered && !/\bORDER\s+BY\b/i.test(plain) && g.reason !== 'order') add('needOrder');
-    if (o.fix) add('fix_' + o.fix.key, o.fix.vars);
+    else if (o.fix) add('fix_' + o.fix.key, o.fix.vars);
   }
-  if (g && !g.ok) {
+  // one clear piece of advice is enough: a found fix, a missing ORDER BY / comma / statement says more than the counts
+  const told = out.some(x => /^fix_|^needOrder$|^needVerb$|^missingComma$/.test(x.key));
+  const dml = verb ? verb[1].split(/\s+/)[0].toUpperCase() : null;
+  if (g && !g.ok && dml && !told) {   // INSERT / UPDATE / DELETE: the result is the whole table after the change
+    if (dml === 'INSERT') add(g.reason === 'rows' ? 'insRows' : 'insValues', { a: g.a, b: g.b });
+    else if (dml === 'UPDATE') add('updValues');
+    else if (g.reason === 'rows') add(g.a > g.b ? 'delFew' : 'delMany', { a: g.a, b: g.b });
+    else add('delValues');
+  } else if (g && !g.ok && !told) {
     if (g.reason === 'cols') add('cols', { a: g.a, b: g.b });
     if (g.reason === 'rows') {
-      if (g.detail === 'tooMany') add('tooMany', { a: g.a, b: g.b });
-      else if (g.detail === 'tooFew') add('tooFew', { a: g.a, b: g.b });
-      else add('rows', { a: g.a, b: g.b });
+      if (g.detail === 'tooMany') add('tooMany', { a: g.a, b: g.b, cl });
+      else if (g.detail === 'tooFew') add('tooFew', { a: g.a, b: g.b, cl });
+      else add('rows', { a: g.a, b: g.b, cl });
     }
     if (g.reason === 'order') add(g.detail === 'noOrder' ? 'noOrder' : g.detail === 'reversed' ? 'reversed' : 'order');
     if (g.reason === 'values') add('values');
     if (g.reason === 'names') add('aliasName', { a: g.a, b: g.b });
-    if (g.reason === 'noResult') add('noResult');
+    if (g.reason === 'noResult') add(/^\s*SELECT\b/i.test(plain) && g.b ? 'zeroRows' : 'noResult', { b: g.b, cl });
   }
   return { items: out.slice(0, 3), mark };
 }

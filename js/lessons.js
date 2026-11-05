@@ -321,7 +321,7 @@ export const LESSONS = [
     view: p => ({ vals: p.show }),
     sql: p => `INSERT INTO ${p.t} ${p.cols} VALUES ${p.vals};`,
     blanks: ['cols'],
-    steps: p => [['step.from', `SELECT * FROM ${p.t};`], ['step.insert', `INSERT INTO ${p.t} ${p.cols} VALUES ${p.vals};`]]
+    steps: p => [['step.dmlLook', `SELECT * FROM ${p.t};`], ['step.insert', `INSERT INTO ${p.t} ${p.cols} VALUES ${p.vals};`]]
   },
   {
     key: 'update', no: 13, ch: 'change', kind: 'dml',
@@ -343,7 +343,7 @@ export const LESSONS = [
     descKey: p => `L.update.desc_${p.w}`,
     sql: p => `UPDATE ${p.t} SET ${p.set} WHERE ${p.where};`,
     blanks: ['set'],
-    steps: p => [['step.from', `SELECT * FROM ${p.t};`], ['step.where', `SELECT * FROM ${p.t} WHERE ${p.where};`], ['step.update', `UPDATE ${p.t} SET ${p.set} WHERE ${p.where};`]]
+    steps: p => [['step.dmlLook', `SELECT * FROM ${p.t};`], ['step.updTarget', `SELECT * FROM ${p.t} WHERE ${p.where};`], ['step.update', `UPDATE ${p.t} SET ${p.set} WHERE ${p.where};`]]
   },
   {
     key: 'delete', no: 14, ch: 'change', kind: 'dml',
@@ -360,7 +360,7 @@ export const LESSONS = [
     phrases: p => ({ cond: cmpPhrase(p.c, p.op, p.v) }),
     sql: p => `DELETE FROM ${p.t} WHERE ${p.c} ${p.op} ${p.vs};`,
     blanks: ['vs'],
-    steps: p => [['step.from', `SELECT * FROM ${p.t};`], ['step.where', `SELECT * FROM ${p.t} WHERE ${p.c} ${p.op} ${p.vs};`], ['step.delete', `DELETE FROM ${p.t} WHERE ${p.c} ${p.op} ${p.vs};`]]
+    steps: p => [['step.dmlLook', `SELECT * FROM ${p.t};`], ['step.delTarget', `SELECT * FROM ${p.t} WHERE ${p.c} ${p.op} ${p.vs};`], ['step.delete', `DELETE FROM ${p.t} WHERE ${p.c} ${p.op} ${p.vs};`]]
   },
 
   /* =================== AGGREGATION (Lesson 15–18) =================== */

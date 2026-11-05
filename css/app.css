@@ -785,3 +785,6 @@ body.pj-open { overflow: hidden; }
 .ck-ans pre.sql { margin: 4px 0 0; }
 @media (max-width: 640px) { .ck-by-row { grid-template-columns: minmax(0, 1fr) 70px 50px; } .ck-form { padding: 16px; } }
 @media (max-width: 640px) { .topnav { min-width: 0; overflow-x: auto; scrollbar-width: none; } .topnav::-webkit-scrollbar { display: none; } }
+/* example steps of INSERT / UPDATE / DELETE: the rows that were removed */
+.step-gone { margin-top: 10px; color: var(--bad); }
+.data-box.gone .grid td { color: var(--bad); text-decoration: line-through; background: var(--bad-soft); }

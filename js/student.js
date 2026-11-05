@@ -698,6 +698,15 @@ function tableBlockHTML(name, prob) {
 }
 
 /* ---------- example: step-by-step ---------- */
+/** the clause keywords of a statement, in written order: SELECT → FROM → WHERE …  (INSERT INTO → VALUES …) */
+function clauseSeq(sql) {
+  const re = /\b(SELECT|INSERT\s+INTO|VALUES|UPDATE|SET|DELETE\s+FROM|FROM|(?:INNER\s+|LEFT\s+)?JOIN|ON|WHERE|GROUP\s+BY|HAVING|ORDER\s+BY|LIMIT|OFFSET)\b/gi;
+  const flat = String(sql).replace(/'(?:[^']|'')*'/g, "''");
+  let depth = 0, out = [], m;
+  const at = []; for (let i = 0; i < flat.length; i++) { if (flat[i] === '(') depth++; else if (flat[i] === ')') depth--; at[i] = depth; }
+  while ((m = re.exec(flat))) { if (at[m.index]) continue; const k = m[1].toUpperCase().replace(/\s+/g, ' '); if (out[out.length - 1] !== k) out.push(k); }
+  return out.join(' → ');
+}
 function stepsHTML(prob) {
   if (!prob.steps.length) return '';
   if (S.step === null) {
@@ -709,6 +718,14 @@ function stepsHTML(prob) {
   let res = null, err = '';
   try { res = S.engine.exec(sql); } catch (e) { err = e.message; }
   const kind = STEP_TO_KIND[key];
+  // INSERT / UPDATE / DELETE: colour the new or changed rows, and list the rows that were removed
+  let gridOpts = { rowNums: true }, removed = '';
+  if (res && res.dml) {
+    const before = S.engine.tableData(res.dml.table), had = new Set(before.values.map(r => JSON.stringify(r))), now = new Set(res.values.map(r => JSON.stringify(r)));
+    gridOpts = { rowNums: true, rowClass: r => (had.has(JSON.stringify(r)) ? '' : 'chg') };
+    const gone = before.values.filter(r => !now.has(JSON.stringify(r)));
+    if (gone.length && /^\s*DELETE\b/i.test(sql)) removed = `<div class="muted small strong step-gone">${H('pres.deleted')} · ${H('prob.rows', { n: gone.length })}</div><div class="data-box gone">${gridHTML({ columns: before.columns, values: gone })}</div>`;
+  }
   const join = (key === 'step.join_inner' || key === 'step.join_left') ? joinHTML(S.engine, prob.p, key === 'step.join_left' ? 'left' : 'inner', L()) : '';
   return `<section class="card steps" aria-live="polite">
     <div class="steps-head">
@@ -721,7 +738,7 @@ function stepsHTML(prob) {
     ${orderStripHTML(prob.sql, kind, L())}
     ${join}
     <div class="muted small strong">${H('pres.result')} · ${H('prob.rows', { n: res ? res.values.length : 0 })}</div>
-    <div class="data-box">${res ? gridHTML(res, { rowNums: true }) : `<div class="res-empty">${esc(err || T('res.noRows'))}</div>`}</div>
+    <div class="data-box">${res ? gridHTML(res, gridOpts) : `<div class="res-empty">${esc(err || T('res.noRows'))}</div>`}</div>${removed}
     <div class="step-actions">
       <button class="btn btn-ghost" data-act="stepPrev" ${i === 0 ? 'disabled' : ''}>${I.prev}${H('pres.prev')}</button>
       ${i < n - 1 ? `<button class="btn btn-warn" data-act="stepNext">${H('pres.next')}${I.next}</button>`
@@ -874,7 +891,7 @@ function feedbackHTML(prob) {
   const raw = run.error && !(run.dx || []).length ? `<pre class="errmsg">${esc(run.error.message)}</pre>` : '';
   const tested = prob.test && S.session && S.session.done[prob.id] !== undefined;   // a check test: the first answer counted; go on
   const skip = S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
-  return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${run.error && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
+  return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${run.error && !run.quiet && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
 }
 
 /* ---------- results ---------- */
@@ -1043,8 +1060,9 @@ function checkOrder() {
     if (placed.some(id => byId[id].distractor)) extra.push({ key: 'distractor', vars: { c: byId['x'].text } });
     const real = placed.filter(id => !byId[id].distractor);
     if (real.length < task.answer.length) extra.push({ key: 'missingPiece' });
-    else if (real.join() !== task.answer.join()) extra.push({ key: 'wrongOrder' });
-    run.dx = extra.concat(run.dx || []).slice(0, 3);
+    else if (real.join() !== task.answer.join()) extra.push({ key: 'wrongOrder', vars: { seq: clauseSeq(c.prob.sql) } });
+    // a piece problem (trap, missing, order) says it best; the SQL error of the half-built statement only confuses
+    if (extra.length) { run.dx = extra; run.quiet = true; } else run.dx = (run.dx || []).slice(0, 3);
   }
   afterCheck(['stage']);
 }
