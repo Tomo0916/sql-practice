@@ -13,7 +13,7 @@ import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, formatKey, grade, checkAnsw
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
-import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, lessonState, markLessonDone, reviewResult, dueLessons, bumpStreak, today } from './store.js';
+import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, reviewResult, dueLessons, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
 import { I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
@@ -33,7 +33,9 @@ const S = {
   tab: 'user',
   step: null,
   hideData: {},     // table name → true when the student hid the data table
-  session: null,     // review / mix session { kind, items: [prob], i, done: {id: ok} }
+  session: null,
+  redoing: new Set(),   // solved problems the student is solving again
+  pinNeeded: false,     // in a class without a 4-digit number yet     // review / mix session { kind, items: [prob], i, done: {id: ok} }
   editor: null
 };
 S.settings.lang = detectLang(S.settings.lang);
@@ -94,6 +96,7 @@ function parseRoute() {
   if (h[0] === 'review' || h[0] === 'mix') return { view: 'session', kind: h[0] };
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'words') return { view: 'words' };
+  if (h[0] === 'solved') return { view: 'solved' };
   if (h[0] === 'live') return { view: 'live', key: LESSON_BY_KEY[h[1]] ? h[1] : h[1] === 'done' ? 'done' : null, idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };
   return { view: 'home' };
 }
@@ -146,6 +149,7 @@ function render() {
   else if (r.view === 'session') body = sessionHTML();
   else if (r.view === 'words') body = wordsHTML();
   else if (r.view === 'live') body = liveViewHTML();
+  else if (r.view === 'solved') body = solvedHTML();
   else body = homeHTML();
   app.innerHTML = head + liveBannerHTML() + body + footerHTML();
   mountWorkspace();
@@ -239,6 +243,8 @@ function homeHTML() {
       <div>${I.shuffle}<div><b>${H('mix.title')}</b><p class="muted">${H('mix.sub')}</p></div></div>
       <a class="btn btn-ghost" href="#/mix">${H('mix.start')}</a>
     </section>
+    ${S.pinNeeded ? `<section class="card mixcard pincard"><div><span class="drill-ic">🔢</span><div><b>${H('pin.setTitle')}</b><p class="muted">${H('pin.setSub')}</p></div></div><button class="btn btn-ok" data-act="setPin">${H('pin.setNow')}</button></section>` : ''}
+    <section class="card mixcard drillcard solvedcard"><div><span class="drill-ic">✓</span><div><b>${H('mine.title')}</b><p class="muted">${H('mine.sub')}</p></div></div><a class="btn btn-ghost" href="#/solved">${H('mine.open')}</a></section>
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">⇅</span><div><b>${H('drill.title')}</b><p class="muted">${H('drill.sub')}</p></div></div>
       <a class="btn btn-ghost" href="#/drill">${H('drill.start')}</a>
@@ -423,6 +429,8 @@ function liveViewHTML() {
       ${live ? `<div class="live-on"><i class="live-dot"></i><b>${H('live.on')}</b><span class="muted small" data-live-left>${H('live.minLeft', { n: liveMinutesLeft(S.klass) })}</span></div>` : ''}
       <h2>${H('live.title', { name: S.klass.name })}</h2>
       <div class="live-prog"><div class="bar"><i style="width:${Math.round(solved / seq.length * 100)}%"></i></div><b>${solved}/${seq.length}</b></div>
+      <a class="btn btn-ghost btn-sm" href="#/solved">✓ ${H('mine.title')}</a>
+      ${S.pinNeeded ? `<button class="btn btn-ok btn-sm" data-act="setPin">🔢 ${H('pin.setNow')}</button>` : ''}
       <div class="ll-title muted small">${H('live.library')}</div>
       <div class="live-lib">${lib}</div>
     </div></aside>`;
@@ -480,10 +488,36 @@ function workspaceHTML(prob) {
     </section>
     ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? statCardHTML(LESSON_BY_KEY[prob.lesson], prob, L(), prob.stage === 'demo') : ''}
     ${prob.stage === 'demo' ? `<div id="ws-steps">${stepsHTML(prob)}</div>` : ''}
+    ${solvedBoxHTML(prob)}
     <div id="ws-stage">${stageHTML(prob)}</div>
     <div id="ws-fb">${feedbackHTML(prob)}</div>
     <div id="ws-res">${isQuiz(prob) ? '' : resultsHTML(prob)}</div>`;
 }
+/** coming back to a solved problem: the answer that was right, and “solve it again” */
+function solvedBoxHTML(prob) {
+  if (!isSolved(prob.id) || S.runs[prob.id] || S.redoing.has(prob.id)) return '';
+  const a = S.progress.answers[prob.id];
+  const body = !a ? `<p class="muted small">${H('mine.noAnswer')}</p>` : isQuiz(prob) ? `<p class="quiz-ans">${esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`;
+  return `<section class="card solved-box"><div class="sb-head"><b>✓ ${H('mine.yourAnswer')}</b>${a ? `<span class="muted small">${esc(fmtWhen(a.at))}</span>` : ''}<button class="btn btn-ghost btn-sm" data-act="redo">${I.reset}${H('mine.redo')}</button></div>${body}</section>`;
+}
+const fmtWhen = t => { try { return new Date(t).toLocaleString(htmlLang(L()) === 'my' ? 'en' : htmlLang(L()), { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+
+/* ---------- looking back: every solved problem with the answer that was right ---------- */
+function solvedHTML() {
+  document.title = `${T('mine.title')} · SQL Practice`;
+  const assigned = S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k]) : [];
+  const keys = [...assigned, ...LESSONS.map(l => l.key).filter(k => !assigned.includes(k))];
+  const blocks = keys.map(k => {
+    const l = LESSON_BY_KEY[k], probs = problemsOf(l).filter(p => isSolved(p.id));
+    if (!probs.length) return '';
+    const link = p => (assigned.includes(k) ? liveHash(p) : `#/l/${k}/${p.idx}`);
+    return `<section class="card mine-lesson"><h2><span class="lesson-num">${l.no}</span>${lessonTitleHTML(l, L())}${assigned.includes(k) ? `<span class="tag">${H('nav.assign')}</span>` : ''}</h2>
+      ${probs.map(p => { const a = S.progress.answers[p.id]; return `<div class="mine-item"><a class="mine-what" href="${link(p)}"><b>${stageLabelH(p)}</b><span class="muted small">${esc(p.stage === 'demo' ? T('stage.demoSub') : themeName(p, L()))}</span>${I.next}</a>
+        ${a ? (isQuiz(p) ? `<p class="quiz-ans">${esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`) : `<p class="muted small">${H('mine.noAnswer')}</p>`}</div>`; }).join('')}</section>`;
+  }).join('');
+  return `<main class="wrap narrow"><h1 class="page-title">✓ ${H('mine.title')}</h1><p class="muted">${H('mine.sub')}</p>${blocks || `<section class="card empty"><p class="muted">${H('mine.none')}</p></section>`}</main>`;
+}
+
 function tableBlockHTML(name, prob) {
   const tbl = ALL_TABLES[name];
   const open = !S.hideData[name];
@@ -769,6 +803,7 @@ function record(prob, ok, run, sql) {
         const extra = prob.kind === 'review' || prob.kind === 'drill';   // not one of the lesson's own problems
         const before = !extra && stateOf(lesson).done;
         S.progress.solved[prob.id] = Date.now();
+        S.progress.answers[prob.id] = { sql: String(sql).slice(0, 2000), at: Date.now() };   // the answer that was right, for looking back
         if (!extra && !before && stateOf(lesson).done) { markLessonDone(S.progress, lesson.key); run.lessonDone = true; }
       }
       bumpStreak(S.progress);
@@ -853,6 +888,12 @@ const actions = {
   classInfo() { openClassInfo(); },
   join() { openJoin(); },
   run: runWrite,
+  redo() {   // solve a solved problem again: an empty answer; the problem stays solved
+    const c = current(); if (!c) return;
+    ['', 'f:', 'o:', 'q:'].forEach(k => delete S.progress.drafts[k + c.prob.id]);
+    delete S.runs[c.prob.id]; S.redoing.add(c.prob.id); save(); render();
+  },
+  setPin() { openPin(); },
   reset() { const c = current(); delete S.progress.drafts[c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
   insert(el) {
     const c = current();
@@ -1002,6 +1043,7 @@ document.addEventListener('submit', e => {
   if (f.dataset.form === 'set') { e.preventDefault(); const code = normCode(new FormData(f).get('code')); if (code) changeSet(code); }
   if (f.dataset.form === 'join') { e.preventDefault(); doJoin(f); }
   if (f.dataset.form === 'rename') { e.preventDefault(); doRename(f); }
+  if (f.dataset.form === 'pin') { e.preventDefault(); doSetPin(f); }
 });
 
 async function setLang(code) {
@@ -1036,8 +1078,9 @@ function openSettings() {
 actions.closeModal = closeModal;
 actions.resetProgress = () => {
   if (!confirm(T('prog.confirm'))) return;
+  Store.del(KEYS.progress);   // a fresh start: nothing to merge with
   S.progress = loadProgress(); Object.keys(S.progress).forEach(k => delete S.progress[k]);
-  Object.assign(S.progress, { solved: {}, wrong: {}, drafts: {}, lessons: {}, last: null, streak: { day: 0, n: 0 } });
+  Object.assign(S.progress, { solved: {}, wrong: {}, drafts: {}, answers: {}, drill: {}, lessons: {}, last: null, streak: { day: 0, n: 0 } });
   S.runs = {}; save(); closeModal(); render();
 };
 function openGloss(kw) {
@@ -1052,34 +1095,75 @@ function openJoin(prefill) {
     <form class="modal-body form" data-form="join">
       <label class="fld"><span>${H('class.code')}</span><input name="code" class="mono big-input" maxlength="8" required value="${esc(prefill || '')}" autocomplete="off" autocapitalize="characters" placeholder="ABC234"></label>
       <label class="fld"><span>${H('class.nickname')}</span><input name="nick" maxlength="30" required autocomplete="nickname" value="${esc(Store.get('sqln.nick', ''))}"><small class="muted">${H('class.nickTip')}</small></label>
+      <label class="fld"><span>${H('pin.label')}</span>${pinInputHTML()}<small class="muted">${H('pin.tip')}</small></label>
       <p class="err" id="join-err" role="alert"></p>
       <button class="btn btn-primary">${H('class.join')}</button>
     </form>`);
 }
+const pinInputHTML = (name = 'pin') => `<input name="${name}" class="mono big-input pin-input" required inputmode="numeric" pattern="[0-9]{4}" maxlength="4" minlength="4" autocomplete="off" placeholder="0915">`;
+/** join with a nickname and a 4-digit number; a nickname already in the class + the right number = go on as that student */
 async function doJoin(f) {
   const fd = new FormData(f);
-  const code = normCode(fd.get('code')), nick = String(fd.get('nick') || '').trim();
+  const code = normCode(fd.get('code')), nick = String(fd.get('nick') || '').trim(), pin = String(fd.get('pin') || '').replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)).trim();
   const errEl = f.querySelector('#join-err');
   if (!code || !nick) return;
+  if (!/^[0-9]{4}$/.test(pin)) { errEl.textContent = T('pin.bad'); return; }
   const btn = f.querySelector('button.btn-primary'); btn.disabled = true; errEl.textContent = '';
   try {
-    const c = await backend.joinClass(code, nick);
+    let c, resumed = false;
+    try { const r = await backend.joinClass(code, nick, pin); c = r.klass; S.pinNeeded = !r.pinSet; }
+    catch (e) {
+      if (e.message !== 'nickname_taken') throw e;
+      c = await backend.resumeMember(code, nick, pin); resumed = true; S.pinNeeded = false;   // the same student on another device
+    }
     Store.set('sqln.nick', nick);
     S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null, live_until: c.live_until || null };
     Store.set(KEYS.klass, S.klass);
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
-    closeModal(); watchKlass(); render(); toast(T('class.joined', { n: c.name }));
+    closeModal(); await restoreFromServer(); watchKlass(); render(); toast(resumed ? T('pin.resumed', { n: c.name }) : T('class.joined', { n: c.name }));
   } catch (e) {
     console.warn(e);
-    errEl.textContent = T(e.message === 'class_not_found' ? 'class.notFound' : e.message === 'class_closed' ? 'class.closed' : e.message === 'anon_disabled' ? 'class.anonOff' : 'class.netError');
+    const m = e.message;
+    errEl.textContent = m === 'pin_wrong' ? T('pin.wrong', { n: e.left }) : m === 'pin_locked' ? T('pin.locked', { n: e.minutes || 10 }) : m === 'no_pin' ? T('pin.noPin') : m === 'pin_missing' ? T('pin.taken')
+      : T(m === 'class_not_found' ? 'class.notFound' : m === 'class_closed' ? 'class.closed' : m === 'anon_disabled' ? 'class.anonOff' : m === 'bad_pin' ? 'pin.bad' : m === 'not_found' ? 'class.notFound' : 'class.netError');
     btn.disabled = false;
   }
+}
+/** set or change the 4-digit number */
+function openPin() {
+  if (!S.klass) return;
+  modal(`<div class="modal-head"><h2>🔢 ${H('pin.setTitle')}</h2><button class="icon-btn" data-act="closeModal" aria-label="${esc(T('btn.close'))}">${I.x}</button></div>
+    <form class="modal-body form" data-form="pin"><p class="muted">${H('pin.setSub')}</p>
+      <label class="fld"><span>${H('pin.label')}</span>${pinInputHTML()}<small class="muted">${H('pin.tip')}</small></label>
+      <p class="err" id="pin-err" role="alert"></p><button class="btn btn-primary">${H('pin.save')}</button></form>`);
+}
+async function doSetPin(f) {
+  const pin = String(new FormData(f).get('pin') || '').replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)).trim();
+  const err = f.querySelector('#pin-err');
+  if (!/^[0-9]{4}$/.test(pin)) { err.textContent = T('pin.bad'); return; }
+  try { await backend.setMyPin(S.klass.id, pin); S.pinNeeded = false; closeModal(); render(); toast(T('pin.saved')); }
+  catch (e) { err.textContent = T(e.message === 'pin_missing' ? 'pin.notReady' : 'class.netError'); }
+}
+/** bring back this student's record from the class's server log (solved problems and the answers that were right) */
+async function restoreFromServer() {
+  if (!S.klass || !backend.enabled) return;
+  let rows;
+  try { rows = await backend.myAttempts(S.klass.id); } catch (e) { return; }
+  let changed = false;
+  rows.filter(a => a.ok).forEach(a => {
+    if (!S.progress.solved[a.problem_id]) { S.progress.solved[a.problem_id] = new Date(a.created_at).getTime(); changed = true; }
+    if (!S.progress.answers[a.problem_id] && a.sql) { S.progress.answers[a.problem_id] = { sql: a.sql, at: new Date(a.created_at).getTime() }; changed = true; }
+  });
+  if (!changed) return;
+  LESSONS.forEach(l => { if (stateOf(l).done) markLessonDone(S.progress, l.key); });
+  save();
 }
 function openClassInfo() {
   const k = S.klass;
   modal(`<div class="modal-head"><h2>${I.users} ${esc(k.name)}</h2><button class="icon-btn" data-act="closeModal" aria-label="${esc(T('btn.close'))}">${I.x}</button></div>
     <div class="modal-body form">
       <p class="muted">${H('class.code')}: <b class="mono">${esc(k.code)}</b> · ${H('set.code')}: <b class="mono">${esc(k.set_code || '')}</b></p>
+      <button class="btn btn-ghost btn-sm" data-act="setPin">🔢 ${H(S.pinNeeded ? 'pin.setNow' : 'pin.change')}</button>
       <form data-form="rename" class="inline-form"><input name="nick" maxlength="30" value="${esc(k.nickname)}" aria-label="${esc(T('class.nickname'))}"><button class="btn btn-ghost btn-sm">${H('class.rename')}</button></form>
       <p class="muted small">${H('class.privacy')}</p>
       <hr><button class="btn btn-ghost" data-act="leave">${I.door}${H('class.leave')}</button>
@@ -1089,7 +1173,7 @@ async function doRename(f) {
   const nick = String(new FormData(f).get('nick') || '').trim();
   if (!nick) return;
   try { await backend.renameMe(S.klass.id, nick); S.klass.nickname = nick; Store.set(KEYS.klass, S.klass); Store.set('sqln.nick', nick); closeModal(); render(); toast(T('class.renamed')); }
-  catch (e) { toast(T('class.netError')); }
+  catch (e) { toast(T(/nickname_taken/.test(e.message) ? 'pin.nameTaken' : 'class.netError')); }
 }
 actions.leave = async () => {
   if (!confirm(T('class.leaveConfirm'))) return;
@@ -1104,6 +1188,8 @@ async function watchKlass() {
     const c = await backend.getClass(S.klass.id);
     if (!c) { S.klass = null; Store.del(KEYS.klass); render(); toast(T('class.removed')); return; }
     applyClassRow(c, false);
+    restoreFromServer().then(() => { if (S.route.view !== 'lesson' || !S.editor) render(); });
+    backend.myPinSet(S.klass.id).then(v => { const need = v === false; if (need !== S.pinNeeded) { S.pinNeeded = need; if (S.route.view !== 'lesson') render(); } }).catch(() => {});
     if (unwatch) unwatch();
     unwatch = await backend.watchClass(S.klass.id, row => applyClassRow(row, true));
     syncClock(backend.serverNow).then(tickTimer);
@@ -1155,6 +1241,13 @@ function tickTimer() {
   if (el.dataset.h !== html) { el.innerHTML = html; el.dataset.h = html; el.title = T('timer.title'); }
 }
 setInterval(tickTimer, 250);
+
+/* ---------- another tab of this app saved the record: take its changes (nothing is lost) ---------- */
+window.addEventListener('storage', e => {
+  if (e.key !== KEYS.progress || !e.newValue) return;
+  S.progress = mergeProgress(loadProgress(), S.progress);
+  if (!S.editor || !document.activeElement || !document.activeElement.closest('.cm-editor')) render();
+});
 
 /* ---------- start ---------- */
 (async function start() {

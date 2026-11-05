@@ -583,3 +583,18 @@ body.ord-dragging, body.ord-dragging * { cursor: grabbing !important; }
 .ll-p.solved { background: var(--ok); border-color: var(--ok); color: #fff; }
 .ll-p.on { outline: 2.5px solid var(--accent); outline-offset: 1px; }
 @media (max-width: 900px) { .live-side { position: static; } .live-card { max-height: none; } }
+
+/* ---------- looking back at solved problems ---------- */
+.solved-box { padding: 12px 16px; border: 1.5px solid var(--ok); background: var(--ok-soft); }
+.sb-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; color: var(--ok); }
+.sb-head .btn { margin-left: auto; }
+.solved-box pre.sql { margin: 0; }
+.mine-lesson { padding: 14px 18px; margin-bottom: 12px; }
+.mine-lesson h2 { display: flex; align-items: center; gap: 8px; font-size: 1.02rem; margin: 0 0 8px; }
+.mine-lesson h2 .lesson-num { width: 28px; height: 28px; font-size: .8rem; }
+.mine-item { border-top: 1px solid var(--line); padding: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+.mine-what { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; }
+.mine-what svg { margin-left: auto; color: var(--ink-3); width: 16px; height: 16px; }
+.mine-item pre.sql { margin: 0; font-size: .84rem; }
+.pin-input { letter-spacing: .4em; max-width: 9ch; text-align: center; }
+.pincard { border: 1.5px solid var(--ok); }

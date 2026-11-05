@@ -8,7 +8,7 @@
  * Class features need Supabase (config.js). Presenter and paper tests work without it.
  * ========================================================= */
 import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
-import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normFormat, stagesFor, FORMAT_KEYS, FORMAT_MAX, STANDARD_FORMAT } from './engine.js';
+import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normFormat, formatKey, stagesFor, FORMAT_KEYS, FORMAT_MAX, STANDARD_FORMAT } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
@@ -311,6 +311,20 @@ const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${esc(String(p.answer)
 function classProblems(c) {
   return (c.lessons || []).filter(k => LESSON_BY_KEY[k]).map(k => ({ lesson: LESSON_BY_KEY[k], probs: S.engine.lessonProblems(LESSON_BY_KEY[k], c.set_code, c.format) }));
 }
+/** a student's answers to a problem after their first right answer are “looking back”: not counted as mistakes or tries */
+function isReview(a) { return reviewIds().has(a.id); }
+let reviewCache = { n: -1, ids: new Set() };
+function reviewIds() {
+  if (reviewCache.n === S.attempts.length) return reviewCache.ids;
+  const first = new Map(), ids = new Set();
+  S.attempts.slice().sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : (a.id || 0) - (b.id || 0))).forEach(a => {
+    const k = a.user_id + '|' + a.problem_id;
+    if (first.has(k)) ids.add(a.id); else if (a.ok) first.set(k, true);
+  });
+  reviewCache = { n: S.attempts.length, ids };
+  return ids;
+}
+const countable = atts => atts.filter(a => !isReview(a));
 function visibleAttempts() {
   if (!S.liveOnlyToday) return S.attempts;
   const d = new Date(); d.setHours(0, 0, 0, 0);
@@ -341,12 +355,12 @@ function whoHTML(m, st) {
 function liveHTML(c) {
   const groups = classProblems(c);
   if (!groups.length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/assign">${H('tc.tabAssign')}</a></section>`;
-  const atts = visibleAttempts();
+  const atts = countable(visibleAttempts());
   const cell = {}; // user|problem → {ok, n}
   atts.forEach(a => { const k = a.user_id + '|' + a.problem_id; const x = cell[k] || (cell[k] = { ok: false, n: 0, onTime: false }); if (a.ok) { x.ok = true; if (!a.late) x.onTime = true; } else x.n++; });
   const all = groups.flatMap(g => g.probs);
   const solvedBy = p => S.members.filter(m => (cell[m.user_id + '|' + p.id] || {}).ok).length;
-  const act = activity(all, atts);
+  const act = activity(all, visibleAttempts());   // looking back also counts as being active
   const doneOf = m => all.filter(p => (cell[m.user_id + '|' + p.id] || {}).ok).length;
   const members = S.liveSort === 'progress' ? S.members.slice().sort((a, b) => doneOf(b) - doneOf(a)) : S.members;
   const rows = members.map(m => {
@@ -511,7 +525,7 @@ function studentBodyHTML(u) {
   const ids = new Set(all.map(x => x.p.id));
   const solved = all.filter(x => mine.some(a => a.problem_id === x.p.id && a.ok)).length;
   const last = mine[mine.length - 1];
-  const tries = list => `<ol class="stu-tries">${list.map(a => `<li class="${a.ok ? 'ok' : 'bad'}"><span class="st-mark">${a.ok ? (a.late ? '⏱' : '✓') : '✗'}</span><span class="st-time mono">${esc(hhmm(a.created_at))}</span>${a.sql == null ? '' : /^\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE)\b/i.test(a.sql) ? `<pre class="sql">${highlightSQL(a.sql)}</pre>` : `<span class="quiz-ans">${esc(a.sql)}</span>`}</li>`).join('')}</ol>`;
+  const tries = list => `<ol class="stu-tries">${list.map(a => `<li class="${a.ok ? 'ok' : 'bad'}"><span class="st-mark">${a.ok ? (a.late ? '⏱' : '✓') : '✗'}</span><span class="st-time mono">${esc(hhmm(a.created_at))}${isReview(a) ? `<small class="rv-tag">${H('tc.review')}</small>` : ''}</span>${a.sql == null ? '' : /^\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE)\b/i.test(a.sql) ? `<pre class="sql">${highlightSQL(a.sql)}</pre>` : `<span class="quiz-ans">${esc(a.sql)}</span>`}</li>`).join('')}</ol>`;
   const blocks = all.filter(x => mine.some(a => a.problem_id === x.p.id)).map(x => {
     const list = mine.filter(a => a.problem_id === x.p.id);
     return `<section class="stu-prob ${list.some(a => a.ok) ? 'ok' : 'bad'}"><h3>Lesson ${x.lesson.no} · ${esc(stageName(x.p))} <small class="muted">${esc(x.p.stage === 'demo' ? T('stage.demoSub') : themeName(x.p, L()))}</small></h3>
@@ -547,7 +561,7 @@ function mistakesHTML(c) {
   const groups = classProblems(c);
   const all = groups.flatMap(g => g.probs);
   if (!all.length) return `<section class="card empty"><p>${H('tc.noLessons')}</p></section>`;
-  const atts = visibleAttempts();
+  const atts = countable(visibleAttempts());
   const pid = S.mistakeProb && all.some(p => p.id === S.mistakeProb) ? S.mistakeProb : (all.find(p => atts.some(a => a.problem_id === p.id && !a.ok)) || all[0]).id;
   const prob = all.find(p => p.id === pid);
   const wrong = atts.filter(a => a.problem_id === pid && !a.ok && a.sql);
@@ -576,15 +590,23 @@ function mistakesHTML(c) {
   </section>`;
 }
 
+/** the student's 4-digit number: set or not, locked after wrong tries; the teacher can give a new one */
+function pinCellHTML(m) {
+  const p = (S.pins || {})[m.user_id];
+  const st = !p ? '' : p.locked ? `<span class="tag bad">🔒 ${H('tc.pinLocked')}</span>` : p.has_pin ? `<span class="tag ok">✓ ${H('tc.pinSet')}</span>` : `<span class="tag">— ${H('tc.pinNone')}</span>`;
+  return `${st} <button class="btn btn-ghost btn-xs" data-act="teacherPin" data-u="${esc(m.user_id)}">${H('tc.pinNew')}</button>`;
+}
 function membersHTML(c) {
   const solved = {};
   S.attempts.filter(a => a.ok).forEach(a => { (solved[a.user_id] = solved[a.user_id] || new Set()).add(a.problem_id); });
   const last = {};
   S.attempts.forEach(a => { last[a.user_id] = a.created_at; });
   return `<section class="card members">
-    <table class="wtable"><thead><tr><th>${H('class.nickname')}</th><th>${H('tc.joined')}</th><th>${H('tc.lastActive')}</th><th class="n">${H('home.solved')}</th><th></th></tr></thead>
+    <table class="wtable"><thead><tr><th>${H('class.nickname')}</th><th>${H('tc.joined')}</th><th>${H('tc.lastActive')}</th><th class="n">${H('home.solved')}</th><th>${H('tc.pin')}</th><th></th></tr></thead>
     <tbody>${S.members.map(m => `<tr><td><b>${esc(m.nickname)}</b></td><td class="muted small">${esc(fmtTime(m.joined_at))}</td><td class="muted small">${last[m.user_id] ? esc(fmtTime(last[m.user_id])) : '—'}</td><td class="n">${(solved[m.user_id] || new Set()).size}</td>
-      <td><button class="btn btn-ghost btn-xs" data-act="removeMember" data-u="${m.user_id}">${I.trash}${H('tc.remove')}</button></td></tr>`).join('') || `<tr><td colspan="5" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody></table>
+      <td class="small">${pinCellHTML(m)}</td>
+      <td><button class="btn btn-ghost btn-xs" data-act="removeMember" data-u="${m.user_id}">${I.trash}${H('tc.remove')}</button></td></tr>`).join('') || `<tr><td colspan="6" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody></table>
+    <p class="muted small">${H('tc.pinNote')}</p>
     <div class="danger-zone"><b>${H('tc.danger')}</b>
       <button class="btn btn-ghost btn-sm" data-act="clearAttempts">${I.trash}${H('tc.clearAttempts')}</button>
       <button class="btn btn-danger btn-sm" data-act="deleteClass">${I.trash}${H('tc.deleteClass')}</button></div>
@@ -701,8 +723,8 @@ async function load() {
 }
 async function reloadClassData() {
   const c = S.klass;
-  const [m, a] = await Promise.all([backend.members(c.id), backend.attempts(c.id)]);
-  S.members = m; S.attempts = a;
+  const [m, a, p] = await Promise.all([backend.members(c.id), backend.attempts(c.id), backend.pinStatus(c.id).catch(() => [])]);
+  S.members = m; S.attempts = a; S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
 }
 /* live connection: shown in the class header; when it drops, it reconnects by itself and
  * reloads the answers so nothing sent in the meantime is missed */
@@ -725,7 +747,7 @@ async function startWatch() {
   let wasLost = S.conn === 'lost';
   setConn('connecting');
   S.unwatch = await backend.watchDashboard(id, row => { if (!S.attempts.some(a => a.id === row.id)) S.attempts.push(row); soonRefresh(); },
-    async () => { S.members = await backend.members(id); soonRefresh(); },
+    async () => { try { await reloadClassData(); } catch (e) { S.members = await backend.members(id); } soonRefresh(); },   // a student who came back on another device brings their answers along
     async status => {
       if (gen !== watchGen) return;   // an old connection
       if (status === 'SUBSCRIBED') {
@@ -846,6 +868,14 @@ const actions = {
     modal(`<div class="modal-head"><h2>${I.eye} ${H('tc.tabMistakes')}</h2><button class="icon-btn" data-act="closeModal">${I.x}</button></div><div class="modal-body projector">${pr ? pr.innerHTML : ''}${list ? list.innerHTML : ''}</div>`, { wide: true });
     document.getElementById('modal').classList.add('full');
   },
+  async teacherPin(el) {
+    const m = S.members.find(x => x.user_id === el.dataset.u);
+    const pin = (prompt(T('tc.pinPrompt', { n: m ? m.nickname : '' })) || '').trim();
+    if (!pin) return;
+    if (!/^[0-9]{4}$/.test(pin)) { toast(T('pin.bad')); return; }
+    try { await backend.teacherSetPin(S.klass.id, el.dataset.u, pin); S.pins = Object.fromEntries(((await backend.pinStatus(S.klass.id)) || []).map(x => [x.user_id, x])); refreshTab(); toast(T('tc.pinDone', { n: m ? m.nickname : '', p: pin })); }
+    catch (e) { console.error(e); toast(T(e.message === 'pin_missing' ? 'tc.pinNeedsDb' : 'class.netError')); }
+  },
   async removeMember(el) {
     if (!confirm(T('tc.removeConfirm'))) return;
     try { await backend.removeMember(S.klass.id, el.dataset.u); S.members = S.members.filter(m => m.user_id !== el.dataset.u); refreshTab(); } catch (e) { toast(T('class.netError')); }
@@ -926,6 +956,8 @@ document.addEventListener('submit', async e => {
     } else if (kind === 'assign') {
       const patch = { lessons: LESSONS.map(l => l.key).filter(k => fd.getAll('lesson').includes(k)), set_code: normCode(fd.get('set_code')) || todayCode(), answer_policy: fd.get('policy') || 'after2' };
       const fmt = normFormat(readFormat(f));   // null = the usual set
+      const removed = (S.klass.lessons || []).some(k => !patch.lessons.includes(k));
+      if (liveOn(S.klass) && (patch.set_code !== S.klass.set_code || formatKey(fmt) !== formatKey(S.klass.format) || removed) && !confirm(T('tc.live.changeConfirm'))) { if (btn) btn.disabled = false; return; }
       if (fmt || S.klass.format) patch.format = fmt;   // old databases without the column keep working with the usual set
       S.klass = await backend.updateClass(S.klass.id, patch);
       toast(T('tc.saved')); render();
