@@ -21,6 +21,8 @@ import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
+import { hasLecture, LECTURES } from './lectures.js';
+import { lectureSteps, lectureStepHTML, paintStep } from './lecture-ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -97,11 +99,12 @@ function parseRoute() {
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
+  if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
   if (h[0] === 'live') return { view: 'live', key: LESSON_BY_KEY[h[1]] ? h[1] : h[1] === 'done' ? 'done' : null, idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };
   return { view: 'home' };
 }
 window.addEventListener('hashchange', () => {
-  saveDraft();
+  saveDraft(); stopAuto();
   S.route = parseRoute(); S.step = null; S.tab = 'user';
   if (S.route.view !== 'session') S.session = null;
   render(); window.scrollTo(0, 0);
@@ -150,6 +153,7 @@ function render() {
   else if (r.view === 'words') body = wordsHTML();
   else if (r.view === 'live') body = liveViewHTML();
   else if (r.view === 'solved') body = solvedHTML();
+  else if (r.view === 'lecture') body = lectureHTML();
   else body = homeHTML();
   app.innerHTML = head + liveBannerHTML() + body + footerHTML();
   mountWorkspace();
@@ -277,6 +281,7 @@ function lessonHTML() {
       <div class="chap">${H('lesson.of', { a: lesson.no })} · ${rubyHTML(raw('ch.' + ch.key, L()))}</div>
       <h1>${lessonTitleHTML(lesson, L())}</h1>
       ${textbookPage(lesson) ? `<div class="book-ref" title="${esc(T('book.inAppTip'))}">${I.book}${H('book.inApp', { n: textbookPage(lesson) })}</div>` : ''}
+      ${hasLecture(lesson.key) ? `<a class="btn btn-ghost btn-sm lec-open" href="#/lecture/${lesson.key}">📽 ${H('lec.open')}</a>` : ''}
       <div class="point"><b>${H('lesson.point')}</b>${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div>
     </div>
     <nav class="card plist" aria-label="${esc(T('lesson.problems'))}">
@@ -447,6 +452,57 @@ function liveViewHTML() {
     <div class="lesson-layout">${side}<div class="main" id="ws">${workspaceHTML(prob)}</div></div>
   </main>`;
 }
+
+/* ---------- lecture: slides with animated tables, for each lesson ---------- */
+const lec = { key: null, i: 0, auto: null };
+function lectureHTML() {
+  const lesson = LESSON_BY_KEY[S.route.key];
+  if (lec.key !== lesson.key) { lec.key = lesson.key; lec.i = 0; stopAuto(); }
+  const steps = lectureSteps(lesson.key), st = steps[lec.i];
+  document.title = `${T('lec.title')} · ${lessonTitle(lesson, L())} · SQL Practice`;
+  const slides = LECTURES[lesson.key].slides;
+  return `<main class="wrap lec-wrap">
+    <div class="crumbs"><a href="#/l/${lesson.key}/0">Lesson ${lesson.no} · ${lessonTitleHTML(lesson, L())}</a><span>›</span><span>📽 ${H('lec.title')}</span></div>
+    ${['ja', 'easy', 'en'].includes(L()) ? '' : `<p class="muted small">${H('lec.langNote')}</p>`}
+    <section class="card lec-card">
+      <div class="lec-top"><h1>${lessonTitleHTML(lesson, L())}</h1>
+        <div class="lec-dots">${slides.map((sl, i) => `<button class="${i === st.slide ? 'on' : i < st.slide ? 'done' : ''}" data-act="lecGo" data-s="${i}" aria-label="${i + 1}"></button>`).join('')}</div></div>
+      <div id="lec-box" class="lec-box">${lectureStepHTML(lesson, st, S.engine, L())}</div>
+      <div class="lec-ctl">
+        <button class="btn btn-ghost" data-act="lecPrev" ${lec.i === 0 ? 'disabled' : ''}>${I.prev}${H('lec.prev')}</button>
+        <button class="btn btn-ghost btn-sm" data-act="lecAuto">${lec.auto ? '⏸' : '▶'} ${H('lec.auto')}</button>
+        <span class="muted small lec-pos">${lec.i + 1} / ${steps.length}</span>
+        <button class="btn btn-primary" data-act="lecNext" ${lec.i >= steps.length - 1 ? 'disabled' : ''}>${H('lec.next')}${I.next}</button>
+      </div>
+      <p class="muted small lec-keys">${H('lec.keys')}</p>
+    </section>
+  </main>`;
+}
+function lecMove(to) {
+  const lesson = LESSON_BY_KEY[lec.key], steps = lectureSteps(lec.key);
+  to = Math.max(0, Math.min(steps.length - 1, to));
+  if (to === lec.i) { stopAuto(); return; }
+  const from = steps[lec.i], st = steps[to];
+  const same = from.slide === st.slide && LECTURES[lec.key].slides[st.slide].type === 'anim';
+  lec.i = to;
+  const box = document.getElementById('lec-box');
+  if (!box) { render(); return; }
+  const f = LECTURES[lec.key].slides[st.slide].frames;
+  paintStep(box, lectureStepHTML(lesson, st, S.engine, L()), same, same && f[st.frame].merge ? f[st.frame].merge(S.engine) : null);
+  // the controls and the dots follow
+  document.querySelectorAll('.lec-dots button').forEach((b, i) => { b.className = i === st.slide ? 'on' : i < st.slide ? 'done' : ''; });
+  const pos = document.querySelector('.lec-pos'); if (pos) pos.textContent = `${lec.i + 1} / ${steps.length}`;
+  const pv = document.querySelector('[data-act="lecPrev"]'), nx = document.querySelector('[data-act="lecNext"]');
+  if (pv) pv.disabled = lec.i === 0; if (nx) nx.disabled = lec.i >= steps.length - 1;
+  if (lec.i >= steps.length - 1) stopAuto();
+}
+function stopAuto() { if (lec.auto) { clearInterval(lec.auto); lec.auto = null; const b = document.querySelector('[data-act="lecAuto"]'); if (b) b.innerHTML = `▶ ${H('lec.auto')}`; } }
+document.addEventListener('keydown', e => {
+  if (S.route.view !== 'lecture' || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '') || document.getElementById('modal')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); stopAuto(); lecMove(lec.i + 1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); stopAuto(); lecMove(lec.i - 1); }
+  if (e.key === 'a' || e.key === 'A') actions.lecAuto();
+});
 
 /* ---------- glossary ---------- */
 function wordsHTML() {
@@ -894,6 +950,14 @@ const actions = {
     delete S.runs[c.prob.id]; S.redoing.add(c.prob.id); save(); render();
   },
   setPin() { openPin(); },
+  lecNext() { stopAuto(); lecMove(lec.i + 1); },
+  lecPrev() { stopAuto(); lecMove(lec.i - 1); },
+  lecGo(el) { stopAuto(); const i = lectureSteps(lec.key).findIndex(x => x.slide === +el.dataset.s); if (i >= 0) lecMove(i); },
+  lecAuto() {
+    if (lec.auto) { stopAuto(); return; }
+    lec.auto = setInterval(() => lecMove(lec.i + 1), 2600);
+    const b = document.querySelector('[data-act="lecAuto"]'); if (b) b.innerHTML = `⏸ ${H('lec.auto')}`;
+  },
   reset() { const c = current(); delete S.progress.drafts[c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
   insert(el) {
     const c = current();

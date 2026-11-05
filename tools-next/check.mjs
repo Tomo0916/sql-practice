@@ -237,5 +237,39 @@ console.log('7. Class problem formats');
   console.log(`   ${sets} lesson sets; ${short} have fewer problems than asked (lessons with few patterns)`);
 }
 
+console.log('8. Lectures');
+{
+  const { LECTURES } = await import('../js/lectures.js');
+  const texts = [];
+  for (const [key, L] of Object.entries(LECTURES)) {
+    if (!LESSON_BY_KEY[key]) err(`lecture ${key}: no such lesson`);
+    const t3 = (where, x) => { for (const l of ['en', 'ja', 'easy']) { if (!x || !x[l]) err(`lecture ${key} ${where}: no ${l}`); else texts.push([`lecture ${key} ${where}`, l, x[l]]); } };
+    t3('goal', L.goal);
+    L.slides.forEach((sl, i) => {
+      (sl.notes || []).forEach((n, j) => t3(`slide ${i + 1} note ${j + 1}`, n));
+      (sl.items || []).forEach((n, j) => t3(`slide ${i + 1} point ${j + 1}`, n));
+      if (sl.title) t3(`slide ${i + 1} title`, sl.title);
+      if (sl.why) t3(`slide ${i + 1} why`, sl.why);
+      if (sl.type === 'mistake') {
+        let w = null, r = null;
+        try { w = eng.exec(sl.wrong); } catch (e) { w = 'error'; }
+        try { r = eng.exec(sl.right); } catch (e) { err(`lecture ${key}: the right SQL fails: ${sl.right}`); }
+        if (w !== 'error' && r && JSON.stringify(w) === JSON.stringify(r)) err(`lecture ${key}: the wrong SQL gives the right result: ${sl.wrong}`);
+      }
+      (sl.frames || []).forEach((f, j) => {
+        t3(`slide ${i + 1} frame ${j + 1}`, f.cap);
+        try { eng.exec(f.sql); } catch (e) { err(`lecture ${key} frame ${j + 1}: the SQL fails: ${f.sql}`); }
+        if (f.mark && !f.sql.includes(f.mark)) err(`lecture ${key} frame ${j + 1}: “${f.mark}” is not in the SQL`);
+        try { const st = f.table(eng); if (!st.rows.length) err(`lecture ${key} frame ${j + 1}: empty table`); } catch (e) { err(`lecture ${key} frame ${j + 1}: table fails: ${e.message}`); }
+      });
+    });
+  }
+  for (const [where, l, s] of texts) {
+    if (l === 'easy') { const bare = s.replace(/\{[^{}|]+\|[^{}]+\}/g, '').match(/[一-鿿]+/g); if (bare) err(`${where} (easy): kanji without furigana: ${bare.join(' ')}`); }
+    if (l === 'en' && /[぀-ヿ一-鿿]/.test(s)) err(`${where} (en) contains Japanese`);
+  }
+  console.log(`   ${Object.keys(LECTURES).length} lectures`);
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

@@ -11,6 +11,7 @@ import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from
 import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normFormat, formatKey, stagesFor, FORMAT_KEYS, FORMAT_MAX, STANDARD_FORMAT } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
+import { hasLecture } from './lectures.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
@@ -621,7 +622,7 @@ function presentHTML() {
   return `<main class="wrap">
     <h1 class="page-title">${H('tc.present')}</h1><p class="muted">${H('tc.presentSub')}</p>
     <div class="chapters">${CHAPTERS.map(ch => `<article class="card chapter" style="--cc:var(--c-${ch.key})"><div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div><h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2></div></div>
-      <ul class="lesson-list">${LESSONS.filter(l => l.ch === ch.key).map(l => `<li><a class="lesson-link" target="_blank" rel="noopener" href="../?present=1&set=${encodeURIComponent(code)}#/l/${l.key}/0"><span class="lesson-num">${l.no}</span><span class="lesson-name">${lessonTitleHTML(l, L())}</span>${I.screen}</a></li>`).join('')}</ul></article>`).join('')}</div>
+      <ul class="lesson-list">${LESSONS.filter(l => l.ch === ch.key).map(l => `<li><a class="lesson-link" target="_blank" rel="noopener" href="../?present=1&set=${encodeURIComponent(code)}#/l/${l.key}/0"><span class="lesson-num">${l.no}</span><span class="lesson-name">${lessonTitleHTML(l, L())}</span>${I.screen}</a>${hasLecture(l.key) ? `<a class="lec-link" target="_blank" rel="noopener" href="../?present=1#/lecture/${l.key}" title="${esc(T('lec.open'))}">📽</a>` : ''}</li>`).join('')}</ul></article>`).join('')}</div>
   </main>`;
 }
 

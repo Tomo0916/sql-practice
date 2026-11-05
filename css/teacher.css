@@ -441,3 +441,6 @@ details.rank .rk-head { justify-content: flex-end; }
 .live-len { display: flex; align-items: center; gap: 6px; }
 .live-len select { font: inherit; font-size: .82rem; padding: 2px 6px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--surface); color: var(--ink); }
 .rv-tag { display: block; font-size: .64rem; color: var(--ink-3); font-family: var(--sans); }
+.lesson-list li { position: relative; }
+.lec-link { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); text-decoration: none; font-size: 1.05rem; padding: 2px 6px; border-radius: 6px; }
+.lec-link:hover { background: var(--accent-soft); }
