@@ -9,7 +9,7 @@ const { LESSONS, CHAPTERS } = await import(path.join(root, 'js/lessons.js'));
 const { SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES } = await import(path.join(root, 'js/datasets.js'));
 
 /** texts of the data-analysis course: written in English, Japanese and Easy Japanese first; other languages fall back to English */
-export const ANALYSIS_KEY = /^(L\.an_|ch\.analysis|ph\.(width|mean|sd)$|step\.sub$|an\.)/;
+export const ANALYSIS_KEY = /^(L\.an_|ch\.analysis|ph\.(width|mean|sd)$|step\.(sub|case|month|window|mean|dev|coalesce|clean)$|an\.)/;
 export const ANALYSIS_LANGS = ['en', 'ja', 'easy'];
 export function usedKeys() {
   const keys = new Set();

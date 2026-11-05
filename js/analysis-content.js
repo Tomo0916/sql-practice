@@ -289,3 +289,305 @@ export function guideSteps(lessonKey, w, tool) {
   if (!g) return [];
   return ((g[w] || g._ || {})[tool]) || [];
 }
+
+/* =========================================================
+ * Part 2 (A7–A12): statistics cards and Excel / Python guides
+ * ========================================================= */
+Object.assign(STAT, {
+  an_cross: {
+    en: [
+      ['h', 'Cross tables (crosstab / pivot table)'],
+      ['p', 'A cross table counts rows by two things at once: store × coupon, team × rating. It is the first step to “is there a difference between the groups?”'],
+      ['h', 'Shares: compare in %, not in counts'],
+      ['f', 'share (%) = 100 × part ÷ whole'],
+      ['p', 'A big store has more of everything. To compare groups of different sizes, divide by the size of each group (row %), or by the grand total (share of the whole).'],
+      ['li', ['Row %: “of the orders in Shibuya, 39% used a coupon”', 'Share of the whole: “Shibuya made 25% of all sales”', 'Write 100.0 (not 100) so SQL does not do integer division']],
+      ['p', 'The chart shows, for each group of this table, the rows with and without a value in the column that is sometimes empty.']
+    ],
+    ja: [
+      ['h', 'クロス集計（クロス表・ピボットテーブル）'],
+      ['p', 'クロス集計は、2つのことがらで同時に行を数えます（店 × クーポン、チーム × 評価）。「グループの間に違いはあるか」を調べる最初の一歩です。'],
+      ['h', '構成比：数ではなく % で比べる'],
+      ['f', '割合（%）= 100 × 部分 ÷ 全体'],
+      ['p', '大きな店は何でも数が多くなります。大きさの違うグループを比べるときは、グループの大きさで割る（行の割合）か、全体で割り（全体に占める割合）ます。'],
+      ['li', ['行の割合：「渋谷の注文のうち 39% がクーポンを使った」', '全体に占める割合：「売上全体の 25% が渋谷」', 'SQL では 100 ではなく 100.0 と書くと、整数どうしの割り算になりません']],
+      ['p', '下の図は、このテーブルのグループごとに、空欄のある列に値が入っている行と、入っていない行の数です。']
+    ],
+    easy: [
+      ['h', 'クロス{集計|しゅうけい}（クロス{表|ひょう}・ピボットテーブル）'],
+      ['p', 'クロス{集計|しゅうけい}は、2つの ことがらで いっしょに {行|ぎょう}を {数|かぞ}えます（{店|みせ} × クーポン など）。「グループの {間|あいだ}に ちがいは あるか」を しらべる {最初|さいしょ}の {一歩|いっぽ}です。'],
+      ['h', '{構成比|こうせいひ}：{数|かず}では なく % で くらべる'],
+      ['f', '{割合|わりあい}（%）= 100 × {部分|ぶぶん} ÷ ぜんたい'],
+      ['p', '{大|おお}きな {店|みせ}は なんでも {数|かず}が {多|おお}く なります。{大|おお}きさの ちがう グループは、グループの {大|おお}きさや ぜんたいで わって くらべます。'],
+      ['li', ['{行|ぎょう}の {割合|わりあい}：「{渋谷|しぶや}の {注文|ちゅうもん}の うち 39% が クーポンを {使|つか}った」', 'ぜんたいの {中|なか}の {割合|わりあい}：「{売上|うりあげ} ぜんたいの 25% が {渋谷|しぶや}」', 'SQL では 100 では なく 100.0 と {書|か}きます（{整数|せいすう}の わり{算|ざん}に ならないように）']],
+      ['p', '{下|した}の {図|ず}は、グループごとに、{空|から}の ある {列|れつ}に {値|あたい}が ある {行|ぎょう}と ない {行|ぎょう}の {数|かず}です。']
+    ]
+  },
+  an_trend: {
+    en: [
+      ['h', 'Time series'],
+      ['p', 'Data in time order. Three things to look for: the trend (going up or down over a long time), seasonality (the same pattern every year, e.g. December sales) and noise (random ups and downs).'],
+      ['h', 'Change from the previous period, moving average'],
+      ['f', 'diff = this month − last month        3-month moving average = (this + last + the one before) ÷ 3'],
+      ['li', ['A moving average smooths the noise so the trend is easier to see', 'Compare with the same month last year when there is seasonality', 'The first months have no “previous month” (NULL): that is correct']],
+      ['p', 'The chart shows this table’s monthly totals (line) and the 3-month moving average (dashed).']
+    ],
+    ja: [
+      ['h', '時系列データ（time series）'],
+      ['p', '時間の順に並んだデータです。見るポイントは3つ：傾向（長い期間で上がっているか下がっているか）、季節性（毎年同じ形、たとえば12月の売上）、ノイズ（たまたまの上がり下がり）。'],
+      ['h', '前の期間との差、移動平均'],
+      ['f', '差 = 今月 − 先月        3か月移動平均 = (今月 + 先月 + 先々月) ÷ 3'],
+      ['li', ['移動平均はノイズをならすので、傾向が見やすくなります', '季節性があるときは、前の年の同じ月と比べます', '最初の月には「前の月」がないので NULL になります（それで正しい）']],
+      ['p', '下の図は、このテーブルの月ごとの合計（線）と 3か月移動平均（点線）です。']
+    ],
+    easy: [
+      ['h', '{時系列|じけいれつ}データ（time series）'],
+      ['p', '{時間|じかん}の {順|じゅん}に ならんだ データです。{見|み}る ポイントは 3つ：{傾向|けいこう}（{長|なが}い {間|あいだ}で {上|あ}がっているか {下|さ}がっているか）、{季節性|きせつせい}（{毎年|まいとし} {同|おな}じ {形|かたち}）、ノイズ（たまたまの {上|あ}がり{下|さ}がり）。'],
+      ['h', '{前|まえ}との {差|さ}、{移動平均|いどうへいきん}'],
+      ['f', '{差|さ} = {今月|こんげつ} − {先月|せんげつ}        3か{月|げつ} {移動平均|いどうへいきん} = ({今月|こんげつ} + {先月|せんげつ} + その{前|まえ}) ÷ 3'],
+      ['li', ['{移動平均|いどうへいきん}は ノイズを ならすので、{傾向|けいこう}が {見|み}やすく なります', '{季節性|きせつせい}が ある ときは、{前|まえ}の {年|とし}の {同|おな}じ {月|つき}と くらべます', '{最初|さいしょ}の {月|つき}には「{前|まえ}の {月|つき}」が ないので NULL です（それで {正|ただ}しい）']],
+      ['p', '{下|した}の {図|ず}は、{月|つき}ごとの {合計|ごうけい}（{線|せん}）と 3か{月|げつ} {移動平均|いどうへいきん}（{点線|てんせん}）です。']
+    ]
+  },
+  an_corr: {
+    en: [
+      ['h', 'Scatter plot and correlation coefficient'],
+      ['p', 'Put one number on the x-axis and the other on the y-axis: each row is one point. The correlation coefficient r says how close the points are to a straight line.'],
+      ['f', 'r = Σ(x − x̄)(y − ȳ) ÷ √( Σ(x − x̄)² × Σ(y − ȳ)² )'],
+      ['li', ['|r| ≥ 0.7: strong   0.4–0.7: moderate   0.2–0.4: weak   below 0.2: almost none (a rule of thumb)', 'r only sees straight-line relationships. Always look at the scatter plot too', 'A few outliers can make r much larger or smaller']],
+      ['h', 'Correlation is not causation'],
+      ['p', 'Ice-cream sales and swimming accidents both go up in summer: they are correlated, but one does not cause the other. A third thing (temperature) moves both.'],
+      ['p', 'The chart is the scatter plot of the two columns of this table, with the best straight line.']
+    ],
+    ja: [
+      ['h', '散布図と相関係数'],
+      ['p', '一方の数を横軸、もう一方を縦軸にとると、1行が1つの点になります。相関係数 r は、点がどれだけ直線に近く並んでいるかを表します。'],
+      ['f', 'r = Σ(x − x̄)(y − ȳ) ÷ √( Σ(x − x̄)² × Σ(y − ȳ)² )'],
+      ['li', ['目安：|r| ≥ 0.7 強い、0.4〜0.7 中くらい、0.2〜0.4 弱い、0.2 未満 ほとんどない', 'r は直線的な関係しか見ません。散布図も必ず見ましょう', '少しの外れ値で r が大きく変わることがあります']],
+      ['h', '相関は因果ではない'],
+      ['p', 'アイスの売上と水の事故は、どちらも夏に増えるので相関があります。でも一方が他方の原因ではありません。気温という第3のものが両方を動かしています（疑似相関）。'],
+      ['p', '下の図は、このテーブルの2つの列の散布図と、いちばん合う直線です。']
+    ],
+    easy: [
+      ['h', '{散布図|さんぷず}と {相関係数|そうかんけいすう}'],
+      ['p', '{一方|いっぽう}の {数|かず}を {横|よこ}、もう{一方|いっぽう}を {縦|たて}に とると、1{行|ぎょう}が 1つの {点|てん}に なります。{相関係数|そうかんけいすう} r は、{点|てん}が どれだけ まっすぐな {線|せん}に {近|ちか}く ならんでいるかを {表|あらわ}します。'],
+      ['f', 'r = Σ(x − x̄)(y − ȳ) ÷ √( Σ(x − x̄)² × Σ(y − ȳ)² )'],
+      ['li', ['めやす：|r| ≥ 0.7 {強|つよ}い、0.4〜0.7 {中|ちゅう}くらい、0.2〜0.4 {弱|よわ}い、0.2 {未満|みまん} ほとんど ない', 'r は まっすぐな {関係|かんけい}しか {見|み}ません。{散布図|さんぷず}も {見|み}ましょう', '{少|すこ}しの {外|はず}れ{値|ち}で r が {大|おお}きく かわる ことが あります']],
+      ['h', '{相関|そうかん}は {原因|げんいん}では ない'],
+      ['p', 'アイスの {売上|うりあげ}と {水|みず}の {事故|じこ}は、どちらも {夏|なつ}に {増|ふ}えるので {相関|そうかん}が あります。でも {一方|いっぽう}が {原因|げんいん}では ありません。{気温|きおん}が {両方|りょうほう}を {動|うご}かしています。'],
+      ['p', '{下|した}の {図|ず}は、2つの {列|れつ}の {散布図|さんぷず}と、いちばん あう {線|せん}です。']
+    ]
+  },
+  an_compare: {
+    en: [
+      ['h', 'Comparing groups fairly'],
+      ['p', 'A difference in means is a start, but look at more: how spread out each group is (box plot), how many rows are above a line, who is at the top.'],
+      ['li', ['Group sizes: a mean from 10 rows moves more by chance than a mean from 100', 'Outliers pull the mean: compare medians too', 'The groups may differ in other ways (a comparison is not an experiment)']],
+      ['h', 'A/B comparison'],
+      ['p', 'With coupon vs without coupon is an A/B comparison. To say “the coupon raised the amount”, the two groups must be alike in everything else — in real data they rarely are, so say “orders with a coupon were larger on average” instead.'],
+      ['p', 'The chart shows a box plot for each group of this table.']
+    ],
+    ja: [
+      ['h', 'グループを公平に比べる'],
+      ['p', '平均の差は出発点です。さらに、グループごとのばらつき（箱ひげ図）、ある線より上の割合、1位はだれか、も見ましょう。'],
+      ['li', ['グループの大きさ：10行の平均は、100行の平均より偶然で動きやすい', '外れ値は平均を引っぱる：中央値も比べる', 'グループは他の点でも違っているかもしれない（比較は実験ではない）']],
+      ['h', 'A/B の比較'],
+      ['p', 'クーポンあり・なしの比較は A/B 比較です。「クーポンで金額が上がった」と言うには、2つのグループがほかの点で同じでなければなりません。実際のデータではめったにそうならないので、「クーポンありの注文は平均が大きかった」と言いましょう。'],
+      ['p', '下の図は、このテーブルのグループごとの箱ひげ図です。']
+    ],
+    easy: [
+      ['h', 'グループを {公平|こうへい}に くらべる'],
+      ['p', '{平均|へいきん}の {差|さ}は スタートです。グループごとの ばらつき（{箱|はこ}ひげ{図|ず}）、ある {線|せん}より {上|うえ}の {割合|わりあい}、1{位|い}は だれか も {見|み}ましょう。'],
+      ['li', ['グループの {大|おお}きさ：10{行|ぎょう}の {平均|へいきん}は、100{行|ぎょう}より たまたまで {動|うご}きやすい', '{外|はず}れ{値|ち}は {平均|へいきん}を ひっぱる：{中央値|ちゅうおうち}も くらべる', 'グループは ほかの ところでも ちがうかも しれない']],
+      ['h', 'A/B の {比較|ひかく}'],
+      ['p', 'クーポン あり・なしの {比較|ひかく}は A/B {比較|ひかく}です。「クーポンで お{金|かね}が {増|ふ}えた」と {言|い}うには、2つの グループが ほかの ところで {同|おな}じで ないと いけません。だから「クーポン ありの {注文|ちゅうもん}は {平均|へいきん}が {大|おお}きかった」と {言|い}いましょう。'],
+      ['p', '{下|した}の {図|ず}は、グループごとの {箱|はこ}ひげ{図|ず}です。']
+    ]
+  },
+  an_join: {
+    en: [
+      ['h', 'Combine tables before you analyse'],
+      ['p', 'Business data is split: what happened (orders, visits) is in one table, who did it (members, customers) in another. JOIN them on the person’s code, then group by a column of the people table (plan, rank, department).'],
+      ['li', ['INNER JOIN keeps only the rows that have a partner in both tables', 'LEFT JOIN keeps everyone in the first table; no partner → NULL', 'Count after a JOIN with care: one person with many orders becomes many rows']],
+      ['h', 'Customer-level view'],
+      ['p', 'Grouping by person gives each customer’s number of purchases and total: who are the best customers, who never came back. This is the start of customer analysis (RFM: Recency, Frequency, Monetary).'],
+      ['p', 'The chart shows how many people of each kind are in the people table.']
+    ],
+    ja: [
+      ['h', '分析の前に表を合わせる'],
+      ['p', '仕事のデータは分かれています。何が起きたか（注文・来店）は1つの表に、だれがしたか（会員・顧客）は別の表にあります。人のコードで JOIN し、人の表の列（プラン・ランク・部署）でグループにします。'],
+      ['li', ['INNER JOIN は、両方の表に相手がいる行だけを残します', 'LEFT JOIN は、最初の表の全員を残します（相手がいないと NULL）', 'JOIN のあとは数え方に注意：注文の多い人は、たくさんの行になります']],
+      ['h', '顧客ごとに見る'],
+      ['p', '人ごとにグループにすると、それぞれの購入回数や合計が分かります。いちばんのお客さんはだれか、もう来なくなったのはだれか。これが顧客分析（RFM：最終購入日・回数・金額）の始まりです。'],
+      ['p', '下の図は、人の表の種類ごとの人数です。']
+    ],
+    easy: [
+      ['h', '{分析|ぶんせき}の {前|まえ}に {表|ひょう}を あわせる'],
+      ['p', '{仕事|しごと}の データは {分|わ}かれています。{何|なに}が おきたか（{注文|ちゅうもん}・{来店|らいてん}）は 1つの {表|ひょう}、だれが したか（{会員|かいいん}・お{客|きゃく}）は べつの {表|ひょう}です。{人|ひと}の コードで JOIN し、{人|ひと}の {表|ひょう}の {列|れつ}で グループに します。'],
+      ['li', ['INNER JOIN は、{両方|りょうほう}に {相手|あいて}が いる {行|ぎょう}だけ のこします', 'LEFT JOIN は、{最初|さいしょ}の {表|ひょう}の ぜんいんを のこします（{相手|あいて}が いないと NULL）', 'JOIN の あとは {数|かぞ}え{方|かた}に {注意|ちゅうい}：{注文|ちゅうもん}の {多|おお}い {人|ひと}は たくさんの {行|ぎょう}に なります']],
+      ['h', 'お{客|きゃく}ごとに {見|み}る'],
+      ['p', '{人|ひと}ごとに グループに すると、それぞれの {回数|かいすう}や {合計|ごうけい}が わかります。いちばんの お{客|きゃく}さんは だれか、もう {来|こ}なく なったのは だれか が わかります。'],
+      ['p', '{下|した}の {図|ず}は、{人|ひと}の {表|ひょう}の {種類|しゅるい}ごとの {人数|にんずう}です。']
+    ]
+  },
+  an_clean: {
+    en: [
+      ['h', 'Data cleaning'],
+      ['p', 'Most of the time in real analysis goes into getting the data ready. Count first, look at the values, then tidy.'],
+      ['li', ['Spelling: spaces at the ends, upper/lower case, full-width letters → TRIM, LOWER, REPLACE', 'Empty cells: decide what they mean. COALESCE(x, \'(none)\') shows them clearly; never silently fill numbers with 0', 'Duplicates: the same row twice (A2)', 'Numbers into groups: CASE WHEN → age bands, price ranges']],
+      ['h', 'Making bands'],
+      ['p', 'Choose band edges that people understand (round numbers) and that give groups that are not too small. Every value must fall into exactly one band: use < with the next edge.'],
+      ['p', 'The chart shows how the place column is written now: the same place appears in several ways.']
+    ],
+    ja: [
+      ['h', 'データクリーニング（前処理）'],
+      ['p', '実際の分析では、時間の多くがデータの準備にかかります。まず数えて、値を見て、それから整えます。'],
+      ['li', ['書き方のゆれ：前後の空白、大文字・小文字、全角 → TRIM、LOWER、REPLACE', '空欄：意味を決める。COALESCE(x, \'(none)\') ではっきり見せる。数をだまって 0 にしない', '重複：同じ行が2回（A2）', '数をグループに：CASE WHEN → 年代、価格帯']],
+      ['h', '区分けの作り方'],
+      ['p', '区切りは、人に分かりやすい数（きりのよい数）にし、小さすぎるグループができないようにします。どの値も必ず1つの区分に入るように、次の区切りとの < で書きます。'],
+      ['p', '下の図は、場所の列の今の書かれ方です。同じ場所が何通りにも書かれています。']
+    ],
+    easy: [
+      ['h', 'データクリーニング（{前処理|まえしょり}）'],
+      ['p', 'ほんとうの {分析|ぶんせき}では、{時間|じかん}の {多|おお}くが データの {準備|じゅんび}に かかります。まず {数|かぞ}えて、{値|あたい}を {見|み}て、それから ととのえます。'],
+      ['li', ['{書|か}き{方|かた}の ゆれ：{前後|ぜんご}の {空白|くうはく}、{大文字|おおもじ}・{小文字|こもじ} → TRIM、LOWER', '{空|から}：{意味|いみ}を きめる。COALESCE(x, \'(none)\') で はっきり {見|み}せる。{数|かず}を だまって 0 に しない', '{重複|ちょうふく}：{同|おな}じ {行|ぎょう}が 2{回|かい}（A2）', '{数|かず}を グループに：CASE WHEN → {年代|ねんだい}、{値段|ねだん}の はば']],
+      ['h', '{区分|くわ}けの {作|つく}り{方|かた}'],
+      ['p', '{区切|くぎ}りは わかりやすい {数|かず}に し、{小|ちい}さすぎる グループが できないように します。どの {値|あたい}も かならず 1つに {入|はい}るように、< で {書|か}きます。'],
+      ['p', '{下|した}の {図|ず}は、{場所|ばしょ}の {列|れつ}の いまの {書|か}かれ{方|かた}です。{同|おな}じ {場所|ばしょ}が いろいろな {書|か}き{方|かた}に なっています。']
+    ]
+  }
+});
+
+const PY_OPEN2 = [...PY_OPEN, S('Read the second table too:', '2つめのテーブルも読み込みます：', '2つめの テーブルも {読|よ}みこみます：', 'people = pd.read_csv("{t2}.csv")\nm = df.merge(people, left_on="{name}", right_on="{jk}")\nm.head()')];
+const XL_OPEN2 = [...XL_OPEN, S('Download the CSV of {t2} too, and make it a table named {t2} in the same workbook.', '{t2} の CSV もダウンロードし、同じブックに {t2} という名前のテーブルにします。', '{t2} の CSV も ダウンロードし、{同|おな}じ ブックに {t2} という {名前|なまえ}の テーブルに します。'),
+  S('In {t}, add a column {pg} that looks up each person in {t2}:', '{t} に、{t2} から人を探して持ってくる列 {pg} を足します：', '{t} に、{t2} から {人|ひと}を さがして もってくる {列|れつ} {pg} を {足|た}します：', '=XLOOKUP([@{name}],{t2}[{jk}],{t2}[{pg}])')];
+Object.assign(GUIDE, {
+  an_cross: {
+    rate: {
+      excel: [...XL_OPEN, PIVOT('{g}', '{g} and {opt}'),
+        S('Value Field Settings: Count for both (Count of {opt} counts only the filled cells). Next to the PivotTable: = with ÷ n × 100, rounded to 1 decimal place.', '値フィールドの設定：どちらも「個数」（{opt} の個数は、入力のあるセルだけを数えます）。ピボットテーブルの横に：入力あり ÷ 行数 × 100 を小数第1位で。', 'どちらも「{個数|こすう}」に します（{opt} の {個数|こすう}は、{入|はい}っている セルだけ {数|かぞ}えます）。{横|よこ}に {入|はい}っている{数|かず} ÷ {行|ぎょう}の{数|かず} × 100 を {計算|けいさん}します。', '=ROUND(100*C5/B5,1)')],
+      python: [...PY_OPEN,
+        S('Rows, filled {opt} and the share per {g}:', '{g} ごとの行数・{opt} の入力あり・割合：', '{g} ごとの {行|ぎょう}の {数|かず}・{opt} の {入|はい}っている {数|かず}・{割合|わりあい}：', 's = df.groupby("{g}").agg(n=("{opt}", "size"), with_{opt}=("{opt}", "count"))\ns["pct_{opt}"] = (100 * s["with_{opt}"] / s["n"]).round(1)\ns.sort_values("pct_{opt}", ascending=False)')]
+    },
+    pivot: {
+      excel: [...XL_OPEN, S('Insert → PivotTable: {g} to Rows, {opt} to Columns, {g} to Values (Count). The columns {a1} and {a2} and the Grand Total are the answer.', '挿入 → ピボットテーブル：{g} を「行」、{opt} を「列」、{g} を「値」（個数）に。{a1} と {a2} の列と、総計が答えです。', '{挿入|そうにゅう} → ピボットテーブル：{g} を「{行|ぎょう}」、{opt} を「{列|れつ}」、{g} を「{値|あたい}」（{個数|こすう}）に。{a1} と {a2} の {列|れつ}と {総計|そうけい}が {答|こた}えです。'),
+        S('Or with formulas (put the {g} name in A2):', '式でもできます（A2 に {g} の名前を入れた場合）：', '{式|しき}でも できます（A2 に {g} の {名前|なまえ}）：', '=COUNTIFS({t}[{g}],A2,{t}[{opt}],"{a1}")\n=COUNTIFS({t}[{g}],A2,{t}[{opt}],"{a2}")\n=COUNTIF({t}[{g}],A2)')],
+      python: [...PY_OPEN,
+        S('A cross table, the two columns, and the number of all rows:', 'クロス表から2つの列と、全部の行数：', 'クロス{表|ひょう}から 2つの {列|れつ}と、ぜんぶの {行|ぎょう}の {数|かず}：', 't = pd.crosstab(df["{g}"], df["{opt}"])[["{a1}", "{a2}"]]\nt["total"] = df.groupby("{g}").size()\nt')]
+    },
+    share: {
+      excel: [...XL_OPEN, PIVOT('{g}', '{v} (2 times)'),
+        S('Value Field Settings: Sum for both. For the second: Show Values As → % of Grand Total. Sort by it, largest first.', '値フィールドの設定：どちらも「合計」。2つめは「計算の種類」→ 総計に対する比率。大きい順に並べ替えます。', 'どちらも「{合計|ごうけい}」。2つめは「{計算|けいさん}の {種類|しゅるい}」→ {総計|そうけい}に {対|たい}する {比率|ひりつ}。{大|おお}きい {順|じゅん}に {並|なら}べ{替|か}えます。')],
+      python: [...PY_OPEN,
+        S('Total of {v} per {g} and its share of the whole:', '{g} ごとの {v} の合計と、全体に占める割合：', '{g} ごとの {v} の {合計|ごうけい}と ぜんたいの {中|なか}の {割合|わりあい}：', 's = df.groupby("{g}")["{v}"].sum().to_frame("total_{v}")\ns["share_pct"] = (100 * s["total_{v}"] / df["{v}"].sum()).round(1)\ns.sort_values("share_pct", ascending=False)')]
+    }
+  },
+  an_trend: {
+    month: {
+      excel: [...XL_OPEN,
+        S('Add a column month to the table:', 'テーブルに month の列を足します：', 'テーブルに month の {列|れつ}を {足|た}します：', '=TEXT([@{dt}],"yyyy-mm")'),
+        PIVOT('month', '{v} (2 times)'),
+        S('Value Field Settings: Count and Sum. Insert → Line chart to see the change.', '値フィールドの設定：「個数」と「合計」。挿入 → 折れ線グラフで変化を見ます。', '「{個数|こすう}」と「{合計|ごうけい}」に します。{挿入|そうにゅう} → {折|お}れ{線|せん}グラフで {変化|へんか}を {見|み}ます。')],
+      python: [...PY_OPEN,
+        S('The month is the first 7 characters of {dt} (2025-01):', '月は {dt} の最初の 7 文字（2025-01）です：', '{月|つき}は {dt} の {最初|さいしょ}の 7{文字|もじ}（2025-01）：', 'df["month"] = df["{dt}"].str[:7]\ndf.groupby("month")["{v}"].agg(["count", "sum"])'),
+        S('Line chart:', '折れ線グラフ：', '{折|お}れ{線|せん}グラフ：', 'import matplotlib.pyplot as plt\ndf.groupby("month")["{v}"].sum().plot(marker="o"); plt.show()')]
+    },
+    mom: {
+      excel: [...XL_OPEN, S('Add a column month: =TEXT([@{dt}],"yyyy-mm"), then a PivotTable with month in Rows and Sum of {v} in Values.', 'month の列（=TEXT([@{dt}],"yyyy-mm")）を足し、month を「行」、{v} の合計を「値」にしたピボットテーブルを作ります。', 'month の {列|れつ}を {足|た}し、month を「{行|ぎょう}」、{v} の {合計|ごうけい}を「{値|あたい}」に した ピボットテーブルを {作|つく}ります。'),
+        S('Next to the second month, subtract the month above (and fill down):', '2か月目の横に、上の月を引く式を入れて下までコピーします：', '2か{月|げつ}{目|め}の {横|よこ}に、{上|うえ}の {月|つき}を ひく {式|しき}を {入|い}れて {下|した}まで コピー：', '=B6-B5')],
+      python: [...PY_OPEN,
+        S('Monthly totals and the difference from the month before:', '月ごとの合計と、前の月との差：', '{月|つき}ごとの {合計|ごうけい}と、{前|まえ}の {月|つき}との {差|さ}：', 's = df.groupby(df["{dt}"].str[:7])["{v}"].sum().to_frame("total_{v}")\ns["diff"] = s["total_{v}"].diff()\ns')]
+    },
+    ma: {
+      excel: [...XL_OPEN, S('Make the monthly totals as above (month column + PivotTable).', '上と同じように月ごとの合計を作ります（month の列＋ピボットテーブル）。', '{月|つき}ごとの {合計|ごうけい}を {作|つく}ります（month の {列|れつ}＋ピボットテーブル）。'),
+        S('Moving average: the mean of this month and up to 2 months before (start at the third month; the first two use what there is):', '移動平均：その月と前の2か月までの平均（3か月目から。最初の2か月はあるぶんだけ）：', '{移動平均|いどうへいきん}：その {月|つき}と {前|まえ}の 2か{月|げつ}までの {平均|へいきん}：', '=ROUND(AVERAGE(B5:B7),1)')],
+      python: [...PY_OPEN,
+        S('Monthly totals and the 3-month moving average:', '月ごとの合計と 3か月移動平均：', '{月|つき}ごとの {合計|ごうけい}と 3か{月|げつ} {移動平均|いどうへいきん}：', 's = df.groupby(df["{dt}"].str[:7])["{v}"].sum().to_frame("total_{v}")\ns["ma3"] = s["total_{v}"].rolling(3, min_periods=1).mean().round(1)\ns'),
+        S('Both lines in one chart:', '2本の線を1つのグラフに：', '2{本|ほん}の {線|せん}を 1つの グラフに：', 'import matplotlib.pyplot as plt\ns.plot(marker="o"); plt.show()')]
+    }
+  },
+  an_corr: {
+    r: {
+      excel: [...XL_OPEN,
+        S('The number of rows and the correlation coefficient:', '行数と相関係数：', '{行|ぎょう}の {数|かず}と {相関係数|そうかんけいすう}：', '=ROWS({t})\n=ROUND(CORREL({t}[{v}],{t}[{v3}]),3)'),
+        S('Scatter plot: select the {v} and {v3} columns → Insert → Scatter. Chart Elements → Trendline shows the best straight line.', '散布図：{v} と {v3} の列を選び、挿入 → 散布図。グラフ要素 → 近似曲線で直線を出せます。', '{散布図|さんぷず}：{v} と {v3} の {列|れつ}を {選|えら}び、{挿入|そうにゅう} → {散布図|さんぷず}。{近似曲線|きんじきょくせん}で {線|せん}を {出|だ}せます。')],
+      python: [...PY_OPEN,
+        S('The number of rows and the correlation coefficient (Pearson):', '行数と相関係数（ピアソン）：', '{行|ぎょう}の {数|かず}と {相関係数|そうかんけいすう}：', 'print(len(df), round(df["{v}"].corr(df["{v3}"]), 3))'),
+        S('Scatter plot:', '散布図：', '{散布図|さんぷず}：', 'import matplotlib.pyplot as plt\ndf.plot.scatter(x="{v}", y="{v3}"); plt.show()')]
+    },
+    group: {
+      excel: [...XL_OPEN,
+        S('For each {g} (its name in A2), with FILTER (Microsoft 365):', '{g} ごとに（A2 に名前を入れた場合）、FILTER を使って（Microsoft 365）：', '{g} ごとに（A2 に {名前|なまえ}）、FILTER を {使|つか}って：', '=COUNTIF({t}[{g}],A2)\n=ROUND(CORREL(FILTER({t}[{v}],{t}[{g}]=A2),FILTER({t}[{v3}],{t}[{g}]=A2)),3)')],
+      python: [...PY_OPEN,
+        S('Rows and r per {g}, the largest first:', '{g} ごとの行数と r（大きい順）：', '{g} ごとの {行|ぎょう}の {数|かず}と r：', 'rows = []\nfor name, x in df.groupby("{g}"):\n    rows.append((name, len(x), round(x["{v}"].corr(x["{v3}"]), 3)))\npd.DataFrame(rows, columns=["{g}", "n", "r"]).sort_values("r", ascending=False)')]
+    }
+  },
+  an_compare: {
+    diff: {
+      excel: [...XL_OPEN,
+        S('Add a column has_{opt}:', 'テーブルに has_{opt} の列を足します：', 'テーブルに has_{opt} の {列|れつ}を {足|た}します：', '=IF([@{opt}]="","no","yes")'),
+        PIVOT('has_{opt}', '{v} (2 times)'),
+        S('Value Field Settings: Count and Average (1 decimal place).', '値フィールドの設定：「個数」と「平均」（小数第1位）。', '「{個数|こすう}」と「{平均|へいきん}」（{小数|しょうすう} 1けた）。')],
+      python: [...PY_OPEN,
+        S('With and without {opt}: rows and mean of {v}:', '{opt} のあり・なしで、行数と {v} の平均：', '{opt} の あり・なしで、{行|ぎょう}の {数|かず}と {v} の {平均|へいきん}：', 'df["has_{opt}"] = df["{opt}"].notna().map({True: "yes", False: "no"})\ndf.groupby("has_{opt}")["{v}"].agg(["count", "mean"]).round(1)'),
+        S('Box plot of the two groups:', '2つのグループの箱ひげ図：', '2つの グループの {箱|はこ}ひげ{図|ず}：', 'import matplotlib.pyplot as plt\ndf.boxplot(column="{v}", by="has_{opt}"); plt.show()')]
+    },
+    above: {
+      excel: [...XL_OPEN,
+        S('Add a column above (1 when {v} is larger than the mean of the whole table):', '列 above を足します（{v} が全体の平均より大きいとき 1）：', '{列|れつ} above を {足|た}します（{平均|へいきん}より {大|おお}きいと 1）：', '=IF([@{v}]>AVERAGE([{v}]),1,0)'),
+        PIVOT('{g}', 'above (2 times)'),
+        S('Value Field Settings: Count, and Average × 100 (as %, 1 decimal place).', '値フィールドの設定：「個数」と「平均」（% 表示、小数第1位）。', '「{個数|こすう}」と「{平均|へいきん}」（% で、{小数|しょうすう} 1けた）。')],
+      python: [...PY_OPEN,
+        S('Share of rows above the overall mean, per {g}:', '{g} ごとの、全体の平均より上の割合：', '{g} ごとの、ぜんたいの {平均|へいきん}より {上|うえ}の {割合|わりあい}：', 'm = df["{v}"].mean()\ns = df.groupby("{g}")["{v}"].agg(n="size", pct_above=lambda x: round(100 * (x > m).mean(), 1))\ns.sort_values("pct_above", ascending=False)')]
+    },
+    top1: {
+      excel: [...XL_OPEN,
+        S('The largest {v} of each {g} (name in A2), and its {id}:', '{g} ごと（A2 に名前）の最大の {v} と、その {id}：', '{g} ごとの いちばん {大|おお}きい {v} と、その {id}：', '=MAXIFS({t}[{v}],{t}[{g}],A2)\n=XLOOKUP(1,({t}[{g}]=A2)*({t}[{v}]=B2),{t}[{id}])')],
+      python: [...PY_OPEN,
+        S('The row with the largest {v} in each {g}:', '{g} ごとに {v} がいちばん大きい行：', '{g} ごとに {v} が いちばん {大|おお}きい {行|ぎょう}：', 'df.loc[df.groupby("{g}")["{v}"].idxmax(), ["{g}", "{id}", "{v}"]].sort_values("{g}")')]
+    }
+  },
+  an_join: {
+    plan: {
+      excel: [...XL_OPEN2, PIVOT('{pg}', '{v} (3 times)'),
+        S('Value Field Settings: Count, Sum and Average. Sort by the sum, largest first.', '値フィールドの設定：「個数」「合計」「平均」。合計の大きい順に並べ替えます。', '「{個数|こすう}」「{合計|ごうけい}」「{平均|へいきん}」。{合計|ごうけい}の {大|おお}きい {順|じゅん}に。')],
+      python: [...PY_OPEN2,
+        S('Rows, total and mean of {v} per {pg}:', '{pg} ごとの行数・{v} の合計・平均：', '{pg} ごとの {行|ぎょう}の {数|かず}・{合計|ごうけい}・{平均|へいきん}：', 'm.groupby("{pg}")["{v}"].agg(["count", "sum", "mean"]).round(1).sort_values("sum", ascending=False)')]
+    },
+    best: {
+      excel: [...XL_OPEN2, PIVOT('{name} and {pg}', '{v} (2 times)'),
+        S('Value Field Settings: Count and Sum. Sort by the sum, largest first, and look at the top 5. (Design → Report Layout → Tabular Form puts {pg} next to {name}.)', '値フィールドの設定：「個数」と「合計」。合計の大きい順に並べ、上の 5 人を見ます（デザイン → レポートのレイアウト → 表形式 で {pg} が横に並びます）。', '「{個数|こすう}」と「{合計|ごうけい}」。{合計|ごうけい}の {大|おお}きい {順|じゅん}に ならべ、{上|うえ}の 5{人|にん}を {見|み}ます。')],
+      python: [...PY_OPEN2,
+        S('Number and total per person, the 5 largest:', '人ごとの回数と合計、大きい 5 人：', '{人|ひと}ごとの {回数|かいすう}と {合計|ごうけい}、{大|おお}きい 5{人|にん}：', 'm.groupby(["{name}", "{pg}"])["{v}"].agg(["count", "sum"]).sort_values("sum", ascending=False).head(5)')]
+    },
+    none: {
+      excel: [...XL_OPEN, S('Download the CSV of {t2} too, and make it a table named {t2}.', '{t2} の CSV もダウンロードし、{t2} という名前のテーブルにします。', '{t2} の CSV も ダウンロードし、{t2} という {名前|なまえ}の テーブルに します。'),
+        S('In {t2}, add a column that counts each person in {t}:', '{t2} に、{t} に出てくる回数を数える列を足します：', '{t2} に、{t} に {出|で}てくる {回数|かいすう}を {数|かぞ}える {列|れつ}を {足|た}します：', '=COUNTIF({t}[{name}],[@{jk}])'),
+        S('Filter that column to 0, then count the people of each {pg} (or use a PivotTable with the filter).', 'その列を 0 で絞り込み、{pg} ごとに人数を数えます（ピボットテーブルにフィルターを付けても OK）。', 'その {列|れつ}を 0 で しぼりこみ、{pg} ごとに {人数|にんずう}を {数|かぞ}えます。')],
+      python: [...PY_OPEN,
+        S('People who never appear in {t}, per {pg}:', '{t} に一度も出てこない人を {pg} ごとに：', '{t} に {一度|いちど}も {出|で}てこない {人|ひと}を {pg} ごとに：', 'people = pd.read_csv("{t2}.csv")\nnever = people[~people["{jk}"].isin(df["{name}"])]\nnever.groupby("{pg}").size()')]
+    }
+  },
+  an_clean: {
+    band: {
+      excel: [...XL_OPEN,
+        S('Add a column band:', 'テーブルに band の列を足します：', 'テーブルに band の {列|れつ}を {足|た}します：', '=IFS([@{a}]<{c1},"{l1}",[@{a}]<{c2},"{l2}",TRUE,"{l3}")'),
+        PIVOT('band', 'band')],
+      python: [...PY_OPEN,
+        S('Bands with numpy.select (conditions are checked in order):', 'numpy.select で区分け（条件は上から順に調べます）：', 'numpy.select で {区分|くわ}け（{上|うえ}から {順|じゅん}に しらべます）：', 'import numpy as np\ndf["band"] = np.select([df["{a}"] < {c1}, df["{a}"] < {c2}], ["{l1}", "{l2}"], "{l3}")\ndf.groupby("band").size()')]
+    },
+    clean: {
+      excel: [...XL_OPEN,
+        S('First look: Insert → PivotTable with {pref} in Rows and Values. The same place appears several times.', 'まず見る：{pref} を「行」と「値」にしたピボットテーブル。同じ場所が何回も出てきます。', 'まず {見|み}る：{pref} の ピボットテーブル。{同|おな}じ {場所|ばしょ}が {何回|なんかい}も {出|で}てきます。'),
+        S('Add a column {pref}_clean and make the PivotTable from it:', '列 {pref}_clean を足し、それでピボットテーブルを作ります：', '{列|れつ} {pref}_clean を {足|た}し、それで ピボットテーブルを {作|つく}ります：', '=LOWER(TRIM([@{pref}]))')],
+      python: [...PY_OPEN,
+        S('Before and after:', '整える前と後：', 'ととのえる {前|まえ}と {後|あと}：', 'print(df["{pref}"].value_counts())\ndf["{pref}_clean"] = df["{pref}"].str.strip().str.lower()\ndf["{pref}_clean"].value_counts()')]
+    },
+    fill: {
+      excel: [...XL_OPEN,
+        S('Add a column {opt}_filled, then a PivotTable with it in Rows and Values:', '列 {opt}_filled を足し、それを「行」と「値」にしたピボットテーブル：', '{列|れつ} {opt}_filled を {足|た}して、ピボットテーブルに します：', '=IF([@{opt}]="","(none)",[@{opt}])')],
+      python: [...PY_OPEN,
+        S('Fill the empty cells, then count:', '空欄を埋めてから数えます：', '{空|から}を うめてから {数|かぞ}えます：', 'df["{opt}"].fillna("(none)").value_counts()')]
+    }
+  }
+});

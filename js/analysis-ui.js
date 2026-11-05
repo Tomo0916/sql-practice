@@ -6,7 +6,7 @@
 import { t, th, esc, rubyHTML } from './i18n.js';
 import { ALL_TABLES } from './datasets.js';
 import { STAT } from './analysis-content.js';
-import { barChart, histChart, boxChart, normalChart, fillChart } from './charts.js';
+import { barChart, histChart, boxChart, normalChart, fillChart, lineChart, scatterChart } from './charts.js';
 
 export const isAnalysis = lesson => lesson && lesson.themes === 'analysis';
 /** language for course texts: English, Japanese, Easy Japanese; others read English */
@@ -59,6 +59,39 @@ function figureHTML(lesson, prob, lang) {
     const groups = [...new Set(g)].sort().map(label => ({ label, values: v.filter((_, i) => g[i] === label) }));
     return boxChart(groups, { label: r.v });
   }
+  if (lesson.key === 'an_cross') {   // rows with and without a value, per group
+    const g = col(prob.p.t, r.g), o = col(prob.p.t, r.opt), labels = [...new Set(g)].sort();
+    return barChart(labels, [labels.map(l => g.filter((x, i) => x === l && o[i] !== null).length), labels.map(l => g.filter((x, i) => x === l && o[i] === null).length)], { names: [`${r.opt}: ${T('an.with')}`, `${r.opt}: ${T('an.without')}`] });
+  }
+  if (lesson.key === 'an_trend') {   // monthly totals and the 3-month moving average
+    const d = col(prob.p.t, r.dt), v = col(prob.p.t, r.v), m = new Map();
+    d.forEach((x, i) => { const k = String(x).slice(0, 7); m.set(k, (m.get(k) || 0) + v[i]); });
+    const months = [...m.keys()].sort(), tot = months.map(k => m.get(k));
+    const ma = tot.map((_, i) => { const w = tot.slice(Math.max(0, i - 2), i + 1); return Math.round(w.reduce((a, b) => a + b, 0) / w.length * 10) / 10; });
+    return lineChart(months, [tot, ma], { names: [`${T('an.total')} ${r.v}`, T('an.ma3')] });
+  }
+  if (lesson.key === 'an_corr') {
+    const x = col(prob.p.t, r.v), y = col(prob.p.t, r.v3);
+    return scatterChart(x.map((v, i) => ({ x: v, y: y[i] })), { xLabel: r.v, yLabel: r.v3 });
+  }
+  if (lesson.key === 'an_compare') {
+    const g = col(prob.p.t, r.g), v = col(prob.p.t, r.v);
+    return boxChart([...new Set(g)].sort().map(label => ({ label, values: v.filter((_, i) => g[i] === label) })), { label: r.v });
+  }
+  if (lesson.key === 'an_join' || lesson.key === 'an_clean') {
+    const pp = ALL_TABLES[prob.p.t2 || (tb.peopleOf ? prob.p.t : tb.people)] || ALL_TABLES[tb.people];
+    if (!pp) return '';
+    const q = pp.roles, key = lesson.key === 'an_clean' && prob.p.w !== 'band' ? q.pref : q.g;
+    if (lesson.key === 'an_clean' && prob.p.w === 'fill') {   // the empty cells of the main table
+      const o = col(prob.p.t, r.opt), vals = [...new Set(o.map(x => (x === null ? 'NULL' : x)))];
+      return barChart(vals, vals.map(k => o.filter(x => (x === null ? 'NULL' : x) === k).length), { label: r.opt });
+    }
+    const c = col(pp.table, key), vals = [...new Set(c)].sort((a, b) => String(a).trim().toLowerCase().localeCompare(String(b).trim().toLowerCase()) || String(a).localeCompare(String(b)));
+    if (key === q.pref) {   // the spellings, with the spaces made visible (␣)
+      return `<div class="raw-vals">${vals.map(k => `<span class="rv"><code>${esc(String(k).replace(/ /g, '␣'))}</code><b>${c.filter(x => x === k).length}</b></span>`).join('')}</div>`;
+    }
+    return barChart(vals, vals.map(k => c.filter(x => x === k).length), { label: key });
+  }
   if (lesson.key === 'an_zscore') {
     const v = col(prob.p.t, r.v), ids = col(prob.p.t, r.id);
     const m = +prob.p.m, s = +prob.p.s;
@@ -79,15 +112,21 @@ export function statCardHTML(lesson, prob, lang, open) {
   </details>`;
 }
 
-/** chart of a result (from lesson.chart) */
+/** chart of a result (from lesson.chart): bars, a histogram or lines; value can be one column or several */
 export function resultChartHTML(lesson, prob, res) {
   if (!lesson.chart || !res || !res.values || !res.values.length) return '';
   const c = lesson.chart(prob.p);
-  if (!res.columns[c.value] && res.columns[c.value] !== 0) return '';
-  const labels = res.values.map(r => String(r[c.label])), values = res.values.map(r => Number(r[c.value]));
-  if (values.some(v => !Number.isFinite(v))) return '';
+  if (!c) return '';
+  const idx = Array.isArray(c.value) ? c.value : [c.value];
+  if (idx.some(i => res.columns[i] === undefined)) return '';
+  const labels = res.values.map(r => String(r[c.label]));
+  const series = idx.map(i => res.values.map(r => (r[i] === null ? null : Number(r[i]))));
+  if (series.some(s => s.some(v => v !== null && !Number.isFinite(v)))) return '';
+  const names = idx.length > 1 ? idx.map(i => res.columns[i]) : null;
   if (c.type === 'hist') return `<div class="res-chart">${histChart(res.values.map(r => ({ start: Number(r[c.label]), n: Number(r[c.value]) })), c.step)}</div>`;
-  return `<div class="res-chart">${barChart(labels, values)}</div>`;
+  if (c.type === 'line') return `<div class="res-chart">${lineChart(labels, idx.length > 1 ? series : series[0], { names })}</div>`;
+  if (series.some(s => s.some(v => v === null))) return '';
+  return `<div class="res-chart">${barChart(labels, idx.length > 1 ? series : series[0], { names })}</div>`;
 }
 
 /** CSV of a table (UTF-8 with BOM, so Excel shows it correctly) */

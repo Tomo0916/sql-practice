@@ -16,6 +16,12 @@
  *   g     group (3–5 kinds) dt    date (2025)
  *   v     main number (integer, money/time/weight)
  *   v2    small count (1–10)    opt   text with missing values (NULL)
+ *   v3    a second number that goes with v (for correlation, A9). It is made
+ *         from v after everything else, with its own seed, so v, v2 … never change.
+ *
+ * Each business also has a list of its people (members, guests, clients …):
+ * the table to JOIN with (A11) and to clean (A12). Its `pref` column is typed by
+ * hand, so the same place is written in several ways ("Tokyo", " tokyo", "TOKYO").
  * ========================================================= */
 
 function seeded(seed) {
@@ -59,20 +65,46 @@ function makeTable(spec) {
   // a few very large values (data-entry mistakes or bulk orders)
   (spec.outliers || []).forEach((x, k) => { rows[(k * 37 + 11) % rows.length].v = x; });
   rows.sort((a, b) => (a.dt < b.dt ? -1 : a.dt > b.dt ? 1 : 0));
-  const c = spec.cols;   // column names for: id, dt, g, name, v, v2, opt
+  // v3: a number that goes with v (own seed, made last, so nothing above changes)
+  const R3 = seeded(spec.table + '|v3'), w = spec.v3;
+  rows.forEach(r => { r.v3 = Math.max(w.min, Math.min(w.max, Math.round(w.a + w.b * r.v + w.noise * R3.normal()))); });
+  const c = spec.cols;   // column names for: id, dt, g, name, v, v2, opt, v3
   return {
     table: spec.table,
     analysis: true,
-    columns: [[c.id, 'INTEGER'], [c.dt, 'TEXT'], [c.g, 'TEXT'], [c.name, 'TEXT'], [c.v, 'INTEGER'], [c.v2, 'INTEGER'], [c.opt, 'TEXT']],
-    roles: { id: c.id, dt: c.dt, g: c.g, name: c.name, v: c.v, v2: c.v2, opt: c.opt },
-    unit: spec.unit, binStep: spec.binStep,
-    rows: rows.map((r, i) => [i + 1, r.dt, r.g, r.name, r.v, r.v2, r.opt])
+    columns: [[c.id, 'INTEGER'], [c.dt, 'TEXT'], [c.g, 'TEXT'], [c.name, 'TEXT'], [c.v, 'INTEGER'], [c.v2, 'INTEGER'], [c.opt, 'TEXT'], [w.name, 'INTEGER']],
+    roles: { id: c.id, dt: c.dt, g: c.g, name: c.name, v: c.v, v2: c.v2, opt: c.opt, v3: w.name },
+    unit: spec.unit, binStep: spec.binStep, people: spec.peopleTable,
+    rows: rows.map((r, i) => [i + 1, r.dt, r.g, r.name, r.v, r.v2, r.opt, r.v3])
+  };
+}
+
+/**
+ * The people of a business: one row for everyone in the pool (some never appear
+ * in the main table: good for LEFT JOIN). pref is typed by hand (messy on purpose).
+ */
+function makePeople(spec) {
+  const R = seeded(spec.table);
+  const rows = [];
+  for (let i = 1; i <= spec.n; i++) {
+    const place = R.pick(spec.places), x = R.next();
+    const pref = x < 0.62 ? place : x < 0.74 ? place.toLowerCase() : x < 0.84 ? place.toUpperCase() : x < 0.92 ? ' ' + place : place + ' ';
+    const a = Math.max(spec.aMin, Math.min(spec.aMax, Math.round(spec.aMean + spec.aSd * R.normal())));
+    const y = R.pick(spec.years || [2023, 2024, 2025]);
+    rows.push([`${spec.prefix}${String(i).padStart(3, '0')}`, `${y}-${pad(R.int(1, 12))}-${pad(R.int(1, 28))}`, R.pick(spec.groups), a, pref]);
+  }
+  const c = spec.cols;   // key, dt, g, a, pref
+  return {
+    table: spec.table, analysis: true, peopleOf: spec.of,
+    columns: [[c.key, 'TEXT'], [c.dt, 'TEXT'], [c.g, 'TEXT'], [c.a, 'INTEGER'], [c.pref, 'TEXT']],
+    roles: { key: c.key, dt: c.dt, g: c.g, a: c.a, pref: c.pref },
+    rows
   };
 }
 
 /* ---------- Kumo Mart (the examples) ---------- */
 export const KUMO_ORDERS = makeTable({
-  table: 'kumo_orders', n: 401, people: 140, idPrefix: 'C', skew: true, round: 10, min: 300,
+  table: 'kumo_orders', n: 401, peopleTable: 'kumo_accounts', v3: { name: 'stay_min', a: 6, b: 1 / 350, noise: 12, min: 1, max: 300 },  people: 140, idPrefix: 'C', skew: true, round: 10, min: 300,
   cols: { id: 'order_id', dt: 'order_date', g: 'store', name: 'customer_id', v: 'amount', v2: 'items', opt: 'coupon' },
   groups: [['Shibuya', 5200, 2600], ['Umeda', 4800, 2200], ['Sakae', 4300, 1500], ['Online', 6100, 4200]],
   v2mean: 3, v2sd: 1.6, v2max: 10, nullRate: 0.62, optValues: ['WELCOME10', 'SPRING5', 'APP300', 'BDAY'],
@@ -101,29 +133,48 @@ export const KUMO_CUSTOMERS = (() => {
 
 /* ---------- other businesses (the practice problems) ---------- */
 export const ANALYSIS_THEMES = [
-  makeTable({ table: 'cafe_sales', n: 151, people: 60, idPrefix: 'M', skew: true, round: 10, min: 200,
+  makeTable({ table: 'cafe_sales', n: 151, peopleTable: 'cafe_members', v3: { name: 'stay_min', a: 12, b: 1 / 40, noise: 22, min: 3, max: 300 },  people: 60, idPrefix: 'M', skew: true, round: 10, min: 200,
     cols: { id: 'sale_id', dt: 'sale_date', g: 'shop', name: 'member_id', v: 'amount', v2: 'cups', opt: 'coupon' },
     groups: [['Station', 980, 420], ['Park', 1240, 760], ['Campus', 760, 260]], v2mean: 2, v2sd: 1, v2max: 6, nullRate: 0.55, optValues: ['MORNING', 'APP50', 'STAMP'],
     outliers: [9800, 7600], season: FLAT, unit: 'yen', binStep: 500 }),
-  makeTable({ table: 'hotel_stays', n: 131, people: 70, idPrefix: 'G', skew: true, round: 100, min: 4000,
+  makeTable({ table: 'hotel_stays', n: 131, peopleTable: 'hotel_guests', v3: { name: 'room_m2', a: 16, b: 1 / 2500, noise: 11, min: 12, max: 200 },  people: 70, idPrefix: 'G', skew: true, round: 100, min: 4000,
     cols: { id: 'stay_id', dt: 'checkin_date', g: 'hotel', name: 'guest_id', v: 'charge', v2: 'nights', opt: 'request' },
     groups: [['Kyoto', 32000, 14000], ['Sapporo', 24000, 8000], ['Naha', 41000, 22000]], v2mean: 2.5, v2sd: 1.4, v2max: 9, nullRate: 0.4, optValues: ['late check-in', 'quiet room', 'extra bed', 'airport bus'],
     outliers: [312000, 268000], season: [0.8, 1.1, 1.2, 1, 1.1, 0.9, 1.3, 1.6, 1, 1, 0.9, 1.2], unit: 'yen', binStep: 20000 }),
-  makeTable({ table: 'courier_jobs', n: 141, people: 50, idPrefix: 'K', skew: true, round: 10, min: 400,
+  makeTable({ table: 'courier_jobs', n: 141, peopleTable: 'courier_clients', v3: { name: 'weight_kg', a: 1, b: 1 / 300, noise: 2.5, min: 1, max: 60 },  people: 50, idPrefix: 'K', skew: true, round: 10, min: 400,
     cols: { id: 'delivery_id', dt: 'ship_date', g: 'region', name: 'client_id', v: 'fee', v2: 'days', opt: 'note' },
     groups: [['Kanto', 1100, 300], ['Kansai', 1300, 450], ['Kyushu', 1700, 700], ['Tohoku', 1600, 520]], v2mean: 2.6, v2sd: 1.3, v2max: 8, nullRate: 0.7, optValues: ['fragile', 'call first', 'leave at door'],
     outliers: [8900, 7400], season: XMAS, unit: 'yen', binStep: 500 }),
-  makeTable({ table: 'helpdesk_tickets', n: 121, people: 45, idPrefix: 'U', skew: true, round: 1, min: 2,
+  makeTable({ table: 'helpdesk_tickets', n: 121, peopleTable: 'helpdesk_users', v3: { name: 'score', a: 95, b: -1 / 4, noise: 10, min: 0, max: 100 },  people: 45, idPrefix: 'U', skew: true, round: 1, min: 2,
     cols: { id: 'ticket_id', dt: 'opened_date', g: 'team', name: 'user_id', v: 'minutes', v2: 'replies', opt: 'rating' },
     groups: [['Network', 95, 70], ['Accounts', 35, 18], ['Software', 60, 40]], v2mean: 3, v2sd: 1.8, v2max: 10, nullRate: 0.35, optValues: ['good', 'ok', 'bad'],
     outliers: [960, 720], season: FLAT, unit: 'min', binStep: 30 }),
-  makeTable({ table: 'gym_visits', n: 161, people: 55, idPrefix: 'P', skew: false, round: 1, min: 10,
+  makeTable({ table: 'gym_visits', n: 161, peopleTable: 'gym_members', v3: { name: 'kcal', a: 40, b: 6, noise: 170, min: 30, max: 3000 },  people: 55, idPrefix: 'P', skew: false, round: 1, min: 10,
     cols: { id: 'visit_id', dt: 'visit_date', g: 'branch', name: 'member_id', v: 'minutes', v2: 'machines', opt: 'trainer' },
     groups: [['Shinjuku', 68, 18], ['Ikebukuro', 74, 22], ['Kawasaki', 58, 12]], v2mean: 5, v2sd: 2, v2max: 10, nullRate: 0.6, optValues: ['Ken', 'Mia', 'Rio'],
     outliers: [290, 260], season: [1.4, 1.2, 1.1, 1, 1, 0.9, 0.8, 0.8, 0.9, 1, 1, 0.8], unit: 'min', binStep: 15 }),
-  makeTable({ table: 'factory_lots', n: 111, people: 12, idPrefix: 'W', skew: false, round: 1, min: 400,
+  makeTable({ table: 'factory_lots', n: 111, peopleTable: 'factory_staff', v3: { name: 'temp_c', a: -260, b: 0.6, noise: 4, min: 20, max: 99 },  people: 12, idPrefix: 'W', skew: false, round: 1, min: 400,
     cols: { id: 'lot_id', dt: 'made_date', g: 'line', name: 'operator_id', v: 'weight_g', v2: 'defects', opt: 'inspector' },
     groups: [['Line A', 502, 4], ['Line B', 499, 9], ['Line C', 505, 6]], v2mean: 2, v2sd: 1.5, v2max: 9, nullRate: 0.25, optValues: ['Abe', 'Kato', 'Lin'],
     outliers: [562, 441], season: FLAT, unit: 'g', binStep: 5 })
 ];
 export const ANALYSIS_DEMO = { kumo_orders: KUMO_ORDERS, kumo_customers: KUMO_CUSTOMERS };
+
+/* ---------- the people of each business (JOIN in A11, cleaning in A12) ---------- */
+const PLACES = ['Tokyo', 'Osaka', 'Kanagawa', 'Saitama', 'Aichi'];
+export const ANALYSIS_PEOPLE = [
+  makePeople({ table: 'kumo_accounts', of: 'kumo_orders', prefix: 'C', n: 140, cols: { key: 'customer_id', dt: 'joined_date', g: 'plan', a: 'age', pref: 'pref' },
+    groups: ['Regular', 'Regular', 'Regular', 'Gold', 'Gold', 'Premium'], aMean: 41, aSd: 13, aMin: 16, aMax: 82, places: PLACES }),
+  makePeople({ table: 'cafe_members', of: 'cafe_sales', prefix: 'M', n: 60, cols: { key: 'member_id', dt: 'joined_date', g: 'plan', a: 'age', pref: 'pref' },
+    groups: ['Basic', 'Basic', 'Student', 'Gold'], aMean: 31, aSd: 11, aMin: 15, aMax: 75, places: PLACES }),
+  makePeople({ table: 'hotel_guests', of: 'hotel_stays', prefix: 'G', n: 70, cols: { key: 'guest_id', dt: 'joined_date', g: 'rank', a: 'age', pref: 'pref' },
+    groups: ['Bronze', 'Bronze', 'Silver', 'Gold'], aMean: 46, aSd: 14, aMin: 18, aMax: 85, places: PLACES }),
+  makePeople({ table: 'courier_clients', of: 'courier_jobs', prefix: 'K', n: 50, cols: { key: 'client_id', dt: 'joined_date', g: 'contract', a: 'employees', pref: 'pref' },
+    groups: ['Spot', 'Spot', 'Monthly', 'Annual'], aMean: 60, aSd: 35, aMin: 1, aMax: 300, places: PLACES }),
+  makePeople({ table: 'helpdesk_users', of: 'helpdesk_tickets', prefix: 'U', n: 45, cols: { key: 'user_id', dt: 'joined_date', g: 'dept', a: 'age', pref: 'pref' },
+    groups: ['Sales', 'Dev', 'Admin'], aMean: 38, aSd: 10, aMin: 21, aMax: 66, places: PLACES }),
+  makePeople({ table: 'gym_members', of: 'gym_visits', prefix: 'P', n: 55, cols: { key: 'member_id', dt: 'joined_date', g: 'plan', a: 'age', pref: 'pref' },
+    groups: ['Day', 'Night', 'Full', 'Full'], aMean: 39, aSd: 12, aMin: 16, aMax: 78, places: PLACES }),
+  makePeople({ table: 'factory_staff', of: 'factory_lots', prefix: 'W', n: 12, cols: { key: 'operator_id', dt: 'joined_date', g: 'shift', a: 'years', pref: 'pref' },
+    groups: ['Day', 'Night'], aMean: 9, aSd: 6, aMin: 1, aMax: 35, places: PLACES, years: [2015, 2018, 2020, 2022, 2024] })
+];

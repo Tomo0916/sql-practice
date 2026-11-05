@@ -12,6 +12,9 @@
  *   steps(): ステップ解説（SQLが1句ずつ組み上がる）
  * ========================================================= */
 
+import { ANALYSIS_PEOPLE } from './analysis-data.js';
+const ALL_PEOPLE = Object.fromEntries(ANALYSIS_PEOPLE.map(t => [t.table, t]));
+
 export const BLANK = '___';
 const isSentinel = v => typeof v === 'string' && /^__B\d+__$/.test(v);
 const lit = v => (isSentinel(v) ? `'${v}'` : v === BLANK ? `'${BLANK}'` : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
@@ -81,6 +84,8 @@ function pickCmp(ds, R, cols, ops) {
 /** analysis lessons: the example asks for one variant (want.w), practice picks one */
 const pickW = (want, R, opts) => (want && want.w) || R.pick(opts);
 const cmpPhrase = (c, op, v) => ['cmp.' + OP_KEY[op], { c, v }];
+/** a value as a column name: 'late check-in' → late_check_in */
+const alias = v => String(v).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').replace(/^(\d)/, 'v$1');
 
 export const LESSONS = [
   /* =================== BASICS (Lesson 0–3) =================== */
@@ -611,8 +616,188 @@ export const LESSONS = [
       ? [['step.from', `SELECT * FROM ${p.t};`], ['step.calc', `SELECT ${p.id}, ${p.v}, ROUND((${p.v} - ${p.m}) / ${p.s}, 2) AS z FROM ${p.t};`], ['step.where', LESSON_SQL.an_zscore(p)]]
       : [['step.from', `SELECT * FROM ${p.t};`], ['step.calc', `SELECT ${p.id}, ${p.v}, ROUND((${p.v} - ${p.m}) / ${p.s}, 2) AS z FROM ${p.t};`], ['step.order', LESSON_SQL.an_zscore(p)]],
     stat: 'z'
+  },
+  /* =================== DATA ANALYSIS, part 2 (A7–A12): compare, time, relation, join, clean =================== */
+  {
+    key: 'an_cross', no: 'A7', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT {group}, COUNT(*), ROUND(100.0 * COUNT({col}) / COUNT(*), 1) FROM {table} GROUP BY {group};',
+    keywords: ['SELECT', 'COUNT(*)', 'COUNT()', 'SUM()', 'CASE WHEN', 'THEN', 'ELSE', 'END', 'ROUND()', 'FROM', 'GROUP BY', 'ORDER BY', 'DESC', 'AS', '()'],
+    demo: { ds: 'kumo_orders', p: { w: 'rate' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, w = pickW(want, R, ['rate', 'pivot', 'share']);
+      const p = { t: ds.table, w, g: r.g, opt: r.opt, v: r.v, k: '100.0', gb: r.g, sub: `(SELECT SUM(${r.v}) FROM ${ds.table})` };
+      if (w === 'pivot') {
+        const top = ctx.values(`SELECT ${r.opt}, COUNT(*) AS c FROM ${ds.table} WHERE ${r.opt} IS NOT NULL GROUP BY ${r.opt} ORDER BY c DESC, ${r.opt};`).map(x => x[0]);
+        if (top.length < 2) return null;
+        const two = R.pick([[0, 1], [0, 1], [1, 0]]).map(i => top[i]);
+        Object.assign(p, { a1: two[0], a2: two[1], n1: alias(two[0]), n2: alias(two[1]) });
+        return p;
+      }
+      const last = ctx.values(LESSON_SQL.an_cross(p)).map(x => x[x.length - 1]);
+      return new Set(last).size === last.length ? p : null;   // no ties in the sorted column
+    },
+    descKey: p => `L.an_cross.desc_${p.w}`,
+    sql: p => p.w === 'pivot'
+      ? `SELECT ${p.g}, SUM(CASE WHEN ${p.opt} = ${lit(p.a1)} THEN 1 ELSE 0 END) AS ${p.n1}, SUM(CASE WHEN ${p.opt} = ${lit(p.a2)} THEN 1 ELSE 0 END) AS ${p.n2}, COUNT(*) AS total FROM ${p.t} GROUP BY ${p.gb} ORDER BY ${p.g};`
+      : p.w === 'share'
+        ? `SELECT ${p.g}, SUM(${p.v}) AS total_${p.v}, ROUND(100.0 * SUM(${p.v}) / ${p.sub}, 1) AS share_pct FROM ${p.t} GROUP BY ${p.g} ORDER BY share_pct DESC;`
+        : `SELECT ${p.g}, COUNT(*) AS n, COUNT(${p.opt}) AS with_${p.opt}, ROUND(${p.k} * COUNT(${p.opt}) / COUNT(*), 1) AS pct_${p.opt} FROM ${p.t} GROUP BY ${p.g} ORDER BY pct_${p.opt} DESC;`,
+    blanks: p => (p.w === 'pivot' ? ['gb'] : p.w === 'share' ? ['sub'] : ['k']),
+    steps: p => p.w === 'pivot'
+      ? [['step.from', `SELECT * FROM ${p.t} ORDER BY ${p.g};`], ['step.group', `SELECT ${p.g}, ${p.opt}, COUNT(*) AS n FROM ${p.t} GROUP BY ${p.g}, ${p.opt} ORDER BY ${p.g}, ${p.opt};`], ['step.case', LESSON_SQL.an_cross(p)]]
+      : [['step.from', `SELECT * FROM ${p.t} ORDER BY ${p.g};`], ['step.group', p.w === 'share' ? `SELECT ${p.g}, SUM(${p.v}) AS total_${p.v} FROM ${p.t} GROUP BY ${p.g};` : `SELECT ${p.g}, COUNT(*) AS n, COUNT(${p.opt}) AS with_${p.opt} FROM ${p.t} GROUP BY ${p.g};`], ['step.calc', LESSON_SQL.an_cross(p)]],
+    chart: p => (p.w === 'pivot' ? { type: 'bar', label: 0, value: [1, 2] } : { type: 'bar', label: 0, value: p.w === 'share' ? 2 : 3 }),
+    stat: 'cross'
+  },
+  {
+    key: 'an_trend', no: 'A8', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: "SELECT strftime('%Y-%m', {col}) AS month, SUM({num}) FROM {table} GROUP BY month ORDER BY month;",
+    keywords: ['SELECT', 'strftime()', 'COUNT(*)', 'SUM()', 'AVG()', 'LAG()', 'OVER', 'ORDER BY', 'ROWS BETWEEN', 'PRECEDING', 'CURRENT ROW', 'ROUND()', 'FROM', 'GROUP BY', 'AS', '()'],
+    demo: { ds: 'kumo_orders', p: { w: 'month' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, w = pickW(want, R, ['month', 'mom', 'ma']);
+      const months = ctx.values(`SELECT COUNT(DISTINCT strftime('%Y-%m', ${r.dt})) FROM ${ds.table};`)[0][0];
+      if (months < 12) return null;
+      return { t: ds.table, w, dt: r.dt, v: r.v, sf: 'strftime', lag: 'LAG', pre: 2 };
+    },
+    descKey: p => `L.an_trend.desc_${p.w}`,
+    sql: p => {
+      const inner = `SELECT strftime('%Y-%m', ${p.dt}) AS month, SUM(${p.v}) AS total_${p.v} FROM ${p.t} GROUP BY month`;
+      if (p.w === 'mom') return `SELECT month, total_${p.v}, total_${p.v} - ${p.lag}(total_${p.v}) OVER (ORDER BY month) AS diff FROM (${inner}) ORDER BY month;`;
+      if (p.w === 'ma') return `SELECT month, total_${p.v}, ROUND(AVG(total_${p.v}) OVER (ORDER BY month ROWS BETWEEN ${p.pre} PRECEDING AND CURRENT ROW), 1) AS ma3 FROM (${inner}) ORDER BY month;`;
+      return `SELECT ${p.sf}('%Y-%m', ${p.dt}) AS month, COUNT(*) AS n, SUM(${p.v}) AS total_${p.v} FROM ${p.t} GROUP BY month ORDER BY month;`;
+    },
+    blanks: p => (p.w === 'mom' ? ['lag'] : p.w === 'ma' ? ['pre'] : ['sf']),
+    steps: p => p.w === 'month'
+      ? [['step.from', `SELECT * FROM ${p.t};`], ['step.month', `SELECT ${p.dt}, strftime('%Y-%m', ${p.dt}) AS month, ${p.v} FROM ${p.t};`], ['step.group', LESSON_SQL.an_trend(p)]]
+      : [['step.month', `SELECT strftime('%Y-%m', ${p.dt}) AS month, SUM(${p.v}) AS total_${p.v} FROM ${p.t} GROUP BY month ORDER BY month;`], ['step.window', LESSON_SQL.an_trend(p)]],
+    chart: p => ({ type: 'line', label: 0, value: p.w === 'month' ? 2 : p.w === 'ma' ? [1, 2] : 1 }),
+    stat: 'trend'
+  },
+  {
+    key: 'an_corr', no: 'A9', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT SUM(({num} - m.mx) * ({col} - m.my)) / SQRT(SUM(({num} - m.mx) * ({num} - m.mx)) * SUM(({col} - m.my) * ({col} - m.my))) FROM {table}, (SELECT AVG({num}) AS mx, AVG({col}) AS my FROM {table}) AS m;',
+    keywords: ['SELECT', 'COUNT(*)', 'SUM()', 'AVG()', 'SQRT()', 'ROUND()', 'FROM', 'JOIN', 'ON', 'GROUP BY', 'ORDER BY', 'AS', '()'],
+    demo: { ds: 'kumo_orders', p: { w: 'r' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, w = pickW(want, R, ['r', 'r', 'group']);
+      const p = { t: ds.table, w, g: r.g, v: r.v, v3: r.v3, sq: 'SQRT' };
+      if (w === 'group') { const rs = ctx.values(LESSON_SQL.an_corr(p)).map(x => x[2]); if (new Set(rs).size !== rs.length) return null; }
+      return p;
+    },
+    descKey: p => `L.an_corr.desc_${p.w}`,
+    sql: p => {
+      const dev = (a, b) => `SUM((${a} - m.m${a === p.v ? 'x' : 'y'}) * (${b} - m.m${b === p.v ? 'x' : 'y'}))`;
+      const r = `ROUND(${dev(p.v, p.v3)} / ${p.sq}(${dev(p.v, p.v)} * ${dev(p.v3, p.v3)}), 3) AS r`;
+      return p.w === 'group'
+        ? `SELECT ${p.t}.${p.g}, COUNT(*) AS n, ${r} FROM ${p.t} JOIN (SELECT ${p.g}, AVG(${p.v}) AS mx, AVG(${p.v3}) AS my FROM ${p.t} GROUP BY ${p.g}) AS m ON ${p.t}.${p.g} = m.${p.g} GROUP BY ${p.t}.${p.g} ORDER BY r DESC;`
+        : `SELECT COUNT(*) AS n, ${r} FROM ${p.t}, (SELECT AVG(${p.v}) AS mx, AVG(${p.v3}) AS my FROM ${p.t}) AS m;`;
+    },
+    blanks: ['sq'],
+    steps: p => [['step.from', `SELECT ${p.v}, ${p.v3} FROM ${p.t};`], ['step.mean', p.w === 'group' ? `SELECT ${p.g}, AVG(${p.v}) AS mx, AVG(${p.v3}) AS my FROM ${p.t} GROUP BY ${p.g};` : `SELECT AVG(${p.v}) AS mx, AVG(${p.v3}) AS my FROM ${p.t};`], ['step.dev', `SELECT ${p.v}, ${p.v3}, (${p.v} - m.mx) * (${p.v3} - m.my) AS product FROM ${p.t}, (SELECT AVG(${p.v}) AS mx, AVG(${p.v3}) AS my FROM ${p.t}) AS m;`], ['step.agg', LESSON_SQL.an_corr(p)]],
+    chart: p => (p.w === 'group' ? { type: 'bar', label: 0, value: 2 } : null),
+    stat: 'corr'
+  },
+  {
+    key: 'an_compare', no: 'A10', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT {group}, {col}, {num} FROM (SELECT {group}, {col}, {num}, ROW_NUMBER() OVER (PARTITION BY {group} ORDER BY {num} DESC) AS rn FROM {table}) WHERE rn = 1;',
+    keywords: ['SELECT', 'CASE WHEN', 'IS NULL', 'THEN', 'ELSE', 'END', 'COUNT(*)', 'SUM()', 'AVG()', 'ROW_NUMBER()', 'OVER', 'PARTITION BY', 'ROUND()', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'DESC', 'AS', '()'],
+    demo: { ds: 'kumo_orders', p: { w: 'diff' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, w = pickW(want, R, ['diff', 'above', 'top1']);
+      const p = { t: ds.table, w, g: r.g, id: r.id, v: r.v, opt: r.opt, isn: 'IS NULL', sub: `(SELECT AVG(${r.v}) FROM ${ds.table})`, pb: 'PARTITION BY' };
+      if (w === 'above') { const x = ctx.values(LESSON_SQL.an_compare(p)).map(y => y[2]); if (new Set(x).size !== x.length) return null; }
+      if (w === 'top1') {   // one largest value in every group
+        const t = ctx.values(`SELECT ${r.g}, COUNT(*) FROM ${ds.table} AS a WHERE ${r.v} = (SELECT MAX(${r.v}) FROM ${ds.table} AS b WHERE b.${r.g} = a.${r.g}) GROUP BY ${r.g};`);
+        if (t.some(x => x[1] > 1)) return null;
+      }
+      return p;
+    },
+    descKey: p => `L.an_compare.desc_${p.w}`,
+    sql: p => p.w === 'top1'
+      ? `SELECT ${p.g}, ${p.id}, ${p.v} FROM (SELECT ${p.g}, ${p.id}, ${p.v}, ROW_NUMBER() OVER (${p.pb} ${p.g} ORDER BY ${p.v} DESC) AS rn FROM ${p.t}) WHERE rn = 1 ORDER BY ${p.g};`
+      : p.w === 'above'
+        ? `SELECT ${p.g}, COUNT(*) AS n, ROUND(100.0 * SUM(CASE WHEN ${p.v} > ${p.sub} THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_above FROM ${p.t} GROUP BY ${p.g} ORDER BY pct_above DESC;`
+        : `SELECT CASE WHEN ${p.opt} ${p.isn} THEN 'no' ELSE 'yes' END AS has_${p.opt}, COUNT(*) AS n, ROUND(AVG(${p.v}), 1) AS mean_${p.v} FROM ${p.t} GROUP BY has_${p.opt} ORDER BY has_${p.opt};`,
+    blanks: p => (p.w === 'top1' ? ['pb'] : p.w === 'above' ? ['sub'] : ['isn']),
+    steps: p => p.w === 'top1'
+      ? [['step.from', `SELECT ${p.g}, ${p.id}, ${p.v} FROM ${p.t} ORDER BY ${p.g}, ${p.v} DESC;`], ['step.window', `SELECT ${p.g}, ${p.id}, ${p.v}, ROW_NUMBER() OVER (PARTITION BY ${p.g} ORDER BY ${p.v} DESC) AS rn FROM ${p.t} ORDER BY ${p.g}, rn;`], ['step.where', LESSON_SQL.an_compare(p)]]
+      : p.w === 'above'
+        ? [['step.sub', `SELECT AVG(${p.v}) FROM ${p.t};`], ['step.case', `SELECT ${p.g}, ${p.v}, CASE WHEN ${p.v} > ${p.sub} THEN 1 ELSE 0 END AS above FROM ${p.t};`], ['step.group', LESSON_SQL.an_compare(p)]]
+        : [['step.from', `SELECT ${p.id}, ${p.opt}, ${p.v} FROM ${p.t};`], ['step.case', `SELECT ${p.id}, ${p.opt}, CASE WHEN ${p.opt} IS NULL THEN 'no' ELSE 'yes' END AS has_${p.opt}, ${p.v} FROM ${p.t};`], ['step.group', LESSON_SQL.an_compare(p)]],
+    chart: p => ({ type: 'bar', label: 0, value: 2 }),
+    stat: 'compare'
+  },
+  {
+    key: 'an_join', no: 'A11', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: 'SELECT {group}, COUNT(*), SUM({num}) FROM {table} INNER JOIN {table} ON {key} = {key} GROUP BY {group};',
+    keywords: ['SELECT', 'COUNT(*)', 'SUM()', 'AVG()', 'ROUND()', 'FROM', 'INNER JOIN', 'LEFT JOIN', 'ON', 'WHERE', 'IS NULL', 'GROUP BY', 'ORDER BY', 'DESC', 'LIMIT', 'AS', '()'],
+    demo: { ds: 'kumo_orders', p: { w: 'plan' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, pp = ALL_PEOPLE[ds.people], w = pickW(want, R, ['plan', 'best', 'none']);
+      if (!pp) return null;
+      const q = pp.roles;
+      const p = { t: ds.table, t2: pp.table, w, id: r.id, name: r.name, v: r.v, pg: q.g, key: q.key, jk: q.key };
+      const res = ctx.values(LESSON_SQL.an_join(p));
+      if (!res.length) return null;
+      const sorted = res.map(x => x[x.length - 1]);
+      if (w === 'best') { const all = ctx.values(LESSON_SQL.an_join(p).replace(/ LIMIT 5;$/, ';')).map(x => x[3]); if (all.length > 5 && all[4] === all[5]) return null; }
+      else if (w === 'plan' && new Set(sorted).size !== sorted.length) return null;
+      return p;
+    },
+    descKey: p => `L.an_join.desc_${p.w}`,
+    sql: p => p.w === 'none'
+      ? `SELECT ${p.t2}.${p.pg}, COUNT(*) AS n FROM ${p.t2} LEFT JOIN ${p.t} ON ${p.t2}.${p.jk} = ${p.t}.${p.name} WHERE ${p.t}.${p.id} IS NULL GROUP BY ${p.t2}.${p.pg} ORDER BY ${p.t2}.${p.pg};`
+      : p.w === 'best'
+        ? `SELECT ${p.t}.${p.name}, ${p.t2}.${p.pg}, COUNT(*) AS n, SUM(${p.t}.${p.v}) AS total_${p.v} FROM ${p.t} INNER JOIN ${p.t2} ON ${p.t}.${p.name} = ${p.t2}.${p.jk} GROUP BY ${p.t}.${p.name}, ${p.t2}.${p.pg} ORDER BY total_${p.v} DESC LIMIT 5;`
+        : `SELECT ${p.t2}.${p.pg}, COUNT(*) AS n, SUM(${p.t}.${p.v}) AS total_${p.v}, ROUND(AVG(${p.t}.${p.v}), 1) AS mean_${p.v} FROM ${p.t} INNER JOIN ${p.t2} ON ${p.t}.${p.name} = ${p.t2}.${p.jk} GROUP BY ${p.t2}.${p.pg} ORDER BY total_${p.v} DESC;`,
+    blanks: ['jk'],
+    steps: p => p.w === 'none'
+      ? [['step.from', `SELECT * FROM ${p.t2};`], ['step.join_left', `SELECT ${p.t2}.${p.key}, ${p.t2}.${p.pg}, ${p.t}.${p.id} FROM ${p.t2} LEFT JOIN ${p.t} ON ${p.t2}.${p.key} = ${p.t}.${p.name};`], ['step.where', `SELECT ${p.t2}.${p.key}, ${p.t2}.${p.pg} FROM ${p.t2} LEFT JOIN ${p.t} ON ${p.t2}.${p.key} = ${p.t}.${p.name} WHERE ${p.t}.${p.id} IS NULL;`], ['step.group', LESSON_SQL.an_join(p)]]
+      : [['step.from', `SELECT * FROM ${p.t2};`], ['step.join_inner', `SELECT ${p.t}.${p.id}, ${p.t}.${p.name}, ${p.t2}.${p.pg}, ${p.t}.${p.v} FROM ${p.t} INNER JOIN ${p.t2} ON ${p.t}.${p.name} = ${p.t2}.${p.key};`], ['step.group', LESSON_SQL.an_join(p)]],
+    chart: p => ({ type: 'bar', label: 0, value: p.w === 'none' ? 1 : p.w === 'best' ? 3 : 2 }),
+    stat: 'join'
+  },
+  {
+    key: 'an_clean', no: 'A12', ch: 'analysis', kind: 'single', themes: 'analysis', stages: NO_ORDER,
+    syntax: "SELECT CASE WHEN {num} < {value} THEN '...' WHEN {num} < {value} THEN '...' ELSE '...' END AS band, COUNT(*) FROM {table} GROUP BY band;",
+    keywords: ['SELECT', 'CASE WHEN', 'THEN', 'ELSE', 'END', 'LOWER()', 'TRIM()', 'COALESCE()', 'COUNT(*)', 'FROM', 'GROUP BY', 'ORDER BY', 'DESC', 'AS', '()', '<'],
+    demo: { ds: 'kumo_orders', p: { w: 'clean' } },
+    gen(ds, R, ctx, want) {
+      const r = ds.roles, pp = ALL_PEOPLE[ds.people], w = pickW(want, R, ['band', 'clean', 'fill']);
+      if (!pp) return null;
+      const q = pp.roles;
+      let p;
+      if (w === 'fill') p = { t: ds.table, w, opt: r.opt, co: 'COALESCE' };
+      else if (w === 'clean') p = { t: pp.table, w, pref: q.pref, tr: 'TRIM' };
+      else {   // three bands of about the same size, cut at round numbers
+        const a = colVals(pp, q.a).slice().sort((x, y) => x - y), n = a.length;
+        const step = a[n - 1] >= 100 ? 50 : a[n - 1] >= 40 ? 10 : 5;
+        const c1 = Math.max(step, Math.round(a[Math.floor(n / 3)] / step) * step), c2 = Math.max(c1 + step, Math.round(a[Math.floor(2 * n / 3)] / step) * step);
+        p = { t: pp.table, w, a: q.a, c1, c2, l1: `1: < ${c1}`, l2: `2: ${c1}-${c2 - 1}`, l3: `3: ${c2}+` };
+      }
+      const last = ctx.values(LESSON_SQL.an_clean(p)).map(x => x[x.length - 1]);
+      if (w !== 'band' && new Set(last).size !== last.length) return null;   // sorted by the count: no ties
+      if (w === 'band' && last.length !== 3) return null;
+      return p;
+    },
+    descKey: p => `L.an_clean.desc_${p.w}`,
+    sql: p => p.w === 'fill'
+      ? `SELECT ${p.co}(${p.opt}, '(none)') AS ${p.opt}_filled, COUNT(*) AS n FROM ${p.t} GROUP BY ${p.opt}_filled ORDER BY n DESC;`
+      : p.w === 'clean'
+        ? `SELECT LOWER(${p.tr}(${p.pref})) AS ${p.pref}_clean, COUNT(*) AS n FROM ${p.t} GROUP BY ${p.pref}_clean ORDER BY n DESC;`
+        : `SELECT CASE WHEN ${p.a} < ${p.c1} THEN ${lit(p.l1)} WHEN ${p.a} < ${p.c2} THEN ${lit(p.l2)} ELSE ${lit(p.l3)} END AS band, COUNT(*) AS n FROM ${p.t} GROUP BY band ORDER BY band;`,
+    blanks: p => (p.w === 'fill' ? ['co'] : p.w === 'clean' ? ['tr'] : ['c2']),
+    steps: p => p.w === 'fill'
+      ? [['step.group', `SELECT ${p.opt}, COUNT(*) AS n FROM ${p.t} GROUP BY ${p.opt} ORDER BY n DESC;`], ['step.coalesce', LESSON_SQL.an_clean(p)]]
+      : p.w === 'clean'
+        ? [['step.group', `SELECT ${p.pref}, COUNT(*) AS n FROM ${p.t} GROUP BY ${p.pref} ORDER BY ${p.pref};`], ['step.clean', `SELECT ${p.pref}, LOWER(TRIM(${p.pref})) AS ${p.pref}_clean FROM ${p.t};`], ['step.group', LESSON_SQL.an_clean(p)]]
+        : [['step.from', `SELECT * FROM ${p.t} ORDER BY ${p.a};`], ['step.case', `SELECT ${p.a}, CASE WHEN ${p.a} < ${p.c1} THEN ${lit(p.l1)} WHEN ${p.a} < ${p.c2} THEN ${lit(p.l2)} ELSE ${lit(p.l3)} END AS band FROM ${p.t};`], ['step.group', LESSON_SQL.an_clean(p)]],
+    chart: p => ({ type: 'bar', label: 0, value: 1 }),
+    stat: 'clean'
   }
 ];
+
 
 /** themes where Lesson 6 asks for IN (…) instead of BETWEEN */
 const IN_THEMES = new Set(['menu', 'hotels', 'courses']);

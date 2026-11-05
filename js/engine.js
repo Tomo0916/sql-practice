@@ -313,7 +313,7 @@ export class SqlEngine {
     const sql = lesson.sql(p);
     const blankP = Object.assign({}, p);
     blanksOf(lesson, p).forEach(k => (blankP[k] = BLANK));
-    const tables = lesson.kind === 'join' ? [p.L, p.R] : [p.t];
+    const tables = lesson.kind === 'join' ? [p.L, p.R] : p.t2 ? [p.t, p.t2] : [p.t];
     const toks = tokens || stagesFor(lesson);
     const token = kind === 'demo' ? 'demo' : kind === 'practice' ? toks[idx] : kind;
     const stage = stageOfToken(token);
