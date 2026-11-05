@@ -9,7 +9,7 @@
  * language never touches progress, drafts or results.
  * ========================================================= */
 import { LANGS, LANG_CODES, loadLang, hasLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
-import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, grade, checkAnswer, todayCode, randomCode, normCode, makeRng } from './engine.js';
+import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, formatKey, grade, checkAnswer, todayCode, randomCode, normCode, makeRng } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
@@ -65,7 +65,9 @@ const answerPolicy = () => (S.klass && S.klass.answer_policy) || 'after2';
 /* ---------- progress helpers ---------- */
 const save = () => saveProgress(S.progress);
 const isSolved = id => !!S.progress.solved[id];
-const problemsOf = lesson => S.engine.lessonProblems(lesson, setCode());
+/** the class's own problem format applies to the lessons the class assigned */
+const formatOf = lesson => (S.klass && S.klass.format && (S.klass.lessons || []).includes(lesson.key) ? S.klass.format : null);
+const problemsOf = lesson => S.engine.lessonProblems(lesson, setCode(), formatOf(lesson));
 const stateOf = lesson => lessonState(S.progress, problemsOf(lesson));
 function stageLabelH(p) {
   if (p.stage === 'demo') return H('stage.demo');
@@ -88,8 +90,9 @@ const isQuiz = prob => LESSON_BY_KEY[prob.lesson].kind === 'quiz';
 /* ---------- routing ---------- */
 function parseRoute() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
-  if (h[0] === 'l' && LESSON_BY_KEY[h[1]]) return { view: 'lesson', key: h[1], idx: Math.min(STAGES.length - 1, Math.max(0, parseInt(h[2], 10) || 0)) };
+  if (h[0] === 'l' && LESSON_BY_KEY[h[1]]) return { view: 'lesson', key: h[1], idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };   // current() keeps it inside the lesson's problems
   if (h[0] === 'review' || h[0] === 'mix') return { view: 'session', kind: h[0] };
+  if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'words') return { view: 'words' };
   return { view: 'home' };
 }
@@ -108,7 +111,7 @@ function current() {
     const probs = problemsOf(lesson);
     return { lesson, probs, prob: probs[Math.min(r.idx, probs.length - 1)] };
   }
-  if (r.view === 'session' && S.session && S.session.items.length) {
+  if (r.view === 'session' && S.session && S.session.i < S.session.items.length) {   // not on the finish screen
     const prob = S.session.items[S.session.i];
     return { lesson: LESSON_BY_KEY[prob.lesson], probs: S.session.items, prob };
   }
@@ -174,7 +177,7 @@ function homeHTML() {
       <div class="assign-head">${I.users}<div><small>${H('class.today')}</small><h2>${esc(S.klass.name)}</h2></div><span class="tag">${H('class.you', { n: S.klass.nickname })}</span></div>
       <div class="assign-list">${S.klass.lessons.filter(k => LESSON_BY_KEY[k]).map(k => {
         const l = LESSON_BY_KEY[k], st = stateOf(l);
-        return `<a class="assign-item ${st.done ? 'done' : ''}" href="#/l/${k}/0"><span class="lesson-num">${st.done ? '✓' : l.no}</span><span>${lessonTitleHTML(l, L())}</span><span class="muted">${st.count}/6</span></a>`;
+        return `<a class="assign-item ${st.done ? 'done' : ''}" href="#/l/${k}/0"><span class="lesson-num">${st.done ? '✓' : l.no}</span><span>${lessonTitleHTML(l, L())}</span><span class="muted">${st.count}/${st.solved.length}</span></a>`;
       }).join('')}</div></section>` : '';
 
   const classBox = !backend.enabled ? '' : S.klass ? '' : `<div class="joinbox">
@@ -217,7 +220,7 @@ function homeHTML() {
             return `<li><a class="lesson-link ${st.done ? 'done' : ''}" href="#/l/${l.key}/0">
               <span class="lesson-num">${st.done ? '✓' : l.no}</span>
               <span class="lesson-name">${lessonTitleHTML(l, L())}</span>
-              <span class="dots" aria-label="${st.count}/6">${st.solved.map((s, i) => `<i class="${i === 0 ? 'demo ' : ''}${s ? 'on' : ''}"></i>`).join('')}</span>
+              <span class="dots" aria-label="${st.count}/${st.solved.length}">${problemsOf(l).map((p, i) => `<i class="${p.stage === 'demo' ? 'demo ' : ''}${st.solved[i] ? 'on' : ''}"></i>`).join('')}</span>
             </a></li>`;
           }).join('')}</ul></article>`;
       }).join('')}
@@ -225,6 +228,10 @@ function homeHTML() {
     <section class="card mixcard">
       <div>${I.shuffle}<div><b>${H('mix.title')}</b><p class="muted">${H('mix.sub')}</p></div></div>
       <a class="btn btn-ghost" href="#/mix">${H('mix.start')}</a>
+    </section>
+    <section class="card mixcard drillcard">
+      <div><span class="drill-ic">⇅</span><div><b>${H('drill.title')}</b><p class="muted">${H('drill.sub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/drill">${H('drill.start')}</a>
     </section>
   </main>`;
 }
@@ -257,11 +264,12 @@ function lessonHTML() {
       <div class="point"><b>${H('lesson.point')}</b>${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div>
     </div>
     <nav class="card plist" aria-label="${esc(T('lesson.problems'))}">
-      <div class="plist-title"><span>${H('lesson.problems')}</span><span>${st.count}/6</span></div>
+      <div class="plist-title"><span>${H('lesson.problems')}</span><span>${st.count}/${probs.length}</span></div>
       ${probs.map(p => `<a class="pitem st-${p.stage} ${p.idx === prob.idx ? 'on' : ''} ${isSolved(p.id) ? 'solved' : ''}" href="#/l/${lesson.key}/${p.idx}" ${p.idx === prob.idx ? 'aria-current="page"' : ''}>
         <span class="ck"></span><span class="pt"><b>${stageLabelH(p)}</b><span>${esc(p.stage === 'demo' ? T('stage.demoSub') : themeName(p, L()))}</span></span></a>`).join('')}
-      ${st.done ? `<div class="done-banner">✓ ${H('lesson.done')}</div>` : `<div class="rule">${H(lesson.kind === 'quiz' ? 'lesson.ruleQuiz' : stagesOf(lesson).includes('order') ? 'lesson.rule' : 'lesson.ruleNoOrder')}</div>`}
+      ${st.done ? `<div class="done-banner">✓ ${H('lesson.done')}</div>` : `<div class="rule">${H(probs.some(p => p.fmt) ? 'lesson.ruleAll' : lesson.kind === 'quiz' ? 'lesson.ruleQuiz' : stagesOf(lesson).includes('order') ? 'lesson.rule' : 'lesson.ruleNoOrder')}</div>`}
     </nav>
+    ${S.engine.drillLessons().has(lesson.key) ? `<a class="card drill-link" href="#/drill/${lesson.key}"><span class="drill-ic">⇅</span><span><b>${H('drill.btn')}</b><small class="muted">${H('drill.count', { n: (S.progress.drill || {})[lesson.key] || 0 })}</small></span>${I.next}</a>` : ''}
     <div class="lesson-nav">
       ${prevL ? `<a class="btn btn-ghost btn-sm" href="#/l/${prevL.key}/0">${I.prev}${H('btn.prevLesson')}</a>` : '<span></span>'}
       ${nextL ? `<a class="btn btn-ghost btn-sm" href="#/l/${nextL.key}/0">${H('btn.nextLesson')}${I.next}</a>` : ''}
@@ -274,8 +282,29 @@ function lessonHTML() {
   </main>`;
 }
 
-/* ---------- review / mix session ---------- */
+/* ---------- review / mix session; the ordering drill ---------- */
+const DRILL_N = 10;
+const drillLevel = () => Store.get('sqln.drillLevel', 'mix');   // 'mix' | '1' | '2'
+/** 10 ordering problems: from one lesson (#/drill/<key>) or from the lessons the student has started */
+function startDrill(key) {
+  const ok = S.engine.drillLessons();
+  let pool;
+  if (key) pool = [key];
+  else {
+    const touched = LESSONS.filter(l => ok.has(l.key) && problemsOf(l).some(p => isSolved(p.id))).map(l => l.key);
+    pool = touched.length ? touched : LESSONS.filter(l => ok.has(l.key)).slice(0, 6).map(l => l.key);
+  }
+  const R = makeRng(`drill|${Date.now()}`), lv = drillLevel();
+  const items = [], seen = new Set();
+  for (let i = 0; items.length < DRILL_N && i < DRILL_N * 4; i++) {
+    const level = lv === 'mix' ? (items.length % 2) + 1 : +lv;
+    const p = S.engine.drillProblem(LESSON_BY_KEY[R.pick(pool)], `drill|${Date.now()}|${i}`, level);
+    if (p && !seen.has(p.id)) { seen.add(p.id); items.push(p); }
+  }
+  S.session = { kind: 'drill', key, items, i: 0, done: {}, streak: 0, best: 0 };
+}
 function startSession(kind) {
+  if (kind === 'drill') return startDrill(S.route.key);
   const day = todayCode();
   let keys;
   if (kind === 'review') keys = dueLessons(S.progress);
@@ -290,9 +319,10 @@ function startSession(kind) {
 }
 function sessionHTML() {
   const kind = S.route.kind;
-  if (!S.session || S.session.kind !== kind) startSession(kind);
+  if (!S.session || S.session.kind !== kind || (kind === 'drill' && S.session.key !== S.route.key)) startSession(kind);
   const ses = S.session;
-  document.title = `${T(kind === 'review' ? 'nav.review' : 'mix.title')} · SQL Practice`;
+  document.title = `${T(kind === 'review' ? 'nav.review' : kind === 'drill' ? 'drill.title' : 'mix.title')} · SQL Practice`;
+  if (kind === 'drill') return drillHTML(ses);
   if (!ses.items.length) {
     return `<main class="wrap narrow"><section class="card empty">
       <div class="empty-icon">${I.check}</div><h1>${H('review.none')}</h1><p class="muted">${H('review.noneSub')}</p>
@@ -313,6 +343,36 @@ function sessionHTML() {
     </div>
     <div class="session-layout">
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details></aside>
+      <div class="main" id="ws">${workspaceHTML(prob)}</div>
+    </div>
+  </main>`;
+}
+
+function drillHTML(ses) {
+  const one = ses.key && LESSON_BY_KEY[ses.key];
+  const lv = drillLevel();
+  const seg = `<div class="seg drill-lv">${[['mix', 'drill.lvMix'], ['1', 'drill.lv1'], ['2', 'drill.lv2']].map(([v, k]) => `<button class="${lv === v ? 'on' : ''}" data-act="drillLevel" data-v="${v}">${H(k)}</button>`).join('')}</div>`;
+  const back = one ? `<a class="btn btn-ghost" href="#/l/${one.key}/0">${H('drill.back')}</a>` : `<a class="btn btn-ghost" href="#/">${H('nav.home')}</a>`;
+  if (!ses.items.length) return `<main class="wrap narrow"><section class="card empty"><h1>${H('drill.title')}</h1><p class="muted">${H('drill.none')}</p><div class="row-btns">${back}</div></section></main>`;
+  if (ses.i >= ses.items.length) {
+    const ok = Object.values(ses.done).filter(Boolean).length;
+    return `<main class="wrap narrow"><section class="card empty">
+      <div class="empty-icon">${I.fire}</div><h1>${H('drill.finished')}</h1><p class="big-score">${ok} / ${ses.items.length}</p>
+      ${ses.best >= 3 ? `<p class="muted">🔥 ${H('drill.bestStreak', { n: ses.best })}</p>` : ''}
+      <div class="row-btns"><button class="btn btn-primary" data-act="drillAgain">${I.shuffle}${H('drill.more')}</button>${back}</div></section></main>`;
+  }
+  const prob = ses.items[ses.i];
+  const lesson = LESSON_BY_KEY[prob.lesson];
+  return `<main class="wrap">
+    <div class="session-head drill-head">
+      <h1>⇅ ${H('drill.title')}${one ? ` <small class="muted">· ${lessonTitleHTML(one, L())}</small>` : ''}</h1>
+      ${seg}
+      <div class="session-progress"><span>${ses.i + 1} / ${ses.items.length}</span><div class="bar"><i style="width:${Math.round(ses.i / ses.items.length * 100)}%"></i></div>${ses.streak >= 2 ? `<span class="streak">🔥 ${H('drill.streak', { n: ses.streak })}</span>` : ''}</div>
+    </div>
+    <div class="session-layout">
+      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        <p class="muted small">${H('drill.count', { n: (S.progress.drill || {})[lesson.key] || 0 })}</p>
         <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
@@ -351,11 +411,11 @@ function workspaceHTML(prob) {
         ${prob.stage === 'demo' ? `<span class="tag">${H('stage.demoSub')}</span>` : `<span class="tag">${themeHTML(prob, L())}</span>`}
         ${isSolved(prob.id) ? `<span class="tag ok">✓ ${H('fb.correct')}</span>` : ''}
       </div>
-      <p class="inst">${rubyHTML(raw('inst.' + (isQuiz(prob) ? 'quiz' : prob.stage === 'review' ? 'write' : prob.stage), L()))}</p>
+      <p class="inst">${rubyHTML(raw('inst.' + (isQuiz(prob) ? 'quiz' : prob.stage === 'review' ? 'write' : prob.stage === 'order' && S.engine.orderTask(prob) && !S.engine.orderTask(prob).chunks.some(c => c.distractor) ? 'orderNoTrap' : prob.stage), L()))}</p>
       <p class="prob-text">${problemHTML(prob, L())}</p>
       ${S.settings.second && S.settings.second !== L() ? `<p class="prob-text bi" lang="${htmlLang(S.settings.second)}">${problemHTML(prob, S.settings.second)}</p>` : ''}
       <div class="tables">${prob.tables.map(n => tableBlockHTML(n, prob)).join('')}</div>
-      ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? toolsHTML(prob, L(), setCode()) : ''}
+      ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? toolsHTML(prob, L(), setCode(), formatKey(formatOf(LESSON_BY_KEY[prob.lesson]))) : ''}
     </section>
     ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? statCardHTML(LESSON_BY_KEY[prob.lesson], prob, L(), prob.stage === 'demo') : ''}
     ${prob.stage === 'demo' ? `<div id="ws-steps">${stepsHTML(prob)}</div>` : ''}
@@ -516,7 +576,7 @@ function orderHTML(prob) {
       <ol class="ord-ans ${run && run.grade && run.grade.ok ? 'ok' : ''}" aria-live="polite">${placed.length ? placed.map((id, i) => `<li><button class="ord-chip placed" data-act="unplace" data-id="${id}" aria-label="${esc(T('order.remove'))}"><span class="ord-n">${i + 1}</span><code>${highlightSQL(byId[id].text)}</code>${I.x}</button></li>`).join('') : `<li class="ord-empty">${H('order.empty')}</li>`}</ol>
       <div class="ord-label">${H('order.pool')}</div>
       <div class="ord-pool">${pool.map(c => `<button class="ord-chip" data-act="place" data-id="${c.id}"><code>${highlightSQL(c.text)}</code></button>`).join('') || `<span class="muted small">${H('order.allUsed')}</span>`}</div>
-      ${task.fine ? `<p class="ord-level">${H('order.fine')}</p>` : ''}<p class="muted small">${H('order.tip')}</p>
+      ${task.fine ? `<p class="ord-level">${H('order.fine')}</p>` : ''}<p class="muted small">${H('order.tip')} ${H('order.dragTip')}</p>
       <div class="actions">
         <button class="btn btn-primary btn-run" data-act="checkOrder" ${placed.length ? '' : 'disabled'}>${I.check}${H('fill.check')}</button>
         <button class="btn btn-ghost" data-act="resetOrder">${I.reset}${H('ed.reset')}</button>
@@ -640,15 +700,21 @@ function record(prob, ok, run, sql) {
     if (ok) {
       if (!isSolved(prob.id)) {
         const lesson = LESSON_BY_KEY[prob.lesson];
-        const before = prob.kind !== 'review' && stateOf(lesson).done;
+        const extra = prob.kind === 'review' || prob.kind === 'drill';   // not one of the lesson's own problems
+        const before = !extra && stateOf(lesson).done;
         S.progress.solved[prob.id] = Date.now();
-        if (prob.kind !== 'review' && !before && stateOf(lesson).done) { markLessonDone(S.progress, lesson.key); run.lessonDone = true; }
+        if (!extra && !before && stateOf(lesson).done) { markLessonDone(S.progress, lesson.key); run.lessonDone = true; }
       }
       bumpStreak(S.progress);
     } else S.progress.wrong[prob.id] = (S.progress.wrong[prob.id] || 0) + 1;
     if (S.route.view === 'session' && S.session && S.session.done[prob.id] === undefined) {
       S.session.done[prob.id] = ok;
       if (S.session.kind === 'review') reviewResult(S.progress, prob.lesson, ok);
+      if (S.session.kind === 'drill') {
+        S.session.streak = ok ? S.session.streak + 1 : 0;
+        S.session.best = Math.max(S.session.best, S.session.streak);
+        if (ok) { S.progress.drill = S.progress.drill || {}; S.progress.drill[prob.lesson] = (S.progress.drill[prob.lesson] || 0) + 1; }
+      }
     }
     if (S.klass && backend.enabled) {
       backend.logAttempt({ class_id: S.klass.id, problem_id: prob.id.slice(0, 80), lesson: prob.lesson, stage: prob.kind === 'review' ? 'review' : prob.stage, ok, reason: ok ? null : (run.grade ? run.grade.reason : 'error'), sql: String(sql).slice(0, 2000) });
@@ -754,12 +820,86 @@ const actions = {
   place(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).concat(el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   unplace(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).filter(x => x !== el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   resetOrder() { const c = current(); delete S.progress.drafts['o:' + c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
-  sessionNext() { saveDraft(); S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
+  sessionNext() { saveDraft(); if (S.session.kind === 'drill' && !S.session.done[S.session.items[S.session.i].id]) S.session.streak = 0; S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
+  drillAgain() { S.session = null; render(); window.scrollTo(0, 0); },
+  drillLevel(el) { Store.set('sqln.drillLevel', el.dataset.v); S.session = null; render(); },
   mixAgain() { S.session = null; if (location.hash === '#/mix') render(); else location.hash = '#/mix'; },
   newSet() { changeSet(randomCode()); },
   todaySet() { changeSet(null); },
   gloss(el) { openGloss(el.dataset.kw); }
 };
+/* ---------- ordering: pieces can also be dragged (mouse, pen and touch) ----------
+ * Tap still works as before. Drag a piece into "Your SQL" to put it at that place,
+ * drag a placed piece to change the order, or drag it back to the pieces. */
+let drag = null, justDragged = false;
+function dropSpot(x, y) {
+  const ans = document.querySelector('.order .ord-ans'), pool = document.querySelector('.order .ord-pool');
+  const inside = (el, pad) => { if (!el) return false; const r = el.getBoundingClientRect(); return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad; };
+  if (inside(ans, 16)) {
+    const items = [...ans.querySelectorAll('li > .ord-chip')].filter(b => b !== drag.chip);
+    // the first placed piece that the pointer is before (rows wrap in level 2)
+    const i = items.findIndex(b => { const r = b.getBoundingClientRect(); return y < r.top || (y <= r.bottom && x < r.left + r.width / 2); });
+    return { where: 'ans', before: i < 0 ? null : items[i] };
+  }
+  if (inside(pool, 16)) return { where: 'pool' };
+  return null;
+}
+function showSpot(spot) {
+  document.querySelectorAll('.drop-before, .drop-end, .drop-pool').forEach(el => el.classList.remove('drop-before', 'drop-end', 'drop-pool'));
+  if (!spot) return;
+  if (spot.where === 'pool') document.querySelector('.order .ord-pool').classList.add('drop-pool');
+  else if (spot.before) spot.before.parentNode.classList.add('drop-before');
+  else document.querySelector('.order .ord-ans').classList.add('drop-end');
+}
+function endDrag(apply) {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.ghost) d.ghost.remove();
+  d.chip.classList.remove('dragging');
+  document.body.classList.remove('ord-dragging');
+  showSpot(null);
+  if (!d.on) return;
+  justDragged = true; setTimeout(() => { justDragged = false; }, 0);
+  if (!apply || !d.spot) return;
+  const c = current(); if (!c) return;
+  const k = 'o:' + c.prob.id;
+  const list = (S.progress.drafts[k] || []).filter(x => x !== d.id);
+  if (d.spot.where === 'ans') {
+    const at = d.spot.before ? list.indexOf(d.spot.before.dataset.id) : -1;
+    if (at < 0) list.push(d.id); else list.splice(at, 0, d.id);
+  }
+  S.progress.drafts[k] = list; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']);
+}
+document.addEventListener('pointerdown', e => {
+  const chip = e.target.closest('.order .ord-chip');
+  if (!chip || e.button > 0 || drag) return;
+  drag = { chip, id: chip.dataset.id, x: e.clientX, y: e.clientY, on: false, pid: e.pointerId };
+});
+document.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.pid) return;
+  if (!drag.on) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;   // a small move is still a tap
+    drag.on = true;
+    const r = drag.chip.getBoundingClientRect();
+    drag.dx = drag.x - r.left; drag.dy = drag.y - r.top;
+    drag.ghost = drag.chip.cloneNode(true);
+    drag.ghost.className += ' ord-ghost';
+    drag.ghost.style.width = r.width + 'px';
+    document.body.appendChild(drag.ghost);
+    drag.chip.classList.add('dragging');
+    document.body.classList.add('ord-dragging');
+  }
+  e.preventDefault();
+  drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy}px)`;
+  drag.spot = dropSpot(e.clientX, e.clientY);
+  showSpot(drag.spot);
+}, { passive: false });
+document.addEventListener('pointerup', e => { if (drag && e.pointerId === drag.pid) endDrag(true); });
+document.addEventListener('pointercancel', () => endDrag(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drag) endDrag(false); });
+// the click that ends a drag must not also place / remove the piece
+document.addEventListener('click', e => { if (justDragged && e.target.closest('.order')) { e.stopPropagation(); e.preventDefault(); justDragged = false; } }, true);
+
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.tagName === 'SELECT') return;
@@ -859,7 +999,7 @@ async function doJoin(f) {
   try {
     const c = await backend.joinClass(code, nick);
     Store.set('sqln.nick', nick);
-    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy };
+    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null };
     Store.set(KEYS.klass, S.klass);
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
     closeModal(); watchKlass(); render(); toast(T('class.joined', { n: c.name }));
@@ -905,8 +1045,8 @@ async function watchKlass() {
   } catch (e) { /* offline: keep cached class */ }
 }
 function applyClassRow(c, live) {
-  const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy;
-  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null });
+  const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format);
+  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null });
   tickTimer();
   Store.set(KEYS.klass, S.klass);
   if (changed) { saveDraft(); S.runs = {}; render(); if (live) toast(T('class.updated')); }

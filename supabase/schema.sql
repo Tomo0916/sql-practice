@@ -239,6 +239,11 @@ grant execute on function public.server_now() to authenticated;
 grant execute on function public.start_timer(uuid, integer) to authenticated;
 grant execute on function public.stop_timer(uuid) to authenticated;
 
+-- ---------- the class's own problem format (2026-11-05) ----------
+-- {"demo": true, "fill": 1, "order1": 2, "order2": 1, "write": 1} = how many problems of each kind per assigned lesson.
+-- null = the usual set (example, fill, order 1, order 2, write ×2).
+alter table public.classes add column if not exists format jsonb check (format is null or jsonb_typeof(format) = 'object');
+
 -- keep updated_at fresh
 create or replace function public.touch_updated_at() returns trigger language plpgsql as
 $$ begin new.updated_at := now(); return new; end $$;

@@ -36,7 +36,8 @@ export function lessonState(progress, problems) {
   // each kind of problem the lesson has must be solved: example, fill-in, ordering, 2 writing (or 3 questions in Lesson 0)
   const has = st => problems.some(p => p.stage === st);
   const need = { demo: 1, fill: 1, order: 1, write: 2, quiz: 3 };
-  const done = Object.entries(need).every(([st, n]) => !has(st) || by(st) >= n);
+  // a class's own format: every problem it gives must be solved
+  const done = problems.some(p => p.fmt) ? solved.every(Boolean) : Object.entries(need).every(([st, n]) => !has(st) || by(st) >= n);
   return { solved, count: solved.filter(Boolean).length, done };
 }
 export function markLessonDone(progress, key) {

@@ -5,7 +5,7 @@
  * comes from the app's SQL engine, so the numbers can be compared.
  * ========================================================= */
 import { loadLang, detectLang, htmlLang, t, th, esc, rubyHTML } from './i18n.js';
-import { SqlEngine, LESSON_BY_KEY } from './engine.js';
+import { SqlEngine, LESSON_BY_KEY, formatFromKey } from './engine.js';
 import { loadSettings } from './store.js';
 import { applySettings, gridHTML, problemHTML, lessonTitleHTML, themeHTML } from './ui.js';
 import { guideSteps } from './analysis-content.js';
@@ -64,7 +64,7 @@ function notebook(steps, vars, L) {
   app.innerHTML = `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   engine = new SqlEngine(await window.initSqlJs({ locateFile: f => '../vendor/' + f }));
   const lesson = LESSON_BY_KEY[q.get('l')] || LESSON_BY_KEY.an_overview;
-  const probs = engine.lessonProblems(lesson, q.get('set') || 'demo');
+  const probs = engine.lessonProblems(lesson, q.get('set') || 'demo', formatFromKey(q.get('f')));   // f = the class's problem format
   prob = probs[Math.max(0, Math.min(probs.length - 1, parseInt(q.get('i'), 10) || 0))];
   render();
 })();

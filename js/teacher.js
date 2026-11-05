@@ -8,7 +8,7 @@
  * Class features need Supabase (config.js). Presenter and paper tests work without it.
  * ========================================================= */
 import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
-import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode } from './engine.js';
+import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normFormat, stagesFor, FORMAT_KEYS, FORMAT_MAX, STANDARD_FORMAT } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
 import { syncClock, secondsLeft, fmtClock, timerState } from './timer.js';
@@ -223,24 +223,67 @@ function assignHTML(c) {
       <small class="muted">${H('tc.setCodeTip')}</small></div>
     <div class="fld"><span>${H('tc.policy')}</span>
       ${['after2', 'solved', 'always', 'never'].map(p => `<label class="chk"><input type="radio" name="policy" value="${p}" ${pol === p ? 'checked' : ''}><span><b>${H('tc.policy.' + p)}</b> <small class="muted">${H('tc.policyTip.' + p)}</small></span></label>`).join('')}</div>
+    ${formatFieldHTML(c)}
     <div class="actions"><button class="btn btn-primary">${I.check}${H('tc.saveAssign')}</button><span class="muted small">${H('tc.liveTip')}</span></div>
     <hr>
     <div class="fld"><span>${H('tc.previewTitle')}</span><small class="muted">${H('tc.previewTip')}</small>
       <div class="preview-list">${(c.lessons || []).filter(k => LESSON_BY_KEY[k]).map(k => {
         const l = LESSON_BY_KEY[k];
-        return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span> ${problemHTML(p, L())}${answerHTML(p)}</div>`).join('')}</details>`;
+        return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code, c.format).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span> ${problemHTML(p, L())}${answerHTML(p)}</div>`).join('')}</details>`;
       }).join('') || `<p class="muted">${H('tc.noLessons')}</p>`}</div></div>
   </form>`;
 }
-function stageNameH(p) { return p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage); }
-function stageName(p) { return p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? T('stage.orderN', { n: p.wn }) : T('stage.' + p.stage); }
+/* ---------- the class's problem format: how many problems of each kind per lesson ---------- */
+const FORMAT_PRESETS = {
+  std: STANDARD_FORMAT,
+  orderMain: { demo: true, fill: 0, order1: 2, order2: 1, write: 1 },
+  orderOnly: { demo: false, fill: 0, order1: 2, order2: 2, write: 0 },
+  writeMain: { demo: true, fill: 0, order1: 0, order2: 0, write: 3 }
+};
+const FMT_LABEL = { fill: 'tc.fmtFill', order1: 'tc.fmtOrder1', order2: 'tc.fmtOrder2', write: 'tc.fmtWrite' };
+function formatFieldHTML(c) {
+  const f = normFormat(c.format) || STANDARD_FORMAT;
+  return `<div class="fld fmt-fld"><span>${H('tc.format')}</span><small class="muted">${H('tc.formatTip')}</small>
+    <div class="fmt-presets"><b class="small">${H('tc.fmtPresets')}</b>${Object.keys(FORMAT_PRESETS).map(k => `<button type="button" class="btn btn-ghost btn-xs" data-act="fmtPreset" data-v="${k}">${H('tc.fmtP.' + k)}</button>`).join('')}</div>
+    <div class="fmt-grid">
+      <label class="chk fmt-demo"><input type="checkbox" name="fmt_demo" data-fmt ${f.demo ? 'checked' : ''}><span>${H('tc.fmtDemo')}</span></label>
+      ${FORMAT_KEYS.map(k => `<label class="fmt-n"><span>${H(FMT_LABEL[k])}</span><span class="stepper"><button type="button" class="btn btn-ghost btn-xs" data-act="fmtStep" data-k="${k}" data-d="-1" aria-label="−">−</button><input type="number" name="fmt_${k}" data-fmt min="0" max="${FORMAT_MAX}" value="${f[k]}" inputmode="numeric"><button type="button" class="btn btn-ghost btn-xs" data-act="fmtStep" data-k="${k}" data-d="1" aria-label="+">+</button></span></label>`).join('')}
+    </div>
+    <p class="fmt-sum" id="fmt-sum">${formatSummary(f)}</p>
+    <small class="muted">${H('tc.fmtNote')}</small></div>`;
+}
+function readFormat(form) {
+  const fd = new FormData(form);
+  const f = { demo: !!fd.get('fmt_demo') };
+  FORMAT_KEYS.forEach(k => { f[k] = +fd.get('fmt_' + k) || 0; });
+  return f;
+}
+function formatSummary(f) {
+  const n = stagesFor(LESSON_BY_KEY.where, f).length;
+  const parts = [f.demo ? T('tc.fmtDemo') : null, ...FORMAT_KEYS.filter(k => f[k]).map(k => `${T(FMT_LABEL[k])} ×${f[k]}`)].filter(Boolean);
+  return `${H('tc.fmtTotal', { n })}<span class="muted"> = ${esc(parts.join(' ＋ '))}</span>`;
+}
+function setFormatFields(f) {
+  const form = document.querySelector('[data-form="assign"]');
+  if (!form) return;
+  form.querySelector('[name="fmt_demo"]').checked = f.demo;
+  FORMAT_KEYS.forEach(k => { form.querySelector(`[name="fmt_${k}"]`).value = f[k]; });
+  updateFormatSummary();
+}
+function updateFormatSummary() {
+  const form = document.querySelector('[data-form="assign"]'), out = document.getElementById('fmt-sum');
+  if (form && out) out.innerHTML = formatSummary(normFormat(readFormat(form)) || STANDARD_FORMAT);
+}
+
+function stageName(p) { return (p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? T('stage.orderN', { n: p.wn }) : T('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + T('drill.lv2') : ''); }
+function stageNameH(p) { return (p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + H('drill.lv2') : ''); }
 const isQuiz = p => LESSON_BY_KEY[p.lesson].kind === 'quiz';
 /** the answer of a problem: SQL, or the value for Lesson 0 */
 const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${esc(String(p.answer))}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>`);
 
 /* live grid: members × problems of the assigned lessons */
 function classProblems(c) {
-  return (c.lessons || []).filter(k => LESSON_BY_KEY[k]).map(k => ({ lesson: LESSON_BY_KEY[k], probs: S.engine.lessonProblems(LESSON_BY_KEY[k], c.set_code) }));
+  return (c.lessons || []).filter(k => LESSON_BY_KEY[k]).map(k => ({ lesson: LESSON_BY_KEY[k], probs: S.engine.lessonProblems(LESSON_BY_KEY[k], c.set_code, c.format) }));
 }
 function visibleAttempts() {
   if (!S.liveOnlyToday) return S.attempts;
@@ -307,7 +350,7 @@ function liveHTML(c) {
   </section>`;
 }
 
-const colLabel = p => (p.idx === 0 ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' + (p.of > 1 ? p.wn : '') : (p.stage === 'quiz' ? 'Q' : 'W') + p.wn);
+const colLabel = p => (p.stage === 'demo' ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' + (p.of > 1 ? p.wn : '') : (p.stage === 'quiz' ? 'Q' : 'W') + p.wn);
 const NOW_MS = 10 * 60000;   // "now" = the last 10 minutes
 /** per problem: students stuck (wrong, not solved), wrong answers, students on it now, students who solved it */
 function problemStats(all, atts) {
@@ -735,6 +778,12 @@ const actions = {
     shownState = null; tickTeacherTimer();
   },
   async toggleOpen() { try { S.klass = await backend.updateClass(S.klass.id, { open: !S.klass.open }); render(); } catch (e) { toast(T('class.netError')); } },
+  fmtPreset(el) { setFormatFields(FORMAT_PRESETS[el.dataset.v]); },
+  fmtStep(el) {
+    const inp = document.querySelector(`[name="fmt_${el.dataset.k}"]`);
+    inp.value = Math.max(0, Math.min(FORMAT_MAX, (+inp.value || 0) + +el.dataset.d));
+    updateFormatSummary();
+  },
   setToday() { document.querySelector('[name="set_code"]').value = todayCode(); },
   setRandom() { document.querySelector('[name="set_code"]').value = randomCode(); },
   async reload() { await reloadClassData(); refreshTab(); toast(T('tc.reloaded')); },
@@ -809,6 +858,8 @@ document.addEventListener('change', async e => {
 });
 // open / closed cards (details with data-toggle) are remembered
 document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.toggle) { S[d.dataset.toggle] = d.open; saveView(); } }, true);
+document.addEventListener('input', e => { if (e.target.dataset && 'fmt' in e.target.dataset) updateFormatSummary(); });
+document.addEventListener('change', e => { if (e.target.dataset && 'fmt' in e.target.dataset) updateFormatSummary(); });
 document.addEventListener('input', e => {
   if (e.target.dataset.tk === 'title') { S.test.title = e.target.value; rerenderPaper(); }
 });
@@ -833,10 +884,12 @@ document.addEventListener('submit', async e => {
       location.hash = `#/c/${c.id}/assign`;
     } else if (kind === 'assign') {
       const patch = { lessons: LESSONS.map(l => l.key).filter(k => fd.getAll('lesson').includes(k)), set_code: normCode(fd.get('set_code')) || todayCode(), answer_policy: fd.get('policy') || 'after2' };
+      const fmt = normFormat(readFormat(f));   // null = the usual set
+      if (fmt || S.klass.format) patch.format = fmt;   // old databases without the column keep working with the usual set
       S.klass = await backend.updateClass(S.klass.id, patch);
       toast(T('tc.saved')); render();
     }
-  } catch (ex) { console.error(ex); toast(T(/not_teacher/.test(ex.message) ? 'tc.notTeacher' : 'class.netError')); }
+  } catch (ex) { console.error(ex); toast(T(/not_teacher/.test(ex.message) ? 'tc.notTeacher' : /format/.test(ex.message) ? 'tc.formatNeedsDb' : 'class.netError')); }
   finally { if (btn) btn.disabled = false; }
 });
 
