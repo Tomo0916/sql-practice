@@ -24,6 +24,8 @@ import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } fro
 import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
+import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
+import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
 const S = {
@@ -102,6 +104,7 @@ function parseRoute() {
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
   if (h[0] === 'tables') return { view: 'tables' };
+  if (h[0] === 'check') return { view: 'session', kind: 'check', code: h.slice(1).join('/') || null };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
   if (h[0] === 'live') return { view: 'live', key: LESSON_BY_KEY[h[1]] ? h[1] : h[1] === 'done' ? 'done' : null, idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };
   return { view: 'home' };
@@ -128,7 +131,7 @@ function current() {
     const probs = problemsOf(lesson);
     return { lesson, probs, prob: p || probs[Math.min(r.idx, probs.length - 1)] };
   }
-  if (r.view === 'session' && S.session && S.session.i < S.session.items.length) {   // not on the finish screen
+  if (r.view === 'session' && S.session && S.session.i < S.session.items.length && (r.kind !== 'check' || (S.session.kind === 'check' && S.session.code === r.code))) {   // not on the finish screen
     const prob = S.session.items[S.session.i];
     return { lesson: LESSON_BY_KEY[prob.lesson], probs: S.session.items, prob };
   }
@@ -172,7 +175,7 @@ function headerHTML() {
     <nav class="topnav">
       <a href="#/" class="${v === 'home' || v === 'lesson' ? 'on' : ''}">${I.book}<span>${H('nav.home')}</span></a>
       ${S.klass && (S.klass.lessons || []).length ? `<a href="#/live" class="${v === 'live' ? 'on' : ''}">${liveOn(S.klass) ? '<i class="live-dot"></i>' : I.users}<span>${H('nav.assign')}</span></a>` : ''}
-      <a href="#/review" class="${v === 'session' ? 'on' : ''}">${I.repeat}<span>${H('nav.review')}</span>${due ? `<b class="badge">${due}</b>` : ''}</a>
+      <a href="#/review" class="${v === 'session' && S.route.kind !== 'check' ? 'on' : ''}">${I.repeat}<span>${H('nav.review')}</span>${due ? `<b class="badge">${due}</b>` : ''}</a>
       <a href="#/words" class="${v === 'words' ? 'on' : ''}">${I.globe}<span>${H('nav.words')}</span></a>
       <a href="#/tables" class="${v === 'tables' ? 'on' : ''}">${I.table}<span>${H('nav.tables')}</span></a>
     </nav>
@@ -254,6 +257,10 @@ function homeHTML() {
     </section>
     ${S.pinNeeded ? `<section class="card mixcard pincard"><div><span class="drill-ic">🔢</span><div><b>${H('pin.setTitle')}</b><p class="muted">${H('pin.setSub')}</p></div></div><button class="btn btn-ok" data-act="setPin">${H('pin.setNow')}</button></section>` : ''}
     <section class="card mixcard drillcard solvedcard"><div><span class="drill-ic">✓</span><div><b>${H('mine.title')}</b><p class="muted">${H('mine.sub')}</p></div></div><a class="btn btn-ghost" href="#/solved">${H('mine.open')}</a></section>
+    <section class="card mixcard drillcard">
+      <div><span class="drill-ic">📝</span><div><b>${H('ck.title')}</b><p class="muted">${H('ck.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/check">${H('ck.open2')}</a>
+    </section>
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">⇅</span><div><b>${H('drill.title')}</b><p class="muted">${H('drill.sub')}</p></div></div>
       <a class="btn btn-ghost" href="#/drill">${H('drill.start')}</a>
@@ -345,6 +352,7 @@ function startSession(kind) {
 }
 function sessionHTML() {
   const kind = S.route.kind;
+  if (kind === 'check') return checkHTML();
   if (!S.session || S.session.kind !== kind || (kind === 'drill' && S.session.key !== S.route.key)) startSession(kind);
   const ses = S.session;
   document.title = `${T(kind === 'review' ? 'nav.review' : kind === 'drill' ? 'drill.title' : 'mix.title')} · SQL Practice`;
@@ -372,6 +380,89 @@ function sessionHTML() {
         <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
+  </main>`;
+}
+
+/* ---------- check test (確認テスト): chosen lessons, chosen formats, random order ----------
+ * #/check = the set-up form;  #/check/<code> = a test (from the form, or a teacher's link).
+ * Only the first answer to each problem counts; hints and answers come at the end.
+ * The lessons' own progress is not touched (the problems are copies with their own ids). */
+const CHECK_HISTORY = 'sqln.checks';
+function startCheck(code, cfg, seed, items) {
+  Object.keys(S.progress.drafts).forEach(k => { if (k.startsWith('check:')) delete S.progress.drafts[k]; });
+  Object.keys(S.runs).forEach(k => { if (k.startsWith('check:')) delete S.runs[k]; });
+  seed = seed || cfg.seed || randomCode(4);
+  S.session = { kind: 'check', code, cfg, seed, items: items || buildCheck(S.engine, cfg, seed), i: 0, done: {}, ans: {}, start: Date.now(), end: 0 };
+}
+function checkHistory() { const h = Store.get(CHECK_HISTORY, []); return Array.isArray(h) ? h : []; }
+function checkHTML() {
+  document.title = `${T('ck.title')} · SQL Practice`;
+  const code = S.route.code;
+  if (!code) {
+    const hist = checkHistory().slice(-5).reverse();
+    return `<main class="wrap ck-wrap"><h1 class="page-title">📝 ${H('ck.title')}</h1><p class="muted">${H('ck.sub')}</p>
+      ${checkSetupHTML()}
+      ${hist.length ? `<section class="card ck-hist"><h2>${H('ck.history')}</h2><ul>${hist.map(x => `<li><span class="muted small">${esc(fmtWhen(x.at))}</span><b>${x.ok} / ${x.n}</b><span class="muted small">${H('ck.lessonsN', { n: x.l })}</span></li>`).join('')}</ul></section>` : ''}</main>`;
+  }
+  const cfg = decodeCheck(code);
+  if (!cfg) return `<main class="wrap narrow"><section class="card empty"><h1>${H('ck.title')}</h1><p class="muted">${H('ck.bad')}</p><a class="btn btn-primary" href="#/check">${H('ck.change')}</a></section></main>`;
+  const ses = S.session && S.session.kind === 'check' && S.session.code === code ? S.session : null;
+  if (!ses) {   // opened from a link: what the test is, then start
+    const cnt = checkCounts(cfg);
+    return `<main class="wrap narrow"><section class="card ck-intro">
+      <div class="empty-icon">📝</div><h1>${H('ck.title')}</h1>
+      <p class="big-score small-score">${H('ck.total', { n: cnt.n })}</p>
+      <p class="muted">${H('ck.introBody')}</p>
+      <ul class="ck-lessons">${cfg.lessons.map(k => `<li><span class="lesson-num">${LESSON_BY_KEY[k].no}</span>${lessonTitleHTML(LESSON_BY_KEY[k], L())}</li>`).join('')}</ul>
+      <div class="row-btns"><button class="btn btn-primary btn-lg" data-act="checkBegin">${H('ck.start')}${I.next}</button><a class="btn btn-ghost" href="#/check">${H('ck.change')}</a></div></section></main>`;
+  }
+  if (ses.i >= ses.items.length) return checkResultHTML(ses);
+  const prob = ses.items[ses.i], lesson = LESSON_BY_KEY[prob.lesson];
+  const answered = Object.keys(ses.done).length;
+  return `<main class="wrap">
+    <div class="session-head">
+      <h1>📝 ${H('ck.title')}</h1>
+      <div class="session-progress"><span>${ses.i + 1} / ${ses.items.length}</span><div class="bar"><i style="width:${Math.round(answered / ses.items.length * 100)}%"></i></div></div>
+      <button class="btn btn-ghost btn-sm" data-act="checkQuit">${H('ck.quit')}</button>
+    </div>
+    <div class="session-layout">
+      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        <p class="muted small">${H('ck.rule')}</p>
+        <div class="ck-dots">${ses.items.map((p, j) => `<i class="${ses.done[p.id] === true ? 'ok' : ses.done[p.id] === false ? 'bad' : ''}${j === ses.i ? ' cur' : ''}" title="Q${j + 1}"></i>`).join('')}</div></aside>
+      <div class="main" id="ws">${workspaceHTML(prob)}</div>
+    </div>
+  </main>`;
+}
+function checkResultHTML(ses) {
+  if (!ses.end) {
+    ses.end = Date.now();
+    const h = checkHistory();
+    h.push({ at: ses.end, code: ses.code, n: ses.items.length, ok: Object.values(ses.done).filter(Boolean).length, l: ses.cfg.lessons.length });
+    Store.set(CHECK_HISTORY, h.slice(-30));
+  }
+  const n = ses.items.length, ok = ses.items.filter(p => ses.done[p.id] === true).length;
+  const secs = Math.round((ses.end - ses.start) / 1000), time = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+  const by = ses.cfg.lessons.map(k => { const ps = ses.items.filter(p => p.lesson === k); return { l: LESSON_BY_KEY[k], n: ps.length, ok: ps.filter(p => ses.done[p.id] === true).length }; }).filter(x => x.n);
+  const wrong = ses.items.filter(p => ses.done[p.id] !== true).length;
+  const mark = v => (v === true ? '<b class="ck-m ok">○</b>' : v === false ? '<b class="ck-m bad">×</b>' : '<b class="ck-m skip">−</b>');
+  return `<main class="wrap narrow ck-result">
+    <section class="card ck-score">
+      <h1>📝 ${H('ck.result')}</h1>
+      <p class="big-score">${ok} / ${n}</p>
+      <div class="ck-meter"><i style="width:${n ? Math.round(ok / n * 100) : 0}%"></i></div>
+      <p class="muted">${H('ck.time', { t: time })}</p>
+      <div class="row-btns">${wrong ? `<button class="btn btn-primary" data-act="checkRetry">${I.repeat}${H('ck.retryWrong', { n: wrong })}</button>` : ''}
+        <button class="btn btn-ghost" data-act="checkAgain">${I.shuffle}${H(ses.cfg.seed ? 'ck.retrySame' : 'ck.again')}</button><a class="btn btn-ghost" href="#/check">${H('ck.change')}</a></div>
+    </section>
+    <section class="card ck-by"><h2>${H('ck.byLesson')}</h2>
+      ${by.map(x => `<div class="ck-by-row"><span><span class="lesson-num">${x.l.no}</span>${lessonTitleHTML(x.l, L())}</span><span class="ck-by-bar"><i style="width:${Math.round(x.ok / x.n * 100)}%"></i></span><b>${x.ok} / ${x.n}</b></div>`).join('')}</section>
+    <section class="ck-review"><h2>${H('ck.review')}</h2>
+      ${ses.items.map((p, i) => { const mine = ses.ans[p.id]; return `<details class="card ck-item" ${ses.done[p.id] === true ? '' : 'open'}>
+        <summary>${mark(ses.done[p.id])}<b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageLabelH(p)}</span><span class="muted small">Lesson ${LESSON_BY_KEY[p.lesson].no} · ${esc(themeName(p, L()))}</span></summary>
+        <p class="prob-text">${problemHTML(p, L())}</p>
+        <div class="ck-ans"><span class="muted small">${H('ck.yours')}</span>${mine ? `<pre class="sql">${highlightSQL(mine)}</pre>` : `<p class="muted">${H('ck.noAnswer')}</p>`}</div>
+        <div class="ck-ans"><span class="muted small">${H('hint.answer')}</span><pre class="sql">${highlightSQL(p.sql)}</pre></div>
+        ${altsHTML(p)}</details>`; }).join('')}</section>
   </main>`;
 }
 
@@ -654,6 +745,7 @@ function stageHTML(prob) {
   return writeHTML(prob);
 }
 function hintsHTML(prob) {
+  if (prob.test) return '';   // a check test: no hints and no answer until the end
   const lesson = LESSON_BY_KEY[prob.lesson];
   const vis = answerVisible(prob);
   const wrong = S.progress.wrong[prob.id] || 0;
@@ -780,7 +872,8 @@ function feedbackHTML(prob) {
   }
   const title = run.error && (prob.stage === 'write' || prob.stage === 'demo') ? T('fb.error') : T('fb.notYet');
   const raw = run.error && !(run.dx || []).length ? `<pre class="errmsg">${esc(run.error.message)}</pre>` : '';
-  const skip = S.route.view === 'session' ? `<button class="btn btn-ghost btn-sm fb-next" data-act="sessionNext">${H('review.skip')}</button>` : '';
+  const tested = prob.test && S.session && S.session.done[prob.id] !== undefined;   // a check test: the first answer counted; go on
+  const skip = S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
   return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${run.error && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
 }
 
@@ -869,7 +962,11 @@ function evaluate(prob, sql, extra) {
 /** progress, streak, review and class log after a check */
 function record(prob, ok, run, sql) {
   const empty = run.error && run.error.code === 'empty';
-  if (!empty) {
+  if (!empty && prob.test) {   // a check test: only the test keeps score; the lessons' progress is not touched
+    if (ok) bumpStreak(S.progress);
+    const ses = S.session;
+    if (ses && ses.kind === 'check' && ses.done[prob.id] === undefined) { ses.done[prob.id] = ok; ses.ans[prob.id] = String(sql).slice(0, 2000); }
+  } else if (!empty) {
     if (ok) {
       if (!isSolved(prob.id)) {
         const lesson = LESSON_BY_KEY[prob.lesson];
@@ -1011,6 +1108,15 @@ const actions = {
   sessionNext() { saveDraft(); if (S.session.kind === 'drill' && !S.session.done[S.session.items[S.session.i].id]) S.session.streak = 0; S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
   drillAgain() { S.session = null; render(); window.scrollTo(0, 0); },
   drillLevel(el) { Store.set('sqln.drillLevel', el.dataset.v); S.session = null; render(); },
+  checkBegin() { const cfg = decodeCheck(S.route.code); if (!cfg) return; startCheck(S.route.code, cfg); render(); window.scrollTo(0, 0); },
+  checkQuit() { const ses = S.session; if (!ses || ses.kind !== 'check') return; saveDraft(); ses.i = ses.items.length; render(); window.scrollTo(0, 0); },
+  checkRetry() {   // the problems not answered right, again (new copies, so they start empty)
+    const ses = S.session; if (!ses || ses.kind !== 'check') return;
+    const tag = randomCode(3);
+    const items = ses.items.filter(p => ses.done[p.id] !== true).map((p, i) => Object.assign({}, p, { id: `check:${tag}:${i}:${p.src}` }));
+    startCheck(ses.code, ses.cfg, ses.seed, items); render(); window.scrollTo(0, 0);
+  },
+  checkAgain() { const ses = S.session; if (!ses || ses.kind !== 'check') return; startCheck(ses.code, ses.cfg, ses.cfg.seed || null); render(); window.scrollTo(0, 0); },
   mixAgain() { S.session = null; if (location.hash === '#/mix') render(); else location.hash = '#/mix'; },
   newSet() { changeSet(randomCode()); },
   todaySet() { changeSet(null); },
@@ -1333,6 +1439,8 @@ window.addEventListener('storage', e => {
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
+  installCheckUI({ mode: 'student', lang: L, engine: () => S.engine, assigned: () => (S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k] && LESSON_BY_KEY[k].kind !== 'quiz') : []),
+    onStart(cfg) { const code = encodeCheck(cfg); startCheck(code, cfg); if (location.hash === '#/check/' + code) render(); else location.hash = '#/check/' + code; } });
   S.route = parseRoute();
   await Promise.all([loadLang('en'), loadLang(L()), S.settings.second ? loadLang(S.settings.second) : null]);
   render();
