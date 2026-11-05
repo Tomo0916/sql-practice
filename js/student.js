@@ -90,6 +90,7 @@ function parseRoute() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
   if (h[0] === 'l' && LESSON_BY_KEY[h[1]]) return { view: 'lesson', key: h[1], idx: Math.min(STAGES.length - 1, Math.max(0, parseInt(h[2], 10) || 0)) };
   if (h[0] === 'review' || h[0] === 'mix') return { view: 'session', kind: h[0] };
+  if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'words') return { view: 'words' };
   return { view: 'home' };
 }
@@ -108,7 +109,7 @@ function current() {
     const probs = problemsOf(lesson);
     return { lesson, probs, prob: probs[Math.min(r.idx, probs.length - 1)] };
   }
-  if (r.view === 'session' && S.session && S.session.items.length) {
+  if (r.view === 'session' && S.session && S.session.i < S.session.items.length) {   // not on the finish screen
     const prob = S.session.items[S.session.i];
     return { lesson: LESSON_BY_KEY[prob.lesson], probs: S.session.items, prob };
   }
@@ -226,6 +227,10 @@ function homeHTML() {
       <div>${I.shuffle}<div><b>${H('mix.title')}</b><p class="muted">${H('mix.sub')}</p></div></div>
       <a class="btn btn-ghost" href="#/mix">${H('mix.start')}</a>
     </section>
+    <section class="card mixcard drillcard">
+      <div><span class="drill-ic">⇅</span><div><b>${H('drill.title')}</b><p class="muted">${H('drill.sub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/drill">${H('drill.start')}</a>
+    </section>
   </main>`;
 }
 function setBoxHTML() {
@@ -262,6 +267,7 @@ function lessonHTML() {
         <span class="ck"></span><span class="pt"><b>${stageLabelH(p)}</b><span>${esc(p.stage === 'demo' ? T('stage.demoSub') : themeName(p, L()))}</span></span></a>`).join('')}
       ${st.done ? `<div class="done-banner">✓ ${H('lesson.done')}</div>` : `<div class="rule">${H(lesson.kind === 'quiz' ? 'lesson.ruleQuiz' : stagesOf(lesson).includes('order') ? 'lesson.rule' : 'lesson.ruleNoOrder')}</div>`}
     </nav>
+    ${S.engine.drillLessons().has(lesson.key) ? `<a class="card drill-link" href="#/drill/${lesson.key}"><span class="drill-ic">⇅</span><span><b>${H('drill.btn')}</b><small class="muted">${H('drill.count', { n: (S.progress.drill || {})[lesson.key] || 0 })}</small></span>${I.next}</a>` : ''}
     <div class="lesson-nav">
       ${prevL ? `<a class="btn btn-ghost btn-sm" href="#/l/${prevL.key}/0">${I.prev}${H('btn.prevLesson')}</a>` : '<span></span>'}
       ${nextL ? `<a class="btn btn-ghost btn-sm" href="#/l/${nextL.key}/0">${H('btn.nextLesson')}${I.next}</a>` : ''}
@@ -274,8 +280,29 @@ function lessonHTML() {
   </main>`;
 }
 
-/* ---------- review / mix session ---------- */
+/* ---------- review / mix session; the ordering drill ---------- */
+const DRILL_N = 10;
+const drillLevel = () => Store.get('sqln.drillLevel', 'mix');   // 'mix' | '1' | '2'
+/** 10 ordering problems: from one lesson (#/drill/<key>) or from the lessons the student has started */
+function startDrill(key) {
+  const ok = S.engine.drillLessons();
+  let pool;
+  if (key) pool = [key];
+  else {
+    const touched = LESSONS.filter(l => ok.has(l.key) && problemsOf(l).some(p => isSolved(p.id))).map(l => l.key);
+    pool = touched.length ? touched : LESSONS.filter(l => ok.has(l.key)).slice(0, 6).map(l => l.key);
+  }
+  const R = makeRng(`drill|${Date.now()}`), lv = drillLevel();
+  const items = [], seen = new Set();
+  for (let i = 0; items.length < DRILL_N && i < DRILL_N * 4; i++) {
+    const level = lv === 'mix' ? (items.length % 2) + 1 : +lv;
+    const p = S.engine.drillProblem(LESSON_BY_KEY[R.pick(pool)], `drill|${Date.now()}|${i}`, level);
+    if (p && !seen.has(p.id)) { seen.add(p.id); items.push(p); }
+  }
+  S.session = { kind: 'drill', key, items, i: 0, done: {}, streak: 0, best: 0 };
+}
 function startSession(kind) {
+  if (kind === 'drill') return startDrill(S.route.key);
   const day = todayCode();
   let keys;
   if (kind === 'review') keys = dueLessons(S.progress);
@@ -290,9 +317,10 @@ function startSession(kind) {
 }
 function sessionHTML() {
   const kind = S.route.kind;
-  if (!S.session || S.session.kind !== kind) startSession(kind);
+  if (!S.session || S.session.kind !== kind || (kind === 'drill' && S.session.key !== S.route.key)) startSession(kind);
   const ses = S.session;
-  document.title = `${T(kind === 'review' ? 'nav.review' : 'mix.title')} · SQL Practice`;
+  document.title = `${T(kind === 'review' ? 'nav.review' : kind === 'drill' ? 'drill.title' : 'mix.title')} · SQL Practice`;
+  if (kind === 'drill') return drillHTML(ses);
   if (!ses.items.length) {
     return `<main class="wrap narrow"><section class="card empty">
       <div class="empty-icon">${I.check}</div><h1>${H('review.none')}</h1><p class="muted">${H('review.noneSub')}</p>
@@ -313,6 +341,36 @@ function sessionHTML() {
     </div>
     <div class="session-layout">
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details></aside>
+      <div class="main" id="ws">${workspaceHTML(prob)}</div>
+    </div>
+  </main>`;
+}
+
+function drillHTML(ses) {
+  const one = ses.key && LESSON_BY_KEY[ses.key];
+  const lv = drillLevel();
+  const seg = `<div class="seg drill-lv">${[['mix', 'drill.lvMix'], ['1', 'drill.lv1'], ['2', 'drill.lv2']].map(([v, k]) => `<button class="${lv === v ? 'on' : ''}" data-act="drillLevel" data-v="${v}">${H(k)}</button>`).join('')}</div>`;
+  const back = one ? `<a class="btn btn-ghost" href="#/l/${one.key}/0">${H('drill.back')}</a>` : `<a class="btn btn-ghost" href="#/">${H('nav.home')}</a>`;
+  if (!ses.items.length) return `<main class="wrap narrow"><section class="card empty"><h1>${H('drill.title')}</h1><p class="muted">${H('drill.none')}</p><div class="row-btns">${back}</div></section></main>`;
+  if (ses.i >= ses.items.length) {
+    const ok = Object.values(ses.done).filter(Boolean).length;
+    return `<main class="wrap narrow"><section class="card empty">
+      <div class="empty-icon">${I.fire}</div><h1>${H('drill.finished')}</h1><p class="big-score">${ok} / ${ses.items.length}</p>
+      ${ses.best >= 3 ? `<p class="muted">🔥 ${H('drill.bestStreak', { n: ses.best })}</p>` : ''}
+      <div class="row-btns"><button class="btn btn-primary" data-act="drillAgain">${I.shuffle}${H('drill.more')}</button>${back}</div></section></main>`;
+  }
+  const prob = ses.items[ses.i];
+  const lesson = LESSON_BY_KEY[prob.lesson];
+  return `<main class="wrap">
+    <div class="session-head drill-head">
+      <h1>⇅ ${H('drill.title')}${one ? ` <small class="muted">· ${lessonTitleHTML(one, L())}</small>` : ''}</h1>
+      ${seg}
+      <div class="session-progress"><span>${ses.i + 1} / ${ses.items.length}</span><div class="bar"><i style="width:${Math.round(ses.i / ses.items.length * 100)}%"></i></div>${ses.streak >= 2 ? `<span class="streak">🔥 ${H('drill.streak', { n: ses.streak })}</span>` : ''}</div>
+    </div>
+    <div class="session-layout">
+      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        <p class="muted small">${H('drill.count', { n: (S.progress.drill || {})[lesson.key] || 0 })}</p>
         <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
@@ -351,7 +409,7 @@ function workspaceHTML(prob) {
         ${prob.stage === 'demo' ? `<span class="tag">${H('stage.demoSub')}</span>` : `<span class="tag">${themeHTML(prob, L())}</span>`}
         ${isSolved(prob.id) ? `<span class="tag ok">✓ ${H('fb.correct')}</span>` : ''}
       </div>
-      <p class="inst">${rubyHTML(raw('inst.' + (isQuiz(prob) ? 'quiz' : prob.stage === 'review' ? 'write' : prob.stage), L()))}</p>
+      <p class="inst">${rubyHTML(raw('inst.' + (isQuiz(prob) ? 'quiz' : prob.stage === 'review' ? 'write' : prob.stage === 'order' && S.engine.orderTask(prob) && !S.engine.orderTask(prob).chunks.some(c => c.distractor) ? 'orderNoTrap' : prob.stage), L()))}</p>
       <p class="prob-text">${problemHTML(prob, L())}</p>
       ${S.settings.second && S.settings.second !== L() ? `<p class="prob-text bi" lang="${htmlLang(S.settings.second)}">${problemHTML(prob, S.settings.second)}</p>` : ''}
       <div class="tables">${prob.tables.map(n => tableBlockHTML(n, prob)).join('')}</div>
@@ -640,15 +698,21 @@ function record(prob, ok, run, sql) {
     if (ok) {
       if (!isSolved(prob.id)) {
         const lesson = LESSON_BY_KEY[prob.lesson];
-        const before = prob.kind !== 'review' && stateOf(lesson).done;
+        const extra = prob.kind === 'review' || prob.kind === 'drill';   // not one of the lesson's own problems
+        const before = !extra && stateOf(lesson).done;
         S.progress.solved[prob.id] = Date.now();
-        if (prob.kind !== 'review' && !before && stateOf(lesson).done) { markLessonDone(S.progress, lesson.key); run.lessonDone = true; }
+        if (!extra && !before && stateOf(lesson).done) { markLessonDone(S.progress, lesson.key); run.lessonDone = true; }
       }
       bumpStreak(S.progress);
     } else S.progress.wrong[prob.id] = (S.progress.wrong[prob.id] || 0) + 1;
     if (S.route.view === 'session' && S.session && S.session.done[prob.id] === undefined) {
       S.session.done[prob.id] = ok;
       if (S.session.kind === 'review') reviewResult(S.progress, prob.lesson, ok);
+      if (S.session.kind === 'drill') {
+        S.session.streak = ok ? S.session.streak + 1 : 0;
+        S.session.best = Math.max(S.session.best, S.session.streak);
+        if (ok) { S.progress.drill = S.progress.drill || {}; S.progress.drill[prob.lesson] = (S.progress.drill[prob.lesson] || 0) + 1; }
+      }
     }
     if (S.klass && backend.enabled) {
       backend.logAttempt({ class_id: S.klass.id, problem_id: prob.id.slice(0, 80), lesson: prob.lesson, stage: prob.kind === 'review' ? 'review' : prob.stage, ok, reason: ok ? null : (run.grade ? run.grade.reason : 'error'), sql: String(sql).slice(0, 2000) });
@@ -754,7 +818,9 @@ const actions = {
   place(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).concat(el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   unplace(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).filter(x => x !== el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   resetOrder() { const c = current(); delete S.progress.drafts['o:' + c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
-  sessionNext() { saveDraft(); S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
+  sessionNext() { saveDraft(); if (S.session.kind === 'drill' && !S.session.done[S.session.items[S.session.i].id]) S.session.streak = 0; S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
+  drillAgain() { S.session = null; render(); window.scrollTo(0, 0); },
+  drillLevel(el) { Store.set('sqln.drillLevel', el.dataset.v); S.session = null; render(); },
   mixAgain() { S.session = null; if (location.hash === '#/mix') render(); else location.hash = '#/mix'; },
   newSet() { changeSet(randomCode()); },
   todaySet() { changeSet(null); },

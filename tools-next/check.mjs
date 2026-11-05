@@ -187,5 +187,26 @@ console.log('5. Data-analysis texts (statistics basics, Excel / Python guides)')
   }
 }
 
+console.log('6. Ordering drill (40 problems per lesson and level)');
+{
+  const ok = eng.drillLessons();
+  for (const L of LESSONS.filter(l => ok.has(l.key))) {
+    const ids = new Set();
+    for (const level of [1, 2]) for (let i = 0; i < 40; i++) {
+      const p = eng.drillProblem(L, `drill-check|${L.key}|${level}|${i}`, level);
+      if (!p) { err(`drill ${L.key}: no problem for seed ${i}`); continue; }
+      ids.add(p.id);
+      const o = eng.orderTask(p);
+      if (level === 2 && !o.fine) warn(`drill ${L.key}: level 2 fell back to clauses: ${p.sql}`);
+      const byId = Object.fromEntries(o.chunks.map(c => [c.id, c.text]));
+      const exp = eng.exec(p.sql), sql = o.answer.map(id => byId[id]).join(' ') + ';';
+      if (!grade(eng.runUser(sql), exp, p.ordered, sql).ok) err(`drill ${L.key}: answer does not rebuild: ${sql}`);
+      const x = o.chunks.find(c => c.distractor);
+      if (x && o.twin) { const bad = o.answer.map(id => (id === o.twin ? x.text : byId[id])); let g = false; try { g = grade(eng.runUser(bad.join(' ')), exp, p.ordered).ok; } catch (e) { g = false; } if (g) err(`drill ${L.key}: trap also right: ${x.text}`); }
+    }
+    console.log(`   ${L.key.padEnd(13)} ${String(ids.size).padStart(3)} different drill problems in 80 tries`);
+  }
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

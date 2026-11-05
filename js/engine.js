@@ -346,6 +346,27 @@ export class SqlEngine {
     this._cache.set(key, out);
     return out;
   }
+  /**
+   * One "put in order" problem for the ordering drill: level 1 = clause pieces, level 2 = one or two words.
+   * Any data set of the lesson, so a drill can go on with new problems for as long as the student likes.
+   */
+  drillProblem(lesson, seed, level) {
+    if (lesson.kind === 'quiz') return null;
+    const R = makeRng(seed);
+    for (const ds of R.shuffle(this.themesFor(lesson))) {
+      const p = this.genOne(lesson, ds, `${seed}|${ds.table || ds.key}`);
+      if (!p) continue;
+      const pr = this.buildProblem(lesson, p, 'drill', 0, ds.table || ds.key);
+      Object.assign(pr, { kind: 'drill', stage: 'order', wn: level, of: 2, id: `${lesson.key}:drill${level}:${hashStr(pr.sql).toString(36)}` });
+      if (this.orderTask(pr)) return pr;
+    }
+    return null;
+  }
+  /** lessons that can be drilled (the SQL splits into pieces) */
+  drillLessons() {
+    if (!this._drillable) this._drillable = new Set(LESSONS.filter(l => this.drillProblem(l, 'check|' + l.key, 1) && this.drillProblem(l, 'check2|' + l.key, 2)).map(l => l.key));
+    return this._drillable;
+  }
   /** One extra "write" problem for spaced review / mixed practice. */
   reviewProblem(lesson, seed) {
     const R = makeRng(seed);

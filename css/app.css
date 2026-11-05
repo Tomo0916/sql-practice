@@ -542,3 +542,17 @@ body.ord-dragging, body.ord-dragging * { cursor: grabbing !important; }
 .order.fine .ord-ans li.drop-before { box-shadow: inset 3px 0 0 var(--accent); padding-left: 4px; }
 .ord-ans.drop-end { border-color: var(--accent); border-style: solid; }
 .ord-pool.drop-pool { outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: 10px; }
+
+/* ordering drill */
+.drill-ic { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: 1rem; flex: none; }
+.drillcard { margin-top: 12px; }
+.drill-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-top: 12px; text-decoration: none; color: inherit; border: 1.5px solid var(--accent); }
+.drill-link span:nth-child(2) { display: flex; flex-direction: column; flex: 1; }
+.drill-link small { font-size: .78rem; }
+.drill-link:hover { background: var(--accent-soft); }
+.drill-link svg { color: var(--accent); }
+.drill-head { flex-wrap: wrap; gap: 10px 16px; }
+.drill-head h1 small { font-size: .8em; font-weight: 600; }
+.drill-lv button { border: 0; background: none; padding: 5px 10px; border-radius: 8px; font: inherit; font-size: .82rem; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.drill-lv button.on { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
+.session-progress .streak { font-weight: 800; color: var(--warn); white-space: nowrap; }
