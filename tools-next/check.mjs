@@ -302,5 +302,25 @@ console.log('10. Other answers (別解)');
   if (unused.length) warn(`alt rules never used: ${unused.join(', ')}`);
   console.log(`   ${withAlt} of ${n} problems have other answers; ${used.size}/${ALT_RULES.length} rules used`);
 }
+console.log('11. Check tests (確認テスト)');
+{
+  const { encodeCheck, decodeCheck, buildCheck, checkCounts, checkLessons, CHECK_PRESETS, CHECK_MAXES } = await import('../js/check.js');
+  let tests = 0;
+  const all = checkLessons().map(l => l.key);
+  for (const [pk, f] of Object.entries(CHECK_PRESETS)) for (const max of CHECK_MAXES) for (const ls of [all, ['where'], ['types', 'an_hist'], ['inner', 'left', 'antijoin']]) {
+    const cfg = { lessons: ls, f, max, seed: 'AB12' };
+    const code = encodeCheck(cfg), back = decodeCheck(code);
+    if (!back || encodeCheck(back) !== code) err(`check test code does not round-trip: ${code}`);
+    const items = buildCheck(eng, back, 'AB12'), cnt = checkCounts(back);
+    if (items.length > cnt.n) err(`check test ${code}: ${items.length} problems, more than ${cnt.n}`);
+    if (items.length < Math.min(cnt.n, ls.length)) warn(`check test ${code}: only ${items.length} of ${cnt.n} problems`);
+    if (new Set(items.map(p => p.id)).size !== items.length) err(`check test ${code}: two problems share an id`);
+    if (items.some(p => p.stage === 'demo' || !p.test || !p.id.startsWith('check:'))) err(`check test ${code}: a problem is not a test copy`);
+    if (JSON.stringify(buildCheck(eng, back, 'AB12').map(p => p.id)) !== JSON.stringify(items.map(p => p.id))) err(`check test ${code}: not the same problems for the same seed`);
+    tests++;
+  }
+  if (decodeCheck('nope~0000~5~') || decodeCheck('')) err('a bad check test code was accepted');
+  console.log(`   ${tests} test settings built`);
+}
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

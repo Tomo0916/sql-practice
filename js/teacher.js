@@ -13,6 +13,7 @@ import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
 import { hasLecture } from './lectures.js';
 import { altAnswers } from './alt.js';
+import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { drawJoinLines } from './viz.js';
@@ -68,6 +69,7 @@ function parseRoute() {
   if (h[0] === 'test') return { view: 'test' };
   if (h[0] === 'book') return { view: 'book' };
   if (h[0] === 'tables') return { view: 'tables' };
+  if (h[0] === 'check') return { view: 'check' };
   return { view: 'home' };
 }
 window.addEventListener('hashchange', () => { closeProjector(); const prev = S.route; S.route = parseRoute(); if (prev.view === 'class' && (S.route.view !== 'class' || S.route.id !== prev.id)) stopWatch(); load(); });
@@ -84,6 +86,7 @@ function render() {
   else if (v === 'test') body = testHTML();
   else if (v === 'book') body = bookPanelHTML();
   else if (v === 'tables') body = tablesPageHTML(L());
+  else if (v === 'check') body = `<main class="wrap"><h1 class="page-title">📝 ${H('ck.title')}</h1><p class="muted">${H('ck.subT')}</p>${checkSetupHTML()}</main>`;
   else if (!backend.enabled) body = noBackendHTML();
   else if (!S.session) body = loginHTML();
   else if (S.isTeacher === false) body = notTeacherHTML();
@@ -93,6 +96,7 @@ function render() {
   keepView(() => { app.innerHTML = headerHTML() + body; });
   if (v === 'book') document.title = `${T('book.nav')} · SQL Practice`;
   if (v === 'tables') document.title = `${T('tb.title')} · SQL Practice`;
+  if (v === 'check') document.title = `${T('ck.title')} · SQL Practice`;
   if (v === 'test' && S.engine) document.title = `${S.test.title || t('test.headingDefault', S.test.tlang)} (${S.test.code})`;
 }
 function headerHTML() {
@@ -103,6 +107,7 @@ function headerHTML() {
       <a href="#/" class="${v === 'home' || v === 'class' ? 'on' : ''}">${I.users}<span>${H('tc.classes')}</span></a>
       <a href="#/present" class="${v === 'present' ? 'on' : ''}">${I.screen}<span>${H('tc.present')}</span></a>
       <a href="#/test" class="${v === 'test' ? 'on' : ''}">${I.paper}<span>${H('tc.test')}</span></a>
+      <a href="#/check" class="${v === 'check' ? 'on' : ''}">${I.check}<span>${H('ck.title')}</span></a>
       <a href="#/book" class="${v === 'book' ? 'on' : ''}">${I.book}<span>${H('book.nav')}</span></a>
       <a href="#/tables" class="${v === 'tables' ? 'on' : ''}">${I.table}<span>${H('nav.tables')}</span></a>
     </nav>
@@ -994,6 +999,7 @@ async function openQR(c) {
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
+  installCheckUI({ mode: 'teacher', lang: L, engine: () => S.engine, assigned: () => (S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k] && LESSON_BY_KEY[k].kind !== 'quiz') : []), onStart() {} });
   S.route = parseRoute();
   await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null]);
   render();
