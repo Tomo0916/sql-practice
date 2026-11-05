@@ -230,7 +230,7 @@ function alignColumns(user, exp) {
  * detail: 'tooMany' | 'tooFew' | 'reversed' | 'noOrder' | null
  */
 export function grade(user, exp, ordered, userSql, names) {
-  if (!user || !user.columns || !user.columns.length) return { ok: false, reason: 'noResult' };
+  if (!user || !user.columns || !user.columns.length) return { ok: false, reason: 'noResult', b: exp && exp.values ? exp.values.length : 0 };
   if (names && user.columns.length === exp.columns.length) {   // the lesson is about naming columns (AS)
     const j = exp.columns.findIndex((c, i) => c.toLowerCase() !== String(user.columns[i]).toLowerCase());
     if (j >= 0 && !user.columns.some(c => c.toLowerCase() === exp.columns[j].toLowerCase())) {
