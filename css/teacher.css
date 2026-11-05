@@ -444,3 +444,6 @@ details.rank .rk-head { justify-content: flex-end; }
 .lesson-list li { position: relative; }
 .lec-link { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); text-decoration: none; font-size: 1.05rem; padding: 2px 6px; border-radius: 6px; }
 .lec-link:hover { background: var(--accent-soft); }
+.key-item .q-alt { margin-top: 3px; font-size: .9em; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.key-item .q-alt > span:first-child { font-weight: 700; white-space: nowrap; }
+.key-item .q-alt .q-sql { margin: 0; }

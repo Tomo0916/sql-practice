@@ -23,6 +23,7 @@ import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft }
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
 import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep } from './lecture-ui.js';
+import { altAnswers } from './alt.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
 const S = {
@@ -553,12 +554,23 @@ function workspaceHTML(prob) {
     <div id="ws-fb">${feedbackHTML(prob)}</div>
     <div id="ws-res">${isQuiz(prob) ? '' : resultsHTML(prob)}</div>`;
 }
+/** other correct answers (別解): a closed box under an answer; withModel adds the model answer first */
+function altsHTML(prob, withModel, mine) {
+  if (isQuiz(prob)) return '';
+  const alts = altAnswers(S.engine, prob);
+  const norm = x => String(x || '').replace(/\s+/g, ' ').replace(/;\s*$/, '').trim().toLowerCase();
+  const model = withModel && norm(mine) !== norm(prob.sql);
+  if (!alts.length && !model) return '';
+  return `<details class="alts"><summary>${alts.length ? H('alt.more', { n: alts.length }) : H('alt.model')}</summary>
+    ${model ? `<div class="alt"><p class="alt-note"><b>${H('alt.model')}</b></p><pre class="sql">${highlightSQL(prob.sql)}</pre></div>` : ''}
+    ${alts.map(a => `<div class="alt"><p class="alt-note">${H('alt.' + a.rule)}</p><pre class="sql">${highlightSQL(a.sql)}</pre></div>`).join('')}</details>`;
+}
 /** coming back to a solved problem: the answer that was right, and “solve it again” */
 function solvedBoxHTML(prob) {
   if (!isSolved(prob.id) || S.runs[prob.id] || S.redoing.has(prob.id)) return '';
   const a = S.progress.answers[prob.id];
   const body = !a ? `<p class="muted small">${H('mine.noAnswer')}</p>` : isQuiz(prob) ? `<p class="quiz-ans">${esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`;
-  return `<section class="card solved-box"><div class="sb-head"><b>✓ ${H('mine.yourAnswer')}</b>${a ? `<span class="muted small">${esc(fmtWhen(a.at))}</span>` : ''}<button class="btn btn-ghost btn-sm" data-act="redo">${I.reset}${H('mine.redo')}</button></div>${body}</section>`;
+  return `<section class="card solved-box"><div class="sb-head"><b>✓ ${H('mine.yourAnswer')}</b>${a ? `<span class="muted small">${esc(fmtWhen(a.at))}</span>` : ''}<button class="btn btn-ghost btn-sm" data-act="redo">${I.reset}${H('mine.redo')}</button></div>${body}${altsHTML(prob, true, a && a.sql)}</section>`;
 }
 const fmtWhen = t => { try { return new Date(t).toLocaleString(htmlLang(L()) === 'my' ? 'en' : htmlLang(L()), { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
 
@@ -573,7 +585,7 @@ function solvedHTML() {
     const link = p => (assigned.includes(k) ? liveHash(p) : `#/l/${k}/${p.idx}`);
     return `<section class="card mine-lesson"><h2><span class="lesson-num">${l.no}</span>${lessonTitleHTML(l, L())}${assigned.includes(k) ? `<span class="tag">${H('nav.assign')}</span>` : ''}</h2>
       ${probs.map(p => { const a = S.progress.answers[p.id]; return `<div class="mine-item"><a class="mine-what" href="${link(p)}"><b>${stageLabelH(p)}</b><span class="muted small">${esc(p.stage === 'demo' ? T('stage.demoSub') : themeName(p, L()))}</span>${I.next}</a>
-        ${a ? (isQuiz(p) ? `<p class="quiz-ans">${esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`) : `<p class="muted small">${H('mine.noAnswer')}</p>`}</div>`; }).join('')}</section>`;
+        ${a ? (isQuiz(p) ? `<p class="quiz-ans">${esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`) : `<p class="muted small">${H('mine.noAnswer')}</p>`}${altsHTML(p, true, a && a.sql)}</div>`; }).join('')}</section>`;
   }).join('');
   return `<main class="wrap narrow"><h1 class="page-title">✓ ${H('mine.title')}</h1><p class="muted">${H('mine.sub')}</p>${blocks || `<section class="card empty"><p class="muted">${H('mine.none')}</p></section>`}</main>`;
 }
@@ -654,7 +666,7 @@ function hintsHTML(prob) {
       <button class="btn btn-ghost btn-sm" data-act="useSql" data-sql="${esc(prob.blank)}">${H('hint.use')}</button></div></details>
     <details class="hint ${vis ? '' : 'locked'}" ${vis ? '' : 'data-locked="1"'}><summary><span class="hi">${vis ? '✓' : I.lock}</span>${H('hint.answer')}${vis ? '' : `<span class="muted small lockmsg">${esc(lockMsg)}</span>`}</summary>
       ${vis ? `<div class="hint-body"><pre class="sql">${highlightSQL(prob.sql)}</pre>
-      <button class="btn btn-ghost btn-sm" data-act="useSql" data-sql="${esc(prob.sql)}">${H('hint.use')}</button></div>` : ''}</details>
+      <button class="btn btn-ghost btn-sm" data-act="useSql" data-sql="${esc(prob.sql)}">${H('hint.use')}</button>${altsHTML(prob)}</div>` : ''}</details>
   </div>`;
 }
 /* Lesson 0: read the table and type the answer */
@@ -764,7 +776,7 @@ function feedbackHTML(prob) {
     }
     else if (!isLast) next = `<a class="btn btn-ok fb-next" href="#/l/${prob.lesson}/${prob.idx + 1}">${H('btn.next')}${I.next}</a>`;
     else { const nl = LESSONS[LESSON_BY_KEY[prob.lesson].index + 1]; if (nl) next = `<a class="btn btn-ok fb-next" href="#/l/${nl.key}/0">${H('btn.nextLesson')}${I.next}</a>`; }
-    return `<div class="fb ok" role="status"><div class="fb-icon">${I.check}</div><div class="fb-body"><h3>${H('fb.correct')}</h3><p>${run.lessonDone ? bi('lesson.done') : bi('fb.correctSub')}</p></div>${next}</div>`;
+    return `<div class="fb ok" role="status"><div class="fb-icon">${I.check}</div><div class="fb-body"><h3>${H('fb.correct')}</h3><p>${run.lessonDone ? bi('lesson.done') : bi('fb.correctSub')}</p>${altsHTML(prob, true, run.sql)}</div>${next}</div>`;
   }
   const title = run.error && (prob.stage === 'write' || prob.stage === 'demo') ? T('fb.error') : T('fb.notYet');
   const raw = run.error && !(run.dx || []).length ? `<pre class="errmsg">${esc(run.error.message)}</pre>` : '';

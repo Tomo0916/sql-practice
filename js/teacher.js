@@ -12,6 +12,7 @@ import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normF
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
 import { hasLecture } from './lectures.js';
+import { altAnswers } from './alt.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { drawJoinLines } from './viz.js';
@@ -311,7 +312,12 @@ function stageName(p) { return (p.stage === 'write' || p.stage === 'quiz' ? T('s
 function stageNameH(p) { return (p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + H('drill.lv2') : ''); }
 const isQuiz = p => LESSON_BY_KEY[p.lesson].kind === 'quiz';
 /** the answer of a problem: SQL, or the value for Lesson 0 */
-const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${esc(String(p.answer))}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>`);
+const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${esc(String(p.answer))}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>${altsHTML(p)}`);
+/** other correct answers (別解), closed */
+function altsHTML(p) {
+  const alts = altAnswers(S.engine, p);
+  return !alts.length ? '' : `<details class="alts"><summary>${H('alt.more', { n: alts.length })}</summary>${alts.map(a => `<div class="alt"><p class="alt-note">${H('alt.' + a.rule)}</p><pre class="sql">${highlightSQL(a.sql)}</pre></div>`).join('')}</details>`;
+}
 
 /* live grid: members × problems of the assigned lessons */
 function classProblems(c) {
@@ -685,7 +691,7 @@ function sheetsHTML(test, ver, ab) {
   const tables = test.tables.map(n => { const d = S.engine.tableData(n); return `<div class="${d.columns.length > 4 ? 'wide' : ''}"><h4>${esc(n)}</h4>${gridHTML(d)}</div>`; }).join('');
   const s2 = `<section class="sheet" lang="${htmlLang(tl)}"><h3>${P('test.data')}${tag}</h3><p class="note">${P('test.dataNote')}</p><div class="data-tables">${tables}</div></section>`;
   const s3 = !o.key ? '' : `<section class="sheet" lang="${htmlLang(tl)}"><h3>${P('test.key')}${tag} — ${title}</h3><p class="note">${P('test.keyNote')}</p>
-    ${test.questions.map((q, i) => `<div class="key-item"><span class="q-num">Q${i + 1}.</span><div class="q-body"><div class="q-sql">${esc(q.sql)}</div>${o.results || q.qtype === 'predict' ? `<div class="res">${gridHTML(q.result)}</div>` : ''}</div></div>`).join('')}</section>`;
+    ${test.questions.map((q, i) => `<div class="key-item"><span class="q-num">Q${i + 1}.</span><div class="q-body"><div class="q-sql">${esc(q.sql)}</div>${q.qtype === 'write' ? altAnswers(S.engine, q, 3).map(a => `<div class="q-alt"><span>${P('alt.title')}:</span> <span class="q-sql">${esc(a.sql)}</span></div>`).join('') : ''}${o.results || q.qtype === 'predict' ? `<div class="res">${gridHTML(q.result)}</div>` : ''}</div></div>`).join('')}</section>`;
   setTimeout(() => { const el = document.getElementById('tm-count'); if (el) el.textContent = `${t('test.count', L(), { n: test.questions.length })}${ab ? ' × 2' : ''} · ${o.code}`; });
   return s1 + s2 + s3;
 }

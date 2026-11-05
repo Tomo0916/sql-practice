@@ -283,5 +283,24 @@ console.log('9. Table library');
   }
   console.log(`   ${listed.size} tables listed; ${used.size} used by problems`);
 }
+console.log('10. Other answers (別解)');
+{
+  const { altAnswers, ALT_RULES } = await import('../js/alt.js');
+  const used = new Set(); let n = 0, withAlt = 0;
+  for (const L of LESSONS) {
+    if (L.kind === 'quiz') continue;
+    for (const code of ['TEST1', 'X', 'ABC']) for (const p of eng.lessonProblems(L, code)) {
+      const alts = altAnswers(eng, p); n++; if (alts.length) withAlt++;
+      for (const a of alts) {
+        used.add(a.rule);
+        if (!Object.values(dicts).every(d => d['alt.' + a.rule])) err(`alt rule ${a.rule}: no note text`);
+        if (a.sql.replace(/\s+/g, ' ') === p.sql.replace(/\s+/g, ' ')) err(`alt ${a.rule} for ${p.id} is the model answer`);
+      }
+    }
+  }
+  const unused = ALT_RULES.filter(r => !used.has(r));
+  if (unused.length) warn(`alt rules never used: ${unused.join(', ')}`);
+  console.log(`   ${withAlt} of ${n} problems have other answers; ${used.size}/${ALT_RULES.length} rules used`);
+}
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

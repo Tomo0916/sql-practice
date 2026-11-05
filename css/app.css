@@ -707,3 +707,14 @@ body.pj-open { overflow: hidden; }
   .topbar-right { gap: 5px; }
   .topbar-right .lang-select { max-width: 112px; }
 }
+
+/* ---------- other correct answers (別解) ---------- */
+.alts { margin-top: 10px; border: 1px dashed var(--line-2); border-radius: 10px; background: var(--surface); }
+.alts > summary { cursor: pointer; padding: 6px 12px; font-size: .86rem; font-weight: 600; color: var(--ink-2); }
+.alts > summary:hover { color: var(--accent); }
+.alts[open] > summary { border-bottom: 1px dashed var(--line); }
+.alt { padding: 8px 12px; }
+.alt + .alt { border-top: 1px dashed var(--line); }
+.alt-note { margin: 0 0 6px; font-size: .84rem; color: var(--ink-2); line-height: 1.5; }
+.alt pre.sql { margin: 0; }
+.fb .alts { text-align: left; }
