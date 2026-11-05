@@ -8,10 +8,11 @@
  * Class features need Supabase (config.js). Presenter and paper tests work without it.
  * ========================================================= */
 import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
-import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normFormat, stagesFor, FORMAT_KEYS, FORMAT_MAX, STANDARD_FORMAT } from './engine.js';
+import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normFormat, formatKey, stagesFor, FORMAT_KEYS, FORMAT_MAX, STANDARD_FORMAT } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
-import { syncClock, secondsLeft, fmtClock, timerState } from './timer.js';
+import { hasLecture } from './lectures.js';
+import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
@@ -176,6 +177,7 @@ function classHTML() {
         <div class="muted small">${H('tc.members', { n: S.members.length })} · ${H('set.code')} <b class="mono">${esc(c.set_code)}</b> · ${H('tc.policy.' + c.answer_policy)}</div>
         ${connHTML()}</div>
       <button class="code-big" data-act="showQR" title="${esc(T('tc.showQR'))}"><small>${H('class.code')}</small><b class="mono">${esc(c.code)}</b><span>${I.qr} ${H('tc.showQR')}</span></button>
+      <div class="lbox ${liveOn(c) ? 'on' : ''}" id="lbox">${liveBoxHTML(c)}</div>
       <div class="tbox" id="tbox">${timerBoxHTML(c)}</div>
       <div class="class-actions">
         <button class="btn btn-ghost btn-sm" data-act="copyJoin">${I.link}${H('tc.copyJoin')}</button>
@@ -185,6 +187,31 @@ function classHTML() {
     <nav class="tabs" role="tablist">${tabs.map(([k, ic, lab]) => `<a role="tab" aria-selected="${tab === k}" class="${tab === k ? 'on' : ''}" href="#/c/${c.id}/${k}">${ic}${H(lab)}</a>`).join('')}</nav>
     <div id="tab-body">${body}</div>
   </main>`;
+}
+
+/* ---------- class live: the students work on the assignment until it ends ---------- */
+const LIVE_MIN = [45, 50, 90, 120];
+function liveBoxHTML(c) {
+  if (!liveOn(c)) return `<button class="btn btn-primary btn-sm" data-act="liveStart" title="${esc(T('tc.live.tip'))}" ${(c.lessons || []).length ? '' : 'disabled'}>▶ ${H('tc.live.start')}</button>
+    <label class="live-len"><span class="muted small">${H('tc.live.len')}</span><select id="live-len">${LIVE_MIN.map(m => `<option value="${m}" ${m === (Store.get('sqln.liveLen', 50)) ? 'selected' : ''}>${esc(T('tc.live.min', { n: m }))}</option>`).join('')}</select></label>
+    ${(c.lessons || []).length ? '' : `<small class="muted">${H('tc.live.noLessons')}</small>`}`;
+  return `<span class="live-st"><i class="live-dot"></i><b>${H('tc.live.on')}</b><span class="muted small" data-tlive>${H('tc.live.left', { n: liveMinutesLeft(c) })}</span></span>
+    <span class="row-btns"><button class="btn btn-ghost btn-xs" data-act="liveMore">${H('tc.live.more')}</button><button class="btn btn-ghost btn-xs" data-act="liveStop">${H('tc.live.stop')}</button></span>`;
+}
+let liveShownT = null;
+function tickTeacherLive() {
+  const c = S.klass, box = document.getElementById('lbox');
+  if (!c || !box) return;
+  const on = liveOn(c);
+  if (on !== liveShownT) { liveShownT = on; box.innerHTML = liveBoxHTML(c); box.classList.toggle('on', on); return; }
+  const el = box.querySelector('[data-tlive]');
+  if (el) { const h = H('tc.live.left', { n: liveMinutesLeft(c) }); if (el.innerHTML !== h) el.innerHTML = h; }
+}
+setInterval(tickTeacherLive, 1000);
+function liveError(e) {
+  if (e.message === 'live_missing') return T('tc.live.needsDb');
+  if (!navigator.onLine || e instanceof TypeError) return T('class.netError');
+  return `${T('tc.live.failed')} ${e.message}`;
 }
 
 /* ---------- class timer: shown on every student's screen; answers after the end are marked late ---------- */
@@ -285,6 +312,20 @@ const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${esc(String(p.answer)
 function classProblems(c) {
   return (c.lessons || []).filter(k => LESSON_BY_KEY[k]).map(k => ({ lesson: LESSON_BY_KEY[k], probs: S.engine.lessonProblems(LESSON_BY_KEY[k], c.set_code, c.format) }));
 }
+/** a student's answers to a problem after their first right answer are “looking back”: not counted as mistakes or tries */
+function isReview(a) { return reviewIds().has(a.id); }
+let reviewCache = { n: -1, ids: new Set() };
+function reviewIds() {
+  if (reviewCache.n === S.attempts.length) return reviewCache.ids;
+  const first = new Map(), ids = new Set();
+  S.attempts.slice().sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : (a.id || 0) - (b.id || 0))).forEach(a => {
+    const k = a.user_id + '|' + a.problem_id;
+    if (first.has(k)) ids.add(a.id); else if (a.ok) first.set(k, true);
+  });
+  reviewCache = { n: S.attempts.length, ids };
+  return ids;
+}
+const countable = atts => atts.filter(a => !isReview(a));
 function visibleAttempts() {
   if (!S.liveOnlyToday) return S.attempts;
   const d = new Date(); d.setHours(0, 0, 0, 0);
@@ -315,12 +356,12 @@ function whoHTML(m, st) {
 function liveHTML(c) {
   const groups = classProblems(c);
   if (!groups.length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/assign">${H('tc.tabAssign')}</a></section>`;
-  const atts = visibleAttempts();
+  const atts = countable(visibleAttempts());
   const cell = {}; // user|problem → {ok, n}
   atts.forEach(a => { const k = a.user_id + '|' + a.problem_id; const x = cell[k] || (cell[k] = { ok: false, n: 0, onTime: false }); if (a.ok) { x.ok = true; if (!a.late) x.onTime = true; } else x.n++; });
   const all = groups.flatMap(g => g.probs);
   const solvedBy = p => S.members.filter(m => (cell[m.user_id + '|' + p.id] || {}).ok).length;
-  const act = activity(all, atts);
+  const act = activity(all, visibleAttempts());   // looking back also counts as being active
   const doneOf = m => all.filter(p => (cell[m.user_id + '|' + p.id] || {}).ok).length;
   const members = S.liveSort === 'progress' ? S.members.slice().sort((a, b) => doneOf(b) - doneOf(a)) : S.members;
   const rows = members.map(m => {
@@ -485,7 +526,7 @@ function studentBodyHTML(u) {
   const ids = new Set(all.map(x => x.p.id));
   const solved = all.filter(x => mine.some(a => a.problem_id === x.p.id && a.ok)).length;
   const last = mine[mine.length - 1];
-  const tries = list => `<ol class="stu-tries">${list.map(a => `<li class="${a.ok ? 'ok' : 'bad'}"><span class="st-mark">${a.ok ? (a.late ? '⏱' : '✓') : '✗'}</span><span class="st-time mono">${esc(hhmm(a.created_at))}</span>${a.sql == null ? '' : /^\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE)\b/i.test(a.sql) ? `<pre class="sql">${highlightSQL(a.sql)}</pre>` : `<span class="quiz-ans">${esc(a.sql)}</span>`}</li>`).join('')}</ol>`;
+  const tries = list => `<ol class="stu-tries">${list.map(a => `<li class="${a.ok ? 'ok' : 'bad'}"><span class="st-mark">${a.ok ? (a.late ? '⏱' : '✓') : '✗'}</span><span class="st-time mono">${esc(hhmm(a.created_at))}${isReview(a) ? `<small class="rv-tag">${H('tc.review')}</small>` : ''}</span>${a.sql == null ? '' : /^\s*(SELECT|INSERT|UPDATE|DELETE|WITH|CREATE)\b/i.test(a.sql) ? `<pre class="sql">${highlightSQL(a.sql)}</pre>` : `<span class="quiz-ans">${esc(a.sql)}</span>`}</li>`).join('')}</ol>`;
   const blocks = all.filter(x => mine.some(a => a.problem_id === x.p.id)).map(x => {
     const list = mine.filter(a => a.problem_id === x.p.id);
     return `<section class="stu-prob ${list.some(a => a.ok) ? 'ok' : 'bad'}"><h3>Lesson ${x.lesson.no} · ${esc(stageName(x.p))} <small class="muted">${esc(x.p.stage === 'demo' ? T('stage.demoSub') : themeName(x.p, L()))}</small></h3>
@@ -521,7 +562,7 @@ function mistakesHTML(c) {
   const groups = classProblems(c);
   const all = groups.flatMap(g => g.probs);
   if (!all.length) return `<section class="card empty"><p>${H('tc.noLessons')}</p></section>`;
-  const atts = visibleAttempts();
+  const atts = countable(visibleAttempts());
   const pid = S.mistakeProb && all.some(p => p.id === S.mistakeProb) ? S.mistakeProb : (all.find(p => atts.some(a => a.problem_id === p.id && !a.ok)) || all[0]).id;
   const prob = all.find(p => p.id === pid);
   const wrong = atts.filter(a => a.problem_id === pid && !a.ok && a.sql);
@@ -550,15 +591,23 @@ function mistakesHTML(c) {
   </section>`;
 }
 
+/** the student's 4-digit number: set or not, locked after wrong tries; the teacher can give a new one */
+function pinCellHTML(m) {
+  const p = (S.pins || {})[m.user_id];
+  const st = !p ? '' : p.locked ? `<span class="tag bad">🔒 ${H('tc.pinLocked')}</span>` : p.has_pin ? `<span class="tag ok">✓ ${H('tc.pinSet')}</span>` : `<span class="tag">— ${H('tc.pinNone')}</span>`;
+  return `${st} <button class="btn btn-ghost btn-xs" data-act="teacherPin" data-u="${esc(m.user_id)}">${H('tc.pinNew')}</button>`;
+}
 function membersHTML(c) {
   const solved = {};
   S.attempts.filter(a => a.ok).forEach(a => { (solved[a.user_id] = solved[a.user_id] || new Set()).add(a.problem_id); });
   const last = {};
   S.attempts.forEach(a => { last[a.user_id] = a.created_at; });
   return `<section class="card members">
-    <table class="wtable"><thead><tr><th>${H('class.nickname')}</th><th>${H('tc.joined')}</th><th>${H('tc.lastActive')}</th><th class="n">${H('home.solved')}</th><th></th></tr></thead>
+    <table class="wtable"><thead><tr><th>${H('class.nickname')}</th><th>${H('tc.joined')}</th><th>${H('tc.lastActive')}</th><th class="n">${H('home.solved')}</th><th>${H('tc.pin')}</th><th></th></tr></thead>
     <tbody>${S.members.map(m => `<tr><td><b>${esc(m.nickname)}</b></td><td class="muted small">${esc(fmtTime(m.joined_at))}</td><td class="muted small">${last[m.user_id] ? esc(fmtTime(last[m.user_id])) : '—'}</td><td class="n">${(solved[m.user_id] || new Set()).size}</td>
-      <td><button class="btn btn-ghost btn-xs" data-act="removeMember" data-u="${m.user_id}">${I.trash}${H('tc.remove')}</button></td></tr>`).join('') || `<tr><td colspan="5" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody></table>
+      <td class="small">${pinCellHTML(m)}</td>
+      <td><button class="btn btn-ghost btn-xs" data-act="removeMember" data-u="${m.user_id}">${I.trash}${H('tc.remove')}</button></td></tr>`).join('') || `<tr><td colspan="6" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody></table>
+    <p class="muted small">${H('tc.pinNote')}</p>
     <div class="danger-zone"><b>${H('tc.danger')}</b>
       <button class="btn btn-ghost btn-sm" data-act="clearAttempts">${I.trash}${H('tc.clearAttempts')}</button>
       <button class="btn btn-danger btn-sm" data-act="deleteClass">${I.trash}${H('tc.deleteClass')}</button></div>
@@ -573,7 +622,7 @@ function presentHTML() {
   return `<main class="wrap">
     <h1 class="page-title">${H('tc.present')}</h1><p class="muted">${H('tc.presentSub')}</p>
     <div class="chapters">${CHAPTERS.map(ch => `<article class="card chapter" style="--cc:var(--c-${ch.key})"><div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div><h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2></div></div>
-      <ul class="lesson-list">${LESSONS.filter(l => l.ch === ch.key).map(l => `<li><a class="lesson-link" target="_blank" rel="noopener" href="../?present=1&set=${encodeURIComponent(code)}#/l/${l.key}/0"><span class="lesson-num">${l.no}</span><span class="lesson-name">${lessonTitleHTML(l, L())}</span>${I.screen}</a></li>`).join('')}</ul></article>`).join('')}</div>
+      <ul class="lesson-list">${LESSONS.filter(l => l.ch === ch.key).map(l => `<li><a class="lesson-link" target="_blank" rel="noopener" href="../?present=1&set=${encodeURIComponent(code)}#/l/${l.key}/0"><span class="lesson-num">${l.no}</span><span class="lesson-name">${lessonTitleHTML(l, L())}</span>${I.screen}</a>${hasLecture(l.key) ? `<a class="lec-link" target="_blank" rel="noopener" href="../?present=1#/lecture/${l.key}" title="${esc(T('lec.open'))}">📽</a>` : ''}</li>`).join('')}</ul></article>`).join('')}</div>
   </main>`;
 }
 
@@ -675,8 +724,8 @@ async function load() {
 }
 async function reloadClassData() {
   const c = S.klass;
-  const [m, a] = await Promise.all([backend.members(c.id), backend.attempts(c.id)]);
-  S.members = m; S.attempts = a;
+  const [m, a, p] = await Promise.all([backend.members(c.id), backend.attempts(c.id), backend.pinStatus(c.id).catch(() => [])]);
+  S.members = m; S.attempts = a; S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
 }
 /* live connection: shown in the class header; when it drops, it reconnects by itself and
  * reloads the answers so nothing sent in the meantime is missed */
@@ -699,7 +748,7 @@ async function startWatch() {
   let wasLost = S.conn === 'lost';
   setConn('connecting');
   S.unwatch = await backend.watchDashboard(id, row => { if (!S.attempts.some(a => a.id === row.id)) S.attempts.push(row); soonRefresh(); },
-    async () => { S.members = await backend.members(id); soonRefresh(); },
+    async () => { try { await reloadClassData(); } catch (e) { S.members = await backend.members(id); } soonRefresh(); },   // a student who came back on another device brings their answers along
     async status => {
       if (gen !== watchGen) return;   // an old connection
       if (status === 'SUBSCRIBED') {
@@ -768,6 +817,21 @@ const actions = {
     try { S.klass = await backend.stopTimer(S.klass.id); shownState = null; tickTeacherTimer(); const b = document.getElementById('timer-big'); if (b) b.remove(); }
     catch (e) { console.error(e); toast(timerError(e)); }
   },
+  async liveStart() {
+    const min = +((document.getElementById('live-len') || {}).value || 50);
+    Store.set('sqln.liveLen', min);
+    try { await syncClock(backend.serverNow); S.klass = await backend.startLive(S.klass.id, min); liveShownT = null; tickTeacherLive(); toast(T('tc.live.started')); }
+    catch (e) { console.error(e); toast(liveError(e)); }
+  },
+  async liveMore() {
+    try { S.klass = await backend.startLive(S.klass.id, liveMinutesLeft(S.klass) + 10); liveShownT = null; tickTeacherLive(); }
+    catch (e) { console.error(e); toast(liveError(e)); }
+  },
+  async liveStop() {
+    if (!confirm(T('tc.live.stopConfirm'))) return;
+    try { S.klass = await backend.stopLive(S.klass.id); liveShownT = null; tickTeacherLive(); }
+    catch (e) { console.error(e); toast(liveError(e)); }
+  },
   timerBig() {
     if (document.getElementById('timer-big')) return;
     const d = document.createElement('div');
@@ -804,6 +868,14 @@ const actions = {
     const list = document.getElementById('mk-list'), pr = document.querySelector('.mk-prob');
     modal(`<div class="modal-head"><h2>${I.eye} ${H('tc.tabMistakes')}</h2><button class="icon-btn" data-act="closeModal">${I.x}</button></div><div class="modal-body projector">${pr ? pr.innerHTML : ''}${list ? list.innerHTML : ''}</div>`, { wide: true });
     document.getElementById('modal').classList.add('full');
+  },
+  async teacherPin(el) {
+    const m = S.members.find(x => x.user_id === el.dataset.u);
+    const pin = (prompt(T('tc.pinPrompt', { n: m ? m.nickname : '' })) || '').trim();
+    if (!pin) return;
+    if (!/^[0-9]{4}$/.test(pin)) { toast(T('pin.bad')); return; }
+    try { await backend.teacherSetPin(S.klass.id, el.dataset.u, pin); S.pins = Object.fromEntries(((await backend.pinStatus(S.klass.id)) || []).map(x => [x.user_id, x])); refreshTab(); toast(T('tc.pinDone', { n: m ? m.nickname : '', p: pin })); }
+    catch (e) { console.error(e); toast(T(e.message === 'pin_missing' ? 'tc.pinNeedsDb' : 'class.netError')); }
   },
   async removeMember(el) {
     if (!confirm(T('tc.removeConfirm'))) return;
@@ -885,6 +957,8 @@ document.addEventListener('submit', async e => {
     } else if (kind === 'assign') {
       const patch = { lessons: LESSONS.map(l => l.key).filter(k => fd.getAll('lesson').includes(k)), set_code: normCode(fd.get('set_code')) || todayCode(), answer_policy: fd.get('policy') || 'after2' };
       const fmt = normFormat(readFormat(f));   // null = the usual set
+      const removed = (S.klass.lessons || []).some(k => !patch.lessons.includes(k));
+      if (liveOn(S.klass) && (patch.set_code !== S.klass.set_code || formatKey(fmt) !== formatKey(S.klass.format) || removed) && !confirm(T('tc.live.changeConfirm'))) { if (btn) btn.disabled = false; return; }
       if (fmt || S.klass.format) patch.format = fmt;   // old databases without the column keep working with the usual set
       S.klass = await backend.updateClass(S.klass.id, patch);
       toast(T('tc.saved')); render();

@@ -244,6 +244,188 @@ grant execute on function public.stop_timer(uuid) to authenticated;
 -- null = the usual set (example, fill, order 1, order 2, write ×2).
 alter table public.classes add column if not exists format jsonb check (format is null or jsonb_typeof(format) = 'object');
 
+-- ---------- class live (2026-11-05) ----------
+-- While live_until is in the future, the class's students work on the assignment
+-- (the app opens it for them and goes from one assigned problem to the next).
+alter table public.classes add column if not exists live_until timestamptz;
+create or replace function public.start_live(p_class uuid, p_min integer)
+  returns public.classes
+  language plpgsql security definer set search_path = public as
+$$
+declare c public.classes;
+begin
+  if not public.is_teacher_of(p_class) then raise exception 'not_teacher' using errcode = '42501'; end if;
+  update public.classes set live_until = now() + make_interval(mins => greatest(5, least(p_min, 240)))
+    where id = p_class returning * into c;
+  return c;
+end
+$$;
+create or replace function public.stop_live(p_class uuid)
+  returns public.classes
+  language plpgsql security definer set search_path = public as
+$$
+declare c public.classes;
+begin
+  if not public.is_teacher_of(p_class) then raise exception 'not_teacher' using errcode = '42501'; end if;
+  update public.classes set live_until = null where id = p_class returning * into c;
+  return c;
+end
+$$;
+revoke all on function public.start_live(uuid, integer) from public, anon;
+revoke all on function public.stop_live(uuid) from public, anon;
+grant execute on function public.start_live(uuid, integer) to authenticated;
+grant execute on function public.stop_live(uuid) to authenticated;
+
+-- ---------- students: nickname + 4-digit number, to go on from another device (2026-11-05) ----------
+-- The number is kept only as a bcrypt hash in member_pins, which nobody can read directly:
+-- only the functions below use it. 5 wrong numbers lock that student for 10 minutes.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+create table if not exists public.member_pins (
+  class_id     uuid not null,
+  user_id      uuid not null,
+  pin_hash     text not null,
+  fails        integer not null default 0,
+  locked_until timestamptz,
+  primary key (class_id, user_id),
+  foreign key (class_id, user_id) references public.members (class_id, user_id) on delete cascade on update cascade
+);
+alter table public.member_pins enable row level security;   -- no policies: no direct access at all
+revoke all on public.member_pins from public, anon, authenticated;
+
+-- one nickname per class (only for new names; classes that already have the same name twice keep working)
+create or replace function public.nickname_free() returns trigger
+  language plpgsql security definer set search_path = public as
+$$
+begin
+  if exists (select 1 from public.members m where m.class_id = new.class_id and m.user_id <> new.user_id
+             and lower(btrim(m.nickname)) = lower(btrim(new.nickname))) then
+    raise exception 'nickname_taken' using errcode = 'P0001';
+  end if;
+  return new;
+end
+$$;
+drop trigger if exists members_nickname_free on public.members;
+create trigger members_nickname_free before insert or update of nickname on public.members
+  for each row execute function public.nickname_free();
+
+create or replace function public.save_pin(p_class uuid, p_user uuid, p_pin text) returns void
+  language plpgsql security definer set search_path = public, extensions as
+$$
+begin
+  if coalesce(p_pin, '') !~ '^[0-9]{4}$' then raise exception 'bad_pin' using errcode = '22023'; end if;
+  insert into public.member_pins (class_id, user_id, pin_hash) values (p_class, p_user, crypt(p_pin, gen_salt('bf')))
+    on conflict (class_id, user_id) do update set pin_hash = excluded.pin_hash, fails = 0, locked_until = null;
+end
+$$;
+revoke all on function public.save_pin(uuid, uuid, text) from public, anon, authenticated;   -- only for the functions below
+
+/* join with a nickname and a 4-digit number */
+create or replace function public.join_class(p_code text, p_nickname text, p_pin text)
+  returns public.classes
+  language plpgsql security definer set search_path = public as
+$$
+declare c public.classes;
+begin
+  if auth.uid() is null then raise exception 'not signed in'; end if;
+  if coalesce(p_pin, '') !~ '^[0-9]{4}$' then raise exception 'bad_pin' using errcode = '22023'; end if;
+  select * into c from public.classes where code = upper(btrim(p_code));
+  if not found then raise exception 'class_not_found' using errcode = 'P0002'; end if;
+  if not c.open and not public.is_member_of(c.id) then raise exception 'class_closed' using errcode = 'P0001'; end if;
+  insert into public.members (class_id, user_id, nickname)
+    values (c.id, auth.uid(), left(btrim(p_nickname), 30))
+    on conflict (class_id, user_id) do update set nickname = excluded.nickname;
+  perform public.save_pin(c.id, auth.uid(), p_pin);
+  return c;
+end
+$$;
+
+/* go on as a student who joined on another device: nickname + number.
+ * Returns {"ok": true, "class": …} or {"ok": false, "error": "pin_wrong" | "pin_locked" | "no_pin" | "not_found" | "class_not_found", "left": n}
+ * (not an exception, so that a wrong number is still counted) */
+create or replace function public.resume_member(p_code text, p_nickname text, p_pin text)
+  returns jsonb
+  language plpgsql security definer set search_path = public, extensions as
+$$
+declare c public.classes; m record; found_name boolean := false; had_pin boolean := false; left_tries integer := 5;
+begin
+  if auth.uid() is null then raise exception 'not signed in'; end if;
+  select * into c from public.classes where code = upper(btrim(p_code));
+  if not found then return jsonb_build_object('ok', false, 'error', 'class_not_found'); end if;
+  for m in select mb.user_id, mp.pin_hash, mp.fails, mp.locked_until from public.members mb
+           left join public.member_pins mp on mp.class_id = mb.class_id and mp.user_id = mb.user_id
+           where mb.class_id = c.id and mb.user_id <> auth.uid() and lower(btrim(mb.nickname)) = lower(btrim(p_nickname)) loop
+    found_name := true;
+    if m.pin_hash is null then continue; end if;
+    had_pin := true;
+    if m.locked_until is not null and m.locked_until > now() then
+      return jsonb_build_object('ok', false, 'error', 'pin_locked', 'minutes', ceil(extract(epoch from m.locked_until - now()) / 60));
+    end if;
+    if coalesce(p_pin, '') ~ '^[0-9]{4}$' and crypt(p_pin, m.pin_hash) = m.pin_hash then
+      -- this device becomes that student: membership and answers move to this account
+      delete from public.members where class_id = c.id and user_id = auth.uid();
+      update public.attempts set user_id = auth.uid() where class_id = c.id and user_id = m.user_id;
+      update public.members set user_id = auth.uid() where class_id = c.id and user_id = m.user_id;
+      update public.member_pins set fails = 0, locked_until = null where class_id = c.id and user_id = auth.uid();
+      return jsonb_build_object('ok', true, 'class', to_jsonb(c));
+    end if;
+    update public.member_pins set fails = fails + 1, locked_until = case when fails + 1 >= 5 then now() + interval '10 minutes' end
+      where class_id = c.id and user_id = m.user_id returning greatest(0, 5 - fails) into left_tries;
+    if left_tries = 0 then return jsonb_build_object('ok', false, 'error', 'pin_locked', 'minutes', 10); end if;
+    return jsonb_build_object('ok', false, 'error', 'pin_wrong', 'left', left_tries);
+  end loop;
+  return jsonb_build_object('ok', false, 'error', case when not found_name then 'not_found' when not had_pin then 'no_pin' else 'pin_wrong' end);
+end
+$$;
+
+/* a student sets or changes their own number */
+create or replace function public.set_my_pin(p_class uuid, p_pin text) returns boolean
+  language plpgsql security definer set search_path = public as
+$$
+begin
+  if not public.is_member_of(p_class) then raise exception 'not_member' using errcode = '42501'; end if;
+  perform public.save_pin(p_class, auth.uid(), p_pin);
+  return true;
+end
+$$;
+create or replace function public.my_pin_set(p_class uuid) returns boolean
+  language sql stable security definer set search_path = public as
+$$ select exists (select 1 from public.member_pins where class_id = p_class and user_id = auth.uid()) $$;
+
+/* the teacher: which students have a number, and a new number for a student who forgot it */
+create or replace function public.pin_status(p_class uuid) returns table (user_id uuid, has_pin boolean, locked boolean)
+  language plpgsql stable security definer set search_path = public as
+$$
+begin
+  if not public.is_teacher_of(p_class) then raise exception 'not_teacher' using errcode = '42501'; end if;
+  return query select mb.user_id, mp.user_id is not null, coalesce(mp.locked_until > now(), false)
+    from public.members mb left join public.member_pins mp on mp.class_id = mb.class_id and mp.user_id = mb.user_id
+    where mb.class_id = p_class;
+end
+$$;
+create or replace function public.teacher_set_pin(p_class uuid, p_user uuid, p_pin text) returns boolean
+  language plpgsql security definer set search_path = public as
+$$
+begin
+  if not public.is_teacher_of(p_class) then raise exception 'not_teacher' using errcode = '42501'; end if;
+  if not exists (select 1 from public.members where class_id = p_class and user_id = p_user) then raise exception 'not_member' using errcode = 'P0002'; end if;
+  perform public.save_pin(p_class, p_user, p_pin);
+  return true;
+end
+$$;
+revoke all on function public.join_class(text, text, text) from public, anon;
+revoke all on function public.resume_member(text, text, text) from public, anon;
+revoke all on function public.set_my_pin(uuid, text) from public, anon;
+revoke all on function public.my_pin_set(uuid) from public, anon;
+revoke all on function public.pin_status(uuid) from public, anon;
+revoke all on function public.teacher_set_pin(uuid, uuid, text) from public, anon;
+grant execute on function public.join_class(text, text, text) to authenticated;
+grant execute on function public.resume_member(text, text, text) to authenticated;
+grant execute on function public.set_my_pin(uuid, text) to authenticated;
+grant execute on function public.my_pin_set(uuid) to authenticated;
+grant execute on function public.pin_status(uuid) to authenticated;
+grant execute on function public.teacher_set_pin(uuid, uuid, text) to authenticated;
+
 -- keep updated_at fresh
 create or replace function public.touch_updated_at() returns trigger language plpgsql as
 $$ begin new.updated_at := now(); return new; end $$;

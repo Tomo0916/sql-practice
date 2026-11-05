@@ -24,12 +24,45 @@ async function ensureSession(sb) {
   if (data.session) return data.session;
   return check(await sb.auth.signInAnonymously()).session;
 }
-/** → class row. Errors: 'class_not_found', 'class_closed', 'anon_disabled' */
-export async function joinClass(code, nickname) {
+const missingFn = e => e.code === 'PGRST202' || /could not find the function|schema cache/i.test(e.message || '');
+const KNOWN = ['class_not_found', 'class_closed', 'nickname_taken', 'bad_pin', 'not_member'];
+const known = e => { const k = KNOWN.find(x => (e.message || '').includes(x)); if (k) e.message = k; return e; };
+/**
+ * Join with a nickname and a 4-digit number (the number lets the student go on from another device).
+ * → { klass, pinSet }. Errors: 'class_not_found', 'class_closed', 'nickname_taken', 'bad_pin', 'anon_disabled'
+ * A database without the new functions (schema.sql not run again) still joins, without a number.
+ */
+export async function joinClass(code, nickname, pin) {
   const sb = await client();
   try { await ensureSession(sb); } catch (e) { const err = new Error('anon_disabled'); err.cause = e; throw err; }
-  try { return check(await sb.rpc('join_class', { p_code: code, p_nickname: nickname })); }
-  catch (e) { if (/class_not_found/.test(e.message)) e.message = 'class_not_found'; if (/class_closed/.test(e.message)) e.message = 'class_closed'; throw e; }
+  try { return { klass: check(await sb.rpc('join_class', { p_code: code, p_nickname: nickname, p_pin: pin })), pinSet: true }; }
+  catch (e) {
+    if (!missingFn(e)) throw known(e);
+    try { return { klass: check(await sb.rpc('join_class', { p_code: code, p_nickname: nickname })), pinSet: false }; } catch (e2) { throw known(e2); }
+  }
+}
+/** go on as a student who joined on another device. → class row; errors 'pin_wrong' (e.left), 'pin_locked' (e.minutes), 'no_pin', 'not_found', 'class_not_found', 'pin_missing' */
+export async function resumeMember(code, nickname, pin) {
+  const sb = await client();
+  try { await ensureSession(sb); } catch (e) { const err = new Error('anon_disabled'); err.cause = e; throw err; }
+  let r;
+  try { r = check(await sb.rpc('resume_member', { p_code: code, p_nickname: nickname, p_pin: pin })); }
+  catch (e) { if (missingFn(e)) e.message = 'pin_missing'; throw e; }
+  if (r && r.ok) return r.class;
+  const err = new Error((r && r.error) || 'error'); err.left = r && r.left; err.minutes = r && r.minutes; throw err;
+}
+export async function setMyPin(classId, pin) { const sb = await client(); try { return check(await sb.rpc('set_my_pin', { p_class: classId, p_pin: pin })); } catch (e) { if (missingFn(e)) e.message = 'pin_missing'; throw known(e); } }
+/** true / false; null when the database does not know numbers yet */
+export async function myPinSet(classId) { const sb = await client(); try { return check(await sb.rpc('my_pin_set', { p_class: classId })); } catch (e) { if (missingFn(e)) return null; throw e; } }
+/** teacher: [{user_id, has_pin, locked}] (empty when the database does not know numbers yet) */
+export async function pinStatus(classId) { const sb = await client(); try { return check(await sb.rpc('pin_status', { p_class: classId })); } catch (e) { if (missingFn(e)) return []; throw e; } }
+export async function teacherSetPin(classId, userId, pin) { const sb = await client(); try { return check(await sb.rpc('teacher_set_pin', { p_class: classId, p_user: userId, p_pin: pin })); } catch (e) { if (missingFn(e)) e.message = 'pin_missing'; throw known(e); } }
+/** the student's own answers in a class (to bring back the record on this device) */
+export async function myAttempts(classId) {
+  const sb = await client();
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return [];
+  return check(await sb.from('attempts').select('problem_id, lesson, stage, ok, sql, created_at').eq('class_id', classId).eq('user_id', data.session.user.id).order('id'));
 }
 export async function getClass(classId) {
   const sb = await client();
@@ -40,7 +73,7 @@ export async function leaveClass(classId) {
   const { data } = await sb.auth.getSession();
   if (data.session) await sb.from('members').delete().eq('class_id', classId).eq('user_id', data.session.user.id);
 }
-export async function renameMe(classId, nickname) {
+export async function renameMe(classId, nickname) {   // error 'nickname_taken' when another student has that name
   const sb = await client();
   const { data } = await sb.auth.getSession();
   if (!data.session) return;
@@ -116,6 +149,9 @@ export async function createClass(name) { const sb = await client(); return chec
 export async function updateClass(id, patch) { const sb = await client(); return check(await sb.from('classes').update(patch).eq('id', id).select().single()); }
 /** class timer: the server sets the end time. Error 'timer_missing' when schema.sql has not been run again yet. */
 export async function startTimer(id, sec) { const sb = await client(); try { return check(await sb.rpc('start_timer', { p_class: id, p_sec: sec })); } catch (e) { if (e.code === 'PGRST202' || /could not find the function|schema cache/i.test(e.message)) { e.raw = e.message; e.message = 'timer_missing'; } throw e; } }
+/** class live: the students work on the assignment until the end time. Error 'live_missing' when schema.sql has not been run again yet. */
+export async function startLive(id, min) { const sb = await client(); try { return check(await sb.rpc('start_live', { p_class: id, p_min: min })); } catch (e) { if (e.code === 'PGRST202' || /could not find the function|schema cache/i.test(e.message)) { e.raw = e.message; e.message = 'live_missing'; } throw e; } }
+export async function stopLive(id) { const sb = await client(); return check(await sb.rpc('stop_live', { p_class: id })); }
 export async function stopTimer(id) { const sb = await client(); return check(await sb.rpc('stop_timer', { p_class: id })); }
 export async function deleteClass(id) { const sb = await client(); check(await sb.from('classes').delete().eq('id', id)); }
 export async function members(classId) { const sb = await client(); return check(await sb.from('members').select('user_id, nickname, joined_at').eq('class_id', classId).order('joined_at')); }

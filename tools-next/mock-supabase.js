@@ -94,15 +94,47 @@ export function createClient() {
     async rpc(name, args) {
       const db = load(); const s = session();
       if (!s) return fail('not signed in');
+      const norm = n => String(n || '').trim().toLowerCase();
+      db.pins = db.pins || {};   // 'class|user' → { pin, fails, locked }
       if (name === 'join_class') {
         const c = db.classes.find(x => x.code === String(args.p_code).trim().toUpperCase());
         if (!c) return fail('class_not_found');
-        if (!c.open) return fail('class_closed');
-        const m = db.members.find(x => x.class_id === c.id && x.user_id === s.user.id);
-        if (m) m.nickname = args.p_nickname; else db.members.push({ class_id: c.id, user_id: s.user.id, nickname: args.p_nickname, joined_at: new Date().toISOString() });
+        const me = db.members.find(x => x.class_id === c.id && x.user_id === s.user.id);
+        if (!c.open && !me) return fail('class_closed');
+        if ('p_pin' in args && !/^[0-9]{4}$/.test(args.p_pin || '')) return fail('bad_pin');
+        if (db.members.some(x => x.class_id === c.id && x.user_id !== s.user.id && norm(x.nickname) === norm(args.p_nickname))) return fail('nickname_taken');
+        if (me) me.nickname = args.p_nickname; else db.members.push({ class_id: c.id, user_id: s.user.id, nickname: args.p_nickname, joined_at: new Date().toISOString() });
+        if (args.p_pin) db.pins[c.id + '|' + s.user.id] = { pin: args.p_pin, fails: 0, locked: 0 };
         save(db); bc.postMessage({ table: 'members', type: 'INSERT', row: { class_id: c.id } });
         return ok(c);
       }
+      if (name === 'resume_member') {
+        const c = db.classes.find(x => x.code === String(args.p_code).trim().toUpperCase());
+        if (!c) return ok({ ok: false, error: 'class_not_found' });
+        const ms = db.members.filter(x => x.class_id === c.id && x.user_id !== s.user.id && norm(x.nickname) === norm(args.p_nickname));
+        if (!ms.length) return ok({ ok: false, error: 'not_found' });
+        for (const m of ms) {
+          const pk = c.id + '|' + m.user_id, p = db.pins[pk];
+          if (!p) continue;
+          if (p.locked > Date.now()) return ok({ ok: false, error: 'pin_locked', minutes: Math.ceil((p.locked - Date.now()) / 60000) });
+          if (p.pin === args.p_pin) {
+            db.members = db.members.filter(x => !(x.class_id === c.id && x.user_id === s.user.id));
+            db.attempts.forEach(a => { if (a.class_id === c.id && a.user_id === m.user_id) a.user_id = s.user.id; });
+            m.user_id = s.user.id; delete db.pins[pk]; db.pins[c.id + '|' + s.user.id] = { pin: p.pin, fails: 0, locked: 0 };
+            save(db); bc.postMessage({ table: 'members', type: 'UPDATE', row: { class_id: c.id } });
+            return ok({ ok: true, class: c });
+          }
+          p.fails++; if (p.fails >= 5) p.locked = Date.now() + 600000; save(db);
+          return ok(p.fails >= 5 ? { ok: false, error: 'pin_locked', minutes: 10 } : { ok: false, error: 'pin_wrong', left: 5 - p.fails });
+        }
+        return ok({ ok: false, error: 'no_pin' });
+      }
+      if (name === 'set_my_pin') {
+        if (!db.members.some(x => x.class_id === args.p_class && x.user_id === s.user.id)) return fail('not_member');
+        if (!/^[0-9]{4}$/.test(args.p_pin || '')) return fail('bad_pin');
+        db.pins[args.p_class + '|' + s.user.id] = { pin: args.p_pin, fails: 0, locked: 0 }; save(db); return ok(true);
+      }
+      if (name === 'my_pin_set') return ok(!!db.pins[args.p_class + '|' + s.user.id]);
       const listed = () => !s.user.is_anonymous && (db.teachers || []).includes(String(s.user.email || '').toLowerCase());
       if (name === 'am_i_teacher') return ok(listed());
       if (name === 'create_class') {
@@ -113,6 +145,21 @@ export function createClient() {
         db.classes.push(c); save(db); return ok(c);
       }
       if (name === 'server_now') return ok(new Date().toISOString());
+      if (name === 'pin_status' || name === 'teacher_set_pin') {
+        const c = db.classes.find(x => x.id === args.p_class && x.teacher_id === s.user.id);
+        if (!c || !listed()) return fail('not_teacher');
+        if (name === 'pin_status') return ok(db.members.filter(m => m.class_id === c.id).map(m => { const p = db.pins[c.id + '|' + m.user_id]; return { user_id: m.user_id, has_pin: !!p, locked: !!(p && p.locked > Date.now()) }; }));
+        if (!/^[0-9]{4}$/.test(args.p_pin || '')) return fail('bad_pin');
+        db.pins[c.id + '|' + args.p_user] = { pin: args.p_pin, fails: 0, locked: 0 }; save(db); return ok(true);
+      }
+      if (name === 'start_live' || name === 'stop_live') {
+        const c = db.classes.find(x => x.id === args.p_class && x.teacher_id === s.user.id);
+        if (!c || !listed()) return fail('not_teacher');
+        const min = Math.max(5, Math.min(args.p_min || 0, 240));
+        Object.assign(c, { live_until: name === 'start_live' ? new Date(Date.now() + min * 60000).toISOString() : null, updated_at: new Date().toISOString() });
+        save(db); bc.postMessage({ table: 'classes', type: 'UPDATE', row: c });
+        return ok(c);
+      }
       if (name === 'start_timer' || name === 'stop_timer') {
         const c = db.classes.find(x => x.id === args.p_class && x.teacher_id === s.user.id);
         if (!c || !listed()) return fail('not_teacher');
