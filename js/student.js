@@ -9,7 +9,7 @@
  * language never touches progress, drafts or results.
  * ========================================================= */
 import { LANGS, LANG_CODES, loadLang, hasLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
-import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, grade, checkAnswer, todayCode, randomCode, normCode, makeRng } from './engine.js';
+import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, formatKey, grade, checkAnswer, todayCode, randomCode, normCode, makeRng } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
@@ -65,7 +65,9 @@ const answerPolicy = () => (S.klass && S.klass.answer_policy) || 'after2';
 /* ---------- progress helpers ---------- */
 const save = () => saveProgress(S.progress);
 const isSolved = id => !!S.progress.solved[id];
-const problemsOf = lesson => S.engine.lessonProblems(lesson, setCode());
+/** the class's own problem format applies to the lessons the class assigned */
+const formatOf = lesson => (S.klass && S.klass.format && (S.klass.lessons || []).includes(lesson.key) ? S.klass.format : null);
+const problemsOf = lesson => S.engine.lessonProblems(lesson, setCode(), formatOf(lesson));
 const stateOf = lesson => lessonState(S.progress, problemsOf(lesson));
 function stageLabelH(p) {
   if (p.stage === 'demo') return H('stage.demo');
@@ -88,7 +90,7 @@ const isQuiz = prob => LESSON_BY_KEY[prob.lesson].kind === 'quiz';
 /* ---------- routing ---------- */
 function parseRoute() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
-  if (h[0] === 'l' && LESSON_BY_KEY[h[1]]) return { view: 'lesson', key: h[1], idx: Math.min(STAGES.length - 1, Math.max(0, parseInt(h[2], 10) || 0)) };
+  if (h[0] === 'l' && LESSON_BY_KEY[h[1]]) return { view: 'lesson', key: h[1], idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };   // current() keeps it inside the lesson's problems
   if (h[0] === 'review' || h[0] === 'mix') return { view: 'session', kind: h[0] };
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'words') return { view: 'words' };
@@ -175,7 +177,7 @@ function homeHTML() {
       <div class="assign-head">${I.users}<div><small>${H('class.today')}</small><h2>${esc(S.klass.name)}</h2></div><span class="tag">${H('class.you', { n: S.klass.nickname })}</span></div>
       <div class="assign-list">${S.klass.lessons.filter(k => LESSON_BY_KEY[k]).map(k => {
         const l = LESSON_BY_KEY[k], st = stateOf(l);
-        return `<a class="assign-item ${st.done ? 'done' : ''}" href="#/l/${k}/0"><span class="lesson-num">${st.done ? '✓' : l.no}</span><span>${lessonTitleHTML(l, L())}</span><span class="muted">${st.count}/6</span></a>`;
+        return `<a class="assign-item ${st.done ? 'done' : ''}" href="#/l/${k}/0"><span class="lesson-num">${st.done ? '✓' : l.no}</span><span>${lessonTitleHTML(l, L())}</span><span class="muted">${st.count}/${st.solved.length}</span></a>`;
       }).join('')}</div></section>` : '';
 
   const classBox = !backend.enabled ? '' : S.klass ? '' : `<div class="joinbox">
@@ -218,7 +220,7 @@ function homeHTML() {
             return `<li><a class="lesson-link ${st.done ? 'done' : ''}" href="#/l/${l.key}/0">
               <span class="lesson-num">${st.done ? '✓' : l.no}</span>
               <span class="lesson-name">${lessonTitleHTML(l, L())}</span>
-              <span class="dots" aria-label="${st.count}/6">${st.solved.map((s, i) => `<i class="${i === 0 ? 'demo ' : ''}${s ? 'on' : ''}"></i>`).join('')}</span>
+              <span class="dots" aria-label="${st.count}/${st.solved.length}">${problemsOf(l).map((p, i) => `<i class="${p.stage === 'demo' ? 'demo ' : ''}${st.solved[i] ? 'on' : ''}"></i>`).join('')}</span>
             </a></li>`;
           }).join('')}</ul></article>`;
       }).join('')}
@@ -262,10 +264,10 @@ function lessonHTML() {
       <div class="point"><b>${H('lesson.point')}</b>${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div>
     </div>
     <nav class="card plist" aria-label="${esc(T('lesson.problems'))}">
-      <div class="plist-title"><span>${H('lesson.problems')}</span><span>${st.count}/6</span></div>
+      <div class="plist-title"><span>${H('lesson.problems')}</span><span>${st.count}/${probs.length}</span></div>
       ${probs.map(p => `<a class="pitem st-${p.stage} ${p.idx === prob.idx ? 'on' : ''} ${isSolved(p.id) ? 'solved' : ''}" href="#/l/${lesson.key}/${p.idx}" ${p.idx === prob.idx ? 'aria-current="page"' : ''}>
         <span class="ck"></span><span class="pt"><b>${stageLabelH(p)}</b><span>${esc(p.stage === 'demo' ? T('stage.demoSub') : themeName(p, L()))}</span></span></a>`).join('')}
-      ${st.done ? `<div class="done-banner">✓ ${H('lesson.done')}</div>` : `<div class="rule">${H(lesson.kind === 'quiz' ? 'lesson.ruleQuiz' : stagesOf(lesson).includes('order') ? 'lesson.rule' : 'lesson.ruleNoOrder')}</div>`}
+      ${st.done ? `<div class="done-banner">✓ ${H('lesson.done')}</div>` : `<div class="rule">${H(probs.some(p => p.fmt) ? 'lesson.ruleAll' : lesson.kind === 'quiz' ? 'lesson.ruleQuiz' : stagesOf(lesson).includes('order') ? 'lesson.rule' : 'lesson.ruleNoOrder')}</div>`}
     </nav>
     ${S.engine.drillLessons().has(lesson.key) ? `<a class="card drill-link" href="#/drill/${lesson.key}"><span class="drill-ic">⇅</span><span><b>${H('drill.btn')}</b><small class="muted">${H('drill.count', { n: (S.progress.drill || {})[lesson.key] || 0 })}</small></span>${I.next}</a>` : ''}
     <div class="lesson-nav">
@@ -413,7 +415,7 @@ function workspaceHTML(prob) {
       <p class="prob-text">${problemHTML(prob, L())}</p>
       ${S.settings.second && S.settings.second !== L() ? `<p class="prob-text bi" lang="${htmlLang(S.settings.second)}">${problemHTML(prob, S.settings.second)}</p>` : ''}
       <div class="tables">${prob.tables.map(n => tableBlockHTML(n, prob)).join('')}</div>
-      ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? toolsHTML(prob, L(), setCode()) : ''}
+      ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? toolsHTML(prob, L(), setCode(), formatKey(formatOf(LESSON_BY_KEY[prob.lesson]))) : ''}
     </section>
     ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? statCardHTML(LESSON_BY_KEY[prob.lesson], prob, L(), prob.stage === 'demo') : ''}
     ${prob.stage === 'demo' ? `<div id="ws-steps">${stepsHTML(prob)}</div>` : ''}
@@ -997,7 +999,7 @@ async function doJoin(f) {
   try {
     const c = await backend.joinClass(code, nick);
     Store.set('sqln.nick', nick);
-    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy };
+    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null };
     Store.set(KEYS.klass, S.klass);
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
     closeModal(); watchKlass(); render(); toast(T('class.joined', { n: c.name }));
@@ -1043,8 +1045,8 @@ async function watchKlass() {
   } catch (e) { /* offline: keep cached class */ }
 }
 function applyClassRow(c, live) {
-  const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy;
-  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null });
+  const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format);
+  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null });
   tickTimer();
   Store.set(KEYS.klass, S.klass);
   if (changed) { saveDraft(); S.runs = {}; render(); if (live) toast(T('class.updated')); }

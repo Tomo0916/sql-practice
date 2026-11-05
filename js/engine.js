@@ -13,6 +13,42 @@ LESSONS.forEach((l, i) => { l.index = i; LESSON_BY_KEY[l.key] = l; });
 export const STAGES = ['demo', 'fill', 'order', 'order', 'write', 'write'];   // order 1 = clauses, order 2 = one or two words
 export const PRACTICE_COUNT = STAGES.length - 1;
 export const stagesOf = lesson => lesson.stages || STAGES;
+
+/* ---------- a class's own problem format ----------
+ * { demo: true|false, fill, order1, order2, write } = how many problems of each kind per lesson
+ * (order1 = clause pieces, order2 = one or two words). null = the lesson's usual set. */
+export const FORMAT_KEYS = ['fill', 'order1', 'order2', 'write'];
+export const FORMAT_MAX = 5;
+export const STANDARD_FORMAT = { demo: true, fill: 1, order1: 1, order2: 1, write: 2 };
+export function normFormat(f) {
+  if (!f || typeof f !== 'object') return null;
+  const o = { demo: f.demo !== false };
+  FORMAT_KEYS.forEach(k => { o[k] = Math.max(0, Math.min(FORMAT_MAX, parseInt(f[k], 10) || 0)); });
+  if (!o.demo && FORMAT_KEYS.every(k => !o[k])) o.write = 1;   // never an empty lesson
+  return FORMAT_KEYS.every(k => o[k] === STANDARD_FORMAT[k]) && o.demo ? null : o;   // the usual set is stored as null
+}
+/** short text form of a format ("101021"), used in cache keys and links */
+export function formatKey(f) { f = normFormat(f); return f ? (f.demo ? '1' : '0') + FORMAT_KEYS.map(k => f[k]).join('') : ''; }
+export function formatFromKey(k) { return /^[01][0-5]{4}$/.test(k || '') ? normFormat({ demo: k[0] === '1', fill: +k[1], order1: +k[2], order2: +k[3], write: +k[4] }) : null; }
+/**
+ * The kinds of problem of a lesson, in order: demo · fill · order1 · order2 · write · quiz.
+ * Lesson 0 has questions only; lessons without ordering (Lesson 2, data analysis) get writing problems instead.
+ */
+export function stagesFor(lesson, fmt) {
+  const own = stagesOf(lesson);
+  const f = normFormat(fmt);
+  if (!f) { let n = 0; return own.map(s => (s === 'order' ? 'order' + Math.min(2, ++n) : s)); }
+  const out = f.demo ? ['demo'] : [];
+  const rep = (s, n) => { for (let i = 0; i < n; i++) out.push(s); };
+  const total = f.fill + f.order1 + f.order2 + f.write;
+  if (lesson.kind === 'quiz') { rep('quiz', Math.max(1, total)); return out; }
+  const hasFill = own.includes('fill'), hasOrder = own.includes('order');
+  rep('fill', hasFill ? f.fill : 0);
+  if (hasOrder) { rep('order1', f.order1); rep('order2', f.order2); }
+  rep('write', f.write + (hasOrder ? 0 : f.order1 + f.order2) + (hasFill ? 0 : f.fill));
+  return out;
+}
+const stageOfToken = t => (t.startsWith('order') ? 'order' : t);
 export const blanksOf = (lesson, p) => (typeof lesson.blanks === 'function' ? lesson.blanks(p) : lesson.blanks || []);
 
 /** Lesson 0 answers: compare loosely (full-width digits, quotes, case, spaces, thousands separators). */
@@ -273,16 +309,19 @@ export class SqlEngine {
   tableData(name) { return this.exec(`SELECT * FROM ${name};`); }
 
   /* ----- problems ----- */
-  buildProblem(lesson, p, kind, idx, theme) {
+  buildProblem(lesson, p, kind, idx, theme, tokens) {
     const sql = lesson.sql(p);
     const blankP = Object.assign({}, p);
     blanksOf(lesson, p).forEach(k => (blankP[k] = BLANK));
     const tables = lesson.kind === 'join' ? [p.L, p.R] : [p.t];
-    const stages = stagesOf(lesson);
-    const stage = kind === 'demo' ? 'demo' : kind === 'practice' ? stages[idx] : kind;
+    const toks = tokens || stagesFor(lesson);
+    const token = kind === 'demo' ? 'demo' : kind === 'practice' ? toks[idx] : kind;
+    const stage = stageOfToken(token);
+    const stages = toks.map(stageOfToken);
     return {
       wn: stages.slice(0, idx + 1).filter(x => x === stage).length,   // "Write 1, 2, 3"
       of: stages.filter(x => x === stage).length,                    // how many problems of this stage the lesson has
+      level: token === 'order2' ? 2 : token === 'order1' ? 1 : undefined,   // ordering: 1 = clause pieces, 2 = one or two words
       answer: lesson.kind === 'quiz' ? p.ans : undefined,
       id: kind === 'demo' ? `${lesson.key}:demo` : `${lesson.key}:${stage}:${hashStr(sql).toString(36)}`,
       lesson: lesson.key, kind, stage, idx, tables, p, sql,
@@ -327,23 +366,32 @@ export class SqlEngine {
     return null;
   }
   themesFor(lesson) { return lesson.kind === 'join' ? JOIN_DATASETS : lesson.themes === 'null' ? NULL_DATASETS : lesson.themes === 'analysis' ? ANALYSIS_THEMES : SINGLE_DATASETS; }
-  /** Example + 5 practice problems (fill, order 1, order 2, write ×2) for a lesson and set code. */
-  lessonProblems(lesson, code) {
-    const key = `${code}|${lesson.key}`;
-    if (this._cache.has(key)) return this._cache.get(key);
-    const out = [this.demoProblem(lesson)];
-    const pool = makeRng(key).shuffle(this.themesFor(lesson));
-    const seen = new Set([out[0].sql]);
-    for (const ds of pool) {
-      if (out.length >= stagesOf(lesson).length) break;
-      const p = this.genOne(lesson, ds, `${key}|${ds.table || ds.key}`);
-      if (!p) continue;
-      const prob = this.buildProblem(lesson, p, 'practice', out.length, ds.table || ds.key);
-      if (seen.has(prob.sql)) continue;
-      if (prob.stage === 'order' && !this.orderTask(prob)) continue;
-      seen.add(prob.sql); out.push(prob);
+  /**
+   * The problems of a lesson for a set code: usually the example + 5 practice problems
+   * (fill, order 1, order 2, write ×2); a class can choose its own format (see stagesFor).
+   */
+  lessonProblems(lesson, code, fmt) {
+    const key = `${code}|${lesson.key}`;   // the seeds do not depend on the format, so the usual set never changes
+    const fk = formatKey(fmt), cacheKey = fk ? `${key}|${fk}` : key;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+    const tokens = stagesFor(lesson, fmt);
+    const out = tokens[0] === 'demo' ? [this.demoProblem(lesson)] : [];
+    const seen = new Set(out.map(p => p.sql));
+    // more problems than data sets: go round the data sets again with new seeds
+    for (let pass = 0; pass < 4 && out.length < tokens.length; pass++) {
+      const pool = makeRng(pass ? `${key}|${pass}` : key).shuffle(this.themesFor(lesson));
+      for (const ds of pool) {
+        if (out.length >= tokens.length) break;
+        const p = this.genOne(lesson, ds, pass ? `${key}|${pass}|${ds.table || ds.key}` : `${key}|${ds.table || ds.key}`);
+        if (!p) continue;
+        const prob = this.buildProblem(lesson, p, 'practice', out.length, ds.table || ds.key, tokens);
+        if (seen.has(prob.sql)) continue;
+        if (prob.stage === 'order' && !this.orderTask(prob)) continue;
+        seen.add(prob.sql); out.push(prob);
+      }
     }
-    this._cache.set(key, out);
+    if (fk) out.forEach(p => { p.fmt = fk; });   // a class format: the lesson is complete when every problem is solved
+    this._cache.set(cacheKey, out);
     return out;
   }
   /**
@@ -357,7 +405,7 @@ export class SqlEngine {
       const p = this.genOne(lesson, ds, `${seed}|${ds.table || ds.key}`);
       if (!p) continue;
       const pr = this.buildProblem(lesson, p, 'drill', 0, ds.table || ds.key);
-      Object.assign(pr, { kind: 'drill', stage: 'order', wn: level, of: 2, id: `${lesson.key}:drill${level}:${hashStr(pr.sql).toString(36)}` });
+      Object.assign(pr, { kind: 'drill', stage: 'order', wn: level, of: 2, level, id: `${lesson.key}:drill${level}:${hashStr(pr.sql).toString(36)}` });
       if (this.orderTask(pr)) return pr;
     }
     return null;
@@ -418,7 +466,7 @@ export class SqlEngine {
   /** → { chunks: [{id, text, distractor}], answer: [ids in order] } or null */
   orderTask(prob) {
     if (prob._order !== undefined) return prob._order;
-    if (prob.stage === 'order' && prob.wn >= 2) { const f = this.fineOrderTask(prob); if (f) return (prob._order = f); }
+    if (prob.stage === 'order' && (prob.level ? prob.level === 2 : prob.wn >= 2)) { const f = this.fineOrderTask(prob); if (f) return (prob._order = f); }
     const chunks = splitClauses(prob.sql);
     if (chunks.length < 2) return (prob._order = null);
     const R = makeRng('order|' + prob.id);

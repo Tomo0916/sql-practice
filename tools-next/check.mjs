@@ -208,5 +208,34 @@ console.log('6. Ordering drill (40 problems per lesson and level)');
   }
 }
 
+console.log('7. Class problem formats');
+{
+  const { normFormat, stagesFor } = await import('../js/engine.js');
+  const fmts = [{ demo: true, fill: 0, order1: 2, order2: 1, write: 1 }, { demo: false, fill: 0, order1: 2, order2: 2, write: 0 }, { demo: true, fill: 2, order1: 0, order2: 0, write: 3 }, { demo: false, fill: 1, order1: 5, order2: 5, write: 5 }];
+  let sets = 0, short = 0;
+  for (const f of fmts) for (const L of LESSONS) for (const code of ['F1', 'F2']) {
+    const want = stagesFor(L, f), probs = eng.lessonProblems(L, code, f);
+    sets++;
+    if (probs.length < want.length) short++;
+    if (!probs.length) err(`format ${JSON.stringify(f)} ${L.key}: no problems`);
+    probs.forEach(p => {
+      if (p.stage === 'order') {
+        const o = eng.orderTask(p);
+        if (!o) { err(`format ${L.key}: no ordering task`); return; }
+        if (p.level === 2 && !o.fine) warn(`format ${L.key}: level 2 fell back to clauses`);
+        const byId = Object.fromEntries(o.chunks.map(c => [c.id, c.text])), sql = o.answer.map(id => byId[id]).join(' ') + ';';
+        if (!grade(eng.runUser(sql), eng.exec(p.sql), p.ordered, sql).ok) err(`format ${L.key}: order answer wrong: ${sql}`);
+      }
+    });
+    // done only when every problem is solved
+    const prog = { solved: Object.fromEntries(probs.slice(1).map(p => [p.id, 1])) };
+    if (probs.length > 1 && lessonState(prog, probs).done) err(`format ${L.key}: done before every problem is solved`);
+    prog.solved[probs[0].id] = 1;
+    if (!lessonState(prog, probs).done) err(`format ${L.key}: not done after solving every problem`);
+  }
+  if (normFormat({ demo: true, fill: 1, order1: 1, order2: 1, write: 2 }) !== null) err('the standard format must be stored as null');
+  console.log(`   ${sets} lesson sets; ${short} have fewer problems than asked (lessons with few patterns)`);
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

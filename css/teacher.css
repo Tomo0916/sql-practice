@@ -422,3 +422,13 @@ details.rank .rk-head { justify-content: flex-end; }
 .st-time { font-size: .78rem; color: var(--ink-3); padding-top: 7px; }
 .stu-tries pre.sql { margin: 0; font-size: .82rem; }
 .stu-tries .quiz-ans { padding-top: 5px; }
+
+/* ---------- problem format of the class ---------- */
+.fmt-fld { display: flex; flex-direction: column; gap: 8px; }
+.fmt-presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.fmt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 16px; padding: 10px 12px; background: var(--surface-2); border-radius: 10px; }
+.fmt-demo { grid-column: 1 / -1; }
+.fmt-n { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 700; font-size: .9rem; }
+.stepper { display: inline-flex; align-items: center; gap: 4px; }
+.stepper input { width: 48px; text-align: center; font: inherit; font-family: var(--mono); padding: 4px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.fmt-sum { margin: 0; font-weight: 800; }
