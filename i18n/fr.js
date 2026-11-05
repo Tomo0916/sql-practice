@@ -32,6 +32,7 @@ export default {
   "L.groupby.point": "GROUP BY col regroupe les lignes ayant la même valeur. Les agrégats sont calculés par groupe : une ligne par groupe.",
   "L.groupby.title": "Agréger par groupe : GROUP BY",
   "L.having.desc": "Dans la table {t}, pour chaque {cat}, calculez « {f} » de {c} et affichez {cat} et cette valeur, uniquement pour les groupes où elle vaut au moins {x}.",
+  "L.having.descCount": "Dans la table {t}, comptez les lignes de chaque {cat} et affichez {cat} et ce nombre, uniquement pour les groupes d’au moins {x} lignes.",
   "L.having.point": "HAVING applique une condition aux groupes après l’agrégation. WHERE filtre les lignes avant, HAVING filtre les groupes après.",
   "L.having.title": "Filtrer les groupes : HAVING",
   "L.inner.desc": "Reliez {L} et {R} par un INNER JOIN sur {on}, et récupérez toutes les colonnes.",

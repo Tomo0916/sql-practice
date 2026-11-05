@@ -32,6 +32,7 @@ export default {
   "L.groupby.point": "GROUP BY kolom mengelompokkan baris dengan nilai yang sama. Agregat dihitung per kelompok, jadi hasilnya satu baris per kelompok.",
   "L.groupby.title": "Agregasi per kelompok: GROUP BY",
   "L.having.desc": "Di tabel {t}, untuk setiap {cat}, hitung {f} dari {c}, lalu tampilkan {cat} dan nilai itu hanya untuk kelompok yang nilainya {x} atau lebih.",
+  "L.having.descCount": "Di tabel {t}, hitung jumlah baris untuk setiap {cat}, lalu tampilkan {cat} dan jumlahnya hanya untuk kelompok dengan {x} baris atau lebih.",
   "L.having.point": "HAVING memberi syarat pada kelompok setelah agregasi. WHERE menyaring baris sebelum dikelompokkan, HAVING menyaring kelompok sesudahnya.",
   "L.having.title": "Menyaring kelompok: HAVING",
   "L.inner.desc": "Gabungkan {L} dan {R} dengan INNER JOIN pada {on}, lalu ambil semua kolom.",

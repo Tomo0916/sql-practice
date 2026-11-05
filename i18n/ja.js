@@ -32,6 +32,7 @@ export default {
   "L.groupby.point": "GROUP BY 列 で、その列の値が同じ行どうしを1つのグループにします。集計関数はグループごとに計算され、グループの数だけ行ができます。",
   "L.groupby.title": "グループごとに集計する (GROUP BY)",
   "L.having.desc": "{t} テーブルで {cat} ごとに {c} の{f}を求め、その値が {x} 以上のグループだけ、{cat} と{f}を取り出してください。",
+  "L.having.descCount": "{t} テーブルで {cat} ごとに行数を数え、行数が {x} 以上のグループだけ、{cat} と行数を取り出してください。",
   "L.having.point": "HAVING は集計した後のグループに条件をつけます。WHERE は集計の前の「行」、HAVING は集計の後の「グループ」を絞ります。",
   "L.having.title": "グループを絞る (HAVING)",
   "L.inner.desc": "{L} と {R} を {on} でつなぎ（INNER JOIN）、すべての列を取り出してください。",

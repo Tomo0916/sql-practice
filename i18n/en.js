@@ -32,6 +32,7 @@ export default {
   "L.groupby.point": "GROUP BY col puts rows with the same value into one group. Aggregates are calculated per group, so you get one row per group.",
   "L.groupby.title": "Aggregate by group: GROUP BY",
   "L.having.desc": "In the {t} table, for each {cat}, get {cat} and the {f} of {c} — but only for groups where that value is {x} or more.",
+  "L.having.descCount": "In the {t} table, count the rows for each {cat}, and get {cat} and the count — but only for groups with {x} or more rows.",
   "L.having.point": "HAVING puts a condition on groups after aggregation. WHERE filters rows before grouping; HAVING filters groups after.",
   "L.having.title": "Filter groups: HAVING",
   "L.inner.desc": "Join {L} and {R} with an INNER JOIN on {on}, and get all columns.",
