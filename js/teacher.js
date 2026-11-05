@@ -12,6 +12,7 @@ import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normF
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
 import { hasLecture } from './lectures.js';
+import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
@@ -65,9 +66,10 @@ function parseRoute() {
   if (h[0] === 'present') return { view: 'present' };
   if (h[0] === 'test') return { view: 'test' };
   if (h[0] === 'book') return { view: 'book' };
+  if (h[0] === 'tables') return { view: 'tables' };
   return { view: 'home' };
 }
-window.addEventListener('hashchange', () => { const prev = S.route; S.route = parseRoute(); if (prev.view === 'class' && (S.route.view !== 'class' || S.route.id !== prev.id)) stopWatch(); load(); });
+window.addEventListener('hashchange', () => { closeProjector(); const prev = S.route; S.route = parseRoute(); if (prev.view === 'class' && (S.route.view !== 'class' || S.route.id !== prev.id)) stopWatch(); load(); });
 
 /* =========================================================
  * RENDER
@@ -80,6 +82,7 @@ function render() {
   else if (v === 'present') body = presentHTML();
   else if (v === 'test') body = testHTML();
   else if (v === 'book') body = bookPanelHTML();
+  else if (v === 'tables') body = tablesPageHTML(L());
   else if (!backend.enabled) body = noBackendHTML();
   else if (!S.session) body = loginHTML();
   else if (S.isTeacher === false) body = notTeacherHTML();
@@ -88,6 +91,7 @@ function render() {
   else body = classesHTML();
   keepView(() => { app.innerHTML = headerHTML() + body; });
   if (v === 'book') document.title = `${T('book.nav')} · SQL Practice`;
+  if (v === 'tables') document.title = `${T('tb.title')} · SQL Practice`;
   if (v === 'test' && S.engine) document.title = `${S.test.title || t('test.headingDefault', S.test.tlang)} (${S.test.code})`;
 }
 function headerHTML() {
@@ -99,6 +103,7 @@ function headerHTML() {
       <a href="#/present" class="${v === 'present' ? 'on' : ''}">${I.screen}<span>${H('tc.present')}</span></a>
       <a href="#/test" class="${v === 'test' ? 'on' : ''}">${I.paper}<span>${H('tc.test')}</span></a>
       <a href="#/book" class="${v === 'book' ? 'on' : ''}">${I.book}<span>${H('book.nav')}</span></a>
+      <a href="#/tables" class="${v === 'tables' ? 'on' : ''}">${I.table}<span>${H('nav.tables')}</span></a>
     </nav>
     <div class="topbar-right">
       ${langSelect(L(), T('nav.language'))}
@@ -645,7 +650,7 @@ function testHTML() {
       <label class="chk"><input type="checkbox" data-tk="key" ${o.key ? 'checked' : ''}><span>${H('test.withKey')}</span></label>
       <label class="chk"><input type="checkbox" data-tk="results" ${o.results ? 'checked' : ''} ${o.key ? '' : 'disabled'}><span>${H('test.withResult')}</span></label></div>
     <label class="fld"><span>${H('test.code')}</span><div class="inline-form"><input class="mono" data-tk="code" value="${esc(o.code)}" maxlength="16"><button class="btn btn-ghost btn-sm" data-act="testNewCode">${I.shuffle}${H('test.newCode')}</button></div></label>
-    <div class="tm-print"><button class="btn btn-primary" data-act="print" ${o.lessons.length ? '' : 'disabled'}>${I.print}${H('test.print')}</button><div class="muted small center" id="tm-count"></div></div>
+    <div class="tm-print"><button class="btn btn-primary" data-act="print" ${o.lessons.length ? '' : 'disabled'}>${I.print}${H('test.print')}</button><button class="btn btn-ghost" data-act="testTables" ${o.lessons.length ? '' : 'disabled'}>${I.screen}${H('test.project')}</button><div class="muted small center" id="tm-count"></div></div>
   </aside>`;
   return `<main class="wrap"><div class="tm-layout">${panel}<div class="paper-wrap">${paperHTML()}</div></div></main>`;
 }
@@ -653,7 +658,9 @@ function paperHTML() {
   const o = S.test;
   if (!o.lessons.length) return `<div class="card res-empty">${H('test.nothing')}</div>`;
   const vers = o.ab ? ['A', 'B'] : ['A'];
-  const out = vers.map(v => sheetsHTML(S.engine.makeTest({ lessons: o.lessons, per: o.per, type: o.type, code: o.code || 'X', version: v }), v, o.ab)).join('');
+  const tests = vers.map(v => S.engine.makeTest({ lessons: o.lessons, per: o.per, type: o.type, code: o.code || 'X', version: v }));
+  S.testTables = [...new Set(tests.flatMap(x => x.tables))];
+  const out = tests.map((x, k) => sheetsHTML(x, vers[k], o.ab)).join('');
   return out;
 }
 function sheetsHTML(test, ver, ab) {
@@ -893,7 +900,8 @@ const actions = {
   testNone() { S.test.lessons = []; render(); saveTest(); },
   testClass() { S.test.lessons = LESSONS.map(l => l.key).filter(k => (S.klass.lessons || []).includes(k)); S.test.code = S.klass.set_code; render(); saveTest(); },
   testNewCode() { S.test.code = randomCode(); render(); saveTest(); },
-  print() { setTimeout(() => window.print(), 60); }
+  print() { setTimeout(() => window.print(), 60); },
+  testTables() { if (!S.testTables) paperHTML(); openProjector(S.testTables || [], L(), 0); }
 };
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
@@ -979,6 +987,7 @@ async function openQR(c) {
 
 /* ---------- start ---------- */
 (async function start() {
+  installTables(); setTablesLang(L);
   S.route = parseRoute();
   await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null]);
   render();
