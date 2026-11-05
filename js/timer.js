@@ -14,6 +14,10 @@ export function secondsLeft(klass) {
   if (!klass || !klass.timer_end) return null;
   return Math.ceil((new Date(klass.timer_end).getTime() - (Date.now() + offset)) / 1000);
 }
+/** the class is live (the teacher started it and the end time has not come) */
+export function liveOn(klass) { return !!(klass && klass.live_until && new Date(klass.live_until).getTime() > Date.now() + offset); }
+/** minutes until the live ends (rounded up) */
+export function liveMinutesLeft(klass) { return liveOn(klass) ? Math.ceil((new Date(klass.live_until).getTime() - (Date.now() + offset)) / 60000) : 0; }
 export const fmtClock = s => { s = Math.max(0, s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 /** 'run' | 'warn' (last 30 s) | 'up' (time is up) | '' (no timer) */
 export const timerState = s => (s === null ? '' : s <= 0 ? 'up' : s <= 30 ? 'warn' : 'run');

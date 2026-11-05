@@ -113,6 +113,14 @@ export function createClient() {
         db.classes.push(c); save(db); return ok(c);
       }
       if (name === 'server_now') return ok(new Date().toISOString());
+      if (name === 'start_live' || name === 'stop_live') {
+        const c = db.classes.find(x => x.id === args.p_class && x.teacher_id === s.user.id);
+        if (!c || !listed()) return fail('not_teacher');
+        const min = Math.max(5, Math.min(args.p_min || 0, 240));
+        Object.assign(c, { live_until: name === 'start_live' ? new Date(Date.now() + min * 60000).toISOString() : null, updated_at: new Date().toISOString() });
+        save(db); bc.postMessage({ table: 'classes', type: 'UPDATE', row: c });
+        return ok(c);
+      }
       if (name === 'start_timer' || name === 'stop_timer') {
         const c = db.classes.find(x => x.id === args.p_class && x.teacher_id === s.user.id);
         if (!c || !listed()) return fail('not_teacher');

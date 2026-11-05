@@ -19,7 +19,7 @@ import { I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff,
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
-import { syncClock, secondsLeft, fmtClock, timerState } from './timer.js';
+import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
 
 const S = {
@@ -94,6 +94,7 @@ function parseRoute() {
   if (h[0] === 'review' || h[0] === 'mix') return { view: 'session', kind: h[0] };
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'words') return { view: 'words' };
+  if (h[0] === 'live') return { view: 'live', key: LESSON_BY_KEY[h[1]] ? h[1] : h[1] === 'done' ? 'done' : null, idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };
   return { view: 'home' };
 }
 window.addEventListener('hashchange', () => {
@@ -110,6 +111,13 @@ function current() {
     const lesson = LESSON_BY_KEY[r.key];
     const probs = problemsOf(lesson);
     return { lesson, probs, prob: probs[Math.min(r.idx, probs.length - 1)] };
+  }
+  if (r.view === 'live') {
+    const p = r.key && r.key !== 'done' ? null : firstOpen();
+    const lesson = LESSON_BY_KEY[r.key && r.key !== 'done' ? r.key : p ? p.lesson : ''];
+    if (!lesson || r.key === 'done') return null;
+    const probs = problemsOf(lesson);
+    return { lesson, probs, prob: p || probs[Math.min(r.idx, probs.length - 1)] };
   }
   if (r.view === 'session' && S.session && S.session.i < S.session.items.length) {   // not on the finish screen
     const prob = S.session.items[S.session.i];
@@ -137,8 +145,9 @@ function render() {
   if (r.view === 'lesson') body = lessonHTML();
   else if (r.view === 'session') body = sessionHTML();
   else if (r.view === 'words') body = wordsHTML();
+  else if (r.view === 'live') body = liveViewHTML();
   else body = homeHTML();
-  app.innerHTML = head + body + footerHTML();
+  app.innerHTML = head + liveBannerHTML() + body + footerHTML();
   mountWorkspace();
   drawJoinLines(app);
 }
@@ -150,6 +159,7 @@ function headerHTML() {
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
     <nav class="topnav">
       <a href="#/" class="${v === 'home' || v === 'lesson' ? 'on' : ''}">${I.book}<span>${H('nav.home')}</span></a>
+      ${S.klass && (S.klass.lessons || []).length ? `<a href="#/live" class="${v === 'live' ? 'on' : ''}">${liveOn(S.klass) ? '<i class="live-dot"></i>' : I.users}<span>${H('nav.assign')}</span></a>` : ''}
       <a href="#/review" class="${v === 'session' ? 'on' : ''}">${I.repeat}<span>${H('nav.review')}</span>${due ? `<b class="badge">${due}</b>` : ''}</a>
       <a href="#/words" class="${v === 'words' ? 'on' : ''}">${I.globe}<span>${H('nav.words')}</span></a>
     </nav>
@@ -379,6 +389,57 @@ function drillHTML(ses) {
   </main>`;
 }
 
+/* ---------- the class assignment (and the class live) ----------
+ * #/live shows the assigned lessons' problems one after another; the library on the side
+ * lists them all. During a class live the app opens it by itself. */
+const assignedGroups = () => (S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k]).map(k => ({ lesson: LESSON_BY_KEY[k], probs: problemsOf(LESSON_BY_KEY[k]) })) : []);
+const assignedSeq = () => assignedGroups().flatMap(g => g.probs);
+const liveHash = p => `#/live/${p.lesson}/${p.idx}`;
+/** the first unsolved assigned problem (null when everything is solved) */
+function firstOpen() { return assignedSeq().find(p => !isSolved(p.id)) || null; }
+/** the next unsolved assigned problem after this one; then any unsolved one before it */
+function nextAssigned(prob) {
+  const seq = assignedSeq(), i = seq.findIndex(p => p.id === prob.id);
+  return seq.slice(i + 1).find(p => !isSolved(p.id)) || seq.slice(0, Math.max(0, i)).find(p => !isSolved(p.id)) || null;
+}
+const shortLabel = p => (p.stage === 'demo' ? 'Ex' : p.stage === 'fill' ? '□' : p.stage === 'order' ? '⇅' + (p.of > 1 ? p.wn : '') : (p.stage === 'quiz' ? 'Q' : 'W') + p.wn);
+function liveBannerHTML() {
+  if (!liveOn(S.klass) || S.route.view === 'live' || !(S.klass.lessons || []).length) return '';
+  return `<div class="live-banner"><span><i class="live-dot"></i>${H('live.banner')}</span><a class="btn btn-ok btn-sm" href="#/live">${H('live.back')}${I.next}</a></div>`;
+}
+function liveViewHTML() {
+  const groups = assignedGroups();
+  const live = liveOn(S.klass);
+  document.title = `${T('nav.assign')} · SQL Practice`;
+  if (!S.klass || !groups.length) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${I.users}</div><h1>${H('nav.assign')}</h1><p class="muted">${H('live.none')}</p><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></section></main>`;
+  const seq = groups.flatMap(g => g.probs), solved = seq.filter(p => isSolved(p.id)).length;
+  const c = current();
+  const lib = groups.map(g => {
+    const st = stateOf(g.lesson);
+    return `<div class="ll-lesson ${st.done ? 'done' : ''}"><div class="ll-h"><span class="lesson-num">${st.done ? '✓' : g.lesson.no}</span><span>${lessonTitleHTML(g.lesson, L())}</span></div>
+      <div class="ll-items">${g.probs.map(p => `<a class="ll-p ${isSolved(p.id) ? 'solved' : ''} ${c && c.prob.id === p.id ? 'on' : ''}" href="${liveHash(p)}" title="${esc(stageLabel(p))}" ${c && c.prob.id === p.id ? 'aria-current="page"' : ''}>${esc(shortLabel(p))}</a>`).join('')}</div></div>`;
+  }).join('');
+  const side = `<aside class="side live-side"><div class="card live-card">
+      ${live ? `<div class="live-on"><i class="live-dot"></i><b>${H('live.on')}</b><span class="muted small" data-live-left>${H('live.minLeft', { n: liveMinutesLeft(S.klass) })}</span></div>` : ''}
+      <h2>${H('live.title', { name: S.klass.name })}</h2>
+      <div class="live-prog"><div class="bar"><i style="width:${Math.round(solved / seq.length * 100)}%"></i></div><b>${solved}/${seq.length}</b></div>
+      <div class="ll-title muted small">${H('live.library')}</div>
+      <div class="live-lib">${lib}</div>
+    </div></aside>`;
+  if (!c) {   // everything solved (or #/live/done)
+    const left = seq.find(p => !isSolved(p.id));
+    return `<main class="wrap"><div class="lesson-layout">${side}<div class="main"><section class="card empty">
+      <div class="empty-icon">${left ? I.check : I.fire}</div><h1>${H(left ? 'live.notYet' : 'live.doneTitle')}</h1><p class="muted">${H(left ? 'live.notYetSub' : 'live.doneSub')}</p>
+      <div class="row-btns">${left ? `<a class="btn btn-primary" href="${liveHash(left)}">${H('live.back')}${I.next}</a>` : groups.filter(g => S.engine.drillLessons().has(g.lesson.key)).slice(0, 3).map(g => `<a class="btn btn-ghost" href="#/drill/${g.lesson.key}">⇅ Lesson ${g.lesson.no}</a>`).join('')}</div>
+    </section></div></div></main>`;
+  }
+  const { lesson, prob } = c;
+  return `<main class="wrap">
+    <div class="crumbs"><a href="#/live">${H('nav.assign')}</a><span>›</span><span>Lesson ${lesson.no} · ${lessonTitleHTML(lesson, L())}</span><span>›</span><span>${stageLabelH(prob)}</span></div>
+    <div class="lesson-layout">${side}<div class="main" id="ws">${workspaceHTML(prob)}</div></div>
+  </main>`;
+}
+
 /* ---------- glossary ---------- */
 function wordsHTML() {
   document.title = `${T('nav.words')} · SQL Practice`;
@@ -601,6 +662,11 @@ function feedbackHTML(prob) {
     const isLast = !c || prob.idx >= c.probs.length - 1;
     let next = '';
     if (S.route.view === 'session') next = `<button class="btn btn-ok fb-next" data-act="sessionNext">${H('btn.next')}${I.next}</button>`;
+    else if (S.route.view === 'live') {   // the assignment: on to the next unsolved assigned problem, in any lesson
+      const n = nextAssigned(prob);
+      next = n ? `<a class="btn btn-ok fb-next" href="${liveHash(n)}">${n.lesson !== prob.lesson ? H('live.nextLesson', { n: LESSON_BY_KEY[n.lesson].no }) : H('btn.next')}${I.next}</a>`
+        : `<a class="btn btn-ok fb-next" href="#/live/done">${H('live.finish')}${I.next}</a>`;
+    }
     else if (!isLast) next = `<a class="btn btn-ok fb-next" href="#/l/${prob.lesson}/${prob.idx + 1}">${H('btn.next')}${I.next}</a>`;
     else { const nl = LESSONS[LESSON_BY_KEY[prob.lesson].index + 1]; if (nl) next = `<a class="btn btn-ok fb-next" href="#/l/${nl.key}/0">${H('btn.nextLesson')}${I.next}</a>`; }
     return `<div class="fb ok" role="status"><div class="fb-icon">${I.check}</div><div class="fb-body"><h3>${H('fb.correct')}</h3><p>${run.lessonDone ? bi('lesson.done') : bi('fb.correctSub')}</p></div>${next}</div>`;
@@ -999,7 +1065,7 @@ async function doJoin(f) {
   try {
     const c = await backend.joinClass(code, nick);
     Store.set('sqln.nick', nick);
-    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null };
+    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null, live_until: c.live_until || null };
     Store.set(KEYS.klass, S.klass);
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
     closeModal(); watchKlass(); render(); toast(T('class.joined', { n: c.name }));
@@ -1046,11 +1112,32 @@ async function watchKlass() {
 }
 function applyClassRow(c, live) {
   const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format);
-  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null });
+  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null, live_until: c.live_until || null });
   tickTimer();
+  const isLive = liveOn(S.klass);
+  if (liveShown === null ? isLive : isLive !== liveShown) liveChanged(isLive, live);   // the first time: open the assignment if the class is live now
+  liveShown = isLive;
   Store.set(KEYS.klass, S.klass);
   if (changed) { saveDraft(); S.runs = {}; render(); if (live) toast(T('class.updated')); }
 }
+
+/** the class live started or ended: open the assignment, or say it has ended */
+let liveShown = null;
+function liveChanged(isLive, announce) {
+  liveShown = isLive;
+  if (isLive && (S.klass.lessons || []).length) {
+    if (S.route.view !== 'live') { saveDraft(); location.hash = '#/live'; toast(T('live.started')); }
+    else { render(); if (announce) toast(T('live.started')); }
+  } else if (!isLive) { render(); if (announce) toast(T('live.ended')); }
+}
+// the end time passes without a message from the server: notice it here
+setInterval(() => {
+  if (!S.klass) return;
+  const on = liveOn(S.klass);
+  if (liveShown !== null && on !== liveShown) { liveShown = on; liveChanged(on, true); }
+  const el = document.querySelector('[data-live-left]');
+  if (el && on) el.innerHTML = H('live.minLeft', { n: liveMinutesLeft(S.klass) });
+}, 15000);
 
 /* ---------- class timer: the teacher's countdown, shown on every screen ---------- */
 let upSince = 0;

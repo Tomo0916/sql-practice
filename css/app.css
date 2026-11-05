@@ -556,3 +556,30 @@ body.ord-dragging, body.ord-dragging * { cursor: grabbing !important; }
 .drill-lv button { border: 0; background: none; padding: 5px 10px; border-radius: 8px; font: inherit; font-size: .82rem; font-weight: 700; color: var(--ink-2); cursor: pointer; }
 .drill-lv button.on { background: var(--surface); color: var(--accent); box-shadow: var(--shadow); }
 .session-progress .streak { font-weight: 800; color: var(--warn); white-space: nowrap; }
+
+/* ---------- the class assignment (class live) ---------- */
+.live-banner { position: sticky; top: 60px; z-index: 20; display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; padding: 8px 16px; background: var(--ok-soft); color: var(--ok); font-weight: 800; border-bottom: 1px solid var(--line); }
+.live-banner span { display: inline-flex; align-items: center; gap: 6px; }
+.live-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 25%, transparent); animation: live-pulse 1.4s infinite; flex: none; }
+@keyframes live-pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--bad) 10%, transparent); } }
+.topnav .live-dot { margin-right: 2px; }
+.live-side { position: sticky; top: 76px; }
+.live-card { padding: 16px; display: flex; flex-direction: column; gap: 10px; max-height: calc(100vh - 100px); overflow: auto; }
+.live-card h2 { margin: 0; font-size: 1.05rem; }
+.live-on { display: flex; align-items: center; gap: 8px; color: var(--bad); }
+.live-prog { display: flex; align-items: center; gap: 10px; }
+.live-prog .bar { flex: 1; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.live-prog .bar i { display: block; height: 100%; background: var(--ok); }
+.live-prog b { font-family: var(--mono); }
+.ll-title { margin-top: 4px; font-weight: 700; }
+.live-lib { display: flex; flex-direction: column; gap: 10px; }
+.ll-lesson { border-top: 1px solid var(--line); padding-top: 8px; }
+.ll-h { display: flex; gap: 8px; align-items: center; font-weight: 700; font-size: .88rem; margin-bottom: 6px; }
+.ll-h .lesson-num { flex: none; width: 26px; height: 26px; font-size: .8rem; }
+.ll-lesson.done .ll-h { color: var(--ok); }
+.ll-items { display: flex; flex-wrap: wrap; gap: 5px; padding-left: 34px; }
+.ll-p { min-width: 36px; text-align: center; padding: 4px 6px; border-radius: 8px; border: 1.5px solid var(--line-2); font-family: var(--mono); font-size: .78rem; font-weight: 700; text-decoration: none; color: var(--ink-2); background: var(--surface); }
+.ll-p:hover { border-color: var(--accent); color: var(--accent); }
+.ll-p.solved { background: var(--ok); border-color: var(--ok); color: #fff; }
+.ll-p.on { outline: 2.5px solid var(--accent); outline-offset: 1px; }
+@media (max-width: 900px) { .live-side { position: static; } .live-card { max-height: none; } }

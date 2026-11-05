@@ -11,7 +11,7 @@ import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from
 import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normFormat, stagesFor, FORMAT_KEYS, FORMAT_MAX, STANDARD_FORMAT } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
-import { syncClock, secondsLeft, fmtClock, timerState } from './timer.js';
+import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
@@ -176,6 +176,7 @@ function classHTML() {
         <div class="muted small">${H('tc.members', { n: S.members.length })} · ${H('set.code')} <b class="mono">${esc(c.set_code)}</b> · ${H('tc.policy.' + c.answer_policy)}</div>
         ${connHTML()}</div>
       <button class="code-big" data-act="showQR" title="${esc(T('tc.showQR'))}"><small>${H('class.code')}</small><b class="mono">${esc(c.code)}</b><span>${I.qr} ${H('tc.showQR')}</span></button>
+      <div class="lbox ${liveOn(c) ? 'on' : ''}" id="lbox">${liveBoxHTML(c)}</div>
       <div class="tbox" id="tbox">${timerBoxHTML(c)}</div>
       <div class="class-actions">
         <button class="btn btn-ghost btn-sm" data-act="copyJoin">${I.link}${H('tc.copyJoin')}</button>
@@ -185,6 +186,31 @@ function classHTML() {
     <nav class="tabs" role="tablist">${tabs.map(([k, ic, lab]) => `<a role="tab" aria-selected="${tab === k}" class="${tab === k ? 'on' : ''}" href="#/c/${c.id}/${k}">${ic}${H(lab)}</a>`).join('')}</nav>
     <div id="tab-body">${body}</div>
   </main>`;
+}
+
+/* ---------- class live: the students work on the assignment until it ends ---------- */
+const LIVE_MIN = [45, 50, 90, 120];
+function liveBoxHTML(c) {
+  if (!liveOn(c)) return `<button class="btn btn-primary btn-sm" data-act="liveStart" title="${esc(T('tc.live.tip'))}" ${(c.lessons || []).length ? '' : 'disabled'}>▶ ${H('tc.live.start')}</button>
+    <label class="live-len"><span class="muted small">${H('tc.live.len')}</span><select id="live-len">${LIVE_MIN.map(m => `<option value="${m}" ${m === (Store.get('sqln.liveLen', 50)) ? 'selected' : ''}>${esc(T('tc.live.min', { n: m }))}</option>`).join('')}</select></label>
+    ${(c.lessons || []).length ? '' : `<small class="muted">${H('tc.live.noLessons')}</small>`}`;
+  return `<span class="live-st"><i class="live-dot"></i><b>${H('tc.live.on')}</b><span class="muted small" data-tlive>${H('tc.live.left', { n: liveMinutesLeft(c) })}</span></span>
+    <span class="row-btns"><button class="btn btn-ghost btn-xs" data-act="liveMore">${H('tc.live.more')}</button><button class="btn btn-ghost btn-xs" data-act="liveStop">${H('tc.live.stop')}</button></span>`;
+}
+let liveShownT = null;
+function tickTeacherLive() {
+  const c = S.klass, box = document.getElementById('lbox');
+  if (!c || !box) return;
+  const on = liveOn(c);
+  if (on !== liveShownT) { liveShownT = on; box.innerHTML = liveBoxHTML(c); box.classList.toggle('on', on); return; }
+  const el = box.querySelector('[data-tlive]');
+  if (el) { const h = H('tc.live.left', { n: liveMinutesLeft(c) }); if (el.innerHTML !== h) el.innerHTML = h; }
+}
+setInterval(tickTeacherLive, 1000);
+function liveError(e) {
+  if (e.message === 'live_missing') return T('tc.live.needsDb');
+  if (!navigator.onLine || e instanceof TypeError) return T('class.netError');
+  return `${T('tc.live.failed')} ${e.message}`;
 }
 
 /* ---------- class timer: shown on every student's screen; answers after the end are marked late ---------- */
@@ -767,6 +793,21 @@ const actions = {
   async timerStop() {
     try { S.klass = await backend.stopTimer(S.klass.id); shownState = null; tickTeacherTimer(); const b = document.getElementById('timer-big'); if (b) b.remove(); }
     catch (e) { console.error(e); toast(timerError(e)); }
+  },
+  async liveStart() {
+    const min = +((document.getElementById('live-len') || {}).value || 50);
+    Store.set('sqln.liveLen', min);
+    try { await syncClock(backend.serverNow); S.klass = await backend.startLive(S.klass.id, min); liveShownT = null; tickTeacherLive(); toast(T('tc.live.started')); }
+    catch (e) { console.error(e); toast(liveError(e)); }
+  },
+  async liveMore() {
+    try { S.klass = await backend.startLive(S.klass.id, liveMinutesLeft(S.klass) + 10); liveShownT = null; tickTeacherLive(); }
+    catch (e) { console.error(e); toast(liveError(e)); }
+  },
+  async liveStop() {
+    if (!confirm(T('tc.live.stopConfirm'))) return;
+    try { S.klass = await backend.stopLive(S.klass.id); liveShownT = null; tickTeacherLive(); }
+    catch (e) { console.error(e); toast(liveError(e)); }
   },
   timerBig() {
     if (document.getElementById('timer-big')) return;

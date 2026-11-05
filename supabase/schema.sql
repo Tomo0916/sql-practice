@@ -244,6 +244,38 @@ grant execute on function public.stop_timer(uuid) to authenticated;
 -- null = the usual set (example, fill, order 1, order 2, write ×2).
 alter table public.classes add column if not exists format jsonb check (format is null or jsonb_typeof(format) = 'object');
 
+-- ---------- class live (2026-11-05) ----------
+-- While live_until is in the future, the class's students work on the assignment
+-- (the app opens it for them and goes from one assigned problem to the next).
+alter table public.classes add column if not exists live_until timestamptz;
+create or replace function public.start_live(p_class uuid, p_min integer)
+  returns public.classes
+  language plpgsql security definer set search_path = public as
+$$
+declare c public.classes;
+begin
+  if not public.is_teacher_of(p_class) then raise exception 'not_teacher' using errcode = '42501'; end if;
+  update public.classes set live_until = now() + make_interval(mins => greatest(5, least(p_min, 240)))
+    where id = p_class returning * into c;
+  return c;
+end
+$$;
+create or replace function public.stop_live(p_class uuid)
+  returns public.classes
+  language plpgsql security definer set search_path = public as
+$$
+declare c public.classes;
+begin
+  if not public.is_teacher_of(p_class) then raise exception 'not_teacher' using errcode = '42501'; end if;
+  update public.classes set live_until = null where id = p_class returning * into c;
+  return c;
+end
+$$;
+revoke all on function public.start_live(uuid, integer) from public, anon;
+revoke all on function public.stop_live(uuid) from public, anon;
+grant execute on function public.start_live(uuid, integer) to authenticated;
+grant execute on function public.stop_live(uuid) to authenticated;
+
 -- keep updated_at fresh
 create or replace function public.touch_updated_at() returns trigger language plpgsql as
 $$ begin new.updated_at := now(); return new; end $$;
