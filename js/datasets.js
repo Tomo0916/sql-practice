@@ -381,12 +381,13 @@ export function datasetSQL(tables) {
 }
 
 /** Every table by name (so the engine can build a DB for any problem). */
-import { ANALYSIS_DEMO, ANALYSIS_THEMES } from './analysis-data.js';
-export { ANALYSIS_DEMO, ANALYSIS_THEMES };
+import { ANALYSIS_DEMO, ANALYSIS_THEMES, ANALYSIS_PEOPLE } from './analysis-data.js';
+export { ANALYSIS_DEMO, ANALYSIS_THEMES, ANALYSIS_PEOPLE };
 export const ALL_TABLES = (() => {
   const m = {};
   Object.values(ANALYSIS_DEMO).forEach(t => (m[t.table] = t));
   ANALYSIS_THEMES.forEach(t => (m[t.table] = t));
+  ANALYSIS_PEOPLE.forEach(t => (m[t.table] = t));
   Object.values(DEMO_DATASETS).forEach(t => (m[t.table] = t));
   SINGLE_DATASETS.forEach(t => (m[t.table] = t));
   NULL_DATASETS.forEach(t => (m[t.table] = t));
@@ -401,7 +402,7 @@ export function tableGroups() {
     { key: 'single', sets: SINGLE_DATASETS.map(d => ({ label: 'ds.' + d.table, tables: [d.table] })) },
     { key: 'null', sets: NULL_DATASETS.map(d => ({ label: 'ds.' + d.table, tables: [d.table] })) },
     { key: 'join', sets: JOIN_DATASETS.map(p => ({ label: 'ds.' + p.key, tables: [p.left.table, p.right.table] })) },
-    { key: 'analysis', sets: [{ label: 'tb.kumo', tables: Object.values(ANALYSIS_DEMO).map(d => d.table) }].concat(ANALYSIS_THEMES.map(d => ({ label: 'ds.' + d.table, tables: [d.table] }))) },
+    { key: 'analysis', sets: [{ label: 'tb.kumo', tables: Object.values(ANALYSIS_DEMO).map(d => d.table).concat([ANALYSIS_DEMO.kumo_orders.people]) }].concat(ANALYSIS_THEMES.map(d => ({ label: 'ds.' + d.table, tables: [d.table, d.people] }))) },
   ];
 }
 /** every table name, once (a check uses this) */

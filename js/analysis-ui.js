@@ -6,7 +6,7 @@
 import { t, th, esc, rubyHTML } from './i18n.js';
 import { ALL_TABLES } from './datasets.js';
 import { STAT } from './analysis-content.js';
-import { barChart, histChart, boxChart, normalChart, fillChart } from './charts.js';
+import { barChart, histChart, boxChart, normalChart, fillChart, lineChart, scatterChart } from './charts.js';
 
 export const isAnalysis = lesson => lesson && lesson.themes === 'analysis';
 /** language for course texts: English, Japanese, Easy Japanese; others read English */
@@ -59,6 +59,39 @@ function figureHTML(lesson, prob, lang) {
     const groups = [...new Set(g)].sort().map(label => ({ label, values: v.filter((_, i) => g[i] === label) }));
     return boxChart(groups, { label: r.v });
   }
+  if (lesson.key === 'an_cross') {   // rows with and without a value, per group
+    const g = col(prob.p.t, r.g), o = col(prob.p.t, r.opt), labels = [...new Set(g)].sort();
+    return barChart(labels, [labels.map(l => g.filter((x, i) => x === l && o[i] !== null).length), labels.map(l => g.filter((x, i) => x === l && o[i] === null).length)], { names: [`${r.opt}: ${T('an.with')}`, `${r.opt}: ${T('an.without')}`] });
+  }
+  if (lesson.key === 'an_trend') {   // monthly totals and the 3-month moving average
+    const d = col(prob.p.t, r.dt), v = col(prob.p.t, r.v), m = new Map();
+    d.forEach((x, i) => { const k = String(x).slice(0, 7); m.set(k, (m.get(k) || 0) + v[i]); });
+    const months = [...m.keys()].sort(), tot = months.map(k => m.get(k));
+    const ma = tot.map((_, i) => { const w = tot.slice(Math.max(0, i - 2), i + 1); return Math.round(w.reduce((a, b) => a + b, 0) / w.length * 10) / 10; });
+    return lineChart(months, [tot, ma], { names: [`${T('an.total')} ${r.v}`, T('an.ma3')] });
+  }
+  if (lesson.key === 'an_corr') {
+    const x = col(prob.p.t, r.v), y = col(prob.p.t, r.v3);
+    return scatterChart(x.map((v, i) => ({ x: v, y: y[i] })), { xLabel: r.v, yLabel: r.v3 });
+  }
+  if (lesson.key === 'an_compare') {
+    const g = col(prob.p.t, r.g), v = col(prob.p.t, r.v);
+    return boxChart([...new Set(g)].sort().map(label => ({ label, values: v.filter((_, i) => g[i] === label) })), { label: r.v });
+  }
+  if (lesson.key === 'an_join' || lesson.key === 'an_clean') {
+    const pp = ALL_TABLES[prob.p.t2 || (tb.peopleOf ? prob.p.t : tb.people)] || ALL_TABLES[tb.people];
+    if (!pp) return '';
+    const q = pp.roles, key = lesson.key === 'an_clean' && prob.p.w !== 'band' ? q.pref : q.g;
+    if (lesson.key === 'an_clean' && prob.p.w === 'fill') {   // the empty cells of the main table
+      const o = col(prob.p.t, r.opt), vals = [...new Set(o.map(x => (x === null ? 'NULL' : x)))];
+      return barChart(vals, vals.map(k => o.filter(x => (x === null ? 'NULL' : x) === k).length), { label: r.opt });
+    }
+    const c = col(pp.table, key), vals = [...new Set(c)].sort((a, b) => String(a).trim().toLowerCase().localeCompare(String(b).trim().toLowerCase()) || String(a).localeCompare(String(b)));
+    if (key === q.pref) {   // the spellings, with the spaces made visible (␣)
+      return `<div class="raw-vals">${vals.map(k => `<span class="rv"><code>${esc(String(k).replace(/ /g, '␣'))}</code><b>${c.filter(x => x === k).length}</b></span>`).join('')}</div>`;
+    }
+    return barChart(vals, vals.map(k => c.filter(x => x === k).length), { label: key });
+  }
   if (lesson.key === 'an_zscore') {
     const v = col(prob.p.t, r.v), ids = col(prob.p.t, r.id);
     const m = +prob.p.m, s = +prob.p.s;
@@ -79,15 +112,69 @@ export function statCardHTML(lesson, prob, lang, open) {
   </details>`;
 }
 
-/** chart of a result (from lesson.chart) */
-export function resultChartHTML(lesson, prob, res) {
+/** chart of a result (from lesson.chart): bars, a histogram or lines; value can be one column or several */
+export function resultChartHTML(lesson, prob, res, lang) {
+  const svg = resultChartSVG(lesson, prob, res);
+  if (!svg) return '';
+  const save = lang ? `<button class="btn btn-ghost btn-xs chart-save" data-chart-png="${esc(lesson.key)}" title="${esc(t('an.savePngTip', lang))}">${th('an.savePng', lang)}</button>` : '';
+  return `<div class="res-chart">${save}${svg}</div>`;
+}
+function resultChartSVG(lesson, prob, res) {
   if (!lesson.chart || !res || !res.values || !res.values.length) return '';
   const c = lesson.chart(prob.p);
-  if (!res.columns[c.value] && res.columns[c.value] !== 0) return '';
-  const labels = res.values.map(r => String(r[c.label])), values = res.values.map(r => Number(r[c.value]));
-  if (values.some(v => !Number.isFinite(v))) return '';
-  if (c.type === 'hist') return `<div class="res-chart">${histChart(res.values.map(r => ({ start: Number(r[c.label]), n: Number(r[c.value]) })), c.step)}</div>`;
-  return `<div class="res-chart">${barChart(labels, values)}</div>`;
+  if (!c) return '';
+  const idx = Array.isArray(c.value) ? c.value : [c.value];
+  if (idx.some(i => res.columns[i] === undefined)) return '';
+  const labels = res.values.map(r => String(r[c.label]));
+  const series = idx.map(i => res.values.map(r => (r[i] === null ? null : Number(r[i]))));
+  if (series.some(s => s.some(v => v !== null && !Number.isFinite(v)))) return '';
+  const names = idx.length > 1 ? idx.map(i => res.columns[i]) : null;
+  if (c.type === 'hist') return histChart(res.values.map(r => ({ start: Number(r[c.label]), n: Number(r[c.value]) })), c.step);
+  if (c.type === 'line') return lineChart(labels, idx.length > 1 ? series : series[0], { names });
+  if (series.some(s => s.some(v => v === null))) return '';
+  return barChart(labels, idx.length > 1 ? series : series[0], { names });
+}
+
+/**
+ * Save a chart (an <svg class="chart">) as a PNG: the page's CSS is copied
+ * onto the elements, so the picture looks the same outside the app.
+ */
+const KEEP = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-opacity', 'opacity', 'font-size', 'font-weight', 'font-family', 'text-anchor', 'dominant-baseline'];
+export function chartPNG(svg, filename) {
+  const copy = svg.cloneNode(true);
+  const src = [svg, ...svg.querySelectorAll('*')], dst = [copy, ...copy.querySelectorAll('*')];
+  src.forEach((el, i) => {
+    const cs = getComputedStyle(el);
+    dst[i].setAttribute('style', KEEP.map(k => `${k}:${cs.getPropertyValue(k)}`).join(';'));
+  });
+  const vb = svg.viewBox.baseVal, w = vb && vb.width ? vb.width : svg.clientWidth, h = vb && vb.height ? vb.height : svg.clientHeight;
+  copy.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  copy.setAttribute('width', w); copy.setAttribute('height', h);
+  const img = new Image(), k = 3;
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = w * k; cv.height = h * k;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, cv.width, cv.height);
+    g.drawImage(img, 0, 0, cv.width, cv.height);
+    cv.toBlob(b => {
+      if (!b) return;
+      const url = URL.createObjectURL(b), a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }, 'image/png');
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(copy));
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-chart-png]');
+    if (!b) return;
+    const svg = b.parentElement && b.parentElement.querySelector('svg.chart');
+    if (!svg) return;
+    e.preventDefault();
+    chartPNG(svg, `chart-${b.dataset.chartPng}.png`);
+  });
 }
 
 /** CSV of a table (UTF-8 with BOM, so Excel shows it correctly) */
@@ -106,7 +193,7 @@ export function saveFile(filename, text, type) {
 
 /** buttons under the problem: the same question in Excel / Python */
 export function toolsHTML(prob, lang, setCode, fmtKey) {
-  if (prob.kind === 'review') return '';
+  if (prob.kind === 'review' || prob.answer !== undefined) return '';   // a question to read and choose: no Excel / Python steps
   const q = tool => `guide/?l=${encodeURIComponent(prob.lesson)}&i=${prob.idx}&set=${encodeURIComponent(setCode)}&tool=${tool}&lang=${encodeURIComponent(lang)}${fmtKey ? '&f=' + fmtKey : ''}`;
   return `<div class="an-tools"><span class="muted small">${th('an.toolsTip', lang)}</span>
     <a class="btn btn-ghost btn-sm" href="${q('excel')}" target="_blank" rel="noopener"><span class="tool-ic xl">X</span>${th('an.excel', lang)}</a>

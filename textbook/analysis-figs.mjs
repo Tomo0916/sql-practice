@@ -1,7 +1,7 @@
 // Print the figures of the data-analysis textbook as JSON {name: svg}.
 // The same chart code as the app (js/charts.js), drawn from the same data.
 import { ALL_TABLES } from '../js/datasets.js';
-import { barChart, histChart, boxChart, normalChart, fillChart } from '../js/charts.js';
+import { barChart, histChart, boxChart, normalChart, fillChart, lineChart, scatterChart } from '../js/charts.js';
 
 const col = (t, c) => { const tb = ALL_TABLES[t]; const i = tb.columns.findIndex(x => x[0] === c); return tb.rows.map(r => r[i]); };
 const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
@@ -35,5 +35,29 @@ const out = {};
   const m = Math.round(mean(v) * 10) / 10, s = Math.round(sd(v) * 10) / 10;
   // very large z would squash the curve: draw them at the right edge (z = 6)
   out.normal = normalChart(v.map((x, i) => ({ label: `order ${ids[i]}`, z: Math.round((x - m) / s * 100) / 100 })).sort((a, b) => b.z - a.z).slice(0, 5).map(p => ({ ...p, z: Math.min(p.z, 6) })), { label: 'z' }); }
+
+// A7: orders with and without a coupon, per store
+{ const g = col('kumo_orders', 'store'), o = col('kumo_orders', 'coupon'), labels = [...new Set(g)].sort();
+  out.cross = barChart(labels, [labels.map(l => g.filter((x, i) => x === l && o[i] !== null).length), labels.map(l => g.filter((x, i) => x === l && o[i] === null).length)], { names: ['coupon', 'no coupon'] }); }
+
+// A8: monthly totals and the 3-month moving average
+{ const d = col('kumo_orders', 'order_date'), v = col('kumo_orders', 'amount'), m = new Map();
+  d.forEach((x, i) => { const k = x.slice(0, 7); m.set(k, (m.get(k) || 0) + v[i]); });
+  const months = [...m.keys()].sort(), tot = months.map(k => m.get(k));
+  const ma = tot.map((_, i) => { const w = tot.slice(Math.max(0, i - 2), i + 1); return w.reduce((a, b) => a + b, 0) / w.length; });
+  out.trend = lineChart(months, [tot, ma], { names: ['total', '3-month moving average'] }); }
+
+// A9: scatter plot of amount and minutes in the store
+{ const x = col('kumo_orders', 'amount'), y = col('kumo_orders', 'stay_min');
+  out.scatter = scatterChart(x.map((v, i) => ({ x: v, y: y[i] })), { xLabel: 'amount', yLabel: 'stay_min' }); }
+
+// A11: people per plan in kumo_accounts
+{ const p = col('kumo_accounts', 'plan'), labels = [...new Set(p)].sort();
+  out.plans = barChart(labels, labels.map(l => p.filter(x => x === l).length), { label: 'plan' }); }
+
+// A14: sales of each store, first and second half of the year
+{ const g = col('kumo_orders', 'store'), d = col('kumo_orders', 'order_date'), v = col('kumo_orders', 'amount'), labels = [...new Set(g)].sort();
+  const sum = (l, h) => g.reduce((a, x, i) => a + (x === l && (d[i] >= '2025-07-01') === h ? v[i] : 0), 0);
+  out.halves = barChart(labels, [labels.map(l => sum(l, false)), labels.map(l => sum(l, true))], { names: ['first half', 'second half'] }); }
 
 process.stdout.write(JSON.stringify(out));

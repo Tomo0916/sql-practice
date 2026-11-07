@@ -17,7 +17,7 @@ def cover():
     return page(f'''
     <div class="cv-top"><span class="cv-brand">Data Analysis Textbook</span><div class="cv-steps">{tools}</div></div>
     <h1 class="cv-title">{ruby("データ{分析|ぶんせき}の{教科書|きょうかしょ}")}</h1>
-    <div class="cv-vol"><b>{ruby("{第|だい} 1 {部|ぶ}・{第|だい} 2 {部|ぶ}")}</b><span>Part 1–2 · Unit A1–A6</span></div>
+    <div class="cv-vol"><b>{ruby("{第|だい} 1 {部|ぶ}〜{第|だい} 5 {部|ぶ}")}</b><span>Part 1–5 · Unit A1–A14</span></div>
     {B(("{数字|すうじ}の{裏|うら}にある{事実|じじつ}を、3 つの{道具|どうぐ}で{確|たし}かめる。", "Find the facts behind the numbers, and check them with three tools."), cls="cv-sub")}
     <div class="cv-editor">
       <div class="cv-bar"><i></i><i></i><i></i><span>kumo_mart.sql</span></div>
@@ -54,14 +54,13 @@ def howto():
         + B(('{各|かく} Unit のページの QR コードで、アプリのその Unit が{開|ひら}く。', 'The QR code on each unit opens that unit in the app.')) + '</div></div></div>')
 
 # ---------------------------------------------------------------- course map
-PARTS = [
-    (('データと{向|む}き{合|あ}う{準備|じゅんび}', 'Getting ready'), [('1', 'データの{全体|ぜんたい}を{見|み}る', 'Get to know the data'), ('2', '{欠損値|けっそんち}と{重複|ちょうふく}', 'Missing values, duplicates')]),
-    (('1 つの{数値|すうち}を{要約|ようやく}する', 'Summarise one number'), [('3', '{平均|へいきん}と{中央値|ちゅうおうち}', 'Mean, median, mode'), ('4', '{散|ち}らばり', 'Spread'), ('5', '{度数分布|どすうぶんぷ}', 'Histograms'), ('6', '{標準化|ひょうじゅんか}と{外|はず}れ{値|ち}', 'z-scores, outliers')]),
-    (('{比|くら}べる・{組|く}み{合|あ}わせる', 'Compare and combine'), [('7', 'グループの{比較|ひかく}', 'Compare groups'), ('8', '{構成比|こうせいひ}とパレート{図|ず}', 'Shares, Pareto'), ('9', 'クロス{集計|しゅうけい}', 'Cross tables'), ('10', '{表|ひょう}を{結合|けつごう}する', 'Joining tables')]),
-    (('{時間|じかん}で{見|み}る', 'Over time'), [('11', '{月|つき}ごとの{動|うご}き', 'Monthly trends'), ('12', '{前年比|ぜんねんひ}と{移動平均|いどうへいきん}', 'Growth, moving averages'), ('13', '{順位|じゅんい}', 'Ranking'), ('14', 'リピート{率|りつ}', 'Retention')]),
-    (('{関係|かんけい}を{調|しら}べる', 'Relationships'), [('15', '{相関|そうかん}', 'Correlation'), ('16', '{回帰|かいき}と{予測|よそく}', 'Regression')]),
-    (('{確|たし}からしさを{判断|はんだん}する', 'Inference'), [('17', '{確率分布|かくりつぶんぷ}', 'Distributions'), ('18', '{推定|すいてい}', 'Estimation'), ('19', 'A/B テスト', 'A/B tests'), ('20', 'カイ{二乗|にじょう}{検定|けんてい}', 'Chi-square test')]),
-    (('{伝|つた}える・{総合|そうごう}', 'Share, project'), [('21', 'グラフを{正|ただ}しく{読|よ}む', 'Reading charts'), ('22', '{総合|そうごう}プロジェクト', 'Final project')]),
+PARTS = [   # (title, [(unit, ja, en)]) — unit None = in a later volume
+    (('データと{向|む}き{合|あ}う{準備|じゅんび}', 'Getting ready'), [('A1', 'データの{全体|ぜんたい}を{見|み}る', 'Get to know the data'), ('A2', '{欠損値|けっそんち}と{重複|ちょうふく}', 'Missing values, duplicates')]),
+    (('1 つの{数値|すうち}を{要約|ようやく}する', 'Summarise one number'), [('A3', '{平均|へいきん}と{中央値|ちゅうおうち}', 'Mean, median, mode'), ('A4', '{散|ち}らばり', 'Spread'), ('A5', '{度数分布|どすうぶんぷ}', 'Histograms'), ('A6', '{標準化|ひょうじゅんか}と{外|はず}れ{値|ち}', 'z-scores, outliers')]),
+    (('{比|くら}べる・{組|く}み{合|あ}わせる', 'Compare and combine'), [('A7', 'クロス{集計|しゅうけい}と{構成比|こうせいひ}', 'Cross tables, shares'), ('A10', 'グループの{比較|ひかく}', 'Compare groups'), ('A11', '{表|ひょう}を{合|あ}わせる', 'Joining tables'), ('A12', 'データの{下|した}ごしらえ', 'Getting data ready')]),
+    (('{時間|じかん}と{関係|かんけい}', 'Time and relationships'), [('A8', '{月|つき}ごとの{推移|すいい}', 'Monthly trends'), ('A9', '{相関|そうかん}', 'Correlation')]),
+    (('{読|よ}む・{決|き}める', 'Read and decide'), [('A13', '{結果|けっか}を{正|ただ}しく{読|よ}む', 'Reading results'), ('A14', '{総合演習|そうごうえんしゅう}', 'Case study')]),
+    (('この{先|さき}（{次|つぎ}の{巻|かん}）', 'Next volume'), [(None, '{回帰|かいき}と{予測|よそく}', 'Regression'), (None, '{推定|すいてい}', 'Estimation'), (None, 'A/B テスト', 'A/B tests'), (None, 'カイ{二乗|にじょう}{検定|けんてい}', 'Chi-square test')]),
 ]
 
 CAN_DO = [
@@ -71,23 +70,33 @@ CAN_DO = [
     ('{標準偏差|ひょうじゅんへんさ}で{散|ち}らばりを{比|くら}べられる', 'compare spread with the standard deviation', 'A4'),
     ('{度数分布表|どすうぶんぷひょう}を{作|つく}り、{形|かたち}を{読|よ}める', 'make a frequency table and read its shape', 'A5'),
     ('z {得点|とくてん}で{外|はず}れ{値|ち}の{候補|こうほ}を{見|み}つけられる', 'find outlier candidates with z-scores', 'A6'),
+    ('クロス{集計|しゅうけい}を{作|つく}り、% で{比|くら}べられる', 'make a cross table and compare in %', 'A7'),
+    ('{月|つき}ごとの{推移|すいい}を{前月差|ぜんげつさ}・{移動平均|いどうへいきん}で{読|よ}める', 'read monthly trends with changes and moving averages', 'A8'),
+    ('{相関係数|そうかんけいすう}を{出|だ}し、{因果|いんが}と{区別|くべつ}できる', 'find r and tell it from causation', 'A9'),
+    ('グループを{比|くら}べ、グループごとの{順位|じゅんい}を{付|つ}けられる', 'compare groups and rank inside each group', 'A10'),
+    ('2 つの{表|ひょう}を JOIN して{集計|しゅうけい}できる', 'JOIN two tables and aggregate', 'A11'),
+    ('{書|か}き{方|かた}のゆれ・{空欄|くうらん}・{区分|くぶん}を{整|ととの}えられる', 'tidy spellings, blanks and bands', 'A12'),
+    ('{結果|けっか}を{正|ただ}しく{読|よ}み{取|と}れる', 'read results correctly', 'A13'),
+    ('{分析|ぶんせき}して、{数字|すうじ}を{理由|りゆう}に{決|き}められる', 'analyse and decide with the numbers as reasons', 'A14'),
 ]
 
 def map_page():
     cards = ''
     for i, ((ja, en), units) in enumerate(PARTS):
-        lis = ''.join(f'<li class="{"now" if int(n) <= 6 else ""}"><span class="cm-n">A{n}</span>{B((t, e))}</li>' for n, t, e in units)
-        cards += f'<div class="cm-card{" now" if i < 2 else ""}"><div class="cm-h"><b>{ruby(f"{{第|だい}} {i + 1} {{部|ぶ}}")}</b>{J(ja)}<span class="en">Part {i + 1} · {esc(en)}</span></div><ol>{lis}</ol></div>'
+        lis = ''.join(f'<li class="{"now" if n else ""}"><span class="cm-n">{n or "—"}</span>{B((t, e))}</li>' for n, t, e in units)
+        cards += f'<div class="cm-card{" now" if units[0][0] else ""}"><div class="cm-h"><b>{ruby(f"{{第|だい}} {i + 1} {{部|ぶ}}")}</b>{J(ja)}<span class="en">Part {i + 1} · {esc(en)}</span></div><ol>{lis}</ol></div>'
     items = ''.join(f'<li><span class="cb"></span>{B((ja, en))}<span class="cd-l">{n}</span></li>' for ja, en, n in CAN_DO)
     return page(H('{講座|こうざ}の{地図|ちず}', 'Course map')
-        + B(('{全|ぜん} 22 Unit・7 {部|ぶ}で、{基礎統計|きそとうけい}を{一通|ひととお}り{学|まな}ぶ。この{本|ほん}は{色|いろ}のついた{第|だい} 1 {部|ぶ}・{第|だい} 2 {部|ぶ}。', '22 units in 7 parts cover basic statistics. This book is the coloured Parts 1 and 2.'), cls='lead')
+        + B(('この{本|ほん}は 14 Unit・5 {部|ぶ}。{記述統計|きじゅつとうけい}から、{比較|ひかく}・{推移|すいい}・{相関|そうかん}、そして{結果|けっか}を{読|よ}んで{決|き}めるところまで。{灰色|はいいろ}は{次|つぎ}の{巻|かん}で{学|まな}ぶ。', '14 units in 5 parts: from descriptive statistics to comparing, trends, correlation, and reading results to decide. Grey topics come in the next volume.'), cls='lead')
         + f'<div class="cmap">{cards}</div>'
         + f'<div class="box"><h2>{J("この{本|ほん}でできるようになること")}<small>What you will be able to do</small></h2>'
         + B(('できるようになったら、□ にチェックを{入|い}れよう。', 'Tick each box when you can do it.'), cls='mt') + f'<ul class="cando">{items}</ul></div>')
 
 def toc():
     out = ''
-    for (ja, en), nos in [(('データと{向|む}き{合|あ}う{準備|じゅんび}', 'Part 1 · Getting ready'), [0, 1]), (('1 つの{数値|すうち}を{要約|ようやく}する（{記述統計|きじゅつとうけい}）', 'Part 2 · Summarise one number (descriptive statistics)'), [2, 3, 4, 5])]:
+    groups = [(('データと{向|む}き{合|あ}う{準備|じゅんび}', 'Part 1 · Getting ready'), [0, 1]), (('1 つの{数値|すうち}を{要約|ようやく}する（{記述統計|きじゅつとうけい}）', 'Part 2 · Summarise one number (descriptive statistics)'), [2, 3, 4, 5]),
+              (('{比|くら}べる・{時間|じかん}・{関係|かんけい}', 'Parts 3–4 · Compare, over time, relationships'), [6, 7, 8, 9, 10, 11]), (('{読|よ}む・{決|き}める', 'Part 5 · Read and decide'), [12, 13])]
+    for (ja, en), nos in groups:
         out += f'<li class="toc-g">{J(ja)}<span class="en">{en}</span></li>'
         for i in nos:
             U = UNITS[i]
@@ -99,7 +108,7 @@ def toc():
 # ---------------------------------------------------------------- data
 COLS = [('order_id', ('{注文|ちゅうもん}{番号|ばんごう}', 'order number')), ('order_date', ('{注文日|ちゅうもんび}（2025 {年|ねん}）', 'order date (2025)')),
         ('store', ('{店|みせ}（Shibuya・Umeda・Sakae・Online）', 'store')), ('customer_id', ('{客|きゃく}の{番号|ばんごう}（{同|おな}じ{客|きゃく}が{何度|なんど}も{買|か}う）', 'customer (repeats)')),
-        ('amount', ('{金額|きんがく}（{円|えん}）', 'amount (yen)')), ('items', ('{買|か}った{点数|てんすう}', 'number of items')), ('coupon', ('{使|つか}ったクーポン（{空欄|くうらん}あり）', 'coupon used (may be blank)'))]
+        ('amount', ('{金額|きんがく}（{円|えん}）', 'amount (yen)')), ('items', ('{買|か}った{点数|てんすう}', 'number of items')), ('coupon', ('{使|つか}ったクーポン（{空欄|くうらん}あり）', 'coupon used (may be blank)')), ('stay_min', ('{店|みせ}・サイトにいた{時間|じかん}（{分|ふん}）', 'minutes in the store / site'))]
 PRACTICE = [('cafe_sales', ('カフェの{売上|うりあげ}', 'cafe sales')), ('hotel_stays', ('ホテルの{宿泊|しゅくはく}', 'hotel stays')), ('courier_jobs', ('{宅配|たくはい}の{料金|りょうきん}', 'courier jobs')),
             ('helpdesk_tickets', ('IT ヘルプデスクの{対応|たいおう}', 'IT help desk tickets')), ('gym_visits', ('ジムの{利用|りよう}', 'gym visits')), ('factory_lots', ('{工場|こうじょう}の{製品|せいひん}{検査|けんさ}', 'factory quality checks'))]
 
@@ -112,9 +121,10 @@ def data_page():
         + B(('クモマート（Kumo Mart）は、3 つの{店|みせ}とネット{通販|つうはん}を{持|も}つ{架空|かくう}の{会社|かいしゃ}。{例題|れいだい}はすべてこのデータを{使|つか}う。アプリと{同|おな}じデータなので、{結果|けっか}を{確|たし}かめられる。', 'Kumo Mart is a made-up company with three stores and an online shop. All examples use its data, which is the same as in the app.'), cls='lead')
         + f'<div class="bdata"><h4><code>kumo_orders</code>{B(("{注文|ちゅうもん}（{全部|ぜんぶ}で " + str(n) + " {行|ぎょう}、{最初|さいしょ}の 8 {行|ぎょう}）", f"orders ({n} rows, the first 8)"))}</h4>{table_html(cols, rows)}</div>'
         + f'<table class="minitable coldesc"><tbody>{desc}</tbody></table>'
-        + B(('{顧客名簿|こきゃくめいぼ} kumo_customers（customer_id・joined_date・city・name・points・age・email）は A2 で{使|つか}う。', 'The customer list kumo_customers is used in A2.'), cls='mt')
+        + B(('{顧客名簿|こきゃくめいぼ} kumo_customers は A2、{会員|かいいん}の{表|ひょう} kumo_accounts（customer_id・joined_date・plan・age・pref）は A11・A12 で{使|つか}う。pref は{手入力|てにゅうりょく}で、{書|か}き{方|かた}がばらばら。', 'The customer list kumo_customers is used in A2; the member table kumo_accounts (customer_id, joined_date, plan, age, pref) in A11 and A12. pref is hand-typed and messy.'), cls='mt')
         + f'<h3 class="sub-h">{J("{練習|れんしゅう}で{使|つか}う{表|ひょう}")}<span class="en">Tables for practice</span></h3>'
         + B(('「やってみよう」とアプリの{演習|えんしゅう}では、{別|べつ}の{業種|ぎょうしゅ}のデータで{同|おな}じ{方法|ほうほう}を{使|つか}う。', 'In “Try it” and in the app, the same methods are used on data from other businesses.'))
+        + B(('{各|かく}{業種|ぎょうしゅ}には{人|ひと}の{表|ひょう}もある（cafe_members・hotel_guests・courier_clients・helpdesk_users・gym_members・factory_staff）。', 'Each business also has a people table (cafe_members, hotel_guests, courier_clients, helpdesk_users, gym_members, factory_staff).'), cls='small')
         + f'<table class="minitable practice"><thead><tr><th>{J("{表|ひょう}")}<span class="en">table</span></th><th>{J("{内容|ないよう}")}<span class="en">about</span></th><th>{J("{行数|ぎょうすう}")}<span class="en">rows</span></th><th>{J("{列|れつ}")}<span class="en">columns</span></th></tr></thead><tbody>{pr}</tbody></table>')
 
 def front():
@@ -130,12 +140,27 @@ def back():
         else:
             body = B(MANUAL[(no, i)])
         return f'<div class="ans-item"><div class="ans-no">{no}-{i}</div><div class="ans-body">{body}</div></div>'
-    half = [a for a in ANSWERS if a[0] in ('A1', 'A2', 'A3')], [a for a in ANSWERS if a[0] not in ('A1', 'A2', 'A3')]   # one page each
+    pages = [[a for a in ANSWERS if a[0] in g] for g in ANSWER_PAGES]
     head = H('やってみようの{答|こた}え', 'Answers to “Try it”') + B(('{結果|けっか}は{上|うえ}の 6 {行|ぎょう}まで。{別|べつ}の{書|か}き{方|かた}でも、{同|おな}じ{結果|けっか}なら{正解|せいかい}。', 'Results show up to 6 rows. A different SQL with the same result is also right.'), cls='lead')
-    return (page('<span class="marker">@@LESSONEND@@</span>' + head + f'<div class="answers">{"".join(item(*a) for a in half[0])}</div>', 'answers')
-            + page(f'<div class="answers">{"".join(item(*a) for a in half[1])}</div>', 'answers'))
+    return ''.join(page(('<span class="marker">@@LESSONEND@@</span>' + head if k == 0 else '') + f'<div class="answers">{"".join(item(*a) for a in g)}</div>', 'answers') for k, g in enumerate(pages))
+
+ANSWER_PAGES = [('A1', 'A2', 'A3'), ('A4', 'A5', 'A6'), ('A7', 'A8'), ('A9', 'A10'), ('A11', 'A12'), ('A13', 'A14')]
 
 MANUAL = {
-    ('A1', 3): ('ID：visit_id ／ {日付|ひづけ}：visit_date ／ {質的|しつてき}：branch・member_id・trainer ／ {量的|りょうてき}：minutes・machines', 'ID: visit_id / date: visit_date / qualitative: branch, member_id, trainer / quantitative: minutes, machines'),
+    ('A1', 3): ('ID：visit_id ／ {日付|ひづけ}：visit_date ／ {質的|しつてき}：branch・member_id・trainer ／ {量的|りょうてき}：minutes・machines・kcal', 'ID: visit_id / date: visit_date / qualitative: branch, member_id, trainer / quantitative: minutes, machines, kcal'),
     ('A6', 3): ('{偏差値|へんさち} = 50 + 10 × 1.5 = 65', 'T-score = 50 + 10 × 1.5 = 65'),
 }
+
+# answers that depend on the data are worked out here too
+_st = run('SELECT store, COUNT(*) AS n, ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS p FROM kumo_orders GROUP BY store')[1]
+_most, _share = max(_st, key=lambda r: r[1]), max(_st, key=lambda r: r[2])
+_cf = run("SELECT shop, SUM(CASE WHEN sale_date >= '2025-07-01' THEN amount ELSE -amount END) AS g, ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS p FROM cafe_sales GROUP BY shop")[1]
+_pick = sorted([r for r in _cf if r[1] > 0] or _cf, key=lambda r: r[2])[0]
+MANUAL.update({
+    ('A9', 3): ('いいえ。{雨|あめ}（{第|だい} 3 のもの）が{傘|かさ}の{売上|うりあげ}を{増|ふ}やし、{客|きゃく}を{減|へ}らしている。{相関|そうかん}は{因果|いんが}ではない。', 'No. The rain (a third thing) raises umbrella sales and lowers customers. Correlation is not causation.'),
+    ('A13', 1): ((f'{{同|おな}}じではない。{{件数|けんすう}}がいちばん{{多|おお}}いのは {_most[0]}（{_most[1]} {{件|けん}}）、クーポンの{{割合|わりあい}}がいちばん{{高|たか}}いのは {_share[0]}（{_share[2]}%）。' if _most[0] != _share[0] else f'{{同|おな}}じ（{_most[0]}）。でも{{数|かず}}と{{割合|わりあい}}は{{別|べつ}}に{{確|たし}}かめる。'),
+                 (f'No. Most orders: {_most[0]} ({_most[1]}); highest coupon share: {_share[0]} ({_share[2]}%).' if _most[0] != _share[0] else f'Yes ({_most[0]}), but check counts and shares separately.')),
+    ('A13', 2): ('{片方|かたほう}が{大|おお}きいと、もう{片方|かたほう}は{小|ちい}さい{傾向|けいこう}（{負|ふ}の{相関|そうかん}）。|r| ≥ 0.7 なので{強|つよ}い。', 'When one is large the other tends to be small (negative). |r| ≥ 0.7, so it is strong.'),
+    ('A13', 3): ('いいえ。|z| = 2.4 は 3 より{小|ちい}さい。めずらしいが、{外|はず}れ{値|ち}の{候補|こうほ}ではない。', 'No. |z| = 2.4 is below 3: unusual, but not an outlier candidate.'),
+    ('A14', 3): ((f'{{例|れい}}：「クーポンは {_pick[0]} で{{配|くば}}る。{{下半期|しもはんき}}に{{売上|うりあげ}}が {_pick[1]:,} {{円|えん}}{{伸|の}}びているのに、クーポンの{{利用率|りようりつ}}は {_pick[2]}% で、{{伸|の}}びている{{店|みせ}}の{{中|なか}}でいちばん{{低|ひく}}い。」', f'Example: “Hand out coupons at {_pick[0]}: its sales grew by {_pick[1]:,} yen in the second half, but its coupon share ({_pick[2]}%) is the lowest of the growing shops.”')),
+})

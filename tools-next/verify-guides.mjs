@@ -18,11 +18,12 @@ for (const L of LESSONS.filter(l => l.themes === 'analysis')) for (const code of
     if (seen.has(p.sql)) continue; seen.add(p.sql);
     const fill = s => s.replace(/\{(\w+)\}/g, (m, k) => (k in p.p ? String(p.p[k]) : m));
     const cells = guideSteps(L.key, p.p.w, 'python').filter(s => s.code && !/plt\./.test(s.code)).map(s => fill(s.code));
+    if (p.answer !== undefined) continue;   // a reading question: no guide
     const res = eng.exec(p.sql);
-    cases.push({ id: `${L.key}/${p.p.w || '_'}/${p.p.t}`, table: p.p.t, cells, expect: res.values.flat().filter(v => typeof v === 'number') });
+    cases.push({ id: `${L.key}/${p.p.w || '_'}/${p.p.t}`, tables: p.tables, cells, expect: res.values.flat().filter(v => typeof v === 'number') });
   }
 }
-for (const t of new Set(cases.map(c => c.table))) {
+for (const t of new Set(cases.flatMap(c => c.tables))) {
   const tb = ALL_TABLES[t];
   fs.writeFileSync(path.join(dir, t + '.csv'), [tb.columns.map(c => c[0]).join(','), ...tb.rows.map(r => r.map(v => (v === null ? '' : v)).join(','))].join('\n'));
 }

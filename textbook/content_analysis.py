@@ -1,5 +1,5 @@
 """
-データ分析編（Data analysis）: Units A1–A6 as data, the same shape as content_beginner.py.
+データ分析編（Data analysis）: Units A1–A14 as data, the same shape as content_beginner.py.
 Kumo Mart (kumo_*) is the example; the practice uses other businesses (the same tables as the app).
 Numbers in the text come from running the SQL, never typed by hand.
 """
@@ -62,7 +62,7 @@ UNITS = []
 # ---------------------------------------------------------------- A1
 def kinds_fig():
     kinds = {'order_id': ('ID', 'id'), 'order_date': ('{日付|ひづけ}', 'date'), 'store': ('{質的|しつてき}', 'qualitative'), 'customer_id': ('{質的|しつてき}', 'qualitative'),
-             'amount': ('{量的|りょうてき}', 'quantitative'), 'items': ('{量的|りょうてき}', 'quantitative'), 'coupon': ('{質的|しつてき}', 'qualitative')}
+             'amount': ('{量的|りょうてき}', 'quantitative'), 'items': ('{量的|りょうてき}', 'quantitative'), 'coupon': ('{質的|しつてき}', 'qualitative'), 'stay_min': ('{量的|りょうてき}', 'quantitative')}
     cls = {'id': 'id', 'date': 'date', 'qualitative': 'qual', 'quantitative': 'quant'}
     return '<div class="col-kinds">' + ''.join(
         f'<span class="ck ck-{cls[en]}"><code>{c}</code><b>{ruby(ja)}</b><small>{en}</small></span>' for c, (ja, en) in kinds.items()) + '</div>'
@@ -110,7 +110,7 @@ UNITS.append(dict(
         dict(q=('hotel_stays の checkin_date の{最初|さいしょ}と{最後|さいご}を{求|もと}めよう。', 'Find the first and last checkin_date of hotel_stays.'),
              answer='SELECT MIN(checkin_date) AS first_date, MAX(checkin_date) AS last_date FROM hotel_stays;', lines=2),
         dict(q=('gym_visits の{列|れつ}を、{量的|りょうてき}・{質的|しつてき}・{日付|ひづけ}・ID に{分|わ}けよう。', 'Sort the columns of gym_visits into quantitative, qualitative, date and ID.'),
-             answer=None, check=('{列|れつ}は 7 つ', '7 columns'), lines=2),
+             answer=None, check=('{列|れつ}は 8 つ', '8 columns'), lines=2),
     ]},
 ))
 
@@ -339,7 +339,7 @@ UNITS.append(dict(
     points=[
         ((f'|z| ≥ 2 の{{件数|けんすう}}は WHERE で{{数|かぞ}}える。kumo_orders では {_out2} {{件|けん}}。', f'Count |z| ≥ 2 with WHERE: {_out2} orders in kumo_orders.'),
          f'<code class="ex">SELECT COUNT(*) FROM kumo_orders WHERE ABS(amount - {_m}) / {_s} >= 2;</code>'),
-        (('{平均|へいきん}と{標準偏差|ひょうじゅんへんさ}を 1 つの SQL の{中|なか}で{求|もと}める{方法|ほうほう}（ウィンドウ{関数|かんすう}）は、Unit 12 で{学|まな}ぶ。', 'Getting the mean and standard deviation inside the same SQL (window functions) comes in Unit 12.'),),
+        (('{平均|へいきん}を{同|おな}じ SQL の{中|なか}で{求|もと}めて{使|つか}う{方法|ほうほう}（サブクエリ・ウィンドウ{関数|かんすう}）は A9・A10 で{学|まな}ぶ。', 'Using the mean inside the same SQL (subqueries, window functions) comes in A9 and A10.'),),
     ],
     mistakes=[
         dict(wrong=f'SELECT order_id, (amount - {round(_m)}) / {round(_s)} AS z\nFROM kumo_orders ORDER BY z DESC LIMIT 5;', mark_w=f'(amount - {round(_m)}) / {round(_s)}',
@@ -361,6 +361,351 @@ UNITS.append(dict(
              answer=f'SELECT COUNT(*) AS outliers FROM factory_lots WHERE ABS(weight_g - {_f[0]}) / {_f[1]} >= 2;', lines=2),
         dict(q=('z = 1.5 の{社員|しゃいん}の{偏差値|へんさち}はいくつ？', 'What is the T-score (hensachi) of an employee with z = 1.5?'),
              answer=None, check=('{計算|けいさん}で{答|こた}える', 'answer by calculation'), lines=1),
+    ]},
+))
+
+# ---------------------------------------------------------------- A7
+_cr = run('SELECT store, COUNT(*) AS n, COUNT(coupon) AS with_coupon, ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS pct_coupon FROM kumo_orders GROUP BY store ORDER BY pct_coupon DESC')[1]
+UNITS.append(dict(
+    no='A7', key='an_cross', kw='クロス{集計|しゅうけい}・{割合|わりあい}', tags=['sql', 'excel', 'python'],
+    title=('クロス{集計|しゅうけい}と{構成比|こうせいひ}', 'Cross tables and shares'),
+    ask=('{販促|はんそく}{担当|たんとう}', 'Promotions', '「クーポンはどの{店|みせ}でよく{使|つか}われている？」{店|みせ}ごとに{数|かず}と{割合|わりあい}で{比|くら}べよう。', '“In which store are coupons used most?” Compare stores by count and by share.'),
+    goal=('2 つの{列|れつ}で{同時|どうじ}に{数|かぞ}え、{大|おお}きさのちがうグループを % で{比|くら}べられる。', 'You can count by two columns at once and compare groups of different sizes in %.'),
+    sections_before=[stat_box([
+        ('h', ('クロス{集計|しゅうけい}', 'Cross tables')),
+        ('p', ('{店|みせ} × クーポンのように、2 つのことがらで{同時|どうじ}に{行|ぎょう}を{数|かぞ}える。「グループに{違|ちが}いはあるか」の{第一歩|だいいっぽ}。', 'Count rows by two things at once, like store × coupon: the first step to “do the groups differ?”')),
+        ('f', '{割合|わりあい}（%）= 100.0 × {部分|ぶぶん} ÷ {全体|ぜんたい}'),
+        ('li', [('{行|ぎょう}の{割合|わりあい}：「{渋谷|しぶや}の{注文|ちゅうもん}のうち 39% がクーポン」', 'Row %: “39% of Shibuya’s orders used a coupon”'),
+                ('{全体|ぜんたい}に{占|し}める{割合|わりあい}：「{売上|うりあげ}{全体|ぜんたい}の 25% が{渋谷|しぶや}」', 'Share of the whole: “25% of all sales are Shibuya”'),
+                ('{大|おお}きな{店|みせ}は{何|なん}でも{数|かず}が{多|おお}い。{比|くら}べるときは %', 'Big stores have more of everything: compare in %')]),
+    ], FIGS['cross'], ('{店|みせ}ごとの、クーポンあり（{青|あお}）となし（{橙|だいだい}）の{注文数|ちゅうもんすう}。', 'Orders with (blue) and without (orange) a coupon, per store.'))],
+    see=dict(q=('{店|みせ}ごとに、{注文数|ちゅうもんすう}・クーポンを{使|つか}った{注文|ちゅうもん}の{数|かず}・その{割合|わりあい}を{出|だ}す。', 'For each store: orders, orders with a coupon, and that share.'),
+             sql='SELECT store, COUNT(*) AS n,\n       COUNT(coupon) AS with_coupon,\n       ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS pct_coupon\nFROM kumo_orders\nGROUP BY store\nORDER BY pct_coupon DESC;',
+             mark='COUNT(coupon)', viz=dict(kind='result'),
+             note=(f'{{割合|わりあい}}がいちばん{{高|たか}}いのは {_cr[0][0]}（{_cr[0][3]}%）。{{数|かず}}だけ{{見|み}}ると{{別|べつ}}の{{店|みせ}}が{{多|おお}}く{{見|み}}える。', f'{_cr[0][0]} has the highest share ({_cr[0][3]}%). By count alone another store looks bigger.')),
+    after_see=[sub_see(('{値|あたい}ごとに{列|れつ}を{分|わ}ける', 'One column per value'),
+        "SELECT store,\n       SUM(CASE WHEN coupon = 'WELCOME10' THEN 1 ELSE 0 END) AS welcome10,\n       SUM(CASE WHEN coupon = 'SPRING5' THEN 1 ELSE 0 END) AS spring5\nFROM kumo_orders\nGROUP BY store;",
+        ('SUM(CASE WHEN … THEN 1 ELSE 0 END) は、{条件|じょうけん}に{合|あ}う{行|ぎょう}だけを{数|かぞ}える。Excel のピボットテーブルの「{列|れつ}」と{同|おな}じ{形|かたち}。', 'SUM(CASE WHEN … THEN 1 ELSE 0 END) counts only the rows that meet the condition: the same shape as the Columns of an Excel PivotTable.'))],
+    points=[
+        (('COUNT({列|れつ}) は NULL でない{行|ぎょう}を{数|かぞ}える。クーポンの{有無|うむ}はこれで{数|かぞ}えられる。', 'COUNT(column) counts the non-NULL rows: that is how to count orders with a coupon.'),),
+        (('{全体|ぜんたい}に{占|し}める{割合|わりあい}は、( SELECT SUM(…) FROM … ) で{全体|ぜんたい}の{合計|ごうけい}を{出|だ}して{割|わ}る。', 'For a share of the whole, divide by the grand total from ( SELECT SUM(…) FROM … ).'),
+         '<code class="ex">ROUND(100.0 * SUM(amount) / (SELECT SUM(amount) FROM kumo_orders), 1)</code>'),
+    ],
+    mistakes=[
+        dict(wrong='SELECT store, ROUND(100 * COUNT(coupon) / COUNT(*), 1) AS pct\nFROM kumo_orders GROUP BY store;', mark_w='100 *', right='SELECT store, ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS pct\nFROM kumo_orders GROUP BY store;', mark_r='100.0 *',
+             why=('{整数|せいすう}どうしの{割|わ}り{算|ざん}は{小数|しょうすう}が{消|き}える。100.0 にする。', 'Integer division drops the decimals: use 100.0.')),
+    ],
+    tools=[
+        tool_box('excel', [opened(XL_OPEN, 'kumo_orders'),
+            (('{挿入|そうにゅう} → ピボットテーブル：store を「{行|ぎょう}」、store と coupon を「{値|あたい}」（{個数|こすう}）に。{横|よこ}に{割合|わりあい}を{計算|けいさん}する。', 'Insert → PivotTable: store to Rows, store and coupon to Values (Count). Add the share next to it.'), '=ROUND(100*C5/B5,1)')], SAME),
+        tool_box('python', [opened(PY_OPEN, 'kumo_orders'),
+            (('{店|みせ}ごとの{数|かず}・クーポンあり・{割合|わりあい}。pd.crosstab で{値|あたい}ごとの{表|ひょう}も{作|つく}れる。', 'Count, with coupon and share per store. pd.crosstab makes the table per value.'),
+             's = df.groupby("store").agg(n=("coupon", "size"), with_coupon=("coupon", "count"))\ns["pct_coupon"] = (100 * s["with_coupon"] / s["n"]).round(1)\nprint(s.sort_values("pct_coupon", ascending=False))\npd.crosstab(df["store"], df["coupon"])')], SAME),
+    ],
+    **{'try': [
+        dict(q=('gym_visits で branch ごとに、{行数|ぎょうすう}と trainer が{入|はい}っている{割合|わりあい}（%、{小数|しょうすう}{第|だい} 1 {位|い}）を{出|だ}そう。', 'For gym_visits, per branch: rows and the share (%, 1 decimal) with a trainer.'),
+             answer='SELECT branch, COUNT(*) AS n, ROUND(100.0 * COUNT(trainer) / COUNT(*), 1) AS pct_trainer FROM gym_visits GROUP BY branch ORDER BY pct_trainer DESC;', lines=3),
+        dict(q=('cafe_sales で shop ごとの amount の{合計|ごうけい}と、{全体|ぜんたい}に{占|し}める{割合|わりあい}を{出|だ}そう。', 'For cafe_sales, the total amount per shop and its share of the whole.'),
+             answer='SELECT shop, SUM(amount) AS total_amount, ROUND(100.0 * SUM(amount) / (SELECT SUM(amount) FROM cafe_sales), 1) AS share_pct FROM cafe_sales GROUP BY shop ORDER BY share_pct DESC;', lines=3),
+        dict(q=("helpdesk_tickets で team ごとに、rating が 'good' と 'bad' の{件数|けんすう}を{別|べつ}の{列|れつ}で{出|だ}そう。", "For helpdesk_tickets, per team, count rating 'good' and 'bad' in separate columns."),
+             answer="SELECT team, SUM(CASE WHEN rating = 'good' THEN 1 ELSE 0 END) AS good, SUM(CASE WHEN rating = 'bad' THEN 1 ELSE 0 END) AS bad FROM helpdesk_tickets GROUP BY team ORDER BY team;", lines=3),
+    ]},
+))
+
+# ---------------------------------------------------------------- A8
+_tr = run("SELECT month, total, total - LAG(total) OVER (ORDER BY month) AS diff FROM (SELECT strftime('%Y-%m', order_date) AS month, SUM(amount) AS total FROM kumo_orders GROUP BY month) ORDER BY diff DESC LIMIT 1")[1][0]
+UNITS.append(dict(
+    no='A8', key='an_trend', kw='strftime・LAG・{移動平均|いどうへいきん}', tags=['sql', 'excel', 'python'],
+    title=('{月|つき}ごとの{推移|すいい}', 'Month by month'),
+    ask=('{店長|てんちょう}', 'Store manager', '「{売上|うりあげ}は{落|お}ちている？{伸|の}びている？」{月|つき}ごとに{並|なら}べて、{前|まえ}の{月|つき}と{比|くら}べよう。', '“Are sales going down or up?” Put them month by month and compare with the month before.'),
+    goal=('{日付|ひづけ}を{月|つき}にまとめ、{前月|ぜんげつ}との{差|さ}と{移動平均|いどうへいきん}で{流|なが}れを{読|よ}める。', 'You can group dates into months and read the trend with the change from last month and a moving average.'),
+    sections_before=[stat_box([
+        ('h', ('{時系列|じけいれつ}データ', 'Time series')),
+        ('li', [('{傾向|けいこう}：{長|なが}い{期間|きかん}で{上|あ}がるか{下|さ}がるか', 'Trend: up or down over a long time'),
+                ('{季節性|きせつせい}：{毎年|まいとし}{同|おな}じ{形|かたち}（12 {月|がつ}に{売|う}れる など）', 'Seasonality: the same pattern every year (more sales in December…)'),
+                ('ノイズ：たまたまの{上|あ}がり{下|さ}がり', 'Noise: random ups and downs')]),
+        ('f', '{差|さ} = {今月|こんげつ} − {先月|せんげつ}　　3 か{月|げつ}{移動平均|いどうへいきん} = ({今月|こんげつ} + {先月|せんげつ} + {先々月|せんせんげつ}) ÷ 3'),
+        ('p', ('{移動平均|いどうへいきん}はノイズをならして{傾向|けいこう}を{見|み}やすくする。{季節性|きせつせい}があるときは{前年|ぜんねん}の{同|おな}じ{月|つき}と{比|くら}べる。', 'A moving average smooths the noise so the trend shows. With seasonality, compare with the same month last year.')),
+    ], FIGS['trend'], ('{月|つき}ごとの{合計|ごうけい}（{実線|じっせん}）と 3 か{月|げつ}{移動平均|いどうへいきん}（{点線|てんせん}）。', 'Monthly totals (line) and the 3-month moving average (dashed).'))],
+    see=dict(q=("strftime('%Y-%m', order_date) で{月|つき}にまとめ、{月|つき}ごとの{件数|けんすう}と{売上合計|うりあげごうけい}を{出|だ}す。", "Group by month with strftime('%Y-%m', order_date): orders and total amount per month."),
+             sql="SELECT strftime('%Y-%m', order_date) AS month,\n       COUNT(*) AS n, SUM(amount) AS total_amount\nFROM kumo_orders\nGROUP BY month\nORDER BY month;",
+             mark="strftime('%Y-%m', order_date)", viz=dict(kind='result'),
+             note=('12 {月|がつ}に{向|む}けて{伸|の}びている。{月|つき}による{上|あ}がり{下|さ}がりも{大|おお}きい。', 'Sales grow towards December, with big ups and downs from month to month.')),
+    after_see=[sub_see(('{前|まえ}の{月|つき}と{比|くら}べる（LAG）', 'Compare with the month before (LAG)'),
+        "SELECT month, total,\n       total - LAG(total) OVER (ORDER BY month) AS diff\nFROM (SELECT strftime('%Y-%m', order_date) AS month,\n             SUM(amount) AS total\n      FROM kumo_orders GROUP BY month)\nORDER BY diff DESC\nLIMIT 3;",
+        (f'いちばん{{伸|の}}びたのは {_tr[0]}（+{_tr[2]:,}）。LAG(…) OVER (ORDER BY month) は{{月|つき}}の{{順|じゅん}}で 1 つ{{前|まえ}}の{{行|ぎょう}}の{{値|あたい}}。', f'The biggest rise was {_tr[0]} (+{_tr[2]:,}). LAG(…) OVER (ORDER BY month) is the value of the month before.'))],
+    points=[
+        (('ウィンドウ{関数|かんすう}（… OVER）は{行|ぎょう}をまとめない。{行|ぎょう}はそのままで{列|れつ}が{増|ふ}える。', 'Window functions (… OVER) do not join rows: every row stays and gets a new column.'),),
+        (('3 か{月|げつ}{移動平均|いどうへいきん}：AVG(total) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)', '3-month moving average: AVG(total) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)'),),
+    ],
+    mistakes=[
+        dict(wrong="SELECT strftime('%Y-%M', order_date) AS month, SUM(amount) AS total\nFROM kumo_orders GROUP BY month;", mark_w="'%Y-%M'",
+             right="SELECT strftime('%Y-%m', order_date) AS month, SUM(amount) AS total\nFROM kumo_orders GROUP BY month;", mark_r="'%Y-%m'", max_rows=4,
+             why=('%M（{大文字|おおもじ}）は「{分|ふん}」。{月|つき}は %m（{小文字|こもじ}）。{全部|ぜんぶ}が 1 {行|ぎょう}にまとまってしまう。', '%M (capital) means minutes; the month is %m. Everything ends up in one row.')),
+    ],
+    tools=[
+        tool_box('excel', [opened(XL_OPEN, 'kumo_orders'),
+            (('テーブルに month の{列|れつ}を{足|た}し、ピボットテーブルで{月|つき}ごとに{合計|ごうけい}。{挿入|そうにゅう} → {折|お}れ{線|せん}グラフ。', 'Add a month column, total it per month in a PivotTable, then Insert → Line chart.'), '=TEXT([@order_date],"yyyy-mm")')], SAME),
+        tool_box('python', [opened(PY_OPEN, 'kumo_orders'),
+            (('{月|つき}ごとの{合計|ごうけい}・{前月|ぜんげつ}との{差|さ}・3 か{月|げつ}{移動平均|いどうへいきん}：', 'Monthly total, change from last month, 3-month moving average:'),
+             's = df.groupby(df["order_date"].str[:7])["amount"].sum().to_frame("total")\ns["diff"] = s["total"].diff()\ns["ma3"] = s["total"].rolling(3, min_periods=1).mean().round(1)\ns')], SAME),
+    ],
+    **{'try': [
+        dict(q=('courier_jobs の ship_date の{月|つき}ごとに、{件数|けんすう}と fee の{合計|ごうけい}を{出|だ}そう。', 'For courier_jobs, per month of ship_date: jobs and total fee.'),
+             answer="SELECT strftime('%Y-%m', ship_date) AS month, COUNT(*) AS n, SUM(fee) AS total_fee FROM courier_jobs GROUP BY month ORDER BY month;", lines=3),
+        dict(q=('gym_visits の minutes を{月|つき}ごとに{合計|ごうけい}し、{前|まえ}の{月|つき}との{差|さ}（diff）を{出|だ}そう。', 'For gym_visits, total minutes per month and the change from the month before (diff).'),
+             answer="SELECT month, total, total - LAG(total) OVER (ORDER BY month) AS diff FROM (SELECT strftime('%Y-%m', visit_date) AS month, SUM(minutes) AS total FROM gym_visits GROUP BY month) ORDER BY month;", lines=3),
+        dict(q=('hotel_stays の charge の{月|つき}ごとの{合計|ごうけい}と、3 か{月|げつ}{移動平均|いどうへいきん}（{小数|しょうすう}{第|だい} 1 {位|い}）を{出|だ}そう。', 'For hotel_stays, the monthly total charge and the 3-month moving average (1 decimal).'),
+             answer="SELECT month, total, ROUND(AVG(total) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW), 1) AS ma3 FROM (SELECT strftime('%Y-%m', checkin_date) AS month, SUM(charge) AS total FROM hotel_stays GROUP BY month) ORDER BY month;", lines=3),
+    ]},
+))
+
+# ---------------------------------------------------------------- A9
+_r = one('SELECT ROUND(SUM((amount - m.mx) * (stay_min - m.my)) / SQRT(SUM((amount - m.mx) * (amount - m.mx)) * SUM((stay_min - m.my) * (stay_min - m.my))), 3) FROM kumo_orders, (SELECT AVG(amount) AS mx, AVG(stay_min) AS my FROM kumo_orders) AS m')
+UNITS.append(dict(
+    no='A9', key='an_corr', kw='{相関係数|そうかんけいすう} r', tags=['sql', 'excel', 'python'],
+    title=('2 つの{数|かず}の{関係|かんけい}（{相関|そうかん}）', 'Relationship between two numbers'),
+    ask=('{店舗|てんぽ}{企画|きかく}', 'Store planning', '「{店|みせ}に{長|なが}くいるお{客|きゃく}ほど、たくさん{買|か}う？」{滞在|たいざい}{時間|じかん}と{金額|きんがく}の{関係|かんけい}を{調|しら}べよう。', '“Do customers who stay longer buy more?” Check the relationship between time in the store and amount.'),
+    goal=('{散布図|さんぷず}と{相関係数|そうかんけいすう}で{関係|かんけい}の{強|つよ}さを{言|い}え、{相関|そうかん}と{因果|いんが}を{区別|くべつ}できる。', 'You can describe the strength of a relationship with a scatter plot and r, and tell correlation from causation.'),
+    sections_before=[stat_box([
+        ('f', 'r = Σ(x − x̄)(y − ȳ) ÷ √( Σ(x − x̄)² × Σ(y − ȳ)² )'),
+        ('li', [('|r| ≥ 0.7 {強|つよ}い・0.4〜0.7 {中|ちゅう}くらい・0.2〜0.4 {弱|よわ}い・0.2 {未満|みまん} ほとんどない（{目安|めやす}）', '|r| ≥ 0.7 strong, 0.4–0.7 moderate, 0.2–0.4 weak, below 0.2 almost none (rule of thumb)'),
+                ('r は{直線的|ちょくせんてき}な{関係|かんけい}だけを{見|み}る。{必|かなら}ず{散布図|さんぷず}も{見|み}る', 'r sees only straight-line relationships: always look at the scatter plot'),
+                ('{相関|そうかん}は{因果|いんが}ではない：アイスの{売上|うりあげ}と{水|みず}の{事故|じこ}は、{気温|きおん}が{両方|りょうほう}を{動|うご}かす', 'Correlation is not causation: ice-cream sales and swimming accidents are both moved by the temperature')]),
+    ], FIGS['scatter'], ('amount（{横|よこ}）と stay_min（{縦|たて}）の{散布図|さんぷず}。{点線|てんせん}はいちばん{合|あ}う{直線|ちょくせん}。', 'amount (x) and stay_min (y), with the best straight line (dashed).'))],
+    see=dict(q=('{平均|へいきん}との{差|さ}を{掛|か}け{合|あ}わせて{足|た}し、{両方|りょうほう}の{散|ち}らばりで{割|わ}る＝{相関係数|そうかんけいすう}。', 'Multiply the differences from the mean, add them up, and divide by both spreads: that is r.'),
+             sql='SELECT COUNT(*) AS n,\n  ROUND(SUM((amount - m.mx) * (stay_min - m.my))\n    / SQRT(SUM((amount - m.mx) * (amount - m.mx))\n         * SUM((stay_min - m.my) * (stay_min - m.my))), 3) AS r\nFROM kumo_orders,\n  (SELECT AVG(amount) AS mx, AVG(stay_min) AS my\n   FROM kumo_orders) AS m;',
+             mark='(amount - m.mx) * (stay_min - m.my)', viz=dict(kind='result'),
+             note=(f'r = {_r}：{{強|つよ}}い{{正|せい}}の{{相関|そうかん}}。ただし「{{長|なが}}くいさせれば{{売|う}}れる」とは{{言|い}}えない（たくさん{{買|か}}う{{人|ひと}}は{{選|えら}}ぶのに{{時間|じかん}}がかかる、かもしれない）。', f'r = {_r}: a strong positive correlation. But it does not show that keeping people longer sells more (people who buy a lot may need longer to choose).')),
+    points=[
+        (('( SELECT AVG… ) AS m を FROM に{並|なら}べると、{全部|ぜんぶ}の{行|ぎょう}で m.mx・m.my が{使|つか}える。', 'Putting ( SELECT AVG… ) AS m in FROM makes m.mx and m.my usable on every row.'),),
+        (('{少|すこ}しの{外|はず}れ{値|ち}で r は{大|おお}きく{変|か}わる。{外|はず}れ{値|ち}を{除|のぞ}いた r とも{比|くら}べる。', 'A few outliers can change r a lot: compare with r without them.'),),
+    ],
+    mistakes=[
+        dict(wrong='SELECT ROUND(SUM((amount - m.mx) * (stay_min - m.my)) / COUNT(*), 3) AS r\nFROM kumo_orders, (SELECT AVG(amount) AS mx, AVG(stay_min) AS my FROM kumo_orders) AS m;', mark_w='/ COUNT(*)',
+             right='SELECT ROUND(SUM((amount - m.mx) * (stay_min - m.my)) / SQRT(SUM((amount - m.mx) * (amount - m.mx)) * SUM((stay_min - m.my) * (stay_min - m.my))), 3) AS r\nFROM kumo_orders, (SELECT AVG(amount) AS mx, AVG(stay_min) AS my FROM kumo_orders) AS m;', mark_r='SQRT(',
+             why=('{行数|ぎょうすう}で{割|わ}ると「{共分散|きょうぶんさん}」。{単位|たんい}に{左右|さゆう}されるので、{両方|りょうほう}の{散|ち}らばりで{割|わ}って −1〜1 にする。', 'Dividing by the rows gives the covariance, which depends on the units. Divide by both spreads to get −1 to 1.')),
+    ],
+    tools=[
+        tool_box('excel', [opened(XL_OPEN, 'kumo_orders'),
+            (('{相関係数|そうかんけいすう}。{散布図|さんぷず}は 2 {列|れつ}を{選|えら}んで{挿入|そうにゅう} → {散布図|さんぷず}、グラフ{要素|ようそ} → {近似曲線|きんじきょくせん}。', 'r. For the scatter plot select both columns → Insert → Scatter, then Chart Elements → Trendline.'), '=ROUND(CORREL(kumo_orders[amount],kumo_orders[stay_min]),3)')], SAME),
+        tool_box('python', [opened(PY_OPEN, 'kumo_orders'),
+            (('{相関係数|そうかんけいすう}と{散布図|さんぷず}：', 'r and the scatter plot:'), 'print(round(df["amount"].corr(df["stay_min"]), 3))\ndf.plot.scatter(x="amount", y="stay_min")')], SAME),
+    ],
+    **{'try': [
+        dict(q=('gym_visits の minutes と kcal の{相関係数|そうかんけいすう}（{小数|しょうすう}{第|だい} 3 {位|い}）を{出|だ}そう。', 'Find r between minutes and kcal in gym_visits (3 decimals).'),
+             answer='SELECT ROUND(SUM((minutes - m.mx) * (kcal - m.my)) / SQRT(SUM((minutes - m.mx) * (minutes - m.mx)) * SUM((kcal - m.my) * (kcal - m.my))), 3) AS r FROM gym_visits, (SELECT AVG(minutes) AS mx, AVG(kcal) AS my FROM gym_visits) AS m;', lines=3),
+        dict(q=('helpdesk_tickets の minutes と score の r を{出|だ}し、{符号|ふごう}（+・−）の{意味|いみ}を{言|い}おう。', 'Find r between minutes and score in helpdesk_tickets, and say what its sign means.'),
+             answer='SELECT ROUND(SUM((minutes - m.mx) * (score - m.my)) / SQRT(SUM((minutes - m.mx) * (minutes - m.mx)) * SUM((score - m.my) * (score - m.my))), 3) AS r FROM helpdesk_tickets, (SELECT AVG(minutes) AS mx, AVG(score) AS my FROM helpdesk_tickets) AS m;', lines=3),
+        dict(q=('「{雨|あめ}の{日|ひ}は{傘|かさ}がよく{売|う}れ、{客|きゃく}も{少|すく}ない」。{傘|かさ}の{売上|うりあげ}と{客数|きゃくすう}の{相関|そうかん}は{負|ふ}。{傘|かさ}が{客|きゃく}を{減|へ}らした？', '“On rainy days umbrellas sell well and there are fewer customers.” Umbrella sales and customers correlate negatively. Did umbrellas reduce customers?'),
+             answer=None, check=('{言葉|ことば}で{答|こた}える', 'answer in words'), lines=2),
+    ]},
+))
+
+# ---------------------------------------------------------------- A10
+_cp = run("SELECT CASE WHEN coupon IS NULL THEN 'no' ELSE 'yes' END AS has_coupon, COUNT(*) AS n, ROUND(AVG(amount), 1) AS mean_amount FROM kumo_orders GROUP BY has_coupon ORDER BY has_coupon")[1]
+UNITS.append(dict(
+    no='A10', key='an_compare', kw='CASE・ROW_NUMBER', tags=['sql', 'excel', 'python'],
+    title=('グループを{比|くら}べる', 'Comparing groups'),
+    ask=('{販促|はんそく}{担当|たんとう}', 'Promotions', '「クーポンを{使|つか}った{注文|ちゅうもん}は{大|おお}きい？」あり・なしで{比|くら}べ、{店|みせ}ごとの{一番|いちばん}も{見|み}よう。', '“Are coupon orders bigger?” Compare with and without, and find the top order of each store.'),
+    goal=('CASE で{作|つく}ったグループを{比|くら}べ、ROW_NUMBER でグループごとの{順位|じゅんい}を{付|つ}けられる。', 'You can compare groups made with CASE and rank rows inside each group with ROW_NUMBER.'),
+    sections_before=[stat_box([
+        ('h', ('{公平|こうへい}に{比|くら}べる', 'Comparing fairly')),
+        ('li', [('{平均|へいきん}の{差|さ}だけでなく、{散|ち}らばり（{箱|はこ}ひげ{図|ず}）と{件数|けんすう}も{見|み}る', 'Look at the spread (box plot) and the counts, not only the means'),
+                ('{外|はず}れ{値|ち}は{平均|へいきん}を{引|ひ}っぱる：{中央値|ちゅうおうち}も{比|くら}べる', 'Outliers pull the mean: compare medians too'),
+                ('あり・なしの{比較|ひかく}（A/B）は{実験|じっけん}ではない。ほかの{点|てん}でも{違|ちが}うかもしれない', 'A with/without comparison is not an experiment: the groups may differ in other ways')]),
+    ], FIGS['box'], ('{店|みせ}ごとの amount の{箱|はこ}ひげ{図|ず}。', 'Box plot of amount per store.'))],
+    see=dict(q=('クーポンあり・なしで{行|ぎょう}を{分|わ}け、それぞれの{件数|けんすう}と{平均|へいきん}{金額|きんがく}を{出|だ}す。', 'Split the orders into with and without a coupon: count and mean amount.'),
+             sql="SELECT CASE WHEN coupon IS NULL THEN 'no' ELSE 'yes' END AS has_coupon,\n       COUNT(*) AS n, ROUND(AVG(amount), 1) AS mean_amount\nFROM kumo_orders\nGROUP BY has_coupon\nORDER BY has_coupon;",
+             mark="CASE WHEN coupon IS NULL THEN 'no' ELSE 'yes' END", viz=dict(kind='result'),
+             note=(f'クーポンありの{{平均|へいきん}}は {_cp[1][2]:,}、なしは {_cp[0][2]:,}。ただし「クーポンで{{増|ふ}}えた」とまでは{{言|い}}えない。', f'With a coupon the mean is {_cp[1][2]:,}, without {_cp[0][2]:,}. That does not prove the coupon caused it.')),
+    after_see=[sub_see(('{店|みせ}ごとの{一番|いちばん}（ROW_NUMBER）', 'The top of each store (ROW_NUMBER)'),
+        'SELECT store, order_id, amount\nFROM (SELECT store, order_id, amount,\n        ROW_NUMBER() OVER (PARTITION BY store ORDER BY amount DESC) AS rn\n      FROM kumo_orders)\nWHERE rn = 1\nORDER BY store;',
+        ('PARTITION BY store で{店|みせ}ごとに 1, 2, 3 … と{番号|ばんごう}を{付|つ}け{直|なお}し、rn = 1 を{残|のこ}す。', 'PARTITION BY store numbers the rows again in each store; keep rn = 1.'))],
+    points=[
+        (('ウィンドウ{関数|かんすう}は WHERE の{中|なか}では{使|つか}えない。( ) の{中|なか}で{番号|ばんごう}を{付|つ}けてから{外側|そとがわ}で{絞|しぼ}る。', 'Window functions cannot go in WHERE: number the rows in a subquery, then filter outside.'),),
+        (('「{全体|ぜんたい}の{平均|へいきん}より{上|うえ}の{割合|わりあい}」も{比|くら}べ{方|かた}の 1 つ：CASE WHEN amount > (SELECT AVG(amount) …) THEN 1 ELSE 0 END', '“Share above the overall mean” is another comparison: CASE WHEN amount > (SELECT AVG(amount) …) THEN 1 ELSE 0 END'),),
+    ],
+    mistakes=[
+        dict(wrong="SELECT CASE WHEN coupon = NULL THEN 'no' ELSE 'yes' END AS has_coupon, COUNT(*) AS n\nFROM kumo_orders GROUP BY has_coupon;", mark_w='coupon = NULL',
+             right="SELECT CASE WHEN coupon IS NULL THEN 'no' ELSE 'yes' END AS has_coupon, COUNT(*) AS n\nFROM kumo_orders GROUP BY has_coupon;", mark_r='coupon IS NULL',
+             why=('= NULL は{決|け}して{成|な}り{立|た}たない。NULL は IS NULL で{調|しら}べる。', '= NULL is never true. Test NULL with IS NULL.')),
+    ],
+    tools=[
+        tool_box('excel', [opened(XL_OPEN, 'kumo_orders'),
+            (('has_coupon の{列|れつ}を{足|た}し、ピボットテーブルで{個数|こすう}と{平均|へいきん}。{店|みせ}ごとの{最大|さいだい}は MAXIFS。', 'Add a has_coupon column; Count and Average in a PivotTable. The largest per store: MAXIFS.'), '=IF([@coupon]="","no","yes")\n=MAXIFS(kumo_orders[amount],kumo_orders[store],"Umeda")')], SAME),
+        tool_box('python', [opened(PY_OPEN, 'kumo_orders'),
+            (('あり・なしの{比較|ひかく}と、{店|みせ}ごとの{最大|さいだい}の{注文|ちゅうもん}：', 'With/without, and the largest order of each store:'),
+             'df["has_coupon"] = df["coupon"].notna().map({True: "yes", False: "no"})\nprint(df.groupby("has_coupon")["amount"].agg(["count", "mean"]).round(1))\ndf.loc[df.groupby("store")["amount"].idxmax(), ["store", "order_id", "amount"]]')], SAME),
+    ],
+    **{'try': [
+        dict(q=("courier_jobs で note のある・なし（'yes'・'no'）ごとに、{件数|けんすう}と fee の{平均|へいきん}を{出|だ}そう。", "For courier_jobs, with and without a note ('yes', 'no'): count and mean fee."),
+             answer="SELECT CASE WHEN note IS NULL THEN 'no' ELSE 'yes' END AS has_note, COUNT(*) AS n, ROUND(AVG(fee), 1) AS mean_fee FROM courier_jobs GROUP BY has_note ORDER BY has_note;", lines=3),
+        dict(q=('hotel_stays で hotel ごとに、charge がいちばん{大|おお}きい{宿泊|しゅくはく}の stay_id と charge を{出|だ}そう。', 'For hotel_stays, per hotel: stay_id and charge of the largest charge.'),
+             answer='SELECT hotel, stay_id, charge FROM (SELECT hotel, stay_id, charge, ROW_NUMBER() OVER (PARTITION BY hotel ORDER BY charge DESC) AS rn FROM hotel_stays) WHERE rn = 1 ORDER BY hotel;', lines=3),
+        dict(q=('gym_visits で branch ごとに、minutes が{全体|ぜんたい}の{平均|へいきん}より{長|なが}い{割合|わりあい}（%）を{出|だ}そう。', 'For gym_visits, per branch: the share (%) of visits longer than the overall mean.'),
+             answer='SELECT branch, ROUND(100.0 * SUM(CASE WHEN minutes > (SELECT AVG(minutes) FROM gym_visits) THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_above FROM gym_visits GROUP BY branch ORDER BY pct_above DESC;', lines=3),
+    ]},
+))
+
+# ---------------------------------------------------------------- A11
+_jp = run('SELECT kumo_accounts.plan, COUNT(*) AS n, SUM(kumo_orders.amount) AS total_amount, ROUND(AVG(kumo_orders.amount), 1) AS mean_amount FROM kumo_orders INNER JOIN kumo_accounts ON kumo_orders.customer_id = kumo_accounts.customer_id GROUP BY kumo_accounts.plan ORDER BY total_amount DESC')[1]
+UNITS.append(dict(
+    no='A11', key='an_join', kw='JOIN して{集計|しゅうけい}', tags=['sql', 'excel', 'python'],
+    title=('2 つの{表|ひょう}を{合|あ}わせて{分析|ぶんせき}する', 'Analysing two tables together'),
+    ask=('{会員|かいいん}{担当|たんとう}', 'Membership', '「Gold {会員|かいいん}は{本当|ほんとう}にたくさん{買|か}っている？」{注文|ちゅうもん}と{会員|かいいん}の{表|ひょう}を{合|あ}わせよう。', '“Do Gold members really buy more?” Combine the orders and the member tables.'),
+    goal=('{人|ひと}のコードで JOIN し、{人|ひと}の{表|ひょう}の{列|れつ}でグループにして{集計|しゅうけい}できる。', 'You can JOIN on the person’s code and group by a column of the people table.'),
+    sections_before=[stat_box([
+        ('p', ('{何|なに}が{起|お}きたか（{注文|ちゅうもん}）と、{誰|だれ}がしたか（{会員|かいいん}）は{別|べつ}の{表|ひょう}にある。customer_id でつなぐ。', 'What happened (orders) and who did it (members) are in different tables. Join them on customer_id.')),
+        ('li', [('INNER JOIN：{両方|りょうほう}に{相手|あいて}がいる{行|ぎょう}だけ', 'INNER JOIN: only rows with a partner in both'),
+                ('LEFT JOIN … WHERE {右|みぎ}.id IS NULL：{一度|いちど}も{買|か}っていない{人|ひと}', 'LEFT JOIN … WHERE right.id IS NULL: people who never bought'),
+                ('JOIN の{後|あと}は{数|かぞ}え{方|かた}に{注意|ちゅうい}：{注文|ちゅうもん}の{多|おお}い{人|ひと}はたくさんの{行|ぎょう}になる', 'Count with care after a JOIN: a person with many orders becomes many rows')]),
+    ], FIGS['plans'], ('kumo_accounts のプランごとの{人数|にんずう}。', 'People per plan in kumo_accounts.'))],
+    see=dict(q=('kumo_orders と kumo_accounts を customer_id でつなぎ、プランごとに{注文数|ちゅうもんすう}・{合計|ごうけい}・{平均|へいきん}を{出|だ}す。', 'Join kumo_orders and kumo_accounts on customer_id: orders, total and mean per plan.'),
+             sql='SELECT kumo_accounts.plan, COUNT(*) AS n,\n       SUM(kumo_orders.amount) AS total_amount,\n       ROUND(AVG(kumo_orders.amount), 1) AS mean_amount\nFROM kumo_orders\n  INNER JOIN kumo_accounts\n  ON kumo_orders.customer_id = kumo_accounts.customer_id\nGROUP BY kumo_accounts.plan\nORDER BY total_amount DESC;',
+             mark='ON kumo_orders.customer_id = kumo_accounts.customer_id', viz=dict(kind='result'),
+             note=(f'{{合計|ごうけい}}は {_jp[0][0]} がいちばん。でも{{平均|へいきん}}で{{見|み}}ると、プランの{{差|さ}}は{{小|ちい}}さい。{{合計|ごうけい}}の{{差|さ}}は{{人数|にんずう}}の{{差|さ}}。', f'{_jp[0][0]} has the largest total, but the means are close: the difference in totals comes from the number of people.')),
+    points=[
+        (('{同|おな}じ{名前|なまえ}の{列|れつ}（customer_id）が{両方|りょうほう}にあるので、{表名|ひょうめい}.{列名|れつめい} で{書|か}く。', 'customer_id is in both tables, so write table.column.'),),
+        (('{人|ひと}ごとに GROUP BY すると、{購入回数|こうにゅうかいすう}や{合計|ごうけい}で{上位|じょうい}のお{客|きゃく}が{分|わ}かる（RFM {分析|ぶんせき}の{入|い}り{口|ぐち}）。', 'GROUP BY person shows the best customers by number and total of purchases (the start of RFM analysis).'),),
+    ],
+    mistakes=[
+        dict(wrong='SELECT plan, COUNT(*) AS n\nFROM kumo_accounts GROUP BY plan;', mark_w='FROM kumo_accounts',
+             right='SELECT kumo_accounts.plan, COUNT(*) AS n\nFROM kumo_orders INNER JOIN kumo_accounts\n  ON kumo_orders.customer_id = kumo_accounts.customer_id\nGROUP BY kumo_accounts.plan;', mark_r='INNER JOIN kumo_accounts',
+             why=('{会員|かいいん}の{表|ひょう}だけでは「{人数|にんずう}」しか{数|かぞ}えられない。{注文|ちゅうもん}を{数|かぞ}えるには JOIN する。', 'The member table alone counts people. To count orders, JOIN.')),
+    ],
+    tools=[
+        tool_box('excel', [opened(XL_OPEN, 'kumo_orders'),
+            (('kumo_accounts もテーブルにし、{注文|ちゅうもん}にプランを{持|も}ってくる。そのあとピボットテーブル。', 'Make kumo_accounts a table too, bring the plan into the orders, then a PivotTable.'), '=XLOOKUP([@customer_id],kumo_accounts[customer_id],kumo_accounts[plan])')], SAME),
+        tool_box('python', [opened(PY_OPEN, 'kumo_orders'),
+            (('merge でつないで、プランごとに{集計|しゅうけい}：', 'merge, then aggregate per plan:'), 'acc = pd.read_csv("kumo_accounts.csv")\nm = df.merge(acc, on="customer_id")\nm.groupby("plan")["amount"].agg(["count", "sum", "mean"]).round(1)')], SAME),
+    ],
+    **{'try': [
+        dict(q=('gym_visits と gym_members を member_id でつなぎ、plan ごとの{利用回数|りようかいすう}と minutes の{合計|ごうけい}を{出|だ}そう。', 'Join gym_visits and gym_members on member_id: visits and total minutes per plan.'),
+             answer='SELECT gym_members.plan, COUNT(*) AS n, SUM(gym_visits.minutes) AS total_minutes FROM gym_visits INNER JOIN gym_members ON gym_visits.member_id = gym_members.member_id GROUP BY gym_members.plan ORDER BY total_minutes DESC;', lines=3),
+        dict(q=('cafe_members のうち、cafe_sales に{一度|いちど}も{出|で}てこない{人|ひと}を plan ごとに{数|かぞ}えよう。', 'Count the cafe_members who never appear in cafe_sales, per plan.'),
+             answer='SELECT cafe_members.plan, COUNT(*) AS n FROM cafe_members LEFT JOIN cafe_sales ON cafe_members.member_id = cafe_sales.member_id WHERE cafe_sales.sale_id IS NULL GROUP BY cafe_members.plan ORDER BY cafe_members.plan;', lines=3),
+        dict(q=('courier_jobs で client_id ごとの{件数|けんすう}と fee の{合計|ごうけい}を{出|だ}し、{合計|ごうけい}の{大|おお}きい 3 {社|しゃ}を{出|だ}そう。', 'For courier_jobs, jobs and total fee per client_id: the top 3 by total.'),
+             answer='SELECT client_id, COUNT(*) AS n, SUM(fee) AS total_fee FROM courier_jobs GROUP BY client_id ORDER BY total_fee DESC LIMIT 3;', lines=2),
+    ]},
+))
+
+# ---------------------------------------------------------------- A12
+_raw = run('SELECT COUNT(DISTINCT pref), COUNT(DISTINCT LOWER(TRIM(pref))) FROM kumo_accounts')[1][0]
+UNITS.append(dict(
+    no='A12', key='an_clean', kw='CASE・TRIM・COALESCE', tags=['sql', 'excel', 'python'],
+    title=('データの{下|した}ごしらえ', 'Getting data ready'),
+    ask=('{会員|かいいん}{担当|たんとう}', 'Membership', '「{都道府県|とどうふけん}ごとの{会員数|かいいんすう}を{出|だ}して。」でも{手入力|てにゅうりょく}の{列|れつ}は{書|か}き{方|かた}がばらばら。', '“Members per prefecture, please.” But the hand-typed column is written in many ways.'),
+    goal=('{書|か}き{方|かた}のゆれをそろえ、{空欄|くうらん}に{名前|なまえ}を{付|つ}け、{数|かず}を{区分|くぶん}にまとめられる。', 'You can unify spellings, name the blanks and put numbers into bands.'),
+    sections_before=[stat_box([
+        ('p', ('{分析|ぶんせき}の{時間|じかん}の{多|おお}くは{準備|じゅんび}にかかる。まず{数|かぞ}えて、{値|あたい}を{見|み}て、それから{整|ととの}える。{元|もと}の{列|れつ}は{残|のこ}し、{新|あたら}しい{列|れつ}を{作|つく}る。', 'Most analysis time goes into preparation. Count, look at the values, then tidy. Keep the original column and make a new one.')),
+        ('li', [('{書|か}き{方|かた}のゆれ：TRIM（{前後|ぜんご}の{空白|くうはく}）・LOWER／UPPER（{大文字|おおもじ}{小文字|こもじ}）・REPLACE', 'Spelling: TRIM (spaces), LOWER / UPPER (case), REPLACE'),
+                ("{空欄|くうらん}：COALESCE(x, '(none)') ではっきり{見|み}せる。{数|かず}をだまって 0 にしない", "Blanks: show them with COALESCE(x, '(none)'). Never silently put 0 in numbers"),
+                ('{区分|くぶん}：CASE WHEN で{年代|ねんだい}・{価格帯|かかくたい}。{区切|くぎ}りはきりのよい{数|かず}に', 'Bands: CASE WHEN for age or price bands, with round numbers as edges')]),
+    ])],
+    see=dict(q=('pref の{前後|ぜんご}の{空白|くうはく}を{消|け}して{小文字|こもじ}にし、{都道府県|とどうふけん}ごとに{数|かぞ}える。', 'Remove the spaces around pref, make it lower case, and count per prefecture.'),
+             sql='SELECT LOWER(TRIM(pref)) AS pref_clean, COUNT(*) AS n\nFROM kumo_accounts\nGROUP BY pref_clean\nORDER BY n DESC;',
+             mark='LOWER(TRIM(pref))', viz=dict(kind='result'),
+             note=(f'{{元|もと}}の pref は {_raw[0]} {{通|とお}}りの{{書|か}}き{{方|かた}}があったが、{{整|ととの}}えると {_raw[1]} つになる。', f'pref was written in {_raw[0]} different ways; after tidying there are {_raw[1]}.')),
+    after_see=[sub_see(('{年代|ねんだい}に{分|わ}ける（CASE WHEN）', 'Age bands (CASE WHEN)'),
+        "SELECT CASE WHEN age < 30 THEN '1: < 30'\n            WHEN age < 50 THEN '2: 30-49'\n            ELSE '3: 50+' END AS band,\n       COUNT(*) AS n\nFROM kumo_accounts\nGROUP BY band\nORDER BY band;",
+        ('{条件|じょうけん}は{上|うえ}から{順|じゅん}に{調|しら}べられ、{最初|さいしょ}に{合|あ}ったものになる。{名前|なまえ}の{先頭|せんとう}に{番号|ばんごう}を{付|つ}けると{順番|じゅんばん}どおりに{並|なら}ぶ。', 'The conditions are checked from the top; the first match wins. A number at the start of each name keeps the bands in order.'))],
+    points=[
+        (('{数|かぞ}える{前|まえ}に GROUP BY で{値|あたい}の{一覧|いちらん}を{見|み}る。おかしな{書|か}き{方|かた}はここで{見|み}つかる。', 'Before counting, list the values with GROUP BY: odd spellings show up here.'),),
+        (("COALESCE(coupon, '(none)') で{空欄|くうらん}も 1 つのグループとして{数|かぞ}えられる。", "COALESCE(coupon, '(none)') counts the blanks as one group too."),),
+    ],
+    mistakes=[
+        dict(wrong='SELECT pref, COUNT(*) AS n\nFROM kumo_accounts GROUP BY pref;', mark_w='GROUP BY pref', right='SELECT LOWER(TRIM(pref)) AS pref_clean, COUNT(*) AS n\nFROM kumo_accounts GROUP BY pref_clean;', mark_r='LOWER(TRIM(pref))',
+             max_rows=6, why=("そのままでは ' tokyo' と 'Tokyo' が{別|べつ}の{県|けん}として{数|かぞ}えられる。", "As it is, ' tokyo' and 'Tokyo' are counted as different places.")),
+    ],
+    tools=[
+        tool_box('excel', [opened(XL_OPEN, 'kumo_accounts'),
+            (('{整|ととの}えた{列|れつ}と{年代|ねんだい}の{列|れつ}を{足|た}して、ピボットテーブルで{数|かぞ}える。', 'Add a tidy column and a band column, then count in a PivotTable.'), '=LOWER(TRIM([@pref]))\n=IFS([@age]<30,"1: < 30",[@age]<50,"2: 30-49",TRUE,"3: 50+")')], SAME),
+        tool_box('python', [opened(PY_OPEN, 'kumo_accounts'),
+            (('{整|ととの}える{前|まえ}と{後|あと}、{年代|ねんだい}：', 'Before and after, and the bands:'), 'print(df["pref"].value_counts())\ndf["pref_clean"] = df["pref"].str.strip().str.lower()\nprint(df["pref_clean"].value_counts())\nimport numpy as np\ndf["band"] = np.select([df["age"] < 30, df["age"] < 50], ["1: < 30", "2: 30-49"], "3: 50+")\ndf.groupby("band").size()')], SAME),
+    ],
+    **{'try': [
+        dict(q=('gym_members の pref を{整|ととの}えて、{都道府県|とどうふけん}ごとの{人数|にんずう}を{多|おお}い{順|じゅん}に{出|だ}そう。', 'Tidy pref in gym_members and count members per prefecture, most first.'),
+             answer='SELECT LOWER(TRIM(pref)) AS pref_clean, COUNT(*) AS n FROM gym_members GROUP BY pref_clean ORDER BY n DESC;', lines=2),
+        dict(q=("hotel_stays の request の{空欄|くうらん}を '(none)' として、{値|あたい}ごとの{件数|けんすう}を{出|だ}そう。", "In hotel_stays, show blank request as '(none)' and count each value."),
+             answer="SELECT COALESCE(request, '(none)') AS request_filled, COUNT(*) AS n FROM hotel_stays GROUP BY request_filled ORDER BY n DESC;", lines=2),
+        dict(q=("courier_clients の employees を 50 {未満|みまん}・50〜99・100 {以上|いじょう}に{分|わ}けて、{社数|しゃすう}を{数|かぞ}えよう。", "Put employees in courier_clients into < 50, 50–99 and 100+, and count the clients."),
+             answer="SELECT CASE WHEN employees < 50 THEN '1: < 50' WHEN employees < 100 THEN '2: 50-99' ELSE '3: 100+' END AS band, COUNT(*) AS n FROM courier_clients GROUP BY band ORDER BY band;", lines=3),
+    ]},
+))
+
+# ---------------------------------------------------------------- A13
+_cm = run('SELECT ROUND(AVG(amount), 1), (SELECT amount FROM kumo_orders ORDER BY amount LIMIT 1 OFFSET 200), MAX(amount) FROM kumo_orders')[1][0]
+UNITS.append(dict(
+    no='A13', key='an_read', kw='{結果|けっか}を{読|よ}む', tags=['sql'],
+    title=('{結果|けっか}を{正|ただ}しく{読|よ}む', 'Reading results correctly'),
+    ask=('{部長|ぶちょう}', 'Manager', '「この{数字|すうじ}から{何|なに}が{言|い}える？」{計算|けいさん}より{読|よ}み{取|と}りの{間違|まちが}いのほうが{危|あぶ}ない。', '“What does this number tell us?” Wrong readings are more dangerous than wrong calculations.'),
+    goal=('{代表値|だいひょうち}・{相関|そうかん}の{強|つよ}さ・{数|かず}と{割合|わりあい}・{因果|いんが}・{外|はず}れ{値|ち}について、{正|ただ}しい{読|よ}み{方|かた}を{選|えら}べる。', 'You can choose the right reading of typical values, correlation strength, counts vs shares, causation and outliers.'),
+    sections_before=[stat_box([
+        ('h', ('{数字|すうじ}を{信|しん}じる{前|まえ}の 5 つの{問|と}い', 'Five questions before you believe a number')),
+        ('li', [('ふつうの{値|あたい}：{平均|へいきん}？{中央値|ちゅうおうち}？（とても{大|おお}きな{値|あたい}はない？）', 'Typical: mean or median? (Any very large values?)'),
+                ('{数|かず}？{割合|わりあい}？（グループの{大|おお}きさは{同|おな}じ？）', 'Count or share? (Same group sizes?)'),
+                ('どれくらい{強|つよ}い？（r と{散布図|さんぷず}）', 'How strong? (r and the scatter plot)'),
+                ('{原因|げんいん}？いっしょに{動|うご}くだけ？（{第|だい} 3 のものはない？）', 'Cause, or only together? (A third thing?)'),
+                ('めずらしい？ふつう？（z はいくつ？）', 'Unusual or normal? (What is z?)')]),
+    ], FIGS['center'], ('amount の{分布|ぶんぷ}。{平均|へいきん}は{大|おお}きな{値|あたい}に{引|ひ}っぱられ、{中央値|ちゅうおうち}より{右|みぎ}にある。', 'The distribution of amount. The mean is pulled right by large values.'))],
+    see=dict(q=('amount の{平均|へいきん}・{中央値|ちゅうおうち}・{最大値|さいだいち}。「ふつうの{注文|ちゅうもん}」を{表|あらわ}すのはどれ？', 'The mean, median and largest amount. Which shows a “typical order”?'),
+             sql='SELECT ROUND(AVG(amount), 1) AS mean_amount,\n       (SELECT amount FROM kumo_orders\n        ORDER BY amount LIMIT 1 OFFSET 200) AS median_amount,\n       MAX(amount) AS max_amount\nFROM kumo_orders;',
+             viz=dict(kind='result'),
+             note=(f'{{最大|さいだい}} {_cm[2]:,} のような{{大|おお}}きな{{注文|ちゅうもん}}が{{平均|へいきん}}を{{引|ひ}}っぱる。ふつうの{{注文|ちゅうもん}}は{{中央値|ちゅうおうち}} {_cm[1]:,} のほうがよく{{表|あらわ}}す。', f'Big orders like {_cm[2]:,} pull the mean up. The median {_cm[1]:,} shows a typical order better.')),
+    points=[
+        (('{行数|ぎょうすう}のいちばん{多|おお}いグループが、{割合|わりあい}でもいちばんとは{限|かぎ}らない。', 'The group with the most rows is not always the one with the largest share.'),),
+        (('{合計|ごうけい}がいちばん{大|おお}きい{月|つき}と、いちばん{伸|の}びた{月|つき}は{別|べつ}。', 'The month with the largest total is not the month that grew the most.'),),
+        (('{相関|そうかん}は「いっしょに{動|うご}く」だけ。{原因|げんいん}を{言|い}うには{実験|じっけん}などの{別|べつ}の{証拠|しょうこ}がいる。', 'Correlation only means “move together”. A cause needs other evidence such as an experiment.'),),
+    ],
+    **{'try_title': ('{読|よ}んでみよう', 'Read it'), 'try': [
+        dict(q=('A7 の{結果|けっか}で、{件数|けんすう}がいちばん{多|おお}い{店|みせ}と、クーポンの{割合|わりあい}がいちばん{高|たか}い{店|みせ}は{同|おな}じ？', 'In the A7 result, is the store with the most orders the store with the highest coupon share?'),
+             answer=None, check=('A7 の{表|ひょう}を{見|み}る', 'look at the A7 table'), lines=1),
+        dict(q=('r = −0.77 のとき、「{片方|かたほう}が{大|おお}きいともう{片方|かたほう}は？」と、その{強|つよ}さを{言|い}おう。', 'r = −0.77: when one is large, what about the other, and how strong is it?'),
+             answer=None, check=('{言葉|ことば}で{答|こた}える', 'answer in words'), lines=1),
+        dict(q=('z が 2.4 の{注文|ちゅうもん}は、|z| ≥ 3 の{目安|めやす}で{外|はず}れ{値|ち}？', 'Is an order with z = 2.4 an outlier by the |z| ≥ 3 rule?'),
+             answer=None, check=('はい／いいえと{理由|りゆう}', 'yes / no and why'), lines=1),
+    ]},
+))
+
+# ---------------------------------------------------------------- A14
+_dec = run("SELECT store, ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS pct_coupon, SUM(CASE WHEN order_date >= '2025-07-01' THEN amount ELSE 0 END) - SUM(CASE WHEN order_date < '2025-07-01' THEN amount ELSE 0 END) AS growth FROM kumo_orders GROUP BY store ORDER BY store")[1]
+_best = sorted([r for r in _dec if r[2] > 0] or _dec, key=lambda r: r[1])[0]
+UNITS.append(dict(
+    no='A14', key='an_case', kw='{総合演習|そうごうえんしゅう}', tags=['sql', 'excel', 'python'],
+    title=('{次|つぎ}のキャンペーンはどの{店|みせ}で？', 'Where should the next campaign be?'),
+    ask=('{社長|しゃちょう}', 'CEO', '「クーポンを 1 つの{店|みせ}で{配|くば}る。どこがいい？」{学|まな}んだことを{使|つか}い、{数字|すうじ}を{理由|りゆう}に{決|き}めよう。', '“We will hand out coupons in one store. Which one?” Use what you learned and decide, with the numbers as your reason.'),
+    goal=('{問|と}い → {全体像|ぜんたいぞう} → {比較|ひかく} → {人|ひと} → {決定|けってい} の{流|なが}れで{分析|ぶんせき}し、1 {文|ぶん}で{報告|ほうこく}できる。', 'You can go from question → overview → comparison → people → decision, and report it in one sentence.'),
+    sections_before=[stat_box([
+        ('li', [('1. {全体像|ぜんたいぞう}：{店|みせ}ごとの{件数|けんすう}・{合計|ごうけい}・{平均|へいきん}（A1・A3）', '1. Overview: count, total, mean per store (A1, A3)'),
+                ('2. {今|いま}のクーポン{利用率|りようりつ}（A7）', '2. Coupon use now (A7)'),
+                ('3. {上半期|かみはんき}と{下半期|しもはんき}の{売上|うりあげ}（A8）', '3. Sales in the first and second half (A8)'),
+                ('4. クーポンあり・なしの{平均|へいきん}（A10）', '4. Mean with and without a coupon (A10)'),
+                ('5. どんなお{客|きゃく}か（A11）→ 6. {決|き}める', '5. Who the customers are (A11) → 6. Decide')]),
+        ('f', '{報告|ほうこく} ＝ {結論|けつろん} ＋ {数字|すうじ}の{理由|りゆう} ＋ {気|き}をつけること'),
+    ], FIGS['halves'], ('{店|みせ}ごとの{上半期|かみはんき}（{青|あお}）と{下半期|しもはんき}（{橙|だいだい}）の{売上|うりあげ}。', 'Sales per store, first half (blue) and second half (orange).'))],
+    see=dict(q=('{決|き}めるための{表|ひょう}：{店|みせ}ごとのクーポン{利用率|りようりつ}と、{下半期|しもはんき} − {上半期|かみはんき} の{売上|うりあげ}の{伸|の}び。', 'The table for the decision: coupon share and growth (second half − first half) per store.'),
+             sql="SELECT store,\n       ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS pct_coupon,\n       SUM(CASE WHEN order_date >= '2025-07-01' THEN amount ELSE 0 END)\n     - SUM(CASE WHEN order_date <  '2025-07-01' THEN amount ELSE 0 END)\n       AS growth\nFROM kumo_orders\nGROUP BY store\nORDER BY store;",
+             viz=dict(kind='result'),
+             note=(f'{{伸|の}}びている{{店|みせ}}（growth > 0）のうち、クーポンの{{割合|わりあい}}がいちばん{{低|ひく}}いのは {_best[0]}（{_best[1]}%）。', f'Of the growing stores (growth > 0), {_best[0]} has the lowest coupon share ({_best[1]}%).')),
+    points=[
+        ((f'{{報告|ほうこく}}の{{例|れい}}：「クーポンは {_best[0]} で{{配|くば}}る。{{下半期|しもはんき}}に{{売上|うりあげ}}が{{伸|の}}びているのに、クーポンを{{使|つか}}う{{注文|ちゅうもん}}は {_best[1]}% しかない。{{平均|へいきん}}{{金額|きんがく}}が{{下|さ}}がらないか{{見|み}}ていく。」', f'Example report: “Hand out coupons in {_best[0]}: its sales are growing but only {_best[1]}% of orders use a coupon. We will watch whether the mean amount falls.”'),),
+        (('{決|き}め{方|かた}（{基準|きじゅん}）を{先|さき}に{言|い}う。{数字|すうじ}を{見|み}てから{基準|きじゅん}を{変|か}えない。', 'State the rule for deciding first. Do not change it after seeing the numbers.'),),
+    ],
+    tools=[
+        tool_box('excel', [opened(XL_OPEN, 'kumo_orders'),
+            (('half の{列|れつ}を{足|た}し、ピボットテーブル：store を「{行|ぎょう}」、half を「{列|れつ}」、amount の{合計|ごうけい}。', 'Add a half column; PivotTable: store in Rows, half in Columns, Sum of amount.'), '=IF([@order_date]<DATE(2025,7,1),"first_half","second_half")')], SAME),
+        tool_box('python', [opened(PY_OPEN, 'kumo_orders'),
+            (('クーポンの{割合|わりあい}と{伸|の}び：', 'Coupon share and growth:'),
+             'second = df["order_date"] >= "2025-07-01"\ns = df.groupby("store").agg(pct_coupon=("coupon", lambda x: round(100 * x.notna().mean(), 1)))\ns["growth"] = df[second].groupby("store")["amount"].sum() - df[~second].groupby("store")["amount"].sum()\ns')], SAME),
+    ],
+    **{'try': [
+        dict(q=('cafe_sales で、shop ごとに{上半期|かみはんき}（2025-07-01 より{前|まえ}）と{下半期|しもはんき}の amount の{合計|ごうけい}を{出|だ}そう。', 'For cafe_sales, the total amount per shop in the first half (before 2025-07-01) and the second half.'),
+             answer="SELECT shop, SUM(CASE WHEN sale_date < '2025-07-01' THEN amount ELSE 0 END) AS first_half, SUM(CASE WHEN sale_date >= '2025-07-01' THEN amount ELSE 0 END) AS second_half FROM cafe_sales GROUP BY shop ORDER BY shop;", lines=3),
+        dict(q=('cafe_sales で、shop ごとのクーポン{利用率|りようりつ}（%）を{低|ひく}い{順|じゅん}に{出|だ}そう。', 'For cafe_sales, the coupon share (%) per shop, lowest first.'),
+             answer='SELECT shop, ROUND(100.0 * COUNT(coupon) / COUNT(*), 1) AS pct_coupon FROM cafe_sales GROUP BY shop ORDER BY pct_coupon;', lines=2),
+        dict(q=('1・2 の{結果|けっか}から、カフェで「{次|つぎ}にクーポンを{配|くば}る{店|みせ}」を 1 {文|ぶん}で{報告|ほうこく}しよう。', 'From 1 and 2, report in one sentence which cafe should get the coupons next.'),
+             answer=None, check=('{結論|けつろん}＋{数字|すうじ}の{理由|りゆう}', 'conclusion + reason with numbers'), lines=2),
     ]},
 ))
 

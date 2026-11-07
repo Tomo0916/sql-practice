@@ -15,7 +15,7 @@ import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, reviewResult, dueLessons, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
-import { I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
+import { choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
@@ -93,7 +93,7 @@ function stageLabel(p) {
   if (p.stage === 'quiz') return T('stage.quiz', { n: p.wn });
   return T('stage.write', { n: p.wn });
 }
-const isQuiz = prob => LESSON_BY_KEY[prob.lesson].kind === 'quiz';
+const isQuiz = prob => prob.answer !== undefined || LESSON_BY_KEY[prob.lesson].kind === 'quiz';
 
 /* ---------- routing ---------- */
 function parseRoute() {
@@ -632,7 +632,7 @@ function workspaceHTML(prob) {
         ${prob.stage === 'demo' ? `<span class="tag">${H('stage.demoSub')}</span>` : `<span class="tag">${themeHTML(prob, L())}</span>`}
         ${isSolved(prob.id) ? `<span class="tag ok">✓ ${H('fb.correct')}</span>` : ''}
       </div>
-      <p class="inst">${rubyHTML(raw('inst.' + (isQuiz(prob) ? 'quiz' : prob.stage === 'review' ? 'write' : prob.stage === 'order' && S.engine.orderTask(prob) && !S.engine.orderTask(prob).chunks.some(c => c.distractor) ? 'orderNoTrap' : prob.stage), L()))}</p>
+      <p class="inst">${rubyHTML(raw('inst.' + (prob.p && prob.p.choices ? 'choice' : isQuiz(prob) ? 'quiz' : prob.stage === 'review' ? 'write' : prob.stage === 'order' && S.engine.orderTask(prob) && !S.engine.orderTask(prob).chunks.some(c => c.distractor) ? 'orderNoTrap' : prob.stage), L()))}</p>
       <p class="prob-text">${problemHTML(prob, L())}</p>
       ${S.settings.second && S.settings.second !== L() ? `<p class="prob-text bi" lang="${htmlLang(S.settings.second)}">${problemHTML(prob, S.settings.second)}</p>` : ''}
       <div class="tables">${prob.tables.map(n => tableBlockHTML(n, prob)).join('')}</div>
@@ -660,7 +660,7 @@ function altsHTML(prob, withModel, mine) {
 function solvedBoxHTML(prob) {
   if (!isSolved(prob.id) || S.runs[prob.id] || S.redoing.has(prob.id)) return '';
   const a = S.progress.answers[prob.id];
-  const body = !a ? `<p class="muted small">${H('mine.noAnswer')}</p>` : isQuiz(prob) ? `<p class="quiz-ans">${esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`;
+  const body = !a ? `<p class="muted small">${H('mine.noAnswer')}</p>` : isQuiz(prob) ? `<p class="quiz-ans">${prob.p.choices ? choiceHTML(prob, a.sql, L()) : esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`;
   return `<section class="card solved-box"><div class="sb-head"><b>✓ ${H('mine.yourAnswer')}</b>${a ? `<span class="muted small">${esc(fmtWhen(a.at))}</span>` : ''}<button class="btn btn-ghost btn-sm" data-act="redo">${I.reset}${H('mine.redo')}</button></div>${body}${altsHTML(prob, true, a && a.sql)}</section>`;
 }
 const fmtWhen = t => { try { return new Date(t).toLocaleString(htmlLang(L()) === 'my' ? 'en' : htmlLang(L()), { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
@@ -676,7 +676,7 @@ function solvedHTML() {
     const link = p => (assigned.includes(k) ? liveHash(p) : `#/l/${k}/${p.idx}`);
     return `<section class="card mine-lesson"><h2><span class="lesson-num">${l.no}</span>${lessonTitleHTML(l, L())}${assigned.includes(k) ? `<span class="tag">${H('nav.assign')}</span>` : ''}</h2>
       ${probs.map(p => { const a = S.progress.answers[p.id]; return `<div class="mine-item"><a class="mine-what" href="${link(p)}"><b>${stageLabelH(p)}</b><span class="muted small">${esc(p.stage === 'demo' ? T('stage.demoSub') : themeName(p, L()))}</span>${I.next}</a>
-        ${a ? (isQuiz(p) ? `<p class="quiz-ans">${esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`) : `<p class="muted small">${H('mine.noAnswer')}</p>`}${altsHTML(p, true, a && a.sql)}</div>`; }).join('')}</section>`;
+        ${a ? (isQuiz(p) ? `<p class="quiz-ans">${p.p.choices ? choiceHTML(p, a.sql, L()) : esc(a.sql)}</p>` : `<pre class="sql">${highlightSQL(a.sql)}</pre>`) : `<p class="muted small">${H('mine.noAnswer')}</p>`}${altsHTML(p, true, a && a.sql)}</div>`; }).join('')}</section>`;
   }).join('');
   return `<main class="wrap narrow"><h1 class="page-title">✓ ${H('mine.title')}</h1><p class="muted">${H('mine.sub')}</p>${blocks || `<section class="card empty"><p class="muted">${H('mine.none')}</p></section>`}</main>`;
 }
@@ -782,17 +782,36 @@ function hintsHTML(prob) {
 function quizHTML(prob) {
   const run = S.runs[prob.id];
   const val = S.progress.drafts['q:' + prob.id] || '';
-  const vis = answerVisible(prob);
+  const vis = answerVisible(prob) && !prob.test;
   const wrong = S.progress.wrong[prob.id] || 0;
+  const lesson = LESSON_BY_KEY[prob.lesson];
+  const answerBox = `<details class="hint ${vis ? '' : 'locked'}" ${vis ? '' : 'data-locked="1"'}><summary><span class="hi">${vis ? '✓' : I.lock}</span>${H('hint.answer')}${vis || prob.test ? '' : `<span class="muted small lockmsg">${esc(T('hint.locked', { n: Math.max(0, 2 - wrong) }))}</span>`}</summary>
+        ${vis ? `<div class="hint-body"><p class="quiz-ans">${answerTextHTML(prob, L())}</p>${prob.p.choices && raw(`L.${prob.lesson}.why_${prob.p.q || prob.p.w}`, L()) !== `L.${prob.lesson}.why_${prob.p.q || prob.p.w}` ? `<p class="why">${bi(`L.${prob.lesson}.why_${prob.p.q || prob.p.w}`, Object.fromEntries(Object.entries(prob.p).filter(([, v]) => typeof v !== 'object').map(([k, v]) => [k, `<code>${esc(v)}</code>`])), 'span')}</p>` : ''}${/^SELECT\b/i.test(prob.sql) && !/^SELECT\s+'/i.test(prob.sql) && !prob.p.choices ? `<p class="muted small">${H('quiz.bySql')}</p><pre class="sql">${highlightSQL(prob.sql)}</pre>` : ''}</div>` : ''}</details>`;
+  if (prob.p.choices) {   // read a result and choose
+    let res = null; try { res = S.engine.exec(prob.sql); } catch (e) { res = null; }
+    const picked = run && run.sql, ok = run && run.grade && run.grade.ok;
+    return `<section class="card editor-card quiz quiz-read">
+      <div class="read-box"><div class="muted small strong">${H('read.result')}</div><div class="data-box">${res ? gridHTML(res, { rowNums: res.values.length > 3 }) : ''}</div>${res ? resultChartHTML(lesson, prob, res, L()) : ''}</div>
+      <div class="choices" role="group" aria-label="${esc(T('quiz.label'))}">${prob.p.choices.map(k => `<button class="choice ${picked === String(k) ? (ok ? 'ok' : 'bad') : ''}" data-act="choose" data-v="${esc(String(k))}">${choiceHTML(prob, k, L())}</button>`).join('')}</div>
+      ${answerBox}
+    </section>`;
+  }
   return `<section class="card editor-card quiz">
       <form class="quiz-form" data-form="quiz">
         <label class="quiz-label" for="quiz-in">${H('quiz.label')}</label>
         <div class="quiz-row"><input id="quiz-in" class="quiz-in ${run ? (run.grade && run.grade.ok ? 'ok' : 'bad') : ''}" value="${esc(val)}" autocomplete="off" autocapitalize="off" spellcheck="false">
         <button class="btn btn-primary btn-run">${I.check}${H('fill.check')}</button></div>
       </form>
-      <details class="hint ${vis ? '' : 'locked'}" ${vis ? '' : 'data-locked="1"'}><summary><span class="hi">${vis ? '✓' : I.lock}</span>${H('hint.answer')}${vis ? '' : `<span class="muted small lockmsg">${esc(T('hint.locked', { n: Math.max(0, 2 - wrong) }))}</span>`}</summary>
-        ${vis ? `<div class="hint-body"><p class="quiz-ans">${esc(String(prob.answer))}</p>${/^SELECT\b/i.test(prob.sql) && !/^SELECT\s+'/i.test(prob.sql) ? `<p class="muted small">${H('quiz.bySql')}</p><pre class="sql">${highlightSQL(prob.sql)}</pre>` : ''}</div>` : ''}</details>
+      ${answerBox}
     </section>`;
+}
+function choose(el) {   // a choice question: the choice is the answer
+  const c = current(); if (!c) return;
+  const v = el.dataset.v;
+  S.progress.drafts['q:' + c.prob.id] = v;
+  const ok = checkAnswer(c.prob, v);
+  record(c.prob, ok, { grade: ok ? { ok: true } : { ok: false, reason: 'answer' }, dx: ok ? [] : [{ key: 'choiceWrong', vars: {} }], sql: v }, v);
+  afterCheck(['stage']);
 }
 function checkQuiz() {
   const c = current(); if (!c) return;
@@ -910,7 +929,7 @@ function resultsHTML(prob) {
   else body = gridHTML(user, user.dml ? opts : { rowNums: true });
   // data analysis: the result as a chart too
   const lesson = LESSON_BY_KEY[prob.lesson];
-  if (lesson.chart) body += resultChartHTML(lesson, prob, S.tab === 'expected' ? exp : (run && !run.error ? user : null));
+  if (lesson.chart) body += resultChartHTML(lesson, prob, S.tab === 'expected' ? exp : (run && !run.error ? user : null), L());
   const after = exp && exp.dml ? `<p class="res-after muted small">${H('res.after', { t: exp.dml.table })}</p>` : '';
   return `<section class="card results">${after}
     <div class="res-tabs" role="tablist">${tab('user', T('res.yours'), run && !run.error ? user : null)}${tab('expected', T('res.expected'), exp)}</div>
@@ -1118,7 +1137,7 @@ const actions = {
   stepNext() { S.step++; refresh(['steps']); },
   stepPrev() { S.step = Math.max(0, S.step - 1); refresh(['steps']); },
   stepClose() { S.step = null; refresh(['steps']); },
-  checkFill, checkOrder, checkQuiz,
+  checkFill, checkOrder, checkQuiz, choose,
   resetFill() { const c = current(); delete S.progress.drafts['f:' + c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
   place(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).concat(el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   unplace(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).filter(x => x !== el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },

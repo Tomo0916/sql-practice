@@ -873,5 +873,8 @@ export default {
   "step.dmlLook": "Pertama, lihat tabel sebelum diubah (INSERT, UPDATE, dan DELETE mengubah tabel itu sendiri, jadi lihat dulu keadaannya).",
   "step.updTarget": "Coba syarat WHERE dengan SELECT untuk melihat baris yang akan berubah. Hanya baris ini yang berubah.",
   "step.delTarget": "Coba syarat WHERE dengan SELECT untuk melihat baris yang akan dihapus. Baris ini akan hilang.",
-  "pres.deleted": "Baris yang dihapus"
+  "pres.deleted": "Baris yang dihapus",
+  "read.result": "Hasil yang dibaca",
+  "inst.choice": "Baca hasilnya dan pilih jawaban yang benar.",
+  "dx.choiceWrong": "Bukan yang ini. Baca lagi hasil dan soalnya."
 };
