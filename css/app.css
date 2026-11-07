@@ -815,3 +815,6 @@ body.pj-open { overflow: hidden; }
 .choice.bad { border-color: var(--bad); background: var(--bad-soft); }
 .choice code { font-family: var(--mono); font-size: .92em; }
 .hint-body .why { margin: 8px 0 0; color: var(--ink-2); }
+.res-chart .chart-save { display: block; margin: 0 0 4px auto; opacity: .8; }
+.res-chart .chart-save:hover, .res-chart .chart-save:focus-visible { opacity: 1; }
+@media print { .chart-save { display: none; } }

@@ -113,7 +113,13 @@ export function statCardHTML(lesson, prob, lang, open) {
 }
 
 /** chart of a result (from lesson.chart): bars, a histogram or lines; value can be one column or several */
-export function resultChartHTML(lesson, prob, res) {
+export function resultChartHTML(lesson, prob, res, lang) {
+  const svg = resultChartSVG(lesson, prob, res);
+  if (!svg) return '';
+  const save = lang ? `<button class="btn btn-ghost btn-xs chart-save" data-chart-png="${esc(lesson.key)}" title="${esc(t('an.savePngTip', lang))}">${th('an.savePng', lang)}</button>` : '';
+  return `<div class="res-chart">${save}${svg}</div>`;
+}
+function resultChartSVG(lesson, prob, res) {
   if (!lesson.chart || !res || !res.values || !res.values.length) return '';
   const c = lesson.chart(prob.p);
   if (!c) return '';
@@ -123,10 +129,52 @@ export function resultChartHTML(lesson, prob, res) {
   const series = idx.map(i => res.values.map(r => (r[i] === null ? null : Number(r[i]))));
   if (series.some(s => s.some(v => v !== null && !Number.isFinite(v)))) return '';
   const names = idx.length > 1 ? idx.map(i => res.columns[i]) : null;
-  if (c.type === 'hist') return `<div class="res-chart">${histChart(res.values.map(r => ({ start: Number(r[c.label]), n: Number(r[c.value]) })), c.step)}</div>`;
-  if (c.type === 'line') return `<div class="res-chart">${lineChart(labels, idx.length > 1 ? series : series[0], { names })}</div>`;
+  if (c.type === 'hist') return histChart(res.values.map(r => ({ start: Number(r[c.label]), n: Number(r[c.value]) })), c.step);
+  if (c.type === 'line') return lineChart(labels, idx.length > 1 ? series : series[0], { names });
   if (series.some(s => s.some(v => v === null))) return '';
-  return `<div class="res-chart">${barChart(labels, idx.length > 1 ? series : series[0], { names })}</div>`;
+  return barChart(labels, idx.length > 1 ? series : series[0], { names });
+}
+
+/**
+ * Save a chart (an <svg class="chart">) as a PNG: the page's CSS is copied
+ * onto the elements, so the picture looks the same outside the app.
+ */
+const KEEP = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-opacity', 'opacity', 'font-size', 'font-weight', 'font-family', 'text-anchor', 'dominant-baseline'];
+export function chartPNG(svg, filename) {
+  const copy = svg.cloneNode(true);
+  const src = [svg, ...svg.querySelectorAll('*')], dst = [copy, ...copy.querySelectorAll('*')];
+  src.forEach((el, i) => {
+    const cs = getComputedStyle(el);
+    dst[i].setAttribute('style', KEEP.map(k => `${k}:${cs.getPropertyValue(k)}`).join(';'));
+  });
+  const vb = svg.viewBox.baseVal, w = vb && vb.width ? vb.width : svg.clientWidth, h = vb && vb.height ? vb.height : svg.clientHeight;
+  copy.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  copy.setAttribute('width', w); copy.setAttribute('height', h);
+  const img = new Image(), k = 3;
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = w * k; cv.height = h * k;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, cv.width, cv.height);
+    g.drawImage(img, 0, 0, cv.width, cv.height);
+    cv.toBlob(b => {
+      if (!b) return;
+      const url = URL.createObjectURL(b), a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }, 'image/png');
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(copy));
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-chart-png]');
+    if (!b) return;
+    const svg = b.parentElement && b.parentElement.querySelector('svg.chart');
+    if (!svg) return;
+    e.preventDefault();
+    chartPNG(svg, `chart-${b.dataset.chartPng}.png`);
+  });
 }
 
 /** CSV of a table (UTF-8 with BOM, so Excel shows it correctly) */

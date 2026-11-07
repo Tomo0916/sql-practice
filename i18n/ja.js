@@ -804,6 +804,8 @@ export default {
   "an.excel": "Excel でやってみる",
   "an.python": "Python でやってみる",
   "an.csv": "テーブルを CSV でダウンロード（Excel・pandas で開けます）",
+  "an.savePng": "画像で保存",
+  "an.savePngTip": "このグラフを PNG 画像で保存（スライドやレポートに貼れます）",
   "an.toolsTip": "同じ問題を Excel や Python でも解いてみよう。同じ数字が出れば正解。",
   "an.mean": "平均",
   "an.median": "中央値",

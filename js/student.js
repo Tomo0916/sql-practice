@@ -791,7 +791,7 @@ function quizHTML(prob) {
     let res = null; try { res = S.engine.exec(prob.sql); } catch (e) { res = null; }
     const picked = run && run.sql, ok = run && run.grade && run.grade.ok;
     return `<section class="card editor-card quiz quiz-read">
-      <div class="read-box"><div class="muted small strong">${H('read.result')}</div><div class="data-box">${res ? gridHTML(res, { rowNums: res.values.length > 3 }) : ''}</div>${res ? resultChartHTML(lesson, prob, res) : ''}</div>
+      <div class="read-box"><div class="muted small strong">${H('read.result')}</div><div class="data-box">${res ? gridHTML(res, { rowNums: res.values.length > 3 }) : ''}</div>${res ? resultChartHTML(lesson, prob, res, L()) : ''}</div>
       <div class="choices" role="group" aria-label="${esc(T('quiz.label'))}">${prob.p.choices.map(k => `<button class="choice ${picked === String(k) ? (ok ? 'ok' : 'bad') : ''}" data-act="choose" data-v="${esc(String(k))}">${choiceHTML(prob, k, L())}</button>`).join('')}</div>
       ${answerBox}
     </section>`;
@@ -929,7 +929,7 @@ function resultsHTML(prob) {
   else body = gridHTML(user, user.dml ? opts : { rowNums: true });
   // data analysis: the result as a chart too
   const lesson = LESSON_BY_KEY[prob.lesson];
-  if (lesson.chart) body += resultChartHTML(lesson, prob, S.tab === 'expected' ? exp : (run && !run.error ? user : null));
+  if (lesson.chart) body += resultChartHTML(lesson, prob, S.tab === 'expected' ? exp : (run && !run.error ? user : null), L());
   const after = exp && exp.dml ? `<p class="res-after muted small">${H('res.after', { t: exp.dml.table })}</p>` : '';
   return `<section class="card results">${after}
     <div class="res-tabs" role="tablist">${tab('user', T('res.yours'), run && !run.error ? user : null)}${tab('expected', T('res.expected'), exp)}</div>

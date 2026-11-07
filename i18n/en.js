@@ -804,6 +804,8 @@ export default {
   "an.excel": "Try it in Excel",
   "an.python": "Try it in Python",
   "an.csv": "Download the table as CSV (opens in Excel and pandas)",
+  "an.savePng": "Save as image",
+  "an.savePngTip": "Save this chart as a PNG image (for slides and reports)",
   "an.toolsTip": "Solve the same question in Excel or Python. The same numbers = correct.",
   "an.mean": "mean",
   "an.median": "median",
