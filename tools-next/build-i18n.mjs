@@ -8,9 +8,9 @@ const root = path.join(here, '..');
 const { LESSONS, CHAPTERS } = await import(path.join(root, 'js/lessons.js'));
 const { SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES } = await import(path.join(root, 'js/datasets.js'));
 
-/** texts of the data-analysis course: written in English, Japanese and Easy Japanese first; other languages fall back to English */
+/** keys every language must have now include the data-analysis course (kept so check.mjs can list them separately) */
 export const ANALYSIS_KEY = /^(L\.an_|ch\.analysis|ph\.(width|mean|sd)$|step\.(sub|case|month|window|mean|dev|coalesce|clean)$|an\.)/;
-export const ANALYSIS_LANGS = ['en', 'ja', 'easy'];
+export const ANALYSIS_LANGS = ['en', 'ja', 'easy', 'fr', 'id', 'vi', 'zh', 'ne', 'bn', 'my', 'si'];
 export function usedKeys() {
   const keys = new Set();
   for (const f of fs.readdirSync(path.join(root, 'js'))) {
