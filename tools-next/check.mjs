@@ -83,6 +83,8 @@ for (const L of LESSONS) {
       const exp = eng.exec(p.sql);
       if (!exp || !exp.values.length) { err(`${L.key}: answer returns no rows: ${p.sql}`); continue; }
       if (!grade(eng.runUser(p.sql), exp, p.ordered, p.sql).ok) err(`${L.key}: answer does not grade as correct: ${p.sql}`);
+      // a LEFT JOIN problem must not be solvable with INNER JOIN
+      if (/\bLEFT JOIN\b/.test(p.sql)) { let ok = false; try { const s2 = p.sql.replace(/\bLEFT JOIN\b/g, 'INNER JOIN'); ok = grade(eng.runUser(s2), exp, p.ordered, s2).ok; } catch (e) { ok = false; } if (ok) err(`${L.key}: INNER JOIN also passes: ${p.sql}`); }
       p.steps.forEach(([k, s]) => { if (!(k in en)) err(`${L.key}: unknown step text ${k}`); try { eng.exec(s); } catch (e) { err(`${L.key}: step SQL fails: ${s}`); } });
       if (p.stage === 'fill') {
         const f = eng.fillTask(p);

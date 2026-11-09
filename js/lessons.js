@@ -496,13 +496,25 @@ export const LESSONS = [
     key: 'leftorder', no: 34, ch: 'join', kind: 'join',
     syntax: 'SELECT ... FROM {table} LEFT JOIN {table} ON {cond} ORDER BY {table}.{col} DESC LIMIT {n};',
     keywords: ['SELECT', 'FROM', 'LEFT JOIN', 'ON', 'ORDER BY', 'DESC', 'LIMIT', '.'],
-    demo: { p: Object.assign(joinParams(DEMO_JOIN_PAIR), { ord: 'desc', k: 3 }) },
-    gen(pair, R) { const p = joinParams(pair); p.ord = 'desc'; p.k = R.int(2, 3); return p; },
-    view: p => ({ c1: `${p.L}.${p.name}`, c2: `${p.R}.${p.num}` }),
-    sql: p => `SELECT ${p.L}.${p.name}, ${p.R}.${p.num} FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.R}.${p.num} ${dir(p.ord)} LIMIT ${p.k};`,
-    tie: p => `SELECT ${p.R}.${p.num} FROM ${p.L} INNER JOIN ${p.R} ON ${onOf(p)};`,
+    // sorted by the left table's id, and the first k rows always include a row with no partner
+    // (shown as NULL), so INNER JOIN gives a different answer
+    demo: { p: Object.assign(joinParams(DEMO_JOIN_PAIR), { ord: 'asc', k: 3 }) },
+    gen(pair, R, ctx) {
+      const p = joinParams(pair);
+      p.ord = R.pick(['asc', 'desc']);
+      const lone = ord => ctx.values(`SELECT ${p.R}.${p.key} IS NULL FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.L}.${p.id} ${dir(ord)};`).map(r => !!r[0]);
+      let f = lone(p.ord);
+      if (f.indexOf(true) < 0 || f.indexOf(true) > 3) { p.ord = p.ord === 'asc' ? 'desc' : 'asc'; f = lone(p.ord); }
+      const first = f.indexOf(true);
+      if (first < 0 || first > 3) return null;
+      p.k = Math.min(f.length - 1, Math.max(first + 1, R.int(2, 3)));
+      return p;
+    },
+    view: p => ({ c1: `${p.L}.${p.name}`, c2: `${p.R}.${p.num}`, sc: `${p.L}.${p.id}` }),
+    sql: p => `SELECT ${p.L}.${p.name}, ${p.R}.${p.num} FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.L}.${p.id} ${dir(p.ord)} LIMIT ${p.k};`,
+    tie: p => `SELECT ${p.L}.${p.id} FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)};`,
     blanks: ['ord', 'k'],
-    steps: p => [['step.from', `SELECT * FROM ${p.L};`], ['step.join_left', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)};`], ['step.order', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.R}.${p.num} ${dir(p.ord)};`], ['step.limit', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.R}.${p.num} ${dir(p.ord)} LIMIT ${p.k};`], ['step.select', `SELECT ${p.L}.${p.name}, ${p.R}.${p.num} FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.R}.${p.num} ${dir(p.ord)} LIMIT ${p.k};`]]
+    steps: p => [['step.from', `SELECT * FROM ${p.L};`], ['step.join_left', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)};`], ['step.order', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.L}.${p.id} ${dir(p.ord)};`], ['step.limit', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.L}.${p.id} ${dir(p.ord)} LIMIT ${p.k};`], ['step.select', `SELECT ${p.L}.${p.name}, ${p.R}.${p.num} FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.L}.${p.id} ${dir(p.ord)} LIMIT ${p.k};`]]
   },
 
   /* =================== DATA ANALYSIS (course A, units 1–6) ===================
