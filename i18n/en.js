@@ -1096,5 +1096,7 @@ export default {
   "tc.quick.sum": "Total",
   "tc.quick.noKind": "This lesson has no problems of this kind",
   "tc.quick.allTo": "Every lesson:",
-  "tc.quick.clear": "All to 0"
+  "tc.quick.clear": "All to 0",
+  "tc.quick.byChapter": "Whole chapters:",
+  "tc.quick.none": "Clear all"
 };

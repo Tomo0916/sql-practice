@@ -1096,5 +1096,7 @@ export default {
   "tc.quick.sum": "{合計|ごうけい}",
   "tc.quick.noKind": "この レッスンには この {形|かたち}の {問題|もんだい}は ありません",
   "tc.quick.allTo": "ぜんぶの レッスンに：",
-  "tc.quick.clear": "ぜんぶ 0 に"
+  "tc.quick.clear": "ぜんぶ 0 に",
+  "tc.quick.byChapter": "{章|しょう}ごとに まとめて {選|えら}ぶ：",
+  "tc.quick.none": "{選|えら}んだものを ぜんぶ {外|はず}す"
 };

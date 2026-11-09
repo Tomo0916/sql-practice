@@ -1095,5 +1095,7 @@ export default {
   "tc.quick.sum": "合计",
   "tc.quick.noKind": "这节课没有这种题型",
   "tc.quick.allTo": "所有课程：",
-  "tc.quick.clear": "全部设为 0"
+  "tc.quick.clear": "全部设为 0",
+  "tc.quick.byChapter": "按章整体选择：",
+  "tc.quick.none": "全部取消"
 };

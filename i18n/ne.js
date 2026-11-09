@@ -1095,5 +1095,7 @@ export default {
   "tc.quick.sum": "जम्मा",
   "tc.quick.noKind": "यो पाठमा यस प्रकारका प्रश्न छैनन्",
   "tc.quick.allTo": "सबै पाठमा:",
-  "tc.quick.clear": "सबै ० मा"
+  "tc.quick.clear": "सबै ० मा",
+  "tc.quick.byChapter": "पूरा अध्याय छान्नुहोस्:",
+  "tc.quick.none": "सबै छनोट हटाउनुहोस्"
 };

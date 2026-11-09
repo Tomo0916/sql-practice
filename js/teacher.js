@@ -259,8 +259,11 @@ function quickHTML(c) {
   return `<section class="card quick-setup">
       <h2>⚡ ${H('tc.quick.title')}</h2><p class="muted">${H('tc.quick.sub')}</p>
       <div class="fld"><span>${H('tc.quick.lessons')}</span>
+        <div class="q-chapters"><small class="muted">${H('tc.quick.byChapter')}</small>${CHAPTERS.map(ch => { const ks = checkLessons().filter(l => l.ch === ch.key).map(l => l.key); if (!ks.length) return ''; const on = ks.every(k => chosen.has(k)), some = !on && ks.some(k => chosen.has(k));
+          return `<button class="btn btn-ghost btn-xs q-ch ${on ? 'on' : some ? 'some' : ''}" style="--cc:var(--c-${ch.key})" data-act="quickChapter" data-v="${ch.key}" aria-pressed="${on}" title="${esc(T('ck.chapterTip'))}">${rubyHTML(raw('ch.' + ch.key, L()))} <span class="muted">${ks.filter(k => chosen.has(k)).length}/${ks.length}</span></button>`; }).join('')}
+          ${chosen.size ? `<button class="btn btn-ghost btn-xs" data-act="quickChapter" data-v="">${H('tc.quick.none')}</button>` : ''}</div>
         ${asg.length ? `<div class="q-lessons"><small class="muted">${H('tc.quick.fromAssign')}</small>${asg.map(lessonBtn).join('')}</div>` : ''}
-        <details class="q-more" ${asg.length ? '' : 'open'}><summary>${H('tc.quick.otherLessons')}</summary>${CHAPTERS.map(ch => { const ls = others.filter(l => l.ch === ch.key); return ls.length ? `<div class="q-lessons"><small class="muted">${rubyHTML(raw('ch.' + ch.key, L()))}</small>${ls.map(lessonBtn).join('')}</div>` : ''; }).join('')}</details></div>
+        <details class="q-more" ${!asg.length || others.some(l => chosen.has(l.key)) ? 'open' : ''}><summary>${H('tc.quick.otherLessons')}</summary>${CHAPTERS.map(ch => { const ls = others.filter(l => l.ch === ch.key); return ls.length ? `<div class="q-lessons"><small class="muted">${rubyHTML(raw('ch.' + ch.key, L()))}</small>${ls.map(lessonBtn).join('')}</div>` : ''; }).join('')}</details></div>
       <div class="fld"><span>${H('tc.quick.how')}</span>${seg('mode', ['simple', 'detail'], d.mode, v => H('tc.quick.mode.' + v))}</div>
       ${d.mode === 'detail' ? detail : simple}
       <div class="q-row">
@@ -995,6 +998,16 @@ const actions = {
     else if (k === 'limit') d.limit = +v;
     if (k === 'n' || k === 'mode') d.swaps = {};
     saveQDraft(d); refreshTab();
+  },
+  quickChapter(el) {   // a whole chapter on or off ('' = none)
+    const d = quickDraft(S.klass), v = el.dataset.v;
+    if (!v) d.lessons = [];
+    else {
+      const ks = checkLessons().filter(l => l.ch === v).map(l => l.key), on = ks.every(k => d.lessons.includes(k));
+      d.lessons = on ? d.lessons.filter(k => !ks.includes(k)) : [...d.lessons, ...ks];
+      const order = checkLessons().map(l => l.key); d.lessons = order.filter(k => d.lessons.includes(k));
+    }
+    d.swaps = {}; saveQDraft(d); refreshTab();
   },
   quickPer(el) {
     const d = quickDraft(S.klass), row = d.per[el.dataset.l]; if (!row) return;

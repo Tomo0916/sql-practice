@@ -1095,5 +1095,7 @@ export default {
   "tc.quick.sum": "Total",
   "tc.quick.noKind": "Pelajaran ini tidak punya soal jenis ini",
   "tc.quick.allTo": "Semua pelajaran:",
-  "tc.quick.clear": "Semua jadi 0"
+  "tc.quick.clear": "Semua jadi 0",
+  "tc.quick.byChapter": "Satu bab sekaligus:",
+  "tc.quick.none": "Hapus semua pilihan"
 };

@@ -1095,5 +1095,7 @@ export default {
   "tc.quick.sum": "එකතුව",
   "tc.quick.noKind": "මෙම පාඩමේ මෙම වර්ගයේ ගැටලු නැත",
   "tc.quick.allTo": "සියලු පාඩම්වලට:",
-  "tc.quick.clear": "සියල්ල 0 ට"
+  "tc.quick.clear": "සියල්ල 0 ට",
+  "tc.quick.byChapter": "සම්පූර්ණ පරිච්ඡේද:",
+  "tc.quick.none": "සියලු තේරීම් ඉවත් කරන්න"
 };

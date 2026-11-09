@@ -1095,5 +1095,7 @@ export default {
   "tc.quick.sum": "စုစုပေါင်း",
   "tc.quick.noKind": "ဤသင်ခန်းစာတွင် ဤအမျိုးအစား ပုစ္ဆာ မရှိပါ",
   "tc.quick.allTo": "သင်ခန်းစာအားလုံးသို့-",
-  "tc.quick.clear": "အားလုံး 0 သို့"
+  "tc.quick.clear": "အားလုံး 0 သို့",
+  "tc.quick.byChapter": "အခန်းလိုက် တစ်ခါတည်း ရွေးရန်-",
+  "tc.quick.none": "ရွေးထားသမျှ ဖြုတ်ရန်"
 };

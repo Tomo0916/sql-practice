@@ -1095,5 +1095,7 @@ export default {
   "tc.quick.sum": "মোট",
   "tc.quick.noKind": "এই পাঠে এই ধরনের প্রশ্ন নেই",
   "tc.quick.allTo": "সব পাঠে:",
-  "tc.quick.clear": "সব ০ করুন"
+  "tc.quick.clear": "সব ০ করুন",
+  "tc.quick.byChapter": "পুরো অধ্যায় বাছুন:",
+  "tc.quick.none": "সব বাছাই বাতিল"
 };

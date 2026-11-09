@@ -1096,5 +1096,7 @@ export default {
   "tc.quick.sum": "合計",
   "tc.quick.noKind": "このレッスンにはこの形式の問題がありません",
   "tc.quick.allTo": "全レッスンに：",
-  "tc.quick.clear": "すべて 0 に"
+  "tc.quick.clear": "すべて 0 に",
+  "tc.quick.byChapter": "章ごとにまとめて選ぶ：",
+  "tc.quick.none": "選択をすべて解除"
 };

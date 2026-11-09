@@ -1095,5 +1095,7 @@ export default {
   "tc.quick.sum": "Tổng",
   "tc.quick.noKind": "Bài học này không có câu hỏi dạng này",
   "tc.quick.allTo": "Mọi bài học:",
-  "tc.quick.clear": "Tất cả về 0"
+  "tc.quick.clear": "Tất cả về 0",
+  "tc.quick.byChapter": "Chọn cả chương:",
+  "tc.quick.none": "Bỏ chọn tất cả"
 };

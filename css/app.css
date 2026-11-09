@@ -889,3 +889,8 @@ body.pj-open { overflow: hidden; }
 .q-table .ck-num { min-width: 1.4em; display: inline-block; }
 .q-more .q-lessons { margin-top: 8px; }
 .quick-setup .seg { width: fit-content; max-width: 100%; flex-wrap: wrap; }
+.q-chapters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.q-chapters > small { flex-basis: 100%; }
+.q-ch { border-left: 4px solid var(--cc, var(--line-2)); }
+.q-ch.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); border-left-color: var(--cc, var(--accent)); }
+.q-ch.some { border-style: dashed; border-left-style: solid; }
