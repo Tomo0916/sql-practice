@@ -1010,5 +1010,16 @@ export default {
   "L.an_case.why_decide": "Find the stores with growth above 0, then the smallest pct_coupon among them. A good report says the reason with the numbers: “In {ans}, sales are growing but only a few orders use coupons.”",
   "read.result": "The result to read",
   "inst.choice": "Read the result and choose the right answer.",
-  "dx.choiceWrong": "Not this one. Read the result and the question again."
+  "dx.choiceWrong": "Not this one. Read the result and the question again.",
+  "tc.live.byLen": "By length",
+  "tc.live.byEnd": "By end time",
+  "tc.live.untilWord": "end",
+  "tc.live.minUnit": "min",
+  "tc.live.until": "until {t}",
+  "tc.live.endBad": "Enter an end time.",
+  "tc.live.endPast": "That end time has already passed.",
+  "tc.live.tooLong": "A class live can last up to {n} minutes.",
+  "tc.live.lenBad": "Enter the length in minutes.",
+  "tc.timerBad": "Enter a number of minutes from 1 to 120.",
+  "tc.roundNote": "A student’s assignment ticks only count problems solved in this class with this set code. Their own practice and earlier rounds do not count. For a new round, change the set code."
 };

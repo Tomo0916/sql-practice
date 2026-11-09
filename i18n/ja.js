@@ -1010,5 +1010,16 @@ export default {
   "L.an_case.why_decide": "growth が 0 より大きい店を探し、その中で pct_coupon がいちばん小さい店を選びます。よい報告は数字で理由を言います：「{ans} は売上が伸びているのに、クーポンを使う注文が少ない」。",
   "read.result": "読み取る結果",
   "inst.choice": "結果を読んで、正しいものを選ぼう。",
-  "dx.choiceWrong": "ちがいます。結果と問題文をもう一度読みましょう。"
+  "dx.choiceWrong": "ちがいます。結果と問題文をもう一度読みましょう。",
+  "tc.live.byLen": "長さで",
+  "tc.live.byEnd": "終了時刻で",
+  "tc.live.untilWord": "まで",
+  "tc.live.minUnit": "分",
+  "tc.live.until": "{t}まで",
+  "tc.live.endBad": "終了時刻を入れてください。",
+  "tc.live.endPast": "終了時刻がもう過ぎています。",
+  "tc.live.tooLong": "授業ライブは最長{n}分です。",
+  "tc.live.lenBad": "時間（分）を数字で入れてください。",
+  "tc.timerBad": "1〜120 の数字（分）を入れてください。",
+  "tc.roundNote": "生徒の課題の ✓ は、このクラスでこのセット番号の問題を解いた分だけ付きます。自分で練習した問題や前の回の問題には付きません。新しい回はセット番号を変えてください。"
 };

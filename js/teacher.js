@@ -201,13 +201,48 @@ function classHTML() {
 }
 
 /* ---------- class live: the students work on the assignment until it ends ---------- */
-const LIVE_MIN = [45, 50, 90, 120];
+/* the class live's length: any number of minutes, or until a time of day (the server allows 5–240 minutes) */
+const LIVE_MIN = [45, 50, 90, 120], LIVE_MAX = 240;
+const hhmm = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 function liveBoxHTML(c) {
-  if (!liveOn(c)) return `<button class="btn btn-primary btn-sm" data-act="liveStart" title="${esc(T('tc.live.tip'))}" ${(c.lessons || []).length ? '' : 'disabled'}>▶ ${H('tc.live.start')}</button>
-    <label class="live-len"><span class="muted small">${H('tc.live.len')}</span><select id="live-len">${LIVE_MIN.map(m => `<option value="${m}" ${m === (Store.get('sqln.liveLen', 50)) ? 'selected' : ''}>${esc(T('tc.live.min', { n: m }))}</option>`).join('')}</select></label>
+  if (!liveOn(c)) {
+    const mode = Store.get('sqln.liveMode', 'len'), len = Store.get('sqln.liveLen', 50);
+    const saved = Store.get('sqln.liveEnd', ''), sm = /^(\d{1,2}):(\d{2})$/.exec(saved || '');
+    const later = sm && (+sm[1] * 60 + +sm[2]) > new Date().getHours() * 60 + new Date().getMinutes();   // a saved end time still ahead today
+    const end = later ? saved : hhmm(new Date(Date.now() + len * 60000));
+    return `<button class="btn btn-primary btn-sm" data-act="liveStart" title="${esc(T('tc.live.tip'))}" ${(c.lessons || []).length ? '' : 'disabled'}>▶ ${H('tc.live.start')}</button>
+    <div class="live-len">
+      <div class="seg seg-xs" role="group" aria-label="${esc(T('tc.live.len'))}">${[['len', 'tc.live.byLen'], ['end', 'tc.live.byEnd']].map(([m, k]) => `<button class="seg-b ${mode === m ? 'on' : ''}" data-act="liveMode" data-v="${m}" aria-pressed="${mode === m}">${H(k)}</button>`).join('')}</div>
+      ${mode === 'end'
+        ? `<label class="live-in"><input type="time" id="live-end" value="${esc(end)}" step="60" aria-label="${esc(T('tc.live.byEnd'))}"><span class="muted small">${H('tc.live.untilWord')}</span></label>`
+        : `<label class="live-in"><input type="number" id="live-len" inputmode="numeric" min="5" max="${LIVE_MAX}" step="5" value="${esc(len)}" list="live-len-list" aria-label="${esc(T('tc.live.len'))}"><span class="muted small">${H('tc.live.minUnit')}</span></label>
+          <datalist id="live-len-list">${LIVE_MIN.map(m => `<option value="${m}"></option>`).join('')}</datalist>
+          <span class="live-quick">${LIVE_MIN.map(m => `<button class="btn btn-ghost btn-xs" data-act="liveLen" data-v="${m}">${esc(T('tc.live.min', { n: m }))}</button>`).join('')}</span>`}
+    </div>
     ${(c.lessons || []).length ? '' : `<small class="muted">${H('tc.live.noLessons')}</small>`}`;
-  return `<span class="live-st"><i class="live-dot"></i><b>${H('tc.live.on')}</b><span class="muted small" data-tlive>${H('tc.live.left', { n: liveMinutesLeft(c) })}</span></span>
+  }
+  const until = c.live_until ? hhmm(new Date(c.live_until)) : '';
+  return `<span class="live-st"><i class="live-dot"></i><b>${H('tc.live.on')}</b><span class="muted small" data-tlive>${H('tc.live.left', { n: liveMinutesLeft(c) })}</span>${until ? `<span class="muted small">· ${H('tc.live.until', { t: until })}</span>` : ''}</span>
     <span class="row-btns"><button class="btn btn-ghost btn-xs" data-act="liveMore">${H('tc.live.more')}</button><button class="btn btn-ghost btn-xs" data-act="liveStop">${H('tc.live.stop')}</button></span>`;
+}
+/** minutes for the class live from the form, or an error message */
+function liveMinutes() {
+  if (Store.get('sqln.liveMode', 'len') === 'end') {
+    const v = (document.getElementById('live-end') || {}).value || '';
+    const m = /^(\d{1,2}):(\d{2})$/.exec(v);
+    if (!m) return { err: T('tc.live.endBad') };
+    Store.set('sqln.liveEnd', v);
+    const end = new Date(); end.setHours(+m[1], +m[2], 0, 0);
+    const min = Math.ceil((end.getTime() - Date.now()) / 60000);
+    if (min < 1) return { err: T('tc.live.endPast') };
+    if (min > LIVE_MAX) return { err: T('tc.live.tooLong', { n: LIVE_MAX }) };
+    return { min: Math.max(5, min) };
+  }
+  const n = parseInt(String((document.getElementById('live-len') || {}).value || '').replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)), 10);
+  if (!(n >= 1)) return { err: T('tc.live.lenBad') };
+  if (n > LIVE_MAX) return { err: T('tc.live.tooLong', { n: LIVE_MAX }) };
+  Store.set('sqln.liveLen', Math.max(5, n));
+  return { min: Math.max(5, n) };
 }
 let liveShownT = null;
 function tickTeacherLive() {
@@ -229,7 +264,8 @@ function liveError(e) {
 const TIMER_MIN = [1, 3, 5, 10];
 function timerBoxHTML(c) {
   const left = secondsLeft(c), st = timerState(left);
-  if (!st) return `<span class="tb-lab">⏱ ${H('tc.timer')}</span><div class="tb-presets">${TIMER_MIN.map(m => `<button class="btn btn-ghost btn-xs" data-act="timerStart" data-sec="${m * 60}" title="${esc(T('tc.timerNote'))}">${H('tc.timerMin', { n: m })}</button>`).join('')}</div>`;
+  if (!st) return `<span class="tb-lab">⏱ ${H('tc.timer')}</span><div class="tb-presets">${TIMER_MIN.map(m => `<button class="btn btn-ghost btn-xs" data-act="timerStart" data-sec="${m * 60}" title="${esc(T('tc.timerNote'))}">${H('tc.timerMin', { n: m })}</button>`).join('')}
+    <span class="tb-free"><input type="number" id="timer-min" inputmode="numeric" min="1" max="120" value="${esc(Store.get('sqln.timerMin', 15))}" aria-label="${esc(T('tc.timer'))}"><span class="muted small">${H('tc.live.minUnit')}</span><button class="btn btn-ghost btn-xs" data-act="timerStart" data-free="1" title="${esc(T('tc.timerNote'))}">▶</button></span></div>`;
   return `<b class="tb-time mono ${st}" data-timer>${st === 'up' ? H('timer.up') : fmtClock(left)}</b>
     <div class="tb-presets"><button class="btn btn-ghost btn-xs" data-act="timerBig">${H('tc.timerBig')}</button><button class="btn btn-ghost btn-xs" data-act="timerStop">${H('tc.timerStop')}</button></div>`;
 }
@@ -258,7 +294,7 @@ function assignHTML(c) {
       <div class="inline-form"><input name="set_code" class="mono" maxlength="16" value="${esc(c.set_code)}" required>
       <button type="button" class="btn btn-ghost btn-sm" data-act="setToday">${H('set.today')}</button>
       <button type="button" class="btn btn-ghost btn-sm" data-act="setRandom">${I.shuffle}${H('set.new')}</button></div>
-      <small class="muted">${H('tc.setCodeTip')}</small></div>
+      <small class="muted">${H('tc.setCodeTip')}</small><small class="muted">✓ ${H('tc.roundNote')}</small></div>
     <div class="fld"><span>${H('tc.policy')}</span>
       ${['after2', 'solved', 'always', 'never'].map(p => `<label class="chk"><input type="radio" name="policy" value="${p}" ${pol === p ? 'checked' : ''}><span><b>${H('tc.policy.' + p)}</b> <small class="muted">${H('tc.policyTip.' + p)}</small></span></label>`).join('')}</div>
     ${formatFieldHTML(c)}
@@ -828,16 +864,25 @@ const actions = {
   showQR() { openQR(S.klass); },
   copyJoin() { copyText(joinURL(S.klass.code), () => toast(T('set.copied'))); },
   async timerStart(el) {
-    try { await syncClock(backend.serverNow); S.klass = await backend.startTimer(S.klass.id, +el.dataset.sec); shownState = null; tickTeacherTimer(); }
+    let sec = +el.dataset.sec;
+    if (el.dataset.free) {
+      const n = parseInt(String((document.getElementById('timer-min') || {}).value || '').replace(/[０-９]/g, d => String.fromCharCode(d.charCodeAt(0) - 0xFEE0)), 10);
+      if (!(n >= 1 && n <= 120)) { toast(T('tc.timerBad')); return; }
+      Store.set('sqln.timerMin', n); sec = n * 60;
+    }
+    try { await syncClock(backend.serverNow); S.klass = await backend.startTimer(S.klass.id, sec); shownState = null; tickTeacherTimer(); }
     catch (e) { console.error(e); toast(timerError(e)); }
   },
   async timerStop() {
     try { S.klass = await backend.stopTimer(S.klass.id); shownState = null; tickTeacherTimer(); const b = document.getElementById('timer-big'); if (b) b.remove(); }
     catch (e) { console.error(e); toast(timerError(e)); }
   },
+  liveMode(el) { Store.set('sqln.liveMode', el.dataset.v === 'end' ? 'end' : 'len'); liveShownT = null; tickTeacherLive(); },
+  liveLen(el) { const i = document.getElementById('live-len'); if (i) i.value = el.dataset.v; },
   async liveStart() {
-    const min = +((document.getElementById('live-len') || {}).value || 50);
-    Store.set('sqln.liveLen', min);
+    const r = liveMinutes();
+    if (r.err) { toast(r.err); return; }
+    const min = r.min;
     try { await syncClock(backend.serverNow); S.klass = await backend.startLive(S.klass.id, min); liveShownT = null; tickTeacherLive(); toast(T('tc.live.started')); }
     catch (e) { console.error(e); toast(liveError(e)); }
   },

@@ -1009,5 +1009,16 @@ export default {
   "L.an_case.desc_effect": "第 4 步——用券的订单金额更大吗？对每家店，取出用券订单的平均金额（with_coupon）和不用券订单的平均金额（without_coupon），保留 1 位小数，按店名排序。",
   "L.an_case.desc_members": "第 5 步——顾客是谁？以 customer_id 连接 kumo_orders 和 kumo_accounts。对每家店，取出订单数和 Regular 方案顾客的订单比例（pct_regular，%，保留 1 位小数），按比例从大到小排列。",
   "L.an_case.desc_decide": "第 6 步——作出决定。思路：在正在增长的店里，把优惠券发到用得最少的地方。在下半年销售额增长（growth > 0）的店中，哪家的优惠券比例最低？",
-  "L.an_case.why_decide": "先找出 growth 大于 0 的店，再在其中找 pct_coupon 最小的。好的报告会用数字说明理由：“{ans} 的销售额在增长，但使用优惠券的订单很少。”"
+  "L.an_case.why_decide": "先找出 growth 大于 0 的店，再在其中找 pct_coupon 最小的。好的报告会用数字说明理由：“{ans} 的销售额在增长，但使用优惠券的订单很少。”",
+  "tc.live.byLen": "按时长",
+  "tc.live.byEnd": "按结束时间",
+  "tc.live.untilWord": "结束",
+  "tc.live.minUnit": "分钟",
+  "tc.live.until": "到 {t}",
+  "tc.live.endBad": "请输入结束时间。",
+  "tc.live.endPast": "这个结束时间已经过了。",
+  "tc.live.tooLong": "课堂直播最长 {n} 分钟。",
+  "tc.live.lenBad": "请用数字输入时长（分钟）。",
+  "tc.timerBad": "请输入 1～120 之间的分钟数。",
+  "tc.roundNote": "学生作业的 ✓ 只计算在本班用这个编号做对的题。自己练习的题和以前各次的题不计算。新的一次请更换编号。"
 };

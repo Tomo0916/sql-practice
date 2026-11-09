@@ -72,11 +72,30 @@ const answerPolicy = () => (S.klass && S.klass.answer_policy) || 'after2';
 
 /* ---------- progress helpers ---------- */
 const save = () => saveProgress(S.progress);
-const isSolved = id => !!S.progress.solved[id];
+/** solved by this student anywhere (own practice, other days …) */
+const solvedEver = id => !!S.progress.solved[id];
+/*
+ * The class assignment counts only what was solved in this class with its current set
+ * (a "round": class + set code). Practice before, alone or with the same problems, does not
+ * tick the assignment; a new set code starts a new round.
+ */
+const roundKey = () => (S.klass ? `${S.klass.id}|${S.klass.set_code || ''}` : null);
+const roundMap = () => { const k = roundKey(); return (k && S.progress.klass && S.progress.klass[k]) || {}; };
+const inRound = lessonKey => !!S.klass && (S.klass.lessons || []).includes(lessonKey);
+function markRound(id, at) {
+  const k = roundKey(); if (!k) return false;
+  S.progress.klass = S.progress.klass || {};
+  const m = S.progress.klass[k] = S.progress.klass[k] || {};
+  if (m[id]) return false;
+  m[id] = at || Date.now(); return true;
+}
+/** solved, as the screen shows it: an assigned lesson in a class counts this round only */
+const isSolved = id => (inRound(String(id).split(':')[0]) ? !!roundMap()[id] : solvedEver(id));
 /** the class's own problem format applies to the lessons the class assigned */
 const formatOf = lesson => (S.klass && S.klass.format && (S.klass.lessons || []).includes(lesson.key) ? S.klass.format : null);
 const problemsOf = lesson => S.engine.lessonProblems(lesson, setCode(), formatOf(lesson));
-const stateOf = lesson => lessonState(S.progress, problemsOf(lesson));
+const stateOf = lesson => lessonState(inRound(lesson.key) ? { solved: roundMap() } : S.progress, problemsOf(lesson));
+const ownStateOf = lesson => lessonState(S.progress, problemsOf(lesson));
 function stageLabelH(p) {
   if (p.stage === 'demo') return H('stage.demo');
   if (p.stage === 'fill') return H('stage.fill');
@@ -671,7 +690,7 @@ function solvedHTML() {
   const assigned = S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k]) : [];
   const keys = [...assigned, ...LESSONS.map(l => l.key).filter(k => !assigned.includes(k))];
   const blocks = keys.map(k => {
-    const l = LESSON_BY_KEY[k], probs = problemsOf(l).filter(p => isSolved(p.id));
+    const l = LESSON_BY_KEY[k], probs = problemsOf(l).filter(p => solvedEver(p.id));
     if (!probs.length) return '';
     const link = p => (assigned.includes(k) ? liveHash(p) : `#/l/${k}/${p.idx}`);
     return `<section class="card mine-lesson"><h2><span class="lesson-num">${l.no}</span>${lessonTitleHTML(l, L())}${assigned.includes(k) ? `<span class="tag">${H('nav.assign')}</span>` : ''}</h2>
@@ -972,6 +991,7 @@ function refresh(parts) {
   if (parts.includes('fb')) put('ws-fb', feedbackHTML(prob));
   if (parts.includes('res') && !isQuiz(prob)) put('ws-res', resultsHTML(prob));
   if (parts.includes('side')) { const side = document.querySelector('.plist'); if (side && S.route.view === 'lesson') { const tmp = document.createElement('div'); tmp.innerHTML = lessonHTML(); const n = tmp.querySelector('.plist'); if (n) side.replaceWith(n); } }
+  if (parts.includes('side') && S.route.view === 'live') { const side = document.querySelector('.live-side'); if (side) { const tmp = document.createElement('div'); tmp.innerHTML = liveViewHTML(); const n = tmp.querySelector('.live-side'); if (n) side.replaceWith(n); } }   // the assignment's ticks and count
 }
 
 /* =========================================================
@@ -1004,13 +1024,17 @@ function record(prob, ok, run, sql) {
     if (ses && ses.kind === 'check' && ses.done[prob.id] === undefined) { ses.done[prob.id] = ok; ses.ans[prob.id] = String(sql).slice(0, 2000); }
   } else if (!empty) {
     if (ok) {
-      if (!isSolved(prob.id)) {
-        const lesson = LESSON_BY_KEY[prob.lesson];
-        const extra = prob.kind === 'review' || prob.kind === 'drill';   // not one of the lesson's own problems
-        const before = !extra && stateOf(lesson).done;
+      const lesson = LESSON_BY_KEY[prob.lesson];
+      const extra = prob.kind === 'review' || prob.kind === 'drill';   // not one of the lesson's own problems
+      if (!solvedEver(prob.id)) {
+        const before = !extra && ownStateOf(lesson).done;
         S.progress.solved[prob.id] = Date.now();
         S.progress.answers[prob.id] = { sql: String(sql).slice(0, 2000), at: Date.now() };   // the answer that was right, for looking back
-        if (!extra && !before && stateOf(lesson).done) { markLessonDone(S.progress, lesson.key); run.lessonDone = true; }
+        if (!extra && !before && ownStateOf(lesson).done) { markLessonDone(S.progress, lesson.key); run.lessonDone = true; }
+      }
+      if (!extra && inRound(prob.lesson)) {   // the class assignment: solved in this class
+        const before = stateOf(lesson).done;
+        if (markRound(prob.id) && !before && stateOf(lesson).done) run.lessonDone = true;
       }
       bumpStreak(S.progress);
     } else S.progress.wrong[prob.id] = (S.progress.wrong[prob.id] || 0) + 1;
@@ -1304,7 +1328,7 @@ actions.resetProgress = () => {
   if (!confirm(T('prog.confirm'))) return;
   Store.del(KEYS.progress);   // a fresh start: nothing to merge with
   S.progress = loadProgress(); Object.keys(S.progress).forEach(k => delete S.progress[k]);
-  Object.assign(S.progress, { solved: {}, wrong: {}, drafts: {}, answers: {}, drill: {}, lessons: {}, last: null, streak: { day: 0, n: 0 } });
+  Object.assign(S.progress, { solved: {}, wrong: {}, drafts: {}, answers: {}, drill: {}, lessons: {}, klass: {}, last: null, streak: { day: 0, n: 0 } });
   S.runs = {}; save(); closeModal(); render();
 };
 function openGloss(kw) {
@@ -1374,12 +1398,14 @@ async function restoreFromServer() {
   let rows;
   try { rows = await backend.myAttempts(S.klass.id); } catch (e) { return; }
   let changed = false;
+  const mine = new Set(assignedSeq().map(p => p.id));   // this class's problems now: solved in this class counts for the assignment
   rows.filter(a => a.ok).forEach(a => {
+    if (mine.has(a.problem_id) && markRound(a.problem_id, new Date(a.created_at).getTime())) changed = true;
     if (!S.progress.solved[a.problem_id]) { S.progress.solved[a.problem_id] = new Date(a.created_at).getTime(); changed = true; }
     if (!S.progress.answers[a.problem_id] && a.sql) { S.progress.answers[a.problem_id] = { sql: a.sql, at: new Date(a.created_at).getTime() }; changed = true; }
   });
   if (!changed) return;
-  LESSONS.forEach(l => { if (stateOf(l).done) markLessonDone(S.progress, l.key); });
+  LESSONS.forEach(l => { if (ownStateOf(l).done) markLessonDone(S.progress, l.key); });
   save();
 }
 function openClassInfo() {
