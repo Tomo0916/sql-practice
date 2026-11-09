@@ -426,6 +426,16 @@ grant execute on function public.my_pin_set(uuid) to authenticated;
 grant execute on function public.pin_status(uuid) to authenticated;
 grant execute on function public.teacher_set_pin(uuid, uuid, text) to authenticated;
 
+-- ---------- quick test (2026-11-09) ----------
+-- A few problems for the whole class; students who solve them all may take a break.
+-- quick = {"id": round id, "code": check-test code, "at": start time, "n": number of problems}, null = none.
+-- The teacher sets it like any other class setting (classes_update policy).
+alter table public.classes add column if not exists quick jsonb check (quick is null or jsonb_typeof(quick) = 'object');
+-- answers to it are logged with stage 'quick' (and the 'quiz' questions of Lesson 0 / A13 are allowed too)
+alter table public.attempts drop constraint if exists attempts_stage_check;
+alter table public.attempts add constraint attempts_stage_check
+  check (stage in ('demo', 'fill', 'order', 'write', 'review', 'quiz', 'quick'));
+
 -- keep updated_at fresh
 create or replace function public.touch_updated_at() returns trigger language plpgsql as
 $$ begin new.updated_at := now(); return new; end $$;

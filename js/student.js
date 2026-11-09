@@ -25,6 +25,7 @@ import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
+import { quickOn, quickProblems } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
@@ -125,6 +126,7 @@ function parseRoute() {
   if (h[0] === 'tables') return { view: 'tables' };
   if (h[0] === 'check') return { view: 'session', kind: 'check', code: h.slice(1).join('/') || null };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
+  if (h[0] === 'quick') return { view: 'quick', idx: h[1] === 'done' ? -1 : Math.max(0, parseInt(h[1], 10) || 0), raw: h[1] || '' };
   if (h[0] === 'live') return { view: 'live', key: LESSON_BY_KEY[h[1]] ? h[1] : h[1] === 'done' ? 'done' : null, idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };
   return { view: 'home' };
 }
@@ -149,6 +151,15 @@ function current() {
     if (!lesson || r.key === 'done') return null;
     const probs = problemsOf(lesson);
     return { lesson, probs, prob: p || probs[Math.min(r.idx, probs.length - 1)] };
+  }
+  if (r.view === 'quick') {
+    const items = qItems(); if (!items.length || ((r.raw === '' || r.idx < 0) && qAllDone())) return null;   // the "all correct" screen
+    if (r.raw === '' || r.idx < 0) {   // #/quick: the first unsolved problem, and keep it (it must not move on when solved)
+      const first = items.find(p => !qDone(p)) || items[0];
+      Object.assign(r, { idx: first.qn, raw: String(first.qn) }); history.replaceState(null, '', `#/quick/${first.qn}`);
+    }
+    const prob = items[Math.min(r.idx, items.length - 1)];
+    return { lesson: LESSON_BY_KEY[prob.lesson], probs: items, prob };
   }
   if (r.view === 'session' && S.session && S.session.i < S.session.items.length && (r.kind !== 'check' || (S.session.kind === 'check' && S.session.code === r.code))) {   // not on the finish screen
     const prob = S.session.items[S.session.i];
@@ -177,11 +188,12 @@ function render() {
   else if (r.view === 'session') body = sessionHTML();
   else if (r.view === 'words') body = wordsHTML();
   else if (r.view === 'live') body = liveViewHTML();
+  else if (r.view === 'quick') body = quickViewHTML();
   else if (r.view === 'solved') body = solvedHTML();
   else if (r.view === 'lecture') body = lectureHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
-  app.innerHTML = head + liveBannerHTML() + body + footerHTML();
+  app.innerHTML = head + quickBannerHTML() + liveBannerHTML() + body + footerHTML();
   mountWorkspace();
   drawJoinLines(app);
 }
@@ -513,6 +525,76 @@ function drillHTML(ses) {
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
+}
+
+
+/* ---------- quick test (クイックテスト): a few problems the teacher gives everyone at once ----------
+ * Retry until right; hints and answers stay hidden. When all are solved the student may take a break. */
+const QKEY_ST = 'sqln.quick';
+let qCache = { id: null, items: [] };
+function qItems() {
+  const q = S.klass && S.klass.quick;
+  if (!quickOn(S.klass) || !S.engine) return [];
+  if (qCache.id !== q.id) qCache = { id: q.id, items: quickProblems(S.engine, q) };
+  return qCache.items;
+}
+function qState() {
+  const q = S.klass && S.klass.quick, st = Store.get(QKEY_ST, null);
+  return q && st && st.id === q.id ? st : { id: q ? q.id : null, done: {}, at: 0 };
+}
+const qDone = p => !!qState().done[p.qn];
+const qAllDone = () => { const items = qItems(); return items.length > 0 && items.every(qDone); };
+function qMark(n) {
+  const st = qState(); if (!st.id || st.done[n]) return false;
+  st.done[n] = Date.now();
+  if (!st.at && qItems().every(p => st.done[p.qn])) st.at = Date.now();
+  Store.set(QKEY_ST, st); return true;
+}
+function qNext(prob) {
+  const items = qItems(), i = items.findIndex(p => p.id === prob.id);
+  return items.slice(i + 1).find(p => !qDone(p)) || items.slice(0, Math.max(0, i)).find(p => !qDone(p)) || null;
+}
+function quickBannerHTML() {
+  if (!quickOn(S.klass) || S.route.view === 'quick' || qAllDone()) return '';
+  return `<div class="live-banner quick-banner"><span>⚡ ${H('qk.banner')}</span><a class="btn btn-ok btn-sm" href="#/quick">${H('qk.back')}${I.next}</a></div>`;
+}
+function quickViewHTML() {
+  document.title = `${T('qk.title')} · SQL Practice`;
+  if (!quickOn(S.klass)) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.none')}</p><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></section></main>`;
+  const items = qItems(), n = items.length, ok = items.filter(qDone).length, st = qState();
+  if (qAllDone() && !current()) {
+    const secs = st.at ? Math.max(0, Math.round((st.at - new Date(S.klass.quick.at).getTime()) / 1000)) : null;
+    return `<main class="wrap narrow"><section class="card empty quick-done">
+      <div class="empty-icon">🎉</div><h1>${H('qk.doneTitle')}</h1><p class="big-score">${ok} / ${n}</p>
+      ${secs !== null ? `<p class="muted">${H('qk.time', { t: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` })}</p>` : ''}
+      <p class="qk-break">${H('qk.doneSub')}</p></section></main>`;
+  }
+  const c = current();
+  const prob = c ? c.prob : items.find(p => !qDone(p)), lesson = LESSON_BY_KEY[prob.lesson];
+  return `<main class="wrap">
+    <div class="session-head">
+      <h1>⚡ ${H('qk.title')}</h1>
+      <div class="session-progress"><span>${ok} / ${n}</span><div class="bar"><i style="width:${Math.round(ok / n * 100)}%"></i></div></div>
+    </div>
+    <div class="session-layout">
+      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        <p class="muted small">${H('qk.rule')}</p>
+        <div class="ck-dots qk-dots">${items.map(p => `<a href="#/quick/${p.qn}" class="${qDone(p) ? 'ok' : ''}${p.id === prob.id ? ' cur' : ''}" title="Q${p.qn + 1}" aria-label="Q${p.qn + 1}">${p.qn + 1}</a>`).join('')}</div></aside>
+      <div class="main" id="ws">${workspaceHTML(prob)}</div>
+    </div>
+  </main>`;
+}
+/** the teacher started or stopped a quick test */
+let quickSeen = Store.get('sqln.quickSeen', null), quickShown;
+function quickChanged(announce) {
+  const id = quickOn(S.klass) ? S.klass.quick.id : null;
+  if (id === quickShown) return;
+  const prev = quickShown; quickShown = id;
+  if (id && id !== quickSeen) {   // a new quick test: open it (once)
+    quickSeen = id; Store.set('sqln.quickSeen', id);
+    if (!qAllDone()) { saveDraft(); if (S.route.view !== 'quick') { location.hash = '#/quick'; } else render(); toast(T('qk.started')); return; }
+  }
+  if (prev !== undefined) { if (S.route.view === 'quick') saveDraft(); render(); if (!id && prev && announce && S.route.view === 'quick') toast(T('qk.ended')); }
 }
 
 /* ---------- the class assignment (and the class live) ----------
@@ -915,7 +997,8 @@ function feedbackHTML(prob) {
     const c = current();
     const isLast = !c || prob.idx >= c.probs.length - 1;
     let next = '';
-    if (S.route.view === 'session') next = `<button class="btn btn-ok fb-next" data-act="sessionNext">${H('btn.next')}${I.next}</button>`;
+    if (S.route.view === 'quick') { const n = qNext(prob); next = n ? `<a class="btn btn-ok fb-next" href="#/quick/${n.qn}">${H('btn.next')}${I.next}</a>` : `<a class="btn btn-ok fb-next" href="#/quick/done">${H('qk.finish')}${I.next}</a>`; }
+    else if (S.route.view === 'session') next = `<button class="btn btn-ok fb-next" data-act="sessionNext">${H('btn.next')}${I.next}</button>`;
     else if (S.route.view === 'live') {   // the assignment: on to the next unsolved assigned problem, in any lesson
       const n = nextAssigned(prob);
       next = n ? `<a class="btn btn-ok fb-next" href="${liveHash(n)}">${n.lesson !== prob.lesson ? H('live.nextLesson', { n: LESSON_BY_KEY[n.lesson].no }) : H('btn.next')}${I.next}</a>`
@@ -927,8 +1010,9 @@ function feedbackHTML(prob) {
   }
   const title = run.error && (prob.stage === 'write' || prob.stage === 'demo') ? T('fb.error') : T('fb.notYet');
   const raw = run.error && !(run.dx || []).length ? `<pre class="errmsg">${esc(run.error.message)}</pre>` : '';
-  const tested = prob.test && S.session && S.session.done[prob.id] !== undefined;   // a check test: the first answer counted; go on
-  const skip = S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
+  const tested = prob.test && !prob.quick && S.session && S.session.done[prob.id] !== undefined;   // a check test: the first answer counted; go on
+  const qn = S.route.view === 'quick' ? qNext(prob) : null;
+  const skip = qn ? `<a class="btn btn-ghost btn-sm fb-next" href="#/quick/${qn.qn}">${H('qk.other')}</a>` : S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
   return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${run.error && !run.quiet && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
 }
 
@@ -991,6 +1075,7 @@ function refresh(parts) {
   if (parts.includes('fb')) put('ws-fb', feedbackHTML(prob));
   if (parts.includes('res') && !isQuiz(prob)) put('ws-res', resultsHTML(prob));
   if (parts.includes('side')) { const side = document.querySelector('.plist'); if (side && S.route.view === 'lesson') { const tmp = document.createElement('div'); tmp.innerHTML = lessonHTML(); const n = tmp.querySelector('.plist'); if (n) side.replaceWith(n); } }
+  if (parts.includes('side') && S.route.view === 'quick') { const tmp = document.createElement('div'); tmp.innerHTML = quickViewHTML(); ['.session-head', '.qk-dots'].forEach(sel => { const o = document.querySelector(sel), n = tmp.querySelector(sel); if (o && n) o.replaceWith(n); }); }
   if (parts.includes('side') && S.route.view === 'live') { const side = document.querySelector('.live-side'); if (side) { const tmp = document.createElement('div'); tmp.innerHTML = liveViewHTML(); const n = tmp.querySelector('.live-side'); if (n) side.replaceWith(n); } }   // the assignment's ticks and count
 }
 
@@ -1018,7 +1103,10 @@ function evaluate(prob, sql, extra) {
 /** progress, streak, review and class log after a check */
 function record(prob, ok, run, sql) {
   const empty = run.error && run.error.code === 'empty';
-  if (!empty && prob.test) {   // a check test: only the test keeps score; the lessons' progress is not touched
+  if (!empty && prob.quick) {   // the quick test: retry until right; the class log tells the teacher who has finished
+    if (ok && !qDone(prob)) { qMark(prob.qn); bumpStreak(S.progress); }
+    if (S.klass && backend.enabled) backend.logAttempt({ class_id: S.klass.id, problem_id: prob.id.slice(0, 80), lesson: prob.lesson, stage: 'quick', ok, reason: ok ? null : (run.grade ? run.grade.reason : 'error'), sql: String(sql).slice(0, 2000) });
+  } else if (!empty && prob.test) {   // a check test: only the test keeps score; the lessons' progress is not touched
     if (ok) bumpStreak(S.progress);
     const ses = S.session;
     if (ses && ses.kind === 'check' && ses.done[prob.id] === undefined) { ses.done[prob.id] = ok; ses.ans[prob.id] = String(sql).slice(0, 2000); }
@@ -1365,7 +1453,7 @@ async function doJoin(f) {
       c = await backend.resumeMember(code, nick, pin); resumed = true; S.pinNeeded = false;   // the same student on another device
     }
     Store.set('sqln.nick', nick);
-    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null, live_until: c.live_until || null };
+    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null, live_until: c.live_until || null, quick: c.quick || null };
     Store.set(KEYS.klass, S.klass);
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
     closeModal(); await restoreFromServer(); watchKlass(); render(); toast(resumed ? T('pin.resumed', { n: c.name }) : T('class.joined', { n: c.name }));
@@ -1398,6 +1486,8 @@ async function restoreFromServer() {
   let rows;
   try { rows = await backend.myAttempts(S.klass.id); } catch (e) { return; }
   let changed = false;
+  const q = S.klass.quick, qpre = q && q.id ? `quick:${q.id}:` : null;
+  rows.filter(a => a.ok && qpre && a.problem_id.startsWith(qpre)).forEach(a => { if (qMark(+a.problem_id.slice(qpre.length))) changed = true; });
   const mine = new Set(assignedSeq().map(p => p.id));   // this class's problems now: solved in this class counts for the assignment
   rows.filter(a => a.ok).forEach(a => {
     if (mine.has(a.problem_id) && markRound(a.problem_id, new Date(a.created_at).getTime())) changed = true;
@@ -1448,7 +1538,8 @@ async function watchKlass() {
 }
 function applyClassRow(c, live) {
   const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format);
-  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null, live_until: c.live_until || null });
+  Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null, live_until: c.live_until || null, quick: c.quick || null });
+  quickChanged(live);
   tickTimer();
   const isLive = liveOn(S.klass);
   if (liveShown === null ? isLive : isLive !== liveShown) liveChanged(isLive, live);   // the first time: open the assignment if the class is live now

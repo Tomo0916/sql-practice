@@ -827,3 +827,33 @@ body.pj-open { overflow: hidden; }
 .seg.seg-xs .seg-b { padding: 3px 10px; font-size: .85em; }
 .tb-free { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; }
 .tb-free input { width: 4.2em; }
+/* quick test: students — numbered dots, the "all correct" screen; teacher — the roster */
+.qk-dots a { display: inline-grid; place-items: center; min-width: 30px; height: 30px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--line-2); color: var(--ink-2); font-weight: 700; text-decoration: none; }
+.qk-dots a.ok { background: var(--ok); border-color: transparent; color: #fff; }
+.qk-dots a.cur { outline: 2px solid var(--accent); outline-offset: 1px; }
+.quick-done .qk-break { font-size: 1.15rem; font-weight: 700; color: var(--ok); margin-top: 8px; }
+.quick-banner { background: var(--warn-soft); }
+.quick-setup { display: flex; flex-direction: column; gap: 14px; }
+.quick-setup h2, .quick-run h2 { margin: 0; }
+.q-lessons { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; }
+.q-lessons > small { flex-basis: 100%; }
+.q-more summary { cursor: pointer; color: var(--ink-2); margin-top: 6px; }
+.q-total { margin: 0; }
+.quick-run { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.quick-run.on { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok-soft); }
+.q-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.q-head .row-btns { margin-left: auto; }
+.q-count { display: flex; align-items: baseline; gap: 8px; }
+.q-big { font-size: 2.4rem; font-weight: 800; color: var(--ok); line-height: 1; }
+.q-roster { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.q-st { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
+.q-st b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-st span { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-3); }
+.q-st.done { background: var(--ok-soft); border-color: var(--ok); }
+.q-st.done span { color: var(--ok); font-weight: 700; }
+.q-st.going span { color: var(--accent); font-weight: 700; }
+.q-probs summary { cursor: pointer; color: var(--ink-2); }
+.q-bigview { text-align: center; }
+.q-bigview .q-big { font-size: 4rem; margin: 6px 0 14px; }
+.q-names { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 1.5rem; font-weight: 700; }
+.q-names li { padding: 6px 14px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); }
