@@ -1086,5 +1086,14 @@ export default {
   "tc.quick.timeUp": "Temps écoulé",
   "tc.quick.left": "encore {t}",
   "tc.quick.more": "+1 min",
-  "tc.quick.passedN": "ont réussi"
+  "tc.quick.passedN": "ont réussi",
+  "tc.quick.how": "Choix des problèmes",
+  "tc.quick.mode.simple": "Simple",
+  "tc.quick.mode.detail": "Détaillé",
+  "tc.quick.perLesson": "Problèmes par leçon et par type",
+  "tc.quick.lessonCol": "Leçon",
+  "tc.quick.sum": "Total",
+  "tc.quick.noKind": "Cette leçon n’a pas de problèmes de ce type",
+  "tc.quick.allTo": "Toutes les leçons :",
+  "tc.quick.clear": "Tout à 0"
 };

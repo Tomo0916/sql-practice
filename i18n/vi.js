@@ -1086,5 +1086,14 @@ export default {
   "tc.quick.timeUp": "Hết giờ",
   "tc.quick.left": "còn {t}",
   "tc.quick.more": "+1 phút",
-  "tc.quick.passedN": "đã đạt"
+  "tc.quick.passedN": "đã đạt",
+  "tc.quick.how": "Cách chọn đề",
+  "tc.quick.mode.simple": "Đơn giản",
+  "tc.quick.mode.detail": "Chi tiết",
+  "tc.quick.perLesson": "Số câu theo bài học và dạng",
+  "tc.quick.lessonCol": "Bài học",
+  "tc.quick.sum": "Tổng",
+  "tc.quick.noKind": "Bài học này không có câu hỏi dạng này",
+  "tc.quick.allTo": "Mọi bài học:",
+  "tc.quick.clear": "Tất cả về 0"
 };

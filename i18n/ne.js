@@ -1086,5 +1086,14 @@ export default {
   "tc.quick.timeUp": "समय सकियो",
   "tc.quick.left": "{t} बाँकी",
   "tc.quick.more": "+१ मिनेट",
-  "tc.quick.passedN": "जना उत्तीर्ण"
+  "tc.quick.passedN": "जना उत्तीर्ण",
+  "tc.quick.how": "प्रश्न छान्ने तरिका",
+  "tc.quick.mode.simple": "सजिलो",
+  "tc.quick.mode.detail": "विस्तृत",
+  "tc.quick.perLesson": "पाठ र प्रकारअनुसार प्रश्न संख्या",
+  "tc.quick.lessonCol": "पाठ",
+  "tc.quick.sum": "जम्मा",
+  "tc.quick.noKind": "यो पाठमा यस प्रकारका प्रश्न छैनन्",
+  "tc.quick.allTo": "सबै पाठमा:",
+  "tc.quick.clear": "सबै ० मा"
 };

@@ -1087,5 +1087,14 @@ export default {
   "tc.quick.timeUp": "Time is up",
   "tc.quick.left": "{t} left",
   "tc.quick.more": "+1 min",
-  "tc.quick.passedN": "passed"
+  "tc.quick.passedN": "passed",
+  "tc.quick.how": "How to choose",
+  "tc.quick.mode.simple": "Easy",
+  "tc.quick.mode.detail": "Detailed",
+  "tc.quick.perLesson": "Problems per lesson and kind",
+  "tc.quick.lessonCol": "Lesson",
+  "tc.quick.sum": "Total",
+  "tc.quick.noKind": "This lesson has no problems of this kind",
+  "tc.quick.allTo": "Every lesson:",
+  "tc.quick.clear": "All to 0"
 };

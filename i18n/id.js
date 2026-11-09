@@ -1086,5 +1086,14 @@ export default {
   "tc.quick.timeUp": "Waktu habis",
   "tc.quick.left": "sisa {t}",
   "tc.quick.more": "+1 menit",
-  "tc.quick.passedN": "lulus"
+  "tc.quick.passedN": "lulus",
+  "tc.quick.how": "Cara memilih",
+  "tc.quick.mode.simple": "Mudah",
+  "tc.quick.mode.detail": "Rinci",
+  "tc.quick.perLesson": "Jumlah soal per pelajaran dan jenis",
+  "tc.quick.lessonCol": "Pelajaran",
+  "tc.quick.sum": "Total",
+  "tc.quick.noKind": "Pelajaran ini tidak punya soal jenis ini",
+  "tc.quick.allTo": "Semua pelajaran:",
+  "tc.quick.clear": "Semua jadi 0"
 };

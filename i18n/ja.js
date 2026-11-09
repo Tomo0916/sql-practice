@@ -1087,5 +1087,14 @@ export default {
   "tc.quick.timeUp": "時間終了",
   "tc.quick.left": "あと {t}",
   "tc.quick.more": "+1分",
-  "tc.quick.passedN": "人が合格"
+  "tc.quick.passedN": "人が合格",
+  "tc.quick.how": "問題の決め方",
+  "tc.quick.mode.simple": "かんたん",
+  "tc.quick.mode.detail": "詳しく",
+  "tc.quick.perLesson": "レッスンごと・形式ごとの問題数",
+  "tc.quick.lessonCol": "レッスン",
+  "tc.quick.sum": "合計",
+  "tc.quick.noKind": "このレッスンにはこの形式の問題がありません",
+  "tc.quick.allTo": "全レッスンに：",
+  "tc.quick.clear": "すべて 0 に"
 };

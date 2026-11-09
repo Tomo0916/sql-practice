@@ -1086,5 +1086,14 @@ export default {
   "tc.quick.timeUp": "时间到",
   "tc.quick.left": "还剩 {t}",
   "tc.quick.more": "+1 分钟",
-  "tc.quick.passedN": "人及格"
+  "tc.quick.passedN": "人及格",
+  "tc.quick.how": "出题方式",
+  "tc.quick.mode.simple": "简单",
+  "tc.quick.mode.detail": "详细",
+  "tc.quick.perLesson": "按课程和题型设置题数",
+  "tc.quick.lessonCol": "课程",
+  "tc.quick.sum": "合计",
+  "tc.quick.noKind": "这节课没有这种题型",
+  "tc.quick.allTo": "所有课程：",
+  "tc.quick.clear": "全部设为 0"
 };

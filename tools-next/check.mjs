@@ -327,28 +327,37 @@ console.log('11. Check tests (確認テスト)');
 
 // ---------- quick test: same problems for everyone, swaps, pass line, time limit ----------
 {
-  const { newQuick, quickProblems, quickProgress, quickPhase, poolCode, poolProblems, fixPick, swapPick, QUICK_PRESETS, QUICK_COUNTS } = await import('../js/quick.js');
+  const { newQuick, quickProblems, quickProgress, quickPhase, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, kindsOf, KINDS, QUICK_PRESETS, QUICK_COUNTS } = await import('../js/quick.js');
   const { checkLessons } = await import('../js/check.js');
   let n = 0;
-  for (const kind of Object.keys(QUICK_PRESETS)) for (const max of QUICK_COUNTS) {
-    const ls = checkLessons().slice(n % 20, n % 20 + 2).map(l => l.key);
-    const cfg = { lessons: ls, f: QUICK_PRESETS[kind], max };
-    const pool = poolProblems(eng, poolCode(cfg, 'S' + n));
-    let pick = fixPick([], Math.min(max, pool.length), pool.length);
-    if (pool.length > pick.length) {
-      const sw = swapPick(pick, 0, pool.length);
-      if (sw[0] === pick[0] || new Set(sw).size !== sw.length) err(`quick test: swapping did not give a new problem`);
-      pick = sw;
-    }
-    const q = newQuick({ cfg, seed: 'S' + n, pick, pass: 1, limit: 5 }, Date.parse('2026-01-01T00:00:00Z'));
-    const a = quickProblems(eng, q), b = quickProblems(eng, JSON.parse(JSON.stringify(q)));
-    if (!a.length || a.length !== q.n) err(`quick test ${q.code}: ${a.length} problems, expected ${q.n}`);
-    if (JSON.stringify(a.map(p => p.sql)) !== JSON.stringify(pick.map(j => pool[j].sql))) err(`quick test ${q.code}: not the problems the teacher saw`);
-    if (JSON.stringify(a.map(p => p.sql)) !== JSON.stringify(b.map(p => p.sql))) err(`quick test ${q.code}: not the same problems for everyone`);
-    if (a.some((p, i) => p.id !== `quick:${q.id}:${i}` || !p.test || p.stage === 'demo')) err(`quick test ${q.code}: bad problem ids`);
-    for (const p of a) if (p.stage !== 'quiz' && !grade(eng.runUser(p.sql), eng.runUser(p.sql), p.ordered, p.sql).ok) err(`quick test ${q.code}: answer does not grade: ${p.sql}`);
-    if (quickPhase(q, Date.parse('2026-01-01T00:00:02Z')) !== 'wait' || quickPhase(q, Date.parse('2026-01-01T00:01:00Z')) !== 'run' || quickPhase(q, Date.parse('2026-01-01T00:06:00Z')) !== 'up') err(`quick test ${q.code}: countdown / time limit phases are wrong`);
+  const check = (slots, seed, label) => {
+    const probs = slotProblems(eng, seed, slots);
+    if (probs.length !== slots.length) err(`quick test ${label}: a slot has no problem`);
+    if (new Set(probs.map(p => p.sql)).size !== probs.length) err(`quick test ${label}: the same problem twice`);
+    slots.forEach((x, j) => { const p = probs[j]; if (p && p.lesson !== x.k) err(`quick test ${label}: slot ${j} is from another lesson`); if (p && x.st === 'fill' && p.stage !== 'fill') err(`quick test ${label}: a fill-in slot gave ${p.stage}`); });
+    let sw = slots;
+    if (slots.length) { const i = nextFree(eng, slots, 0, seed); if (i !== null) { sw = applySwaps(eng, slots, { 0: i }, seed); if (sw[0].i !== i || slotProblems(eng, seed, sw)[0].sql === probs[0].sql) err(`quick test ${label}: swapping did not give a new problem`); } }
+    const q = newQuick({ seed, slots: sw, pass: 1, limit: 5 }, Date.parse('2026-01-01T00:00:00Z'));
+    const a = quickProblems(eng, q), b2 = quickProblems(eng, JSON.parse(JSON.stringify(q)));
+    if (a.length !== q.n || JSON.stringify(a.map(p => p.sql)) !== JSON.stringify(slotProblems(eng, seed, sw).map(p => p.sql))) err(`quick test ${label}: not the problems the teacher saw`);
+    if (JSON.stringify(a.map(p => p.sql)) !== JSON.stringify(b2.map(p => p.sql))) err(`quick test ${label}: not the same problems for everyone`);
+    if (a.some((p, i) => p.id !== `quick:${q.id}:${i}` || !p.test || p.stage === 'demo')) err(`quick test ${label}: bad problem ids`);
+    for (const p of a) if (p.stage !== 'quiz' && !grade(eng.runUser(p.sql), eng.runUser(p.sql), p.ordered, p.sql).ok) err(`quick test ${label}: answer does not grade: ${p.sql}`);
+    if (quickPhase(q, Date.parse('2026-01-01T00:00:02Z')) !== 'wait' || quickPhase(q, Date.parse('2026-01-01T00:01:00Z')) !== 'run' || quickPhase(q, Date.parse('2026-01-01T00:06:00Z')) !== 'up') err(`quick test ${label}: countdown / time limit phases are wrong`);
     n++;
+  };
+  const all = checkLessons().map(l => l.key);
+  for (const kind of QUICK_PRESETS) for (const max of QUICK_COUNTS) {
+    const ls = all.slice(n % 30, n % 30 + 2), seed = 'S' + n;
+    const slots = simpleSlots(eng, ls, max, kind, seed);
+    if (slots.length !== max) err(`quick test (easy ${kind} ×${max}, ${ls}): ${slots.length} problems`);
+    check(slots, seed, `easy ${kind} ×${max}`);
+  }
+  for (const k of all) {   // detailed: every kind a lesson has, 2 each
+    const per = { [k]: Object.fromEntries(KINDS.map(st => [st, 2])) }, seed = 'D' + k;
+    const slots = detailSlots(eng, per, [k], seed);
+    if (slots.length < 2 * kindsOf(k).length - 1) warn(`quick test (detailed ${k}): only ${slots.length} problems for ${kindsOf(k).join(', ')}`);
+    check(slots, seed, `detailed ${k}`);
   }
   // pass line 1 of 2, time limit: answers after the end (+5 s) do not count
   const q = { id: 'QQ', n: 2, pass: 1, at: '2026-01-01T00:00:00Z', end: '2026-01-01T00:05:00Z' };
