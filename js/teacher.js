@@ -277,13 +277,13 @@ function quickError(e) {
 /* ---------- class live: the students work on the assignment until it ends ---------- */
 /* the class live's length: any number of minutes, or until a time of day (the server allows 5–240 minutes) */
 const LIVE_MIN = [45, 50, 90, 120], LIVE_MAX = 240;
-const hhmm = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+const clockHM = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 function liveBoxHTML(c) {
   if (!liveOn(c)) {
     const mode = Store.get('sqln.liveMode', 'len'), len = Store.get('sqln.liveLen', 50);
     const saved = Store.get('sqln.liveEnd', ''), sm = /^(\d{1,2}):(\d{2})$/.exec(saved || '');
     const later = sm && (+sm[1] * 60 + +sm[2]) > new Date().getHours() * 60 + new Date().getMinutes();   // a saved end time still ahead today
-    const end = later ? saved : hhmm(new Date(Date.now() + len * 60000));
+    const end = later ? saved : clockHM(new Date(Date.now() + len * 60000));
     return `<button class="btn btn-primary btn-sm" data-act="liveStart" title="${esc(T('tc.live.tip'))}" ${(c.lessons || []).length ? '' : 'disabled'}>▶ ${H('tc.live.start')}</button>
     <div class="live-len">
       <div class="seg seg-xs" role="group" aria-label="${esc(T('tc.live.len'))}">${[['len', 'tc.live.byLen'], ['end', 'tc.live.byEnd']].map(([m, k]) => `<button class="seg-b ${mode === m ? 'on' : ''}" data-act="liveMode" data-v="${m}" aria-pressed="${mode === m}">${H(k)}</button>`).join('')}</div>
@@ -295,7 +295,7 @@ function liveBoxHTML(c) {
     </div>
     ${(c.lessons || []).length ? '' : `<small class="muted">${H('tc.live.noLessons')}</small>`}`;
   }
-  const until = c.live_until ? hhmm(new Date(c.live_until)) : '';
+  const until = c.live_until ? clockHM(new Date(c.live_until)) : '';
   return `<span class="live-st"><i class="live-dot"></i><b>${H('tc.live.on')}</b><span class="muted small" data-tlive>${H('tc.live.left', { n: liveMinutesLeft(c) })}</span>${until ? `<span class="muted small">· ${H('tc.live.until', { t: until })}</span>` : ''}</span>
     <span class="row-btns"><button class="btn btn-ghost btn-xs" data-act="liveMore">${H('tc.live.more')}</button><button class="btn btn-ghost btn-xs" data-act="liveStop">${H('tc.live.stop')}</button></span>`;
 }
