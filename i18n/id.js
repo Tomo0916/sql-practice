@@ -1009,5 +1009,16 @@ export default {
   "L.an_case.desc_effect": "Langkah 4 — apakah pesanan dengan kupon lebih besar? Untuk setiap toko, ambil jumlah rata-rata pesanan dengan kupon (with_coupon) dan tanpa kupon (without_coupon), 1 angka desimal, urut menurut toko.",
   "L.an_case.desc_members": "Langkah 5 — siapa pelanggannya? Gabungkan kumo_orders dan kumo_accounts pada customer_id. Untuk setiap toko, ambil jumlah pesanan dan persentase (%) pesanan dari pelanggan paket Regular (pct_regular, 1 angka desimal), dengan persentase terbesar lebih dulu.",
   "L.an_case.desc_decide": "Langkah 6 — putuskan. Idenya: bagikan kupon di tempat yang paling jarang memakainya, di toko yang sedang tumbuh. Dari toko yang penjualannya naik di paruh kedua (growth > 0), mana yang persentase kuponnya paling rendah?",
-  "L.an_case.why_decide": "Cari toko dengan growth di atas 0, lalu pct_coupon terkecil di antaranya. Laporan yang baik menyebut alasan dengan angka: “Di {ans}, penjualan naik tetapi hanya sedikit pesanan yang memakai kupon.”"
+  "L.an_case.why_decide": "Cari toko dengan growth di atas 0, lalu pct_coupon terkecil di antaranya. Laporan yang baik menyebut alasan dengan angka: “Di {ans}, penjualan naik tetapi hanya sedikit pesanan yang memakai kupon.”",
+  "tc.live.byLen": "Menurut durasi",
+  "tc.live.byEnd": "Menurut jam selesai",
+  "tc.live.untilWord": "selesai",
+  "tc.live.minUnit": "menit",
+  "tc.live.until": "sampai {t}",
+  "tc.live.endBad": "Masukkan jam selesai.",
+  "tc.live.endPast": "Jam selesai itu sudah lewat.",
+  "tc.live.tooLong": "Kelas langsung paling lama {n} menit.",
+  "tc.live.lenBad": "Masukkan durasi dalam menit.",
+  "tc.timerBad": "Masukkan jumlah menit dari 1 sampai 120.",
+  "tc.roundNote": "Centang tugas siswa hanya dihitung dari soal yang diselesaikan di kelas ini dengan kode set ini. Latihan sendiri dan sesi sebelumnya tidak dihitung. Untuk sesi baru, ganti kode set."
 };

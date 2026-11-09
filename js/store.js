@@ -25,7 +25,7 @@ export function saveSettings(s) { Store.set(KEYS.settings, s); }
  */
 export function loadProgress() {
   const p = Store.get(KEYS.progress, null) || {};
-  return Object.assign({ solved: {}, wrong: {}, drafts: {}, answers: {}, lessons: {}, drill: {}, last: null, streak: { day: 0, n: 0 } }, p);
+  return Object.assign({ solved: {}, wrong: {}, drafts: {}, answers: {}, lessons: {}, drill: {}, klass: {}, last: null, streak: { day: 0, n: 0 } }, p);
 }
 /**
  * Two tabs (or windows) of the app share one record: before saving, take what the other one saved,
@@ -42,6 +42,8 @@ export function mergeProgress(stored, mine) {
   out.drill = max(stored.drill, mine.drill);
   out.lessons = Object.assign({}, stored.lessons, mine.lessons);
   out.streak = (stored.streak || {}).day > (mine.streak || {}).day || ((stored.streak || {}).day === (mine.streak || {}).day && (stored.streak || {}).n > (mine.streak || {}).n) ? stored.streak : mine.streak;
+  out.klass = {};   // the class assignment's rounds: solved in that class (the earliest time wins)
+  new Set([...Object.keys(stored.klass || {}), ...Object.keys(mine.klass || {})]).forEach(k => { out.klass[k] = earliest((stored.klass || {})[k] || {}, (mine.klass || {})[k] || {}); });
   out.drafts = mine.drafts || {};   // drafts belong to the tab (a removed draft must not come back)
   return out;
 }

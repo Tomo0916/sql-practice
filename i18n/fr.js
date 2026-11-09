@@ -1009,5 +1009,16 @@ export default {
   "L.an_case.desc_effect": "Étape 4 — les commandes avec coupon sont-elles plus grandes ? Pour chaque magasin, obtenez le montant moyen des commandes avec coupon (with_coupon) et sans (without_coupon), 1 décimale, dans l’ordre des magasins.",
   "L.an_case.desc_members": "Étape 5 — qui sont les clients ? Joignez kumo_orders et kumo_accounts sur customer_id. Pour chaque magasin, obtenez le nombre de commandes et la part (%) des commandes de clients du forfait Regular (pct_regular, 1 décimale), la plus grande part en premier.",
   "L.an_case.desc_decide": "Étape 6 — décidez. L’idée : donner des coupons là où ils sont le moins utilisés, dans un magasin en croissance. Parmi les magasins dont les ventes ont augmenté au second semestre (growth > 0), lequel a la plus petite part de coupons ?",
-  "L.an_case.why_decide": "Trouvez les magasins avec growth supérieur à 0, puis le plus petit pct_coupon parmi eux. Un bon rapport donne la raison avec les nombres : « À {ans}, les ventes augmentent mais peu de commandes utilisent des coupons. »"
+  "L.an_case.why_decide": "Trouvez les magasins avec growth supérieur à 0, puis le plus petit pct_coupon parmi eux. Un bon rapport donne la raison avec les nombres : « À {ans}, les ventes augmentent mais peu de commandes utilisent des coupons. »",
+  "tc.live.byLen": "Par durée",
+  "tc.live.byEnd": "Par heure de fin",
+  "tc.live.untilWord": "fin",
+  "tc.live.minUnit": "min",
+  "tc.live.until": "jusqu’à {t}",
+  "tc.live.endBad": "Saisissez une heure de fin.",
+  "tc.live.endPast": "Cette heure de fin est déjà passée.",
+  "tc.live.tooLong": "Un cours en direct dure au maximum {n} minutes.",
+  "tc.live.lenBad": "Saisissez la durée en minutes.",
+  "tc.timerBad": "Saisissez un nombre de minutes entre 1 et 120.",
+  "tc.roundNote": "Les coches du devoir ne comptent que les problèmes résolus dans cette classe avec ce code de série. L’entraînement personnel et les séances précédentes ne comptent pas. Pour une nouvelle séance, changez le code de série."
 };

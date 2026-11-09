@@ -818,3 +818,12 @@ body.pj-open { overflow: hidden; }
 .res-chart .chart-save { display: block; margin: 0 0 4px auto; opacity: .8; }
 .res-chart .chart-save:hover, .res-chart .chart-save:focus-visible { opacity: 1; }
 @media print { .chart-save { display: none; } }
+/* class live length: minutes or an end time; free minutes for the countdown */
+.live-len { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.live-in { display: inline-flex; align-items: center; gap: 4px; }
+.live-in input, .tb-free input { width: 5.5em; padding: 4px 6px; font: inherit; font-variant-numeric: tabular-nums; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface); color: inherit; }
+.live-in input[type="time"] { width: 7.5em; }
+.live-quick { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.seg.seg-xs .seg-b { padding: 3px 10px; font-size: .85em; }
+.tb-free { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; }
+.tb-free input { width: 4.2em; }

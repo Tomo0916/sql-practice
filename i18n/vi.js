@@ -1009,5 +1009,16 @@ export default {
   "L.an_case.desc_effect": "Bước 4 — đơn hàng có phiếu có lớn hơn không? Với mỗi cửa hàng, lấy số tiền trung bình của đơn có phiếu (with_coupon) và không có phiếu (without_coupon), 1 chữ số thập phân, theo thứ tự cửa hàng.",
   "L.an_case.desc_members": "Bước 5 — khách hàng là ai? Kết hợp kumo_orders và kumo_accounts theo customer_id. Với mỗi cửa hàng, lấy số đơn hàng và tỉ lệ (%) đơn hàng của khách gói Regular (pct_regular, 1 chữ số thập phân), tỉ lệ lớn nhất trước.",
   "L.an_case.desc_decide": "Bước 6 — quyết định. Ý tưởng: phát phiếu ở nơi phiếu được dùng ít nhất, tại một cửa hàng đang tăng trưởng. Trong các cửa hàng có doanh số tăng ở nửa cuối năm (growth > 0), cửa hàng nào có tỉ lệ dùng phiếu thấp nhất?",
-  "L.an_case.why_decide": "Tìm các cửa hàng có growth lớn hơn 0, rồi tìm pct_coupon nhỏ nhất trong số đó. Một báo cáo tốt nêu lý do bằng con số: “Ở {ans}, doanh số đang tăng nhưng chỉ có ít đơn hàng dùng phiếu giảm giá.”"
+  "L.an_case.why_decide": "Tìm các cửa hàng có growth lớn hơn 0, rồi tìm pct_coupon nhỏ nhất trong số đó. Một báo cáo tốt nêu lý do bằng con số: “Ở {ans}, doanh số đang tăng nhưng chỉ có ít đơn hàng dùng phiếu giảm giá.”",
+  "tc.live.byLen": "Theo thời lượng",
+  "tc.live.byEnd": "Theo giờ kết thúc",
+  "tc.live.untilWord": "kết thúc",
+  "tc.live.minUnit": "phút",
+  "tc.live.until": "đến {t}",
+  "tc.live.endBad": "Hãy nhập giờ kết thúc.",
+  "tc.live.endPast": "Giờ kết thúc đó đã qua rồi.",
+  "tc.live.tooLong": "Buổi học trực tiếp dài tối đa {n} phút.",
+  "tc.live.lenBad": "Hãy nhập thời lượng bằng phút.",
+  "tc.timerBad": "Hãy nhập số phút từ 1 đến 120.",
+  "tc.roundNote": "Dấu ✓ của bài tập chỉ tính các bài đã giải trong lớp này với mã bộ đề này. Bài tự luyện và các buổi trước không được tính. Với buổi mới, hãy đổi mã bộ đề."
 };
