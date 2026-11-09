@@ -873,5 +873,8 @@ export default {
   "step.dmlLook": "Trước hết, xem bảng trước khi thay đổi (INSERT, UPDATE, DELETE ghi đè chính bảng, nên hãy xem trạng thái ban đầu).",
   "step.updTarget": "Thử điều kiện WHERE bằng SELECT để xem những dòng sẽ thay đổi. Chỉ những dòng này thay đổi.",
   "step.delTarget": "Thử điều kiện WHERE bằng SELECT để xem những dòng sẽ bị xóa. Những dòng này sẽ biến mất.",
-  "pres.deleted": "Các dòng đã xóa"
+  "pres.deleted": "Các dòng đã xóa",
+  "read.result": "Kết quả cần đọc",
+  "inst.choice": "Đọc kết quả và chọn đáp án đúng.",
+  "dx.choiceWrong": "Chưa đúng. Hãy đọc lại kết quả và câu hỏi."
 };

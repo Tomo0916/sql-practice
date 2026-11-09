@@ -157,7 +157,7 @@ if (eng.values('SELECT COUNT(*) FROM products')[0][0] !== 10) err('products tabl
 
 /* ---------- 4. paper tests ---------- */
 console.log('4. Paper tests');
-const all = LESSONS.map(l => l.key);
+const all = LESSONS.filter(l => l.kind !== 'quiz' && !l.noTest).map(l => l.key);
 for (const code of ['T1', 'T2', 'T3']) for (const type of ['write', 'predict', 'mix']) {
   const a = eng.makeTest({ lessons: all, per: 2, type, code, version: 'A' });
   const b = eng.makeTest({ lessons: all, per: 2, type, code, version: 'B' });

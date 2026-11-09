@@ -313,7 +313,7 @@ export class SqlEngine {
     const sql = lesson.sql(p);
     const blankP = Object.assign({}, p);
     blanksOf(lesson, p).forEach(k => (blankP[k] = BLANK));
-    const tables = lesson.kind === 'join' ? [p.L, p.R] : [p.t];
+    const tables = lesson.kind === 'join' ? [p.L, p.R] : p.t2 ? [p.t, p.t2] : [p.t];
     const toks = tokens || stagesFor(lesson);
     const token = kind === 'demo' ? 'demo' : kind === 'practice' ? toks[idx] : kind;
     const stage = stageOfToken(token);
@@ -322,7 +322,7 @@ export class SqlEngine {
       wn: stages.slice(0, idx + 1).filter(x => x === stage).length,   // "Write 1, 2, 3"
       of: stages.filter(x => x === stage).length,                    // how many problems of this stage the lesson has
       level: token === 'order2' ? 2 : token === 'order1' ? 1 : undefined,   // ordering: 1 = clause pieces, 2 = one or two words
-      answer: lesson.kind === 'quiz' ? p.ans : undefined,
+      answer: lesson.kind === 'quiz' || p.ans !== undefined ? p.ans : undefined,   // a question with an answer to type or choose
       id: kind === 'demo' ? `${lesson.key}:demo` : `${lesson.key}:${stage}:${hashStr(sql).toString(36)}`,
       lesson: lesson.key, kind, stage, idx, tables, p, sql,
       blank: lesson.sql(blankP),
@@ -371,6 +371,7 @@ export class SqlEngine {
    * (fill, order 1, order 2, write ×2); a class can choose its own format (see stagesFor).
    */
   lessonProblems(lesson, code, fmt) {
+    if (lesson.fixed) return this.fixedProblems(lesson);   // a project: the same steps for everyone, in order
     const key = `${code}|${lesson.key}`;   // the seeds do not depend on the format, so the usual set never changes
     const fk = formatKey(fmt), cacheKey = fk ? `${key}|${fk}` : key;
     if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
@@ -394,12 +395,26 @@ export class SqlEngine {
     this._cache.set(cacheKey, out);
     return out;
   }
+  /** the steps of a project lesson (lesson.fixed), the last one a choice whose answer comes from the data */
+  fixedProblems(lesson) {
+    const key = 'fixed|' + lesson.key;
+    if (this._cache.has(key)) return this._cache.get(key);
+    const tokens = lesson.fixed.map((_, i) => lesson.stages[i]);
+    const out = lesson.fixed.map((f, i) => {
+      const p = Object.assign({}, f);
+      if (p.choices && lesson.answerOf) p.ans = lesson.answerOf(this.values(lesson.sql(p)));
+      return this.buildProblem(lesson, p, i === 0 ? 'demo' : 'practice', i, 'demo', tokens);
+    });
+    out.forEach(p => { p.fmt = 'all'; });   // a project is done when every step is done
+    this._cache.set(key, out);
+    return out;
+  }
   /**
    * One "put in order" problem for the ordering drill: level 1 = clause pieces, level 2 = one or two words.
    * Any data set of the lesson, so a drill can go on with new problems for as long as the student likes.
    */
   drillProblem(lesson, seed, level) {
-    if (lesson.kind === 'quiz') return null;
+    if (lesson.kind === 'quiz' || lesson.fixed) return null;
     const R = makeRng(seed);
     for (const ds of R.shuffle(this.themesFor(lesson))) {
       const p = this.genOne(lesson, ds, `${seed}|${ds.table || ds.key}`);
@@ -418,6 +433,7 @@ export class SqlEngine {
   /** One extra "write" problem for spaced review / mixed practice. */
   reviewProblem(lesson, seed) {
     const R = makeRng(seed);
+    if (lesson.fixed) { const ps = this.fixedProblems(lesson).filter(p => p.stage === 'write'); const p = Object.assign({}, R.pick(ps), { kind: 'review' }); p.id = `${lesson.key}:review:${hashStr(p.sql).toString(36)}`; return p; }
     for (const ds of R.shuffle(this.themesFor(lesson))) {
       const p = this.genOne(lesson, ds, `${seed}|${ds.table || ds.key}`);
       if (p) { const pr = this.buildProblem(lesson, p, 'review', 0, ds.table || ds.key); pr.stage = lesson.kind === 'quiz' ? 'quiz' : 'write'; pr.id = `${lesson.key}:review:${hashStr(pr.sql).toString(36)}`; return pr; }
@@ -544,7 +560,7 @@ export class SqlEngine {
     const ver = opts.version || 'A';
     const questions = [], seen = new Set();
     const RT = makeRng(`test-types|${opts.code}`);
-    LESSONS.filter(l => opts.lessons.includes(l.key) && l.kind !== 'quiz').forEach(lesson => {
+    LESSONS.filter(l => opts.lessons.includes(l.key) && l.kind !== 'quiz' && !l.noTest).forEach(lesson => {
       const themes = lesson.kind === 'join' ? joins : lesson.themes === 'null' ? NULL_DATASETS.slice(0, 2) : lesson.themes === 'analysis' ? R.shuffle(ANALYSIS_THEMES).slice(0, 2) : singles;
       for (let q = 0; q < opts.per; q++) {
         const wantType = opts.type === 'mix' ? (RT.next() < 0.5 ? 'write' : 'predict') : opts.type;

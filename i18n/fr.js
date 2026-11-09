@@ -873,5 +873,8 @@ export default {
   "step.dmlLook": "D’abord, regardons la table avant de la modifier (INSERT, UPDATE et DELETE réécrivent la table elle-même).",
   "step.updTarget": "Essayez la condition WHERE avec SELECT pour voir les lignes qui vont changer. Seules ces lignes changent.",
   "step.delTarget": "Essayez la condition WHERE avec SELECT pour voir les lignes qui seront supprimées. Ces lignes disparaissent.",
-  "pres.deleted": "Lignes supprimées"
+  "pres.deleted": "Lignes supprimées",
+  "read.result": "Le résultat à lire",
+  "inst.choice": "Lisez le résultat et choisissez la bonne réponse.",
+  "dx.choiceWrong": "Ce n’est pas celle-ci. Relisez le résultat et la question."
 };

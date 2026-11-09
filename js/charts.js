@@ -14,6 +14,7 @@ function niceTicks(lo, hi, n = 5) {
   const step = [1, 2, 5, 10].map(k => k * mag).find(s => s >= raw);
   const out = [];
   for (let v = Math.floor(lo / step) * step; v <= hi + step * 1e-9; v += step) out.push(+v.toFixed(10));
+  if (out.at(-1) < hi - step * 1e-9) out.push(+(out.at(-1) + step).toFixed(10));   // the top tick is never below the largest value
   return out;
 }
 function frame(inner, opts = {}) {
@@ -23,15 +24,65 @@ function yAxis(max, y, f = fmt) {
   return niceTicks(0, max).map(t => `<g class="ch-grid"><line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${PAD.l - 6}" y="${y(t) + 4}" text-anchor="end">${f(t)}</text></g>`).join('');
 }
 
-/** bars: labels[] and values[] */
+/** bars: labels[] and values[] (negative values go below the zero line) */
 export function barChart(labels, values, opts = {}) {
-  const max = Math.max(...values, 0) || 1, top = niceTicks(0, max).at(-1);
-  const y = v => H - PAD.b - (v / top) * (H - PAD.t - PAD.b);
-  const bw = (W - PAD.l - PAD.r) / labels.length;
-  const bars = values.map((v, i) => `<rect class="ch-bar" x="${PAD.l + i * bw + bw * 0.15}" y="${y(v)}" width="${bw * 0.7}" height="${y(0) - y(v)}"><title>${esc(labels[i])}: ${fmt(v)}</title></rect>
-    <text class="ch-val" x="${PAD.l + i * bw + bw / 2}" y="${y(v) - 4}" text-anchor="middle">${fmt(v)}</text>
-    <text class="ch-lab" x="${PAD.l + i * bw + bw / 2}" y="${H - PAD.b + 16}" text-anchor="middle">${esc(labels[i])}</text>`).join('');
-  return frame(yAxis(top, y) + bars, opts);
+  const series = Array.isArray(values[0]) ? values : [values];   // several series: bars side by side
+  const all = series.flat();
+  const maxV = Math.max(...all, 0), minV = Math.min(...all, 0);
+  const ticks = niceTicks(minV, maxV || 1), top = ticks.at(-1), bot = Math.min(0, ticks[0]), lt = opts.names && opts.names.length > 1 ? 18 : 0;
+  const y = v => H - PAD.b - ((v - bot) / (top - bot)) * (H - PAD.t - lt - PAD.b);
+  const bw = (W - PAD.l - PAD.r) / labels.length, k = series.length, sw = (bw * 0.7) / k;
+  const bars = labels.map((lab, i) => series.map((vals, j) => {
+    const v = vals[i], x0 = PAD.l + i * bw + bw * 0.15 + j * sw, yt = Math.min(y(v), y(0)), h = Math.abs(y(0) - y(v));
+    return `<rect class="ch-bar s${j}" x="${x0}" y="${yt}" width="${sw * 0.94}" height="${h}"><title>${esc(lab)}${opts.names ? ' · ' + esc(opts.names[j]) : ''}: ${fmt(v)}</title></rect>
+    <text class="ch-val" x="${x0 + sw / 2}" y="${v >= 0 ? y(v) - 4 : y(v) + 12}" text-anchor="middle">${fmt(v)}</text>`;
+  }).join('') + `<text class="ch-lab" x="${PAD.l + i * bw + bw / 2}" y="${H - PAD.b + 16}" text-anchor="middle">${esc(lab)}</text>`).join('');
+  const grid = ticks.map(t => `<g class="ch-grid"><line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${PAD.l - 6}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text></g>`).join('');
+  return frame(grid + `<line class="ch-axis" x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(0)}" y2="${y(0)}"/>` + bars + legend(opts.names), opts);
+}
+function legend(names) {
+  if (!names || names.length < 2) return '';
+  return names.map((n, j) => `<g class="ch-legend"><rect class="ch-key s${j}" x="${PAD.l + 8 + j * 170}" y="${PAD.t - 8}" width="10" height="10"/><text x="${PAD.l + 22 + j * 170}" y="${PAD.t + 1}">${esc(n)}</text></g>`).join('');
+}
+
+/** lines: labels[] (x, in order) and one or more series of values (null = no point) */
+export function lineChart(labels, series, opts = {}) {
+  series = Array.isArray(series[0]) ? series : [series];
+  const all = series.flat().filter(v => v !== null && Number.isFinite(v));
+  if (!all.length) return '';
+  const ticks = niceTicks(Math.min(0, ...all), Math.max(...all)), top = ticks.at(-1), bot = ticks[0], lt = opts.names && opts.names.length > 1 ? 18 : 0;
+  const y = v => H - PAD.b - ((v - bot) / (top - bot)) * (H - PAD.t - lt - PAD.b);
+  const n = labels.length, x = i => PAD.l + 14 + (n === 1 ? 0 : (i / (n - 1)) * (W - PAD.l - PAD.r - 28));
+  const grid = ticks.map(t => `<g class="ch-grid"><line x1="${PAD.l}" x2="${W - PAD.r}" y1="${y(t)}" y2="${y(t)}"/><text x="${PAD.l - 6}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text></g>`).join('');
+  const every = Math.ceil(n / 12);
+  const labs = labels.map((l, i) => (i % every ? '' : `<text class="ch-lab" x="${x(i)}" y="${H - PAD.b + 16}" text-anchor="middle">${esc(String(l).replace(/^\d{4}-/, ''))}</text>`)).join('');
+  const lines = series.map((vals, j) => {
+    let d = '';
+    vals.forEach((v, i) => { if (v === null || !Number.isFinite(v)) return; d += `${d ? 'L' : 'M'}${x(i).toFixed(1)} ${y(v).toFixed(1)}`; });
+    const dots = vals.map((v, i) => (v === null || !Number.isFinite(v) ? '' : `<circle class="ch-dot s${j}" cx="${x(i)}" cy="${y(v)}" r="3"><title>${esc(labels[i])}${opts.names ? ' · ' + esc(opts.names[j]) : ''}: ${fmt(v)}</title></circle>`)).join('');
+    return `<path class="ch-line s${j}" d="${d}"/>${dots}`;
+  }).join('');
+  return frame(grid + labs + lines + legend(opts.names), opts);
+}
+
+/** scatter: points [{x, y, label}], with the straight line that fits best (least squares) */
+export function scatterChart(points, opts = {}) {
+  if (!points.length) return '';
+  const xs = points.map(p => p.x), ys = points.map(p => p.y);
+  const tx = niceTicks(Math.min(...xs), Math.max(...xs), 6), ty = niceTicks(Math.min(...ys), Math.max(...ys));
+  const X = v => PAD.l + ((v - tx[0]) / (tx.at(-1) - tx[0])) * (W - PAD.l - PAD.r);
+  const Y = v => H - PAD.b - ((v - ty[0]) / (ty.at(-1) - ty[0])) * (H - PAD.t - PAD.b);
+  const grid = ty.map(t => `<g class="ch-grid"><line x1="${PAD.l}" x2="${W - PAD.r}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${PAD.l - 6}" y="${Y(t) + 4}" text-anchor="end">${fmt(t)}</text></g>`).join('')
+    + tx.map(t => `<text class="ch-lab" x="${X(t)}" y="${H - PAD.b + 16}" text-anchor="middle">${fmt(t)}</text>`).join('');
+  const dots = points.map(p => `<circle class="ch-pt" cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="2.6"><title>${esc(p.label || '')} ${fmt(p.x)}, ${fmt(p.y)}</title></circle>`).join('');
+  const n = xs.length, mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+  let sxy = 0, sxx = 0;
+  xs.forEach((v, i) => { sxy += (v - mx) * (ys[i] - my); sxx += (v - mx) * (v - mx); });
+  const b = sxx ? sxy / sxx : 0, a = my - b * mx;
+  const x0 = tx[0], x1 = tx.at(-1);
+  const fit = `<line class="ch-fit" x1="${X(x0)}" y1="${Y(Math.max(ty[0], Math.min(ty.at(-1), a + b * x0)))}" x2="${X(x1)}" y2="${Y(Math.max(ty[0], Math.min(ty.at(-1), a + b * x1)))}"/>`;
+  const axes = `<text class="ch-axlab" x="${W - PAD.r}" y="${H - 4}" text-anchor="end">${esc(opts.xLabel || '')} →</text><text class="ch-axlab" x="${PAD.l - 44}" y="${PAD.t + 2}">↑ ${esc(opts.yLabel || '')}</text>`;
+  return frame(grid + dots + fit + axes, opts);
 }
 
 /**

@@ -8,10 +8,10 @@ export const TEXTBOOKS = [
   { key: 'beginner', file: '../book/sql-textbook-beginner.pdf', range: 'Lesson 0–18', mark: 'SQL', ready: true },
   { key: 'intermediate', range: 'Lesson 19–35', mark: 'SQL', ready: false },
   { key: 'advanced', range: 'Lesson 36–48', mark: 'SQL', ready: false },
-  { key: 'analysis', file: '../book/data-analysis-textbook.pdf', range: 'Unit A1–A6', mark: 'DATA', ready: true }
+  { key: 'analysis', file: '../book/data-analysis-textbook.pdf', range: 'Unit A1–A14', mark: 'DATA', ready: true }
 ];
 /** units in the data-analysis textbook (the others come later) */
-const ANALYSIS_IN_BOOK = 6;
+const ANALYSIS_IN_BOOK = 14;
 /** first page of the Lesson in its textbook (null when the textbook is not out yet) */
 export function textbookPage(lesson) {
   if (typeof lesson.no === 'string' && /^A\d+$/.test(lesson.no)) {
