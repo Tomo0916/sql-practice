@@ -21,3 +21,4 @@ export function liveMinutesLeft(klass) { return liveOn(klass) ? Math.ceil((new D
 export const fmtClock = s => { s = Math.max(0, s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 /** 'run' | 'warn' (last 30 s) | 'up' (time is up) | '' (no timer) */
 export const timerState = s => (s === null ? '' : s <= 0 ? 'up' : s <= 30 ? 'warn' : 'run');
+export const nowMs = () => Date.now() + offset;

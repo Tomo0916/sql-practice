@@ -19,13 +19,13 @@ import { choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, 
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
-import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
+import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
 import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
-import { quickOn, quickProblems } from './quick.js';
+import { quickOn, quickProblems, quickPhase, passOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
@@ -153,7 +153,7 @@ function current() {
     return { lesson, probs, prob: p || probs[Math.min(r.idx, probs.length - 1)] };
   }
   if (r.view === 'quick') {
-    const items = qItems(); if (!items.length || ((r.raw === '' || r.idx < 0) && qAllDone())) return null;   // the "all correct" screen
+    const items = qItems(); if (!items.length || qPhaseNow() !== 'run' || ((r.raw === '' || r.idx < 0) && qFinished())) return null;   // countdown, time up, or the "passed" screen
     if (r.raw === '' || r.idx < 0) {   // #/quick: the first unsolved problem, and keep it (it must not move on when solved)
       const first = items.find(p => !qDone(p)) || items[0];
       Object.assign(r, { idx: first.qn, raw: String(first.qn) }); history.replaceState(null, '', `#/quick/${first.qn}`);
@@ -529,74 +529,119 @@ function drillHTML(ses) {
 
 
 /* ---------- quick test (クイックテスト): a few problems the teacher gives everyone at once ----------
- * Retry until right; hints and answers stay hidden. When all are solved the student may take a break. */
+ * A countdown, then everyone starts together. Retry until right; hints and answers stay hidden.
+ * At the pass line the student may take a break (or go on with the rest). When the time is
+ * over, the answers no longer count and the model answers are shown. */
 const QKEY_ST = 'sqln.quick';
-let qCache = { id: null, items: [] };
+let qCache = { key: null, items: [] };
 function qItems() {
   const q = S.klass && S.klass.quick;
   if (!quickOn(S.klass) || !S.engine) return [];
-  if (qCache.id !== q.id) qCache = { id: q.id, items: quickProblems(S.engine, q) };
+  const key = q.id + '|' + JSON.stringify(q.pick || null);
+  if (qCache.key !== key) qCache = { key, items: quickProblems(S.engine, q) };
   return qCache.items;
 }
+const qPhaseNow = () => (quickOn(S.klass) ? quickPhase(S.klass.quick, nowMs()) : 'none');
 function qState() {
   const q = S.klass && S.klass.quick, st = Store.get(QKEY_ST, null);
   return q && st && st.id === q.id ? st : { id: q ? q.id : null, done: {}, at: 0 };
 }
 const qDone = p => !!qState().done[p.qn];
+const qOk = () => qItems().filter(qDone).length;
 const qAllDone = () => { const items = qItems(); return items.length > 0 && items.every(qDone); };
+const qPassed = () => quickOn(S.klass) && qItems().length > 0 && qOk() >= passOf(S.klass.quick);
+/** the student is through: everything right, or the pass line and not going on with the rest */
+const qFinished = () => qAllDone() || (qPassed() && !S.qMore);
 function qMark(n) {
   const st = qState(); if (!st.id || st.done[n]) return false;
   st.done[n] = Date.now();
-  if (!st.at && qItems().every(p => st.done[p.qn])) st.at = Date.now();
+  if (!st.at && Object.keys(st.done).length >= passOf(S.klass.quick)) st.at = Date.now();
   Store.set(QKEY_ST, st); return true;
 }
 function qNext(prob) {
   const items = qItems(), i = items.findIndex(p => p.id === prob.id);
   return items.slice(i + 1).find(p => !qDone(p)) || items.slice(0, Math.max(0, i)).find(p => !qDone(p)) || null;
 }
+const mmss = ms => { const t = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+function qClockHTML() {
+  const q = S.klass.quick, ph = qPhaseNow();
+  if (ph === 'wait') return `${Math.max(1, Math.ceil((new Date(q.at).getTime() - nowMs()) / 1000))}`;
+  if (ph === 'up') return H('qk.timeUp');
+  return q.end ? H('qk.left', { t: mmss(new Date(q.end).getTime() - nowMs()) }) : '';
+}
 function quickBannerHTML() {
-  if (!quickOn(S.klass) || S.route.view === 'quick' || qAllDone()) return '';
+  if (!quickOn(S.klass) || S.route.view === 'quick' || qFinished() || qPhaseNow() === 'up') return '';
   return `<div class="live-banner quick-banner"><span>⚡ ${H('qk.banner')}</span><a class="btn btn-ok btn-sm" href="#/quick">${H('qk.back')}${I.next}</a></div>`;
 }
+const qRuleHTML = q => H('qk.ruleLine', { n: q.n, pass: passOf(q), t: q.end ? T('qk.minutes', { n: Math.max(1, Math.round((new Date(q.end).getTime() - new Date(q.at).getTime()) / 60000)) }) : T('qk.noLimit') });
 function quickViewHTML() {
   document.title = `${T('qk.title')} · SQL Practice`;
   if (!quickOn(S.klass)) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.none')}</p><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></section></main>`;
-  const items = qItems(), n = items.length, ok = items.filter(qDone).length, st = qState();
-  if (qAllDone() && !current()) {
-    const secs = st.at ? Math.max(0, Math.round((st.at - new Date(S.klass.quick.at).getTime()) / 1000)) : null;
+  const q = S.klass.quick, items = qItems(), n = items.length, ok = qOk(), st = qState(), ph = qPhaseNow();
+  if (ph === 'wait') return `<main class="wrap narrow"><section class="card empty quick-wait">
+      <div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.soon')}</p>
+      <p class="qk-count" data-qk-clock>${qClockHTML()}</p><p class="qk-rule">${qRuleHTML(q)}</p><p class="muted small">${H('qk.rule')}</p></section></main>`;
+  if (ph === 'up') {   // the time is over: the result, and the model answers to learn from
+    const passed = ok >= passOf(q);
+    return `<main class="wrap narrow ck-result"><section class="card empty quick-done ${passed ? '' : 'not'}">
+      <div class="empty-icon">${passed ? '🎉' : '⏱'}</div><h1>${H(passed ? 'qk.passTitle' : 'qk.upTitle')}</h1><p class="big-score">${ok} / ${n}</p>
+      <p class="${passed ? 'qk-break' : 'muted'}">${H(passed ? 'qk.doneSub' : 'qk.upSub')}</p></section>
+      <section class="ck-review"><h2>${H('ck.review')}</h2>${items.map((p, i) => `<details class="card ck-item" ${qDone(p) ? '' : 'open'}><summary>${qDone(p) ? '<b class="ck-m ok">○</b>' : '<b class="ck-m bad">×</b>'}<b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageLabelH(p)}</span></summary>
+        <p class="prob-text">${problemHTML(p, L())}</p><div class="ck-ans"><span class="muted small">${H('hint.answer')}</span><pre class="sql">${highlightSQL(p.sql)}</pre></div></details>`).join('')}</section></main>`;
+  }
+  if (qFinished() && !current()) {
+    const secs = st.at ? Math.max(0, st.at - new Date(q.at).getTime()) : null;
+    const all = qAllDone();
     return `<main class="wrap narrow"><section class="card empty quick-done">
-      <div class="empty-icon">🎉</div><h1>${H('qk.doneTitle')}</h1><p class="big-score">${ok} / ${n}</p>
-      ${secs !== null ? `<p class="muted">${H('qk.time', { t: `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` })}</p>` : ''}
-      <p class="qk-break">${H('qk.doneSub')}</p></section></main>`;
+      <div class="empty-icon">🎉</div><h1>${H(all ? 'qk.doneTitle' : 'qk.passTitle')}</h1><p class="big-score">${ok} / ${n}</p>
+      ${secs !== null ? `<p class="muted">${H('qk.time', { t: mmss(secs) })}</p>` : ''}
+      <p class="qk-break">${H('qk.doneSub')}</p>
+      ${all ? '' : `<button class="btn btn-ghost" data-act="quickMore">${H('qk.more', { n: n - ok })}</button>`}</section></main>`;
   }
   const c = current();
   const prob = c ? c.prob : items.find(p => !qDone(p)), lesson = LESSON_BY_KEY[prob.lesson];
+  const pass = passOf(q);
   return `<main class="wrap">
     <div class="session-head">
       <h1>⚡ ${H('qk.title')}</h1>
+      ${q.end ? `<b class="qk-left" data-qk-clock>${qClockHTML()}</b>` : ''}
       <div class="session-progress"><span>${ok} / ${n}</span><div class="bar"><i style="width:${Math.round(ok / n * 100)}%"></i></div></div>
     </div>
     <div class="session-layout">
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        <p class="qk-rule small">${qRuleHTML(q)}</p>
+        ${pass < n && ok < pass ? `<p class="small"><b>${H('qk.toPass', { n: pass - ok })}</b></p>` : ''}
         <p class="muted small">${H('qk.rule')}</p>
         <div class="ck-dots qk-dots">${items.map(p => `<a href="#/quick/${p.qn}" class="${qDone(p) ? 'ok' : ''}${p.id === prob.id ? ' cur' : ''}" title="Q${p.qn + 1}" aria-label="Q${p.qn + 1}">${p.qn + 1}</a>`).join('')}</div></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
 }
+/* the countdown and the time left; a new phase (start, time up) redraws the page */
+let qPhaseShown = null;
+setInterval(() => {
+  if (!S.klass || !quickOn(S.klass)) { qPhaseShown = null; return; }
+  const ph = qPhaseNow();
+  document.querySelectorAll('[data-qk-clock]').forEach(el => { const h = qClockHTML(); if (el.innerHTML !== h) el.innerHTML = h; });
+  if (qPhaseShown !== null && ph !== qPhaseShown && (S.route.view === 'quick' || ph === 'up')) { saveDraft(); render(); }
+  qPhaseShown = ph;
+}, 300);
 /** the teacher started or stopped a quick test */
-let quickSeen = Store.get('sqln.quickSeen', null), quickShown;
+let quickSeen = Store.get('sqln.quickSeen', null), quickShown, quickEndShown;
 function quickChanged(announce) {
-  const id = quickOn(S.klass) ? S.klass.quick.id : null;
-  if (id === quickShown) return;
-  const prev = quickShown; quickShown = id;
+  const id = quickOn(S.klass) ? S.klass.quick.id : null, end = id ? S.klass.quick.end || null : null;
+  if (id === quickShown) {   // the same test: only a new end time (one more minute) matters
+    if (id && end !== quickEndShown) { quickEndShown = end; if (S.route.view === 'quick' && qPhaseNow() !== 'run') { saveDraft(); render(); } }
+    return;
+  }
+  quickEndShown = end;
+  const prev = quickShown; quickShown = id; S.qMore = false;
   if (id && id !== quickSeen) {   // a new quick test: open it (once)
     quickSeen = id; Store.set('sqln.quickSeen', id);
-    if (!qAllDone()) { saveDraft(); if (S.route.view !== 'quick') { location.hash = '#/quick'; } else render(); toast(T('qk.started')); return; }
+    if (!qFinished() && qPhaseNow() !== 'up') { saveDraft(); if (S.route.view !== 'quick') { location.hash = '#/quick'; } else render(); toast(T('qk.started')); return; }
   }
   if (prev !== undefined) { if (S.route.view === 'quick') saveDraft(); render(); if (!id && prev && announce && S.route.view === 'quick') toast(T('qk.ended')); }
 }
-
 /* ---------- the class assignment (and the class live) ----------
  * #/live shows the assigned lessons' problems one after another; the library on the side
  * lists them all. During a class live the app opens it by itself. */
@@ -997,7 +1042,7 @@ function feedbackHTML(prob) {
     const c = current();
     const isLast = !c || prob.idx >= c.probs.length - 1;
     let next = '';
-    if (S.route.view === 'quick') { const n = qNext(prob); next = n ? `<a class="btn btn-ok fb-next" href="#/quick/${n.qn}">${H('btn.next')}${I.next}</a>` : `<a class="btn btn-ok fb-next" href="#/quick/done">${H('qk.finish')}${I.next}</a>`; }
+    if (S.route.view === 'quick') { const n = qPassed() && !S.qMore ? null : qNext(prob); next = n ? `<a class="btn btn-ok fb-next" href="#/quick/${n.qn}">${H('btn.next')}${I.next}</a>` : `<a class="btn btn-ok fb-next" href="#/quick/done">${H('qk.finish')}${I.next}</a>`; }
     else if (S.route.view === 'session') next = `<button class="btn btn-ok fb-next" data-act="sessionNext">${H('btn.next')}${I.next}</button>`;
     else if (S.route.view === 'live') {   // the assignment: on to the next unsolved assigned problem, in any lesson
       const n = nextAssigned(prob);
@@ -1104,6 +1149,7 @@ function evaluate(prob, sql, extra) {
 function record(prob, ok, run, sql) {
   const empty = run.error && run.error.code === 'empty';
   if (!empty && prob.quick) {   // the quick test: retry until right; the class log tells the teacher who has finished
+    if (qPhaseNow() !== 'run') { render(); return; }   // the time is over (or not started): the answer does not count
     if (ok && !qDone(prob)) { qMark(prob.qn); bumpStreak(S.progress); }
     if (S.klass && backend.enabled) backend.logAttempt({ class_id: S.klass.id, problem_id: prob.id.slice(0, 80), lesson: prob.lesson, stage: 'quick', ok, reason: ok ? null : (run.grade ? run.grade.reason : 'error'), sql: String(sql).slice(0, 2000) });
   } else if (!empty && prob.test) {   // a check test: only the test keeps score; the lessons' progress is not touched
@@ -1254,6 +1300,7 @@ const actions = {
   place(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).concat(el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   unplace(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).filter(x => x !== el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   resetOrder() { const c = current(); delete S.progress.drafts['o:' + c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
+  quickMore() { S.qMore = true; const f = qItems().find(p => !qDone(p)); location.hash = f ? `#/quick/${f.qn}` : '#/quick'; },
   sessionNext() { saveDraft(); if (S.session.kind === 'drill' && !S.session.done[S.session.items[S.session.i].id]) S.session.streak = 0; S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
   drillAgain() { S.session = null; render(); window.scrollTo(0, 0); },
   drillLevel(el) { Store.set('sqln.drillLevel', el.dataset.v); S.session = null; render(); },

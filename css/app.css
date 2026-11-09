@@ -857,3 +857,23 @@ body.pj-open { overflow: hidden; }
 .q-bigview .q-big { font-size: 4rem; margin: 6px 0 14px; }
 .q-names { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; font-size: 1.5rem; font-weight: 700; }
 .q-names li { padding: 6px 14px; border-radius: 999px; background: var(--ok-soft); color: var(--ok); }
+/* quick test, round 2: pass line, time limit, countdown, preview with swaps */
+.q-row { display: flex; flex-wrap: wrap; gap: 14px 28px; }
+.q-preview { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.q-preview-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.q-pv { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface-2); }
+.q-pv-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.q-pv-h .btn { margin-left: auto; }
+.q-pv .prob-text { margin: 6px 0; }
+.q-startrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.q-clock { font-variant-numeric: tabular-nums; padding: 2px 10px; border-radius: 999px; }
+.q-clock.wait { background: var(--warn-soft); color: var(--warn); }
+.q-clock.run { background: var(--accent-soft); color: var(--accent); }
+.q-clock.up { background: var(--bad-soft); color: var(--bad); }
+.q-bigclock { font-size: 1.6rem; margin: 4px 0; }
+.quick-wait .qk-count { font-size: 5rem; font-weight: 800; line-height: 1; margin: 10px 0; color: var(--accent); font-variant-numeric: tabular-nums; }
+.qk-rule { font-weight: 600; }
+.qk-left { font-variant-numeric: tabular-nums; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.quick-done.not .empty-icon { filter: grayscale(.2); }
+.quick-setup, .quick-run { padding: 20px 22px; }
+.quick-setup .seg-b, .live-len .seg-b { white-space: nowrap; }
