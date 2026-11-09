@@ -325,25 +325,37 @@ console.log('11. Check tests (確認テスト)');
   console.log(`   ${tests} test settings built`);
 }
 
-// ---------- quick test: same problems for everyone, quick ids, who has finished ----------
+// ---------- quick test: same problems for everyone, swaps, pass line, time limit ----------
 {
-  const { newQuick, quickProblems, quickProgress, QUICK_PRESETS, QUICK_COUNTS } = await import('../js/quick.js');
+  const { newQuick, quickProblems, quickProgress, quickPhase, poolCode, poolProblems, fixPick, swapPick, QUICK_PRESETS, QUICK_COUNTS } = await import('../js/quick.js');
   const { checkLessons } = await import('../js/check.js');
   let n = 0;
   for (const kind of Object.keys(QUICK_PRESETS)) for (const max of QUICK_COUNTS) {
     const ls = checkLessons().slice(n % 20, n % 20 + 2).map(l => l.key);
-    const q = newQuick({ lessons: ls, f: QUICK_PRESETS[kind], max });
+    const cfg = { lessons: ls, f: QUICK_PRESETS[kind], max };
+    const pool = poolProblems(eng, poolCode(cfg, 'S' + n));
+    let pick = fixPick([], Math.min(max, pool.length), pool.length);
+    if (pool.length > pick.length) {
+      const sw = swapPick(pick, 0, pool.length);
+      if (sw[0] === pick[0] || new Set(sw).size !== sw.length) err(`quick test: swapping did not give a new problem`);
+      pick = sw;
+    }
+    const q = newQuick({ cfg, seed: 'S' + n, pick, pass: 1, limit: 5 }, Date.parse('2026-01-01T00:00:00Z'));
     const a = quickProblems(eng, q), b = quickProblems(eng, JSON.parse(JSON.stringify(q)));
     if (!a.length || a.length !== q.n) err(`quick test ${q.code}: ${a.length} problems, expected ${q.n}`);
+    if (JSON.stringify(a.map(p => p.sql)) !== JSON.stringify(pick.map(j => pool[j].sql))) err(`quick test ${q.code}: not the problems the teacher saw`);
     if (JSON.stringify(a.map(p => p.sql)) !== JSON.stringify(b.map(p => p.sql))) err(`quick test ${q.code}: not the same problems for everyone`);
     if (a.some((p, i) => p.id !== `quick:${q.id}:${i}` || !p.test || p.stage === 'demo')) err(`quick test ${q.code}: bad problem ids`);
-    for (const p of a) if (!grade(eng.runUser(p.sql), eng.runUser(p.sql), p.ordered, p.sql).ok && p.stage !== 'quiz') err(`quick test ${q.code}: answer does not grade: ${p.sql}`);
+    for (const p of a) if (p.stage !== 'quiz' && !grade(eng.runUser(p.sql), eng.runUser(p.sql), p.ordered, p.sql).ok) err(`quick test ${q.code}: answer does not grade: ${p.sql}`);
+    if (quickPhase(q, Date.parse('2026-01-01T00:00:02Z')) !== 'wait' || quickPhase(q, Date.parse('2026-01-01T00:01:00Z')) !== 'run' || quickPhase(q, Date.parse('2026-01-01T00:06:00Z')) !== 'up') err(`quick test ${q.code}: countdown / time limit phases are wrong`);
     n++;
   }
-  const q = { id: 'QQ', n: 2, at: '2026-01-01T00:00:00Z' };
-  const log = [{ user_id: 'u', problem_id: 'quick:QQ:0', ok: false, created_at: '2026-01-01T00:01:00Z' }, { user_id: 'u', problem_id: 'quick:QQ:0', ok: true, created_at: '2026-01-01T00:02:00Z' }, { user_id: 'u', problem_id: 'quick:QQ:1', ok: true, created_at: '2026-01-01T00:03:00Z' }, { user_id: 'v', problem_id: 'quick:QQ:1', ok: true, created_at: '2026-01-01T00:03:00Z' }, { user_id: 'v', problem_id: 'quick:OLD:0', ok: true, created_at: '2026-01-01T00:03:00Z' }];
+  // pass line 1 of 2, time limit: answers after the end (+5 s) do not count
+  const q = { id: 'QQ', n: 2, pass: 1, at: '2026-01-01T00:00:00Z', end: '2026-01-01T00:05:00Z' };
+  const log = [{ user_id: 'u', problem_id: 'quick:QQ:0', ok: false, created_at: '2026-01-01T00:01:00Z' }, { user_id: 'u', problem_id: 'quick:QQ:0', ok: true, created_at: '2026-01-01T00:02:00Z' }, { user_id: 'u', problem_id: 'quick:QQ:1', ok: true, created_at: '2026-01-01T00:03:00Z' },
+    { user_id: 'v', problem_id: 'quick:QQ:1', ok: true, created_at: '2026-01-01T00:06:00Z' }, { user_id: 'w', problem_id: 'quick:OLD:0', ok: true, created_at: '2026-01-01T00:03:00Z' }];
   const pr = quickProgress(log, q);
-  if (pr.get('u').done !== '2026-01-01T00:03:00Z' || pr.get('v').done || pr.get('v').ok.size !== 1) err('quick test: who has finished is wrong');
+  if (pr.get('u').done !== '2026-01-01T00:02:00Z' || pr.get('u').all !== '2026-01-01T00:03:00Z' || pr.has('v') || pr.has('w')) err('quick test: who has passed is wrong');
   console.log(`   ${n} quick tests built`);
 }
 // ---------- every page script must parse as a module (a syntax error leaves the page blank) ----------
