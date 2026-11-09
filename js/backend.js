@@ -99,6 +99,10 @@ export async function flushAttempts() {
     await ensureSession(sb);
     const { error } = await sb.from('attempts').insert(q);
     if (!error) Store.set(QKEY, Store.get(QKEY, []).slice(q.length));
+    else if (/check constraint/i.test(error.message)) {   // one row the database does not accept yet (e.g. schema.sql not run again): send the others one by one
+      for (const row of q) { const r = await sb.from('attempts').insert(row); if (r.error && !/check constraint|row-level security|violates/i.test(r.error.message)) throw r.error; }
+      Store.set(QKEY, Store.get(QKEY, []).slice(q.length));
+    }
     else if (/row-level security|violates/i.test(error.message)) Store.set(QKEY, []); // no longer a member: drop
   } catch (e) { /* offline: keep queue */ }
   finally { flushing = false; }

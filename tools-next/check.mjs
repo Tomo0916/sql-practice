@@ -324,5 +324,27 @@ console.log('11. Check tests (確認テスト)');
   if (decodeCheck('nope~0000~5~') || decodeCheck('')) err('a bad check test code was accepted');
   console.log(`   ${tests} test settings built`);
 }
+
+// ---------- quick test: same problems for everyone, quick ids, who has finished ----------
+{
+  const { newQuick, quickProblems, quickProgress, QUICK_PRESETS, QUICK_COUNTS } = await import('../js/quick.js');
+  const { checkLessons } = await import('../js/check.js');
+  let n = 0;
+  for (const kind of Object.keys(QUICK_PRESETS)) for (const max of QUICK_COUNTS) {
+    const ls = checkLessons().slice(n % 20, n % 20 + 2).map(l => l.key);
+    const q = newQuick({ lessons: ls, f: QUICK_PRESETS[kind], max });
+    const a = quickProblems(eng, q), b = quickProblems(eng, JSON.parse(JSON.stringify(q)));
+    if (!a.length || a.length !== q.n) err(`quick test ${q.code}: ${a.length} problems, expected ${q.n}`);
+    if (JSON.stringify(a.map(p => p.sql)) !== JSON.stringify(b.map(p => p.sql))) err(`quick test ${q.code}: not the same problems for everyone`);
+    if (a.some((p, i) => p.id !== `quick:${q.id}:${i}` || !p.test || p.stage === 'demo')) err(`quick test ${q.code}: bad problem ids`);
+    for (const p of a) if (!grade(eng.runUser(p.sql), eng.runUser(p.sql), p.ordered, p.sql).ok && p.stage !== 'quiz') err(`quick test ${q.code}: answer does not grade: ${p.sql}`);
+    n++;
+  }
+  const q = { id: 'QQ', n: 2, at: '2026-01-01T00:00:00Z' };
+  const log = [{ user_id: 'u', problem_id: 'quick:QQ:0', ok: false, created_at: '2026-01-01T00:01:00Z' }, { user_id: 'u', problem_id: 'quick:QQ:0', ok: true, created_at: '2026-01-01T00:02:00Z' }, { user_id: 'u', problem_id: 'quick:QQ:1', ok: true, created_at: '2026-01-01T00:03:00Z' }, { user_id: 'v', problem_id: 'quick:QQ:1', ok: true, created_at: '2026-01-01T00:03:00Z' }, { user_id: 'v', problem_id: 'quick:OLD:0', ok: true, created_at: '2026-01-01T00:03:00Z' }];
+  const pr = quickProgress(log, q);
+  if (pr.get('u').done !== '2026-01-01T00:03:00Z' || pr.get('v').done || pr.get('v').ok.size !== 1) err('quick test: who has finished is wrong');
+  console.log(`   ${n} quick tests built`);
+}
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

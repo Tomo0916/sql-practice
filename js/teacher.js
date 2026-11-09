@@ -14,6 +14,8 @@ import { TEXTBOOKS } from './book.js';
 import { hasLecture } from './lectures.js';
 import { altAnswers } from './alt.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
+import { checkLessons } from './check.js';
+import { QUICK_COUNTS, QUICK_PRESETS, quickOn, newQuick, quickProblems, quickProgress, quickCount } from './quick.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft } from './timer.js';
 import { drawJoinLines } from './viz.js';
@@ -64,7 +66,7 @@ const joinURL = code => `${studentURL()}?class=${encodeURIComponent(code)}`;
 /* ---------- routing ---------- */
 function parseRoute() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
-  if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['assign', 'live', 'board', 'mistakes', 'members'].includes(h[2]) ? h[2] : 'live' };
+  if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['assign', 'live', 'quick', 'board', 'mistakes', 'members'].includes(h[2]) ? h[2] : 'live' };
   if (h[0] === 'present') return { view: 'present' };
   if (h[0] === 'test') return { view: 'test' };
   if (h[0] === 'book') return { view: 'book' };
@@ -174,12 +176,13 @@ function classHTML() {
   if (!c) return `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   document.title = `${c.name} · SQL Practice`;
   const tab = S.route.tab;
-  const tabs = [['live', I.bolt, 'tc.tabLive'], ['board', I.check, 'tc.tabBoard'], ['assign', I.book, 'tc.tabAssign'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
+  const tabs = [['live', I.bolt, 'tc.tabLive'], ['quick', '⚡', 'tc.tabQuick'], ['board', I.check, 'tc.tabBoard'], ['assign', I.book, 'tc.tabAssign'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
   let body = '';
   if (tab === 'assign') body = assignHTML(c);
   else if (tab === 'mistakes') body = mistakesHTML(c);
   else if (tab === 'members') body = membersHTML(c);
   else if (tab === 'board') body = boardHTML(c);
+  else if (tab === 'quick') body = quickHTML(c);
   else body = liveHTML(c);
   return `<main class="wrap">
     <div class="crumbs"><a href="#/">${H('tc.myClasses')}</a><span>›</span><span>${esc(c.name)}</span></div>
@@ -195,9 +198,80 @@ function classHTML() {
         <button class="btn btn-ghost btn-sm" data-act="toggleOpen">${I.lock}${H(c.open ? 'tc.close' : 'tc.reopen')}</button>
       </div>
     </section>
-    <nav class="tabs" role="tablist">${tabs.map(([k, ic, lab]) => `<a role="tab" aria-selected="${tab === k}" class="${tab === k ? 'on' : ''}" href="#/c/${c.id}/${k}">${ic}${H(lab)}</a>`).join('')}</nav>
+    <nav class="tabs" role="tablist">${tabs.map(([k, ic, lab]) => `<a role="tab" aria-selected="${tab === k}" class="${tab === k ? 'on' : ''}" href="#/c/${c.id}/${k}">${ic}${H(lab)}${k === 'quick' && quickOn(c) ? '<i class="live-dot"></i>' : ''}</a>`).join('')}</nav>
     <div id="tab-body">${body}</div>
   </main>`;
+}
+
+
+/* ---------- quick test: a few problems for everyone; who has solved them all may take a break ---------- */
+const QDRAFT = 'sqln.quickDraft';
+function quickDraft(c) {
+  const d = Store.get(QDRAFT, null) || {};
+  const ok = new Set(checkLessons().map(l => l.key));
+  const lessons = (Array.isArray(d.lessons) ? d.lessons : (c.lessons || [])).filter(k => ok.has(k));   // first time: the assigned lessons
+  return { lessons, n: QUICK_COUNTS.includes(d.n) ? d.n : 3, kind: QUICK_PRESETS[d.kind] ? d.kind : 'write' };
+}
+const quickCfg = d => ({ lessons: d.lessons, f: QUICK_PRESETS[d.kind], max: d.n });
+const QLAST = id => `sqln.quickLast.${id}`;
+function quickHTML(c) {
+  if (quickOn(c)) return quickRunHTML(c, c.quick, true);
+  const d = quickDraft(c), chosen = new Set(d.lessons), assigned = new Set(c.lessons || []);
+  const cnt = { n: d.lessons.length ? quickCount(quickCfg(d)) : 0 };
+  const lessonBtn = l => `<label class="chk"><input type="checkbox" data-qlesson="${l.key}" ${chosen.has(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`;
+  const asg = checkLessons().filter(l => assigned.has(l.key)), others = checkLessons().filter(l => !assigned.has(l.key));
+  const last = Store.get(QLAST(c.id), null);
+  return `<section class="card quick-setup">
+      <h2>⚡ ${H('tc.quick.title')}</h2><p class="muted">${H('tc.quick.sub')}</p>
+      <div class="fld"><span>${H('tc.quick.lessons')}</span>
+        ${asg.length ? `<div class="q-lessons"><small class="muted">${H('tc.quick.fromAssign')}</small>${asg.map(lessonBtn).join('')}</div>` : ''}
+        <details class="q-more" ${asg.length ? '' : 'open'}><summary>${H('tc.quick.otherLessons')}</summary><div class="q-lessons">${others.map(lessonBtn).join('')}</div></details></div>
+      <div class="fld"><span>${H('tc.quick.count')}</span><div class="seg">${QUICK_COUNTS.map(n => `<button class="seg-b ${d.n === n ? 'on' : ''}" data-act="quickSet" data-k="n" data-v="${n}" aria-pressed="${d.n === n}">${n}</button>`).join('')}</div></div>
+      <div class="fld"><span>${H('tc.quick.kind')}</span><div class="seg">${Object.keys(QUICK_PRESETS).map(k => `<button class="seg-b ${d.kind === k ? 'on' : ''}" data-act="quickSet" data-k="kind" data-v="${k}" aria-pressed="${d.kind === k}">${H('tc.quick.k.' + k)}</button>`).join('')}</div></div>
+      <p class="q-total">${d.lessons.length ? `<b>${H('tc.quick.total', { n: cnt.n })}</b>${cnt.n < d.n ? ` <span class="muted small">${H('tc.quick.fewer')}</span>` : ''}` : `<span class="muted">${H('ck.pickLesson')}</span>`}</p>
+      <button class="btn btn-primary btn-lg" data-act="quickStart" ${cnt.n ? '' : 'disabled'}>⚡ ${H('tc.quick.start')}</button>
+      <p class="muted small">${H('tc.quick.note')}</p>
+    </section>
+    ${last && last.id ? quickRunHTML(c, last, false) : ''}`;
+}
+/** the roster: who has solved everything (and when), who is on the way, who has not started */
+function quickRunHTML(c, q, running) {
+  const prog = quickProgress(S.qAtt || [], q), t0 = new Date(q.at).getTime();
+  const rows = S.members.map(m => ({ m, s: prog.get(m.user_id) || null }));
+  const done = rows.filter(r => r.s && r.s.done).sort((a, b) => (a.s.done < b.s.done ? -1 : 1));
+  const going = rows.filter(r => r.s && !r.s.done).sort((a, b) => b.s.ok.size - a.s.ok.size || a.m.nickname.localeCompare(b.m.nickname));
+  const none = rows.filter(r => !r.s).sort((a, b) => a.m.nickname.localeCompare(b.m.nickname));
+  const mmss = iso => { const s = Math.max(0, Math.round((new Date(iso).getTime() - t0) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const chip = r => !r.s ? `<li class="q-st none"><b>${esc(r.m.nickname)}</b><span>${H('tc.quick.notStarted')}</span></li>`
+    : r.s.done ? `<li class="q-st done"><b>${esc(r.m.nickname)}</b><span>✓ ${mmss(r.s.done)}</span></li>`
+    : `<li class="q-st going"><b>${esc(r.m.nickname)}</b><span>${r.s.ok.size} / ${q.n}</span></li>`;
+  const probs = quickProblems(S.engine, q);
+  const head = running
+    ? `<div class="q-head"><span class="live-st"><i class="live-dot"></i><b>${H('tc.quick.on')}</b></span><span class="muted">${H('tc.quick.meta', { n: q.n, t: fmtTime(q.at) })} · <span data-qelapsed="${esc(q.at)}">${mmss(new Date().toISOString())}</span></span>
+        <span class="row-btns"><button class="btn btn-ghost btn-sm" data-act="quickBig">${I.screen}${H('tc.quick.big')}</button><button class="btn btn-ghost btn-sm" data-act="quickStop">${H('tc.quick.stop')}</button></span></div>`
+    : `<div class="q-head"><b>${H('tc.quick.last')}</b><span class="muted">${H('tc.quick.meta', { n: q.n, t: fmtTime(q.at) })}</span></div>`;
+  return `<section class="card quick-run ${running ? 'on' : ''}">${head}
+      <div class="q-count"><b class="q-big">${done.length}</b><span>/ ${S.members.length} ${H('tc.quick.passed')}</span></div>
+      <ul class="q-roster" id="q-roster">${done.map(chip).join('')}${going.map(chip).join('')}${none.map(chip).join('')}</ul>
+      <details class="q-probs"><summary>${H('tc.quick.problems')} (${probs.length})</summary>${probs.map((p, i) => `<div class="pv-item"><b>Q${i + 1}</b> <span class="tag st-${p.stage}">${stageNameH(p)}</span> <span class="muted small">Lesson ${LESSON_BY_KEY[p.lesson].no}</span><p class="prob-text">${problemHTML(p, L())}</p><pre class="sql">${highlightSQL(p.sql)}</pre></div>`).join('')}</details>
+    </section>`;
+}
+function quickBigHTML() {
+  const q = S.klass && S.klass.quick;
+  if (!q) return '';
+  const prog = quickProgress(S.qAtt || [], q);
+  const done = S.members.map(m => ({ m, s: prog.get(m.user_id) })).filter(r => r.s && r.s.done).sort((a, b) => (a.s.done < b.s.done ? -1 : 1));
+  return `<div class="q-bigview"><h2>⚡ ${H('tc.quick.bigTitle')}</h2><p class="q-big">${done.length} / ${S.members.length}</p>
+    <ul class="q-names">${done.map(r => `<li>${esc(r.m.nickname)}</li>`).join('')}</ul></div>`;
+}
+setInterval(() => {
+  document.querySelectorAll('[data-qelapsed]').forEach(el => { const s = Math.max(0, Math.round((Date.now() - new Date(el.dataset.qelapsed).getTime()) / 1000)); el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; });
+  const big = document.querySelector('#modal .q-bigview'); if (big) big.outerHTML = quickBigHTML() || big.outerHTML;
+}, 1000);
+function quickError(e) {
+  if (/quick/i.test(e.message || '') && /column|schema cache/i.test(e.message || '')) return T('tc.quick.needsDb');
+  if (!navigator.onLine || e instanceof TypeError) return T('class.netError');
+  return `${T('tc.quick.failed')} ${e.message}`;
 }
 
 /* ---------- class live: the students work on the assignment until it ends ---------- */
@@ -779,7 +853,7 @@ async function load() {
 async function reloadClassData() {
   const c = S.klass;
   const [m, a, p] = await Promise.all([backend.members(c.id), backend.attempts(c.id), backend.pinStatus(c.id).catch(() => [])]);
-  S.members = m; S.attempts = a; S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
+  S.members = m; S.attempts = a.filter(x => x.stage !== 'quick'); S.qAtt = a.filter(x => x.stage === 'quick'); S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
 }
 /* live connection: shown in the class header; when it drops, it reconnects by itself and
  * reloads the answers so nothing sent in the meantime is missed */
@@ -793,7 +867,7 @@ function connHTML() {
   const k = S.conn === 'ok' ? 'ok' : S.conn === 'lost' ? 'lost' : 'connecting';
   return `<span id="conn" class="conn ${k}" title="${esc(T('tc.conn.' + k))}"><i></i>${H('tc.conn.' + k)}${k === 'lost' ? ` <button class="btn btn-ghost btn-xs" data-act="reconnect">${H('tc.conn.retry')}</button>` : ''}</span>`;
 }
-const soonRefresh = (() => { let pending = null; return () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view === 'class' && ['live', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab(); }, 300); }; })();
+const soonRefresh = (() => { let pending = null; return () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view === 'class' && ['live', 'quick', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab(); }, 300); }; })();
 async function startWatch() {
   stopWatch();
   clearTimeout(retryTimer);
@@ -801,7 +875,7 @@ async function startWatch() {
   const id = S.klass.id, gen = ++watchGen;
   let wasLost = S.conn === 'lost';
   setConn('connecting');
-  S.unwatch = await backend.watchDashboard(id, row => { if (!S.attempts.some(a => a.id === row.id)) S.attempts.push(row); soonRefresh(); },
+  S.unwatch = await backend.watchDashboard(id, row => { const list = row.stage === 'quick' ? (S.qAtt = S.qAtt || []) : S.attempts; if (!list.some(a => a.id === row.id)) list.push(row); soonRefresh(); },
     async () => { try { await reloadClassData(); } catch (e) { S.members = await backend.members(id); } soonRefresh(); },   // a student who came back on another device brings their answers along
     async status => {
       if (gen !== watchGen) return;   // an old connection
@@ -840,6 +914,7 @@ function refreshTab() {
     else if (tab === 'board') el.innerHTML = boardHTML(S.klass);
     else if (tab === 'mistakes') el.innerHTML = mistakesHTML(S.klass);
     else if (tab === 'members') el.innerHTML = membersHTML(S.klass);
+    else if (tab === 'quick') el.innerHTML = quickHTML(S.klass);
   });
   const big = document.querySelector('#modal .board.big');
   if (big) big.outerHTML = boardListHTML(projected(), S.boardBy, true);
@@ -858,6 +933,22 @@ function timerError(e) {
   return `${T('tc.timerFailed')} ${e.message}`;
 }
 const actions = {
+  quickSet(el) { const d = quickDraft(S.klass); d[el.dataset.k] = el.dataset.k === 'n' ? +el.dataset.v : el.dataset.v; Store.set(QDRAFT, d); refreshTab(); },
+  async quickStart(el) {
+    const d = quickDraft(S.klass);
+    if (!d.lessons.length) return;
+    el.disabled = true;
+    let at = null; try { at = await backend.serverNow(); } catch (e) { /* the device clock */ }
+    const q = newQuick(quickCfg(d), (at || new Date()).toISOString());
+    try { S.klass = await backend.updateClass(S.klass.id, { quick: q }); Store.set(QLAST(S.klass.id), q); render(); toast(T('tc.quick.started')); }
+    catch (e) { console.error(e); el.disabled = false; toast(quickError(e)); }
+  },
+  async quickStop() {
+    if (!confirm(T('tc.quick.stopConfirm'))) return;
+    try { S.klass = await backend.updateClass(S.klass.id, { quick: null }); render(); }
+    catch (e) { console.error(e); toast(quickError(e)); }
+  },
+  quickBig() { modal(`<div class="modal-body">${quickBigHTML()}</div>`, { wide: true }); },
   closeModal,
   loginMode(el) { S.loginMode = el.dataset.m; render(); },
   async signOut() { await backend.signOut(); S.session = null; S.isTeacher = null; S.classes = []; S.klass = null; stopWatch(); location.hash = '#/'; render(); },
@@ -946,7 +1037,7 @@ const actions = {
   },
   async clearAttempts() {
     if (!confirm(T('tc.clearConfirm'))) return;
-    try { await backend.clearAttempts(S.klass.id); S.attempts = []; refreshTab(); toast(T('tc.cleared')); } catch (e) { toast(T('class.netError')); }
+    try { await backend.clearAttempts(S.klass.id); S.attempts = []; S.qAtt = []; refreshTab(); toast(T('tc.cleared')); } catch (e) { toast(T('class.netError')); }
   },
   async deleteClass() {
     if (prompt(T('tc.deleteConfirm', { n: S.klass.name })) !== S.klass.name) return;
@@ -969,6 +1060,7 @@ document.addEventListener('change', async e => {
   const el = e.target;
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }
+  if (el.dataset.qlesson) { const d = quickDraft(S.klass); d.lessons = el.checked ? [...new Set([...d.lessons, el.dataset.qlesson])] : d.lessons.filter(k => k !== el.dataset.qlesson); const order = checkLessons().map(l => l.key); d.lessons = order.filter(k => d.lessons.includes(k)); Store.set(QDRAFT, d); refreshTab(); return; }
   if (el.dataset.act2 === 'boardHide') { S.boardHide = el.checked; saveView(); return; }
   if (el.dataset.act2 === 'mistakeProb') { S.mistakeProb = el.value; refreshTab(); return; }
   const k = el.dataset.tk;
