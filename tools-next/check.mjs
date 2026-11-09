@@ -346,5 +346,16 @@ console.log('11. Check tests (確認テスト)');
   if (pr.get('u').done !== '2026-01-01T00:03:00Z' || pr.get('v').done || pr.get('v').ok.size !== 1) err('quick test: who has finished is wrong');
   console.log(`   ${n} quick tests built`);
 }
+// ---------- every page script must parse as a module (a syntax error leaves the page blank) ----------
+{
+  const { execFileSync } = await import('child_process');
+  const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'js');
+  let n = 0;
+  for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+    try { execFileSync(process.execPath, ['--input-type=module', '--check'], { input: fs.readFileSync(path.join(dir, f)), stdio: ['pipe', 'pipe', 'pipe'] }); n++; }
+    catch (e) { err(`js/${f} does not parse: ${String(e.stderr || e.message).split('\n').filter(Boolean).slice(0, 4).join(' / ')}`); }
+  }
+  console.log(`   ${n} scripts parse`);
+}
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);
