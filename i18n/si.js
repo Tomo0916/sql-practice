@@ -1086,5 +1086,16 @@ export default {
   "tc.quick.timeUp": "කාලය අවසන්",
   "tc.quick.left": "තව {t}",
   "tc.quick.more": "+මිනිත්තු 1",
-  "tc.quick.passedN": "දෙනා සමත්"
+  "tc.quick.passedN": "දෙනා සමත්",
+  "tc.quick.how": "ගැටලු තෝරන ආකාරය",
+  "tc.quick.mode.simple": "පහසු",
+  "tc.quick.mode.detail": "විස්තරාත්මක",
+  "tc.quick.perLesson": "පාඩම සහ වර්ගය අනුව ගැටලු ගණන",
+  "tc.quick.lessonCol": "පාඩම",
+  "tc.quick.sum": "එකතුව",
+  "tc.quick.noKind": "මෙම පාඩමේ මෙම වර්ගයේ ගැටලු නැත",
+  "tc.quick.allTo": "සියලු පාඩම්වලට:",
+  "tc.quick.clear": "සියල්ල 0 ට",
+  "tc.quick.byChapter": "සම්පූර්ණ පරිච්ඡේද:",
+  "tc.quick.none": "සියලු තේරීම් ඉවත් කරන්න"
 };

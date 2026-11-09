@@ -1087,5 +1087,16 @@ export default {
   "tc.quick.timeUp": "{時間|じかん} おわり",
   "tc.quick.left": "あと {t}",
   "tc.quick.more": "+1{分|ふん}",
-  "tc.quick.passedN": "{人|にん}が {合格|ごうかく}"
+  "tc.quick.passedN": "{人|にん}が {合格|ごうかく}",
+  "tc.quick.how": "{問題|もんだい}の {決|き}め{方|かた}",
+  "tc.quick.mode.simple": "かんたん",
+  "tc.quick.mode.detail": "くわしく",
+  "tc.quick.perLesson": "レッスンごと・{形|かたち}ごとの {問題|もんだい}の {数|かず}",
+  "tc.quick.lessonCol": "レッスン",
+  "tc.quick.sum": "{合計|ごうけい}",
+  "tc.quick.noKind": "この レッスンには この {形|かたち}の {問題|もんだい}は ありません",
+  "tc.quick.allTo": "ぜんぶの レッスンに：",
+  "tc.quick.clear": "ぜんぶ 0 に",
+  "tc.quick.byChapter": "{章|しょう}ごとに まとめて {選|えら}ぶ：",
+  "tc.quick.none": "{選|えら}んだものを ぜんぶ {外|はず}す"
 };

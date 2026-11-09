@@ -1086,5 +1086,16 @@ export default {
   "tc.quick.timeUp": "အချိန်ပြည့်ပြီ",
   "tc.quick.left": "{t} ကျန်",
   "tc.quick.more": "+၁ မိနစ်",
-  "tc.quick.passedN": "ယောက် အောင်"
+  "tc.quick.passedN": "ယောက် အောင်",
+  "tc.quick.how": "ပုစ္ဆာ ရွေးပုံ",
+  "tc.quick.mode.simple": "လွယ်ကူ",
+  "tc.quick.mode.detail": "အသေးစိတ်",
+  "tc.quick.perLesson": "သင်ခန်းစာနှင့် အမျိုးအစားအလိုက် ပုစ္ဆာအရေအတွက်",
+  "tc.quick.lessonCol": "သင်ခန်းစာ",
+  "tc.quick.sum": "စုစုပေါင်း",
+  "tc.quick.noKind": "ဤသင်ခန်းစာတွင် ဤအမျိုးအစား ပုစ္ဆာ မရှိပါ",
+  "tc.quick.allTo": "သင်ခန်းစာအားလုံးသို့-",
+  "tc.quick.clear": "အားလုံး 0 သို့",
+  "tc.quick.byChapter": "အခန်းလိုက် တစ်ခါတည်း ရွေးရန်-",
+  "tc.quick.none": "ရွေးထားသမျှ ဖြုတ်ရန်"
 };

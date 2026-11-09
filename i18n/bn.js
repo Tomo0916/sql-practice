@@ -1086,5 +1086,16 @@ export default {
   "tc.quick.timeUp": "সময় শেষ",
   "tc.quick.left": "আর {t} বাকি",
   "tc.quick.more": "+১ মিনিট",
-  "tc.quick.passedN": "জন পাস"
+  "tc.quick.passedN": "জন পাস",
+  "tc.quick.how": "প্রশ্ন বাছাইয়ের ধরন",
+  "tc.quick.mode.simple": "সহজ",
+  "tc.quick.mode.detail": "বিস্তারিত",
+  "tc.quick.perLesson": "পাঠ ও ধরন অনুযায়ী প্রশ্নের সংখ্যা",
+  "tc.quick.lessonCol": "পাঠ",
+  "tc.quick.sum": "মোট",
+  "tc.quick.noKind": "এই পাঠে এই ধরনের প্রশ্ন নেই",
+  "tc.quick.allTo": "সব পাঠে:",
+  "tc.quick.clear": "সব ০ করুন",
+  "tc.quick.byChapter": "পুরো অধ্যায় বাছুন:",
+  "tc.quick.none": "সব বাছাই বাতিল"
 };

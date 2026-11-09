@@ -877,3 +877,20 @@ body.pj-open { overflow: hidden; }
 .quick-done.not .empty-icon { filter: grayscale(.2); }
 .quick-setup, .quick-run { padding: 20px 22px; }
 .quick-setup .seg-b, .live-len .seg-b { white-space: nowrap; }
+/* quick test: detailed set-up table */
+.q-table-wrap { overflow-x: auto; margin-top: 6px; }
+.q-table { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .92rem; }
+.q-table th, .q-table td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.q-table tbody th, .q-table tfoot th { text-align: left; font-weight: 600; white-space: normal; }
+.q-table thead th { font-size: .82rem; color: var(--ink-2); font-weight: 700; }
+.q-table .n { text-align: right; }
+.q-table tfoot td, .q-table tfoot th { border-bottom: 0; }
+.q-table .stepper { display: inline-flex; align-items: center; gap: 4px; }
+.q-table .ck-num { min-width: 1.4em; display: inline-block; }
+.q-more .q-lessons { margin-top: 8px; }
+.quick-setup .seg { width: fit-content; max-width: 100%; flex-wrap: wrap; }
+.q-chapters { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 8px; }
+.q-chapters > small { flex-basis: 100%; }
+.q-ch { border-left: 4px solid var(--cc, var(--line-2)); }
+.q-ch.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); border-left-color: var(--cc, var(--accent)); }
+.q-ch.some { border-style: dashed; border-left-style: solid; }
