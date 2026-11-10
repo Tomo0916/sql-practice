@@ -43,3 +43,20 @@ export function quizAnswer(s, engine) {
   const v = String(s.answer(engine));
   return s.choices.findIndex(c => String(typeof c === 'string' ? c : c.en) === v);
 }
+
+/* ---------- INSERT / UPDATE / DELETE: the engine runs them and puts the table back ---------- */
+const rowsOf = (engine, table) => { const r = engine.exec(`SELECT * FROM ${table} ORDER BY 1;`); return r || { columns: [], values: [] }; };
+/** the table after a change: new and changed rows are picked out */
+export function after(engine, dml, table, opts = {}) {
+  const before = new Map(rowsOf(engine, table).values.map(v => [String(v[0]), JSON.stringify(v)]));
+  const r = engine.exec(dml);
+  return { cols: r.columns, hl: opts.hl || [], dim: false, nohead: false,
+    rows: r.values.map(v => ({ k: String(v[0]), cells: v, cls: before.get(String(v[0])) === JSON.stringify(v) ? '' : 'pick' })) };
+}
+/** the table before a DELETE: the rows that will go are ✕, the others ✓ */
+export function removed(engine, dml, table, opts = {}) {
+  const left = new Set(engine.exec(dml).values.map(v => String(v[0])));
+  const b = rowsOf(engine, table);
+  return { cols: b.columns, hl: opts.hl || [], dim: false, nohead: false,
+    rows: b.values.map(v => ({ k: String(v[0]), cells: v, cls: left.has(String(v[0])) ? 'pass' : 'fail' })) };
+}

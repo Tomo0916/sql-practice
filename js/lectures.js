@@ -17,34 +17,12 @@
  * other languages show English for now.
  * ========================================================= */
 
-import { T3, state, col } from './lecture-kit.js';
+import { T3, state } from './lecture-kit.js';
 import { LECT_A } from './lectures-a.js';
+import { LECT_B } from './lectures-b.js';
 
 /* ---------- the lectures ---------- */
 const OLD = {
-  groupby: {
-    goal: T3('Make groups of rows and calculate per group.', '行をグループに分けて、グループごとに集計する。', '{行|ぎょう}を グループに わけて、グループごとに {集計|しゅうけい}する。'),
-    slides: [
-      { type: 'syntax', notes: [
-        T3('GROUP BY: rows with the same value become one group.', 'GROUP BY：同じ値の行が 1 つのグループになる。', 'GROUP BY：おなじ {値|あたい}の {行|ぎょう}が 1つの グループに なる。'),
-        T3('COUNT, SUM, AVG, MAX, MIN are calculated for each group.', 'COUNT・SUM・AVG・MAX・MIN は、グループごとに計算される。', 'COUNT・SUM・AVG・MAX・MIN は、グループごとに {計算|けいさん}される。')] },
-      { type: 'anim', title: T3('What GROUP BY does', 'GROUP BY がすること', 'GROUP BY が すること'), frames: [
-        { cap: T3('Every product has a category.', 'どの商品にも category がある。', 'どの しょうひんにも category が ある。'), sql: 'SELECT name, category, price\nFROM products;', mark: 'category',
-          table: e => state(e, 'SELECT id, name, category, price FROM products;', { hide: ['id'] }) },
-        { cap: T3('GROUP BY category: the same category goes together.', 'GROUP BY category：同じ category の行が集まる。', 'GROUP BY category：おなじ category の {行|ぎょう}が あつまる。'), sql: 'SELECT category\nFROM products\nGROUP BY category;', mark: 'GROUP BY category',
-          table: e => state(e, 'SELECT id, name, category, price FROM products ORDER BY category, id;', { hide: ['id'], hl: ['category'], cls: (v, c) => 'g' + ['Books', 'Clothing', 'Electronics', 'Kitchen'].indexOf(v[col(c, 'category')]) }) },
-        { cap: T3('Each group becomes one row; COUNT(*) counts its rows, AVG(price) averages them.', 'グループは 1 行になる。COUNT(*) は行の数、AVG(price) は平均。', 'グループは 1{行|ぎょう}に なる。COUNT(*) は {行|ぎょう}の {数|かず}、AVG(price) は へいきん。'), sql: 'SELECT category, COUNT(*), AVG(price)\nFROM products\nGROUP BY category;', mark: 'COUNT(*), AVG(price)',
-          table: e => state(e, 'SELECT category, COUNT(*), ROUND(AVG(price)) AS "AVG(price)" FROM products GROUP BY category ORDER BY category;', { cls: (v) => 'g' + ['Books', 'Clothing', 'Electronics', 'Kitchen'].indexOf(v[0]) }),
-          merge: e => Object.fromEntries(e.exec('SELECT id, category FROM products;').values.map(([id, c]) => [String(id), c])) }
-      ] },
-      { type: 'points', items: [
-        T3('In SELECT you can write the GROUP BY column and aggregates (COUNT, SUM …).', 'SELECT に書けるのは、GROUP BY の列と、集計（COUNT・SUM など）。', 'SELECT に {書|か}けるのは、GROUP BY の {列|れつ}と、{集計|しゅうけい}（COUNT・SUM など）。'),
-        T3('You get one row per group.', '結果は、グループの数だけの行になる。', '{結果|けっか}は、グループの {数|かず}だけの {行|ぎょう}に なる。')] },
-      { type: 'mistake', wrong: 'SELECT category, name, COUNT(*)\nFROM products\nGROUP BY category;', right: 'SELECT category, COUNT(*)\nFROM products\nGROUP BY category;',
-        why: T3('name is not grouped: which name should a group show? Most databases give an error.', 'name はグループにしていないので、どの name を出すか決まらない。多くのデータベースではエラー。', 'name は グループに して いないので、どの name を {出|だ}すか きまらない。おおくの データベースでは エラー。') },
-      { type: 'practice' }
-    ]
-  },
   /* ---------- data analysis ---------- */
   an_center: {
     goal: T3('Find the middle of the data: the mean and the median.', 'データの「真ん中」を求める：平均と中央値。', 'データの「まんなか」を {求|もと}める：{平均|へいきん}と {中央値|ちゅうおうち}。'),
@@ -197,7 +175,7 @@ const OLD = {
   }
 };
 /** every lecture: the new ones (lectures-a.js …) replace the old ones of the same lesson */
-export const LECTURES = Object.assign({}, OLD, LECT_A);
+export const LECTURES = Object.assign({}, OLD, LECT_A, LECT_B);
 export const hasLecture = key => !!LECTURES[key];
 /** text of a lecture in a language (English, Japanese, Easy Japanese; others read English) */
 export const ltext = (x, lang) => (x ? x[lang] || x.en : '');

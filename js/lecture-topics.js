@@ -21,6 +21,13 @@ export const TOPICS = {
   orderby: p => [dirOf(p.ord), ...(p.two ? ['two'] : [])],
   distinct: p => ['distinct', dirOf(p.ord)],
   limit: p => ['limit', dirOf(p.ord), ...(p.skip ? ['offset'] : [])],
+  insert: p => [p.cols.split(',').length > 4 ? 'cols.all' : 'cols.some'],
+  update: p => [p.w],                                        // one (a value for one row), many (a calculation for several rows)
+  delete: p => [p.c === 'id' ? 'id' : typeof p.v === 'string' ? 'text' : `cmp.${p.op}`],
+  aggfn: p => ['count', p.f],                                // SUM, AVG, MAX, MIN
+  groupby: p => ['group', p.f],
+  having: p => [`having.${p.f}`],                            // COUNT, SUM, AVG, MAX, MIN
+  wherehaving: () => ['where+having'],
 };
 /** the topics of one problem (lessons not listed yet: one topic, "main") */
 export const topicsOf = (lessonKey, p) => (TOPICS[lessonKey] ? TOPICS[lessonKey](p) : ['main']);
