@@ -1097,5 +1097,10 @@ export default {
   "tc.quick.allTo": "Mọi bài học:",
   "tc.quick.clear": "Tất cả về 0",
   "tc.quick.byChapter": "Chọn cả chương:",
-  "tc.quick.none": "Bỏ chọn tất cả"
+  "tc.quick.none": "Bỏ chọn tất cả",
+  "lec.scene": "Khi nào cần dùng",
+  "lec.goal": "Sau bài học này bạn có thể: ",
+  "lec.cases": "Mọi dạng có trong bài tập",
+  "lec.quiz": "Hãy thử đoán",
+  "lec.quizHint": "Chọn một đáp án, hoặc bấm Tiếp để xem đáp án."
 };

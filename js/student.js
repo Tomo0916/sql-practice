@@ -22,7 +22,7 @@ import { textbookPage } from './book.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
 import { hasLecture, LECTURES } from './lectures.js';
-import { lectureSteps, lectureStepHTML, paintStep } from './lecture-ui.js';
+import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
 import { quickOn, quickProblems, quickPhase, passOf } from './quick.js';
@@ -725,11 +725,11 @@ function lecMove(to) {
   to = Math.max(0, Math.min(steps.length - 1, to));
   if (to === lec.i) { stopAuto(); return; }
   const from = steps[lec.i], st = steps[to];
-  const same = from.slide === st.slide && LECTURES[lec.key].slides[st.slide].type === 'anim';
+  const f = LECTURES[lec.key].slides[st.slide].frames;
+  const same = from.slide === st.slide && !!f;
   lec.i = to;
   const box = document.getElementById('lec-box');
   if (!box) { render(); return; }
-  const f = LECTURES[lec.key].slides[st.slide].frames;
   paintStep(box, lectureStepHTML(lesson, st, S.engine, L()), same, same && f[st.frame].merge ? f[st.frame].merge(S.engine) : null);
   // the controls and the dots follow
   document.querySelectorAll('.lec-dots button').forEach((b, i) => { b.className = i === st.slide ? 'on' : i < st.slide ? 'done' : ''; });
@@ -1261,6 +1261,7 @@ const actions = {
   setPin() { openPin(); },
   lecNext() { stopAuto(); lecMove(lec.i + 1); },
   lecPrev() { stopAuto(); lecMove(lec.i - 1); },
+  lecPick(el) { stopAuto(); const st = lectureSteps(lec.key)[lec.i]; quizPick(lec.key, st.slide, +el.dataset.i); lecMove(lec.i + 1); },
   lecGo(el) { stopAuto(); const i = lectureSteps(lec.key).findIndex(x => x.slide === +el.dataset.s); if (i >= 0) lecMove(i); },
   lecAuto() {
     if (lec.auto) { stopAuto(); return; }

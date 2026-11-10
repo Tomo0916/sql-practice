@@ -1097,5 +1097,10 @@ export default {
   "tc.quick.allTo": "Semua pelajaran:",
   "tc.quick.clear": "Semua jadi 0",
   "tc.quick.byChapter": "Satu bab sekaligus:",
-  "tc.quick.none": "Hapus semua pilihan"
+  "tc.quick.none": "Hapus semua pilihan",
+  "lec.scene": "Kapan ini dipakai",
+  "lec.goal": "Setelah pelajaran ini Anda bisa: ",
+  "lec.cases": "Semua pola dalam soal",
+  "lec.quiz": "Coba tebak",
+  "lec.quizHint": "Pilih jawaban, atau tekan Berikutnya untuk melihatnya."
 };

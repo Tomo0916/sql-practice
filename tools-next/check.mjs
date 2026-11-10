@@ -242,35 +242,77 @@ console.log('7. Class problem formats');
 console.log('8. Lectures');
 {
   const { LECTURES } = await import('../js/lectures.js');
+  const { topicsOf } = await import('../js/lecture-topics.js');
+  const { quizAnswer } = await import('../js/lecture-kit.js');
   const texts = [];
+  let v2 = 0;
   for (const [key, L] of Object.entries(LECTURES)) {
-    if (!LESSON_BY_KEY[key]) err(`lecture ${key}: no such lesson`);
+    const lesson = LESSON_BY_KEY[key];
+    if (!lesson) { err(`lecture ${key}: no such lesson`); continue; }
     const t3 = (where, x) => { for (const l of ['en', 'ja', 'easy']) { if (!x || !x[l]) err(`lecture ${key} ${where}: no ${l}`); else texts.push([`lecture ${key} ${where}`, l, x[l]]); } };
+    const table = (where, fn) => { try { const st = fn(eng); if (!st.rows.length) err(`lecture ${key} ${where}: empty table`); return st; } catch (e) { err(`lecture ${key} ${where}: table fails: ${e.message}`); return null; } };
     t3('goal', L.goal);
+    const covered = new Set();
     L.slides.forEach((sl, i) => {
       (sl.notes || []).forEach((n, j) => t3(`slide ${i + 1} note ${j + 1}`, n));
       (sl.items || []).forEach((n, j) => t3(`slide ${i + 1} point ${j + 1}`, n));
       if (sl.title) t3(`slide ${i + 1} title`, sl.title);
       if (sl.why) t3(`slide ${i + 1} why`, sl.why);
+      (sl.covers || []).forEach(c => covered.add(c));
+      if (sl.type === 'scene') { t3(`slide ${i + 1} who`, sl.who); t3(`slide ${i + 1} ask`, sl.ask); if (sl.table) table(`slide ${i + 1}`, sl.table); }
       if (sl.type === 'mistake') {
         let w = null, r = null;
         try { w = eng.exec(sl.wrong); } catch (e) { w = 'error'; }
         try { r = eng.exec(sl.right); } catch (e) { err(`lecture ${key}: the right SQL fails: ${sl.right}`); }
         if (w !== 'error' && r && JSON.stringify(w) === JSON.stringify(r)) err(`lecture ${key}: the wrong SQL gives the right result: ${sl.wrong}`);
       }
+      if (sl.type === 'quiz') {
+        t3(`slide ${i + 1} question`, sl.q);
+        sl.choices.forEach((c, j) => { if (typeof c !== 'string') t3(`slide ${i + 1} choice ${j + 1}`, c); });
+        if (sl.sql) { try { eng.exec(sl.sql); } catch (e) { err(`lecture ${key} quiz: the SQL fails: ${sl.sql}`); } if (sl.mark && !sl.sql.includes(sl.mark)) err(`lecture ${key} quiz: “${sl.mark}” is not in the SQL`); }
+        let a = -1; try { a = quizAnswer(sl, eng); } catch (e) { err(`lecture ${key} quiz: the answer fails: ${e.message}`); }
+        if (!(a >= 0 && a < sl.choices.length)) err(`lecture ${key} quiz: the answer is not one of the choices`);
+        if (new Set(sl.choices.map(c => (typeof c === 'string' ? c : c.en))).size !== sl.choices.length) err(`lecture ${key} quiz: the same choice twice`);
+        if (sl.table) table(`quiz`, sl.table);
+        if (sl.before) table(`quiz (before)`, sl.before);
+      }
       (sl.frames || []).forEach((f, j) => {
         t3(`slide ${i + 1} frame ${j + 1}`, f.cap);
-        try { eng.exec(f.sql); } catch (e) { err(`lecture ${key} frame ${j + 1}: the SQL fails: ${f.sql}`); }
-        if (f.mark && !f.sql.includes(f.mark)) err(`lecture ${key} frame ${j + 1}: “${f.mark}” is not in the SQL`);
-        try { const st = f.table(eng); if (!st.rows.length) err(`lecture ${key} frame ${j + 1}: empty table`); } catch (e) { err(`lecture ${key} frame ${j + 1}: table fails: ${e.message}`); }
+        if (sl.cases) { if (!f.label) err(`lecture ${key} slide ${i + 1} case ${j + 1}: no label`); else t3(`slide ${i + 1} case ${j + 1} label`, f.label); }
+        (f.covers || []).forEach(c => covered.add(c));
+        if (f.sql) {
+          try { eng.exec(f.sql); } catch (e) { err(`lecture ${key} frame ${j + 1}: the SQL fails: ${f.sql}`); }
+          if (f.mark && !f.sql.includes(f.mark)) err(`lecture ${key} frame ${j + 1}: “${f.mark}” is not in the SQL`);
+        } else if (lesson.syntax) err(`lecture ${key} slide ${i + 1} frame ${j + 1}: no SQL`);
+        const st = table(`slide ${i + 1} frame ${j + 1}`, f.table);
+        // a case shows what its SQL returns: the kept rows (✓), or the whole table when no row is marked
+        if (st && sl.cases && f.sql && !f.sql.includes(';\n')) {
+          const res = eng.exec(f.sql) || { values: [] }, marked = st.rows.some(r => r.cls === 'pass' || r.cls === 'fail');
+          const shown = marked ? st.rows.filter(r => r.cls === 'pass').length : st.rows.length;
+          if (shown !== res.values.length) err(`lecture ${key} slide ${i + 1} case ${j + 1}: the table shows ${shown} rows, the SQL returns ${res.values.length}`);
+        }
       });
     });
+    /* the new form: every part is there, and every topic the lesson's problems can have is covered */
+    if (L.slides.some(sl => sl.type === 'scene')) {
+      v2++;
+      const types = L.slides.map(sl => (sl.cases ? 'cases' : sl.type));
+      for (const need of ['scene', 'anim', 'cases', 'quiz', 'points', 'practice', ...(lesson.syntax ? ['syntax', 'mistake'] : [])]) if (!types.includes(need)) err(`lecture ${key}: no “${need}” slide`);
+      if (types[0] !== 'scene' || types[types.length - 1] !== 'practice') err(`lecture ${key}: starts with the scene and ends with the practice slide`);
+      const used = new Set();
+      const add = p => { if (p) topicsOf(key, p).forEach(t => used.add(t)); };
+      if (lesson.demo) add(lesson.demo.p);
+      for (let n = 0; n < 60; n++) eng.lessonProblems(lesson, 'LT' + n).forEach(pr => add(pr.p));
+      for (const t of used) if (!covered.has(t)) err(`lecture ${key}: the problems use “${t}”, but no slide covers it (add a case with covers: ['${t}'])`);
+      for (const t of covered) if (!used.has(t)) warn(`lecture ${key}: a slide covers “${t}”, which no problem uses`);
+    }
   }
   for (const [where, l, s] of texts) {
     if (l === 'easy') { const bare = s.replace(/\{[^{}|]+\|[^{}]+\}/g, '').match(/[一-鿿]+/g); if (bare) err(`${where} (easy): kanji without furigana: ${bare.join(' ')}`); }
     if (l === 'en' && /[぀-ヿ一-鿿]/.test(s)) err(`${where} (en) contains Japanese`);
   }
-  console.log(`   ${Object.keys(LECTURES).length} lectures`);
+  const without = LESSONS.filter(l => !LECTURES[l.key]).map(l => l.no);
+  console.log(`   ${Object.keys(LECTURES).length} lectures (${v2} in the new form); lessons without one yet: ${without.join(', ') || 'none'}`);
 }
 
 console.log('9. Table library');
