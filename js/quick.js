@@ -21,7 +21,7 @@ import { randomCode, stagesOf, LESSON_BY_KEY, FORMAT_KEYS, FORMAT_MAX } from './
 
 export const QUICK_COUNTS = [1, 2, 3, 4, 5];
 export const QUICK_LIMITS = [0, 3, 5, 10, 15];   // minutes; 0 = no limit
-export const QUICK_COUNTDOWN = 5;                 // seconds before everyone starts
+export const QUICK_COUNTDOWN = 10;                // seconds before everyone starts (longer than the students' 5-second check, so nobody starts late)
 export const QUICK_GRACE = 5000;                  // ms after the end an answer still counts (it was on its way)
 export const QUICK_PRESETS = ['write', 'mix', 'order'];   // easy set-up: the kinds of problems
 export const quickOn = c => !!(c && c.quick && c.quick.id && ((Array.isArray(c.quick.slots) && c.quick.slots.length) || decodeCheck(c.quick.code)));

@@ -1047,7 +1047,7 @@ export default {
   "tc.quick.total": "{n} problèmes, les mêmes pour tous",
   "tc.quick.fewer": "(les leçons choisies ont moins de problèmes)",
   "tc.quick.start": "Lancer le test rapide",
-  "tc.quick.note": "Au lancement, les élèves voient un compte à rebours de 5 secondes et tous commencent ensemble. Ils peuvent répondre à nouveau jusqu’à avoir juste. Les indices et les réponses sont cachés (les réponses s’affichent à la fin du temps).",
+  "tc.quick.note": "Au lancement, les élèves voient un compte à rebours de 10 secondes et tous commencent ensemble. Ils peuvent répondre à nouveau jusqu’à avoir juste. Les indices et les réponses sont cachés (les réponses s’affichent à la fin du temps).",
   "tc.quick.notStarted": "pas encore",
   "tc.quick.on": "Test rapide en cours",
   "tc.quick.meta": "{n} problèmes · réussi avec {pass} justes · début {t}",

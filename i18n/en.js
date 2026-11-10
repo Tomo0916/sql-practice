@@ -1048,7 +1048,7 @@ export default {
   "tc.quick.total": "{n} problems, the same for everyone",
   "tc.quick.fewer": "(the chosen lessons have fewer problems)",
   "tc.quick.start": "Start the quick test",
-  "tc.quick.note": "When you start, the students see a 5-second countdown and everyone begins together. They can answer again until they are right. Hints and answers are hidden (the answers appear when the time is up).",
+  "tc.quick.note": "When you start, the students see a 10-second countdown and everyone begins together. They can answer again until they are right. Hints and answers are hidden (the answers appear when the time is up).",
   "tc.quick.notStarted": "not yet",
   "tc.quick.on": "Quick test on",
   "tc.quick.meta": "{n} problems · pass with {pass} right · started {t}",

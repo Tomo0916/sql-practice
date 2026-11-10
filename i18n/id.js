@@ -1047,7 +1047,7 @@ export default {
   "tc.quick.total": "{n} soal, sama untuk semua",
   "tc.quick.fewer": "(pelajaran yang dipilih punya lebih sedikit soal)",
   "tc.quick.start": "Mulai tes cepat",
-  "tc.quick.note": "Saat dimulai, siswa melihat hitung mundur 5 detik dan semua mulai bersamaan. Mereka bisa menjawab lagi sampai benar. Petunjuk dan jawaban disembunyikan (jawaban muncul setelah waktu habis).",
+  "tc.quick.note": "Saat dimulai, siswa melihat hitung mundur 10 detik dan semua mulai bersamaan. Mereka bisa menjawab lagi sampai benar. Petunjuk dan jawaban disembunyikan (jawaban muncul setelah waktu habis).",
   "tc.quick.notStarted": "belum",
   "tc.quick.on": "Tes cepat berlangsung",
   "tc.quick.meta": "{n} soal · lulus dengan {pass} benar · mulai {t}",

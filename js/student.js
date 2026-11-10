@@ -659,17 +659,6 @@ setInterval(() => {
   if (qPhaseShown !== null && ph !== qPhaseShown && (S.route.view === 'quick' || ph === 'up')) { saveDraft(); render(); }
   qPhaseShown = ph;
 }, 300);
-/** a quick test starts: a short sound and a buzz, in case the student is looking elsewhere (silently skipped where not allowed) */
-function quickAlert() {
-  try { if (navigator.vibrate) navigator.vibrate([180, 90, 180]); } catch (e) { /* not supported */ }
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    const ac = new AC(), t = ac.currentTime;
-    [660, 880].forEach((f, i) => { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; o.connect(g); g.connect(ac.destination);
-      g.gain.setValueAtTime(0.0001, t + i * 0.18); g.gain.exponentialRampToValueAtTime(0.15, t + i * 0.18 + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.18 + 0.16); o.start(t + i * 0.18); o.stop(t + i * 0.18 + 0.17); });
-    setTimeout(() => ac.close().catch(() => {}), 900);
-  } catch (e) { /* no sound */ }
-}
 /** the teacher started or stopped a quick test */
 let quickSeen = Store.get('sqln.quickSeen', null), quickShown, quickEndShown;
 function quickChanged(announce) {
@@ -683,7 +672,6 @@ function quickChanged(announce) {
   if (id && id !== quickSeen) {   // a new quick test: open it (once)
     quickSeen = id; Store.set('sqln.quickSeen', id);
     Store.set(QKEY_ST, qState());   // kept, so the result can be shown after the test
-    if (qPhaseNow() !== 'up') quickAlert();
     if (!qFinished() && qPhaseNow() !== 'up') { saveDraft(); if (S.route.view !== 'quick') { location.hash = '#/quick'; } else render(); toast(T('qk.started')); return; }
   }
   if (prev !== undefined) { if (S.route.view === 'quick') saveDraft(); render(); if (!id && prev && announce) toast(T('qk.ended')); }
@@ -1626,11 +1614,13 @@ async function watchKlass() {
     restoreFromServer().then(() => { if (S.route.view !== 'lesson' || !S.editor) render(); });
     backend.myPinSet(S.klass.id).then(v => { const need = v === false; if (need !== S.pinNeeded) { S.pinNeeded = need; if (S.route.view !== 'lesson') render(); } }).catch(() => {});
     if (unwatch) unwatch();
-    unwatch = await backend.watchClass(S.klass.id, row => applyClassRow(row, true));
+    unwatch = await backend.watchClass(S.klass.id, row => applyClassRow(row, true), () => pulseClass());
     syncClock(backend.serverNow).then(tickTimer);
     backend.flushAttempts();
   } catch (e) { /* offline: keep cached class */ }
 }
+// A change of the class reaches the student in three ways: the database's change event, the teacher's page
+// saying "changed" (both over the live connection), and asking again here, in case the connection is down.
 let pulsing = false;
 async function pulseClass() {
   if (!S.klass || !backend.enabled || pulsing || document.hidden || !navigator.onLine) return;
@@ -1639,7 +1629,7 @@ async function pulseClass() {
   pulsing = false;
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pulseClass(); });
-setInterval(pulseClass, 30000);
+setInterval(pulseClass, 5000);   // every 5 seconds while the page is in front: a start is never missed for long
 function applyClassRow(c, live) {
   const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format);
   Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null, live_until: c.live_until || null, quick: c.quick || null });

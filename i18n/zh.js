@@ -1047,7 +1047,7 @@ export default {
   "tc.quick.total": "全员相同的 {n} 道题",
   "tc.quick.fewer": "（所选课程能出的题较少）",
   "tc.quick.start": "开始快速测验",
-  "tc.quick.note": "开始后，学生屏幕上会出现 5 秒倒计时，全员同时开始。学生答对之前可以反复作答。不显示提示和答案（时间到后显示答案）。",
+  "tc.quick.note": "开始后，学生屏幕上会出现 10 秒倒计时，全员同时开始。学生答对之前可以反复作答。不显示提示和答案（时间到后显示答案）。",
   "tc.quick.notStarted": "还没有",
   "tc.quick.on": "快速测验进行中",
   "tc.quick.meta": "{n} 道题 · 答对 {pass} 道及格 · {t} 开始",

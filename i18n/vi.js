@@ -1047,7 +1047,7 @@ export default {
   "tc.quick.total": "{n} câu, giống nhau cho mọi người",
   "tc.quick.fewer": "(các bài học đã chọn có ít câu hơn)",
   "tc.quick.start": "Bắt đầu kiểm tra nhanh",
-  "tc.quick.note": "Khi bắt đầu, học sinh thấy đếm ngược 5 giây và tất cả bắt đầu cùng lúc. Học sinh có thể trả lời lại đến khi đúng. Gợi ý và đáp án bị ẩn (đáp án hiện ra khi hết giờ).",
+  "tc.quick.note": "Khi bắt đầu, học sinh thấy đếm ngược 10 giây và tất cả bắt đầu cùng lúc. Học sinh có thể trả lời lại đến khi đúng. Gợi ý và đáp án bị ẩn (đáp án hiện ra khi hết giờ).",
   "tc.quick.notStarted": "chưa",
   "tc.quick.on": "Đang kiểm tra nhanh",
   "tc.quick.meta": "{n} câu · đạt khi đúng {pass} câu · bắt đầu {t}",
