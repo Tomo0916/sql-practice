@@ -1097,5 +1097,10 @@ export default {
   "tc.quick.allTo": "Toutes les leçons :",
   "tc.quick.clear": "Tout à 0",
   "tc.quick.byChapter": "Chapitres entiers :",
-  "tc.quick.none": "Tout désélectionner"
+  "tc.quick.none": "Tout désélectionner",
+  "lec.scene": "Quand en a-t-on besoin ?",
+  "lec.goal": "Après cette leçon, vous savez : ",
+  "lec.cases": "Tous les cas des problèmes",
+  "lec.quiz": "Qu’en pensez-vous ?",
+  "lec.quizHint": "Choisissez une réponse, ou appuyez sur Suivant pour la voir."
 };

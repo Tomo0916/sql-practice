@@ -618,6 +618,10 @@ body.ord-dragging, body.ord-dragging * { cursor: grabbing !important; }
 .lec-sql mark { background: #ffe39b; color: inherit; border-radius: 4px; padding: 0 2px; }
 .lec-cap { font-size: 1.08rem; font-weight: 700; line-height: 1.8; margin: 12px 0 0; }
 .lec-table { position: relative; }
+.lec-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.lec-side .lt { font-size: .82rem; }
+.lt-title { padding: 5px 10px; font: 600 .78rem var(--mono, ui-monospace, monospace); color: var(--ink-2); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+@media (max-width: 520px) { .lec-side { grid-template-columns: minmax(0, 1fr); } }
 .lt { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: .9rem; background: var(--surface); }
 .lt-head, .lt-row { display: grid; grid-template-columns: var(--cols); align-items: center; position: relative; padding-right: 26px; }
 .lt-head { background: var(--surface-2); font-family: var(--mono); font-weight: 700; font-size: .78rem; }
@@ -894,3 +898,24 @@ body.pj-open { overflow: hidden; }
 .q-ch { border-left: 4px solid var(--cc, var(--line-2)); }
 .q-ch.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); border-left-color: var(--cc, var(--accent)); }
 .q-ch.some { border-style: dashed; border-left-style: solid; }
+/* lectures, new form: scene, cases (chips), quiz, picked rows */
+.lt-row.pick { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.lec-scene .lec-ask { display: flex; gap: 12px; align-items: flex-start; margin: 4px 0 12px; }
+.lec-who { flex: none; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: .9rem; white-space: nowrap; }
+.lec-ask p { margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.7; }
+.lec-goal { margin: 0 0 14px; font-size: 1.05rem; line-height: 1.8; padding: 10px 14px; border-radius: 10px; background: var(--ok-soft); }
+.lec-goal b { color: var(--ok); margin-right: 4px; }
+.lec-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 12px; }
+.lec-chips span { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line-2); font-size: .85rem; color: var(--ink-3); background: var(--surface); }
+.lec-chips span.done { color: var(--ink-2); border-color: var(--accent); }
+.lec-chips span.on { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+.lec-choices { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.lec-choice { text-align: left; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); font: inherit; font-weight: 600; cursor: pointer; color: inherit; }
+.lec-choice:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.lec-choice.picked { border-color: var(--accent); }
+.lec-choice.ok { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+.lec-choice.bad { border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+.lec-choice:disabled { cursor: default; opacity: 1; }
+.lec-quiz .lec-why { margin-left: 0; font-weight: 600; }
+.lec-slide h2 small { margin-left: 2px; }
+.lt-nohead .lt-head { display: none; }

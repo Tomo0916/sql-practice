@@ -1098,5 +1098,10 @@ export default {
   "tc.quick.allTo": "Every lesson:",
   "tc.quick.clear": "All to 0",
   "tc.quick.byChapter": "Whole chapters:",
-  "tc.quick.none": "Clear all"
+  "tc.quick.none": "Clear all",
+  "lec.scene": "When you need it",
+  "lec.goal": "After this lesson you can: ",
+  "lec.cases": "Every pattern in the problems",
+  "lec.quiz": "What do you think?",
+  "lec.quizHint": "Choose an answer, or press Next to see it."
 };

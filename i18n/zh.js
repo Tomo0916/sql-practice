@@ -1097,5 +1097,10 @@ export default {
   "tc.quick.allTo": "所有课程：",
   "tc.quick.clear": "全部设为 0",
   "tc.quick.byChapter": "按章整体选择：",
-  "tc.quick.none": "全部取消"
+  "tc.quick.none": "全部取消",
+  "lec.scene": "什么时候用",
+  "lec.goal": "学完这节课你能：",
+  "lec.cases": "题目中出现的所有类型",
+  "lec.quiz": "先猜一猜",
+  "lec.quizHint": "选择一个答案，或按“下一步”查看答案。"
 };

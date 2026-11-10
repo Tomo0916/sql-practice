@@ -1098,5 +1098,10 @@ export default {
   "tc.quick.allTo": "全レッスンに：",
   "tc.quick.clear": "すべて 0 に",
   "tc.quick.byChapter": "章ごとにまとめて選ぶ：",
-  "tc.quick.none": "選択をすべて解除"
+  "tc.quick.none": "選択をすべて解除",
+  "lec.scene": "こんな場面で使う",
+  "lec.goal": "このレッスンでできること：",
+  "lec.cases": "問題に出るパターン",
+  "lec.quiz": "予想してみよう",
+  "lec.quizHint": "答えを選ぶか、「次へ」で答えを見ます。"
 };

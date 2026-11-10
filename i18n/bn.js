@@ -1097,5 +1097,10 @@ export default {
   "tc.quick.allTo": "সব পাঠে:",
   "tc.quick.clear": "সব ০ করুন",
   "tc.quick.byChapter": "পুরো অধ্যায় বাছুন:",
-  "tc.quick.none": "সব বাছাই বাতিল"
+  "tc.quick.none": "সব বাছাই বাতিল",
+  "lec.scene": "কখন এটি লাগে",
+  "lec.goal": "এই পাঠের পর আপনি পারবেন: ",
+  "lec.cases": "প্রশ্নে আসা সব ধরন",
+  "lec.quiz": "অনুমান করে দেখুন",
+  "lec.quizHint": "একটি উত্তর বাছুন, অথবা উত্তর দেখতে “পরবর্তী” চাপুন।"
 };
