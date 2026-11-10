@@ -33,10 +33,13 @@ export function tableHTML(st) {
   const hl = new Set(st.hl);
   const ccls = c => (hl.has(c) ? 'hl' : st.dim && hl.size ? 'dim' : '');
   return `<div class="lt ${st.nohead ? 'lt-nohead' : ''}" style="--cols:${tmpl}">
-    <div class="lt-head">${st.cols.map(c => `<span class="${ccls(c)}">${esc(c)}</span>`).join('')}</div>
+    ${st.title ? `<div class="lt-title">${esc(st.title)}</div>` : ''}<div class="lt-head">${st.cols.map(c => `<span class="${ccls(c)}">${esc(c)}</span>`).join('')}</div>
     <div class="lt-body">${st.rows.map(r => `<div class="lt-row ${r.cls || ''}" data-k="${esc(r.k)}">${r.cells.map((v, i) => `<span class="${ccls(st.cols[i])} ${typeof v === 'number' ? 'num' : ''}">${fmtCell(v)}</span>`).join('')}${r.cls === 'pass' ? '<i class="lt-mark">✓</i>' : r.cls === 'fail' ? '<i class="lt-mark">✕</i>' : ''}</div>`).join('')}</div>
     <div class="lt-foot">${st.rows.length} rows</div></div>`;
 }
+
+/** the tables a query reads (two tables of a JOIN), shown side by side above the result */
+const sideHTML = (side, engine) => (side ? `<div class="lec-side">${side.map(fn => tableHTML(fn(engine))).join('')}</div>` : '');
 
 /** the HTML of one step (the frame of a slide) */
 export function lectureStepHTML(lesson, step, engine, lang) {
@@ -50,7 +53,7 @@ export function lectureStepHTML(lesson, step, engine, lang) {
     return `<div class="lec-slide lec-scene"><h2>${th('lec.scene', lang)}</h2>
       <div class="lec-ask"><span class="lec-who">${tx(s.who, lang)}</span><p>${tx(s.ask, lang)}</p></div>
       <p class="lec-goal"><b>${th('lec.goal', lang)}</b>${tx(L.goal, lang)}</p>
-      ${s.table ? `<div class="lec-table">${tableHTML(s.table(engine))}</div>` : ''}</div>`;
+      ${s.table || s.side ? `<div class="lec-table">${sideHTML(s.side, engine)}${s.table ? tableHTML(s.table(engine)) : ''}</div>` : ''}</div>`;
   }
   if (s.type === 'quiz') {
     const ans = quizAnswer(s, engine), pick = quizPick(lesson.key, step.slide), open = step.frame === 1;
@@ -59,14 +62,14 @@ export function lectureStepHTML(lesson, step, engine, lang) {
       <div class="lec-grid"><div class="lec-left">${s.sql ? sqlHTML(s.sql, s.mark) : ''}<p class="lec-cap">${tx(s.q, lang)}</p>
         <div class="lec-choices">${s.choices.map((c, i) => `<button class="lec-choice ${open && i === ans ? 'ok' : ''} ${open && pick === i && i !== ans ? 'bad' : ''} ${!open && pick === i ? 'picked' : ''}" data-act="lecPick" data-i="${i}" ${open ? 'disabled' : ''}>${label(c)}${open && i === ans ? ' ✓' : ''}</button>`).join('')}</div>
         ${open ? `<p class="lec-why">${tx(s.why, lang)}</p>` : `<p class="muted small">${th('lec.quizHint', lang)}</p>`}</div>
-      <div class="lec-table">${open && s.table ? tableHTML(s.table(engine)) : s.before ? tableHTML(s.before(engine)) : ''}</div></div></div>`;
+      <div class="lec-table">${sideHTML(s.side, engine)}${open && s.table ? tableHTML(s.table(engine)) : s.before ? tableHTML(s.before(engine)) : ''}</div></div></div>`;
   }
   if (s.type === 'anim') {
     const f = s.frames[step.frame];
     return `<div class="lec-slide lec-anim"><h2>${s.cases ? th('lec.cases', lang) : tx(s.title, lang)}<small class="muted">${step.frame + 1} / ${s.frames.length}</small></h2>
       ${s.cases ? `<div class="lec-chips">${s.frames.map((x, i) => `<span class="${i === step.frame ? 'on' : i < step.frame ? 'done' : ''}">${x.label ? tx(x.label, lang) : i + 1}</span>`).join('')}</div>` : ''}
       <div class="lec-grid"><div class="lec-left">${f.sql ? sqlHTML(f.sql, f.mark) : ''}<p class="lec-cap">${tx(f.cap, lang)}</p></div>
-      <div class="lec-table" data-anim>${tableHTML(f.table(engine))}</div></div></div>`;
+      ${f.side ? `<div class="lec-table">${sideHTML(f.side, engine)}<div data-anim>${tableHTML(f.table(engine))}</div></div>` : `<div class="lec-table" data-anim>${tableHTML(f.table(engine))}</div>`}</div></div>`;
   }
   if (s.type === 'points') return `<div class="lec-slide"><h2>${th('lesson.point', lang)}</h2><ol class="lec-points">${s.items.map(n => `<li>${tx(n, lang)}</li>`).join('')}</ol></div>`;
   if (s.type === 'mistake') {

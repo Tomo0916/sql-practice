@@ -618,6 +618,10 @@ body.ord-dragging, body.ord-dragging * { cursor: grabbing !important; }
 .lec-sql mark { background: #ffe39b; color: inherit; border-radius: 4px; padding: 0 2px; }
 .lec-cap { font-size: 1.08rem; font-weight: 700; line-height: 1.8; margin: 12px 0 0; }
 .lec-table { position: relative; }
+.lec-side { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.lec-side .lt { font-size: .82rem; }
+.lt-title { padding: 5px 10px; font: 600 .78rem var(--mono, ui-monospace, monospace); color: var(--ink-2); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+@media (max-width: 520px) { .lec-side { grid-template-columns: minmax(0, 1fr); } }
 .lt { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: .9rem; background: var(--surface); }
 .lt-head, .lt-row { display: grid; grid-template-columns: var(--cols); align-items: center; position: relative; padding-right: 26px; }
 .lt-head { background: var(--surface-2); font-family: var(--mono); font-weight: 700; font-size: .78rem; }

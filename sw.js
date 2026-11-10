@@ -1,9 +1,9 @@
 /* Offline support. App files (pages, js, css, texts): network first, so an update shows at once;
  * vendor libraries, icons and fonts: cache first. 
  * Supabase requests are never cached. Bump VERSION when publishing big changes. */
-const VERSION = 'sqlp-37';   // lectures in the new form (Lessons 0–18)
+const VERSION = 'sqlp-37';   // lectures in the new form (Lessons 0–34)
 const CORE = ['./', 'index.html', 'teacher/', 'config.js', 'css/app.css', 'css/teacher.css', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm', 'vendor/codemirror.js',
-  'js/student.js', 'js/teacher.js', 'js/engine.js', 'js/lessons.js', 'js/datasets.js', 'js/diagnose.js', 'js/i18n.js', 'js/ui.js', 'js/viz.js', 'js/editor.js', 'js/store.js', 'js/backend.js', 'js/book.js', 'js/timer.js', 'js/analysis-data.js', 'js/analysis-content.js', 'js/analysis-ui.js', 'js/charts.js', 'js/guide.js', 'guide/', 'js/lectures.js', 'js/lectures-a.js', 'js/lectures-b.js', 'js/lecture-kit.js', 'js/lecture-topics.js', 'js/lecture-ui.js', 'js/tables-ui.js', 'js/alt.js', 'js/check.js', 'js/check-ui.js', 'js/quick.js',
+  'js/student.js', 'js/teacher.js', 'js/engine.js', 'js/lessons.js', 'js/datasets.js', 'js/diagnose.js', 'js/i18n.js', 'js/ui.js', 'js/viz.js', 'js/editor.js', 'js/store.js', 'js/backend.js', 'js/book.js', 'js/timer.js', 'js/analysis-data.js', 'js/analysis-content.js', 'js/analysis-ui.js', 'js/charts.js', 'js/guide.js', 'guide/', 'js/lectures.js', 'js/lectures-a.js', 'js/lectures-b.js', 'js/lectures-c.js', 'js/lecture-kit.js', 'js/lecture-topics.js', 'js/lecture-ui.js', 'js/tables-ui.js', 'js/alt.js', 'js/check.js', 'js/check-ui.js', 'js/quick.js',
   'i18n/ja.js', 'i18n/easy.js', 'i18n/en.js', 'icons/icon.svg', 'icons/icon-192.png', 'manifest.webmanifest'];
 // cache: 'reload' so a new version never copies stale files from the browser's HTTP cache
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())); });

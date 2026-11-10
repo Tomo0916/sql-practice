@@ -28,6 +28,8 @@ export const TOPICS = {
   groupby: p => ['group', p.f],
   having: p => [`having.${p.f}`],                            // COUNT, SUM, AVG, MAX, MIN
   wherehaving: () => ['where+having'],
+  innercols: p => [p.rc === p.text ? 'right.text' : 'right.num'],   // which column of the right table is shown
+  leftorder: p => ['limit', dirOf(p.ord)],
 };
 /** the topics of one problem (lessons not listed yet: one topic, "main") */
 export const topicsOf = (lessonKey, p) => (TOPICS[lessonKey] ? TOPICS[lessonKey](p) : ['main']);

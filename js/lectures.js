@@ -20,6 +20,7 @@
 import { T3, state } from './lecture-kit.js';
 import { LECT_A } from './lectures-a.js';
 import { LECT_B } from './lectures-b.js';
+import { LECT_C } from './lectures-c.js';
 
 /* ---------- the lectures ---------- */
 const OLD = {
@@ -175,7 +176,7 @@ const OLD = {
   }
 };
 /** every lecture: the new ones (lectures-a.js …) replace the old ones of the same lesson */
-export const LECTURES = Object.assign({}, OLD, LECT_A, LECT_B);
+export const LECTURES = Object.assign({}, OLD, LECT_A, LECT_B, LECT_C);
 export const hasLecture = key => !!LECTURES[key];
 /** text of a lecture in a language (English, Japanese, Easy Japanese; others read English) */
 export const ltext = (x, lang) => (x ? x[lang] || x.en : '');

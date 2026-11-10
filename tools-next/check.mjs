@@ -259,6 +259,7 @@ console.log('8. Lectures');
       if (sl.title) t3(`slide ${i + 1} title`, sl.title);
       if (sl.why) t3(`slide ${i + 1} why`, sl.why);
       (sl.covers || []).forEach(c => covered.add(c));
+      [sl, ...(sl.frames || [])].forEach(x => (x.side || []).forEach((fn, j) => table(`slide ${i + 1} side table ${j + 1}`, fn)));
       if (sl.type === 'scene') { t3(`slide ${i + 1} who`, sl.who); t3(`slide ${i + 1} ask`, sl.ask); if (sl.table) table(`slide ${i + 1}`, sl.table); }
       if (sl.type === 'mistake') {
         let w = null, r = null;
