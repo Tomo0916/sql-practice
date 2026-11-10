@@ -1104,7 +1104,6 @@ export default {
   "lec.quiz": "先猜一猜",
   "lec.quizHint": "选择一个答案，或按“下一步”查看答案。",
   "tc.quick.pickOne": "逐个选择课程",
-  "tc.quick.minUnit": "分钟（自由输入）",
   "tc.quick.sameAs": "与 {t} 的测验相同的题目",
   "tc.quick.hist": "以往的快速测验",
   "tc.quick.histLine": "{n} 题 · {a} / {b} 人合格",
@@ -1133,5 +1132,7 @@ export default {
   "qk.noAnswer": "（未作答）",
   "qk.afterNote": "测验结束后，可以查看答案。",
   "qk.seeResult": "查看结果和答案",
-  "tc.quick.del": "删除"
+  "tc.quick.del": "删除",
+  "tc.quick.secUnit": "秒",
+  "tc.quick.endPast": "请把结束时间设为现在之后。"
 };

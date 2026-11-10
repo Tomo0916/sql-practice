@@ -1104,7 +1104,6 @@ export default {
   "lec.quiz": "Coba tebak",
   "lec.quizHint": "Pilih jawaban, atau tekan Berikutnya untuk melihatnya.",
   "tc.quick.pickOne": "Pilih pelajaran satu per satu",
-  "tc.quick.minUnit": "menit (bebas)",
   "tc.quick.sameAs": "soal yang sama dengan tes {t}",
   "tc.quick.hist": "Tes cepat sebelumnya",
   "tc.quick.histLine": "{n} soal · {a} / {b} lulus",
@@ -1133,5 +1132,7 @@ export default {
   "qk.noAnswer": "(tidak menjawab)",
   "qk.afterNote": "Setelah tes selesai, Anda bisa melihat jawabannya.",
   "qk.seeResult": "Lihat hasil dan jawaban",
-  "tc.quick.del": "Hapus"
+  "tc.quick.del": "Hapus",
+  "tc.quick.secUnit": "detik",
+  "tc.quick.endPast": "Atur waktu selesai setelah sekarang."
 };

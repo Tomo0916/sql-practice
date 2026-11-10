@@ -1104,7 +1104,6 @@ export default {
   "lec.quiz": "අනුමාන කර බලන්න",
   "lec.quizHint": "පිළිතුරක් තෝරන්න, නැතහොත් එය බැලීමට “ඊළඟ” ඔබන්න.",
   "tc.quick.pickOne": "පාඩම් එකින් එක තෝරන්න",
-  "tc.quick.minUnit": "මිනිත්තු (කැමති ලෙස)",
   "tc.quick.sameAs": "{t} පරීක්ෂණයේ ප්‍රශ්නම",
   "tc.quick.hist": "මෙතෙක් කළ ඉක්මන් පරීක්ෂණ",
   "tc.quick.histLine": "ප්‍රශ්න {n} · {a} / {b} සමත්",
@@ -1133,5 +1132,7 @@ export default {
   "qk.noAnswer": "(පිළිතුරු නැත)",
   "qk.afterNote": "පරීක්ෂණය අවසන් වූ පසු පිළිතුරු බැලිය හැක.",
   "qk.seeResult": "ප්‍රතිඵල සහ පිළිතුරු බලන්න",
-  "tc.quick.del": "ඉවත් කරන්න"
+  "tc.quick.del": "ඉවත් කරන්න",
+  "tc.quick.secUnit": "තත්පර",
+  "tc.quick.endPast": "අවසන් වේලාව දැන්ට පසු වේලාවක් ලෙස සකසන්න."
 };

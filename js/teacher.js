@@ -15,7 +15,7 @@ import { hasLecture } from './lectures.js';
 import { altAnswers } from './alt.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { checkLessons } from './check.js';
-import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, logPut, logDrop, quickStats, quickCSV, slotsShape } from './quick.js';
+import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape } from './quick.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
 import { drawJoinLines } from './viz.js';
@@ -217,10 +217,21 @@ function quickDraft(c) {
   const per = {};
   lessons.forEach(k => { const o = (d.per || {})[k] || { write: 1 }; per[k] = {}; KINDS.forEach(st => { per[k][st] = kindsOf(k).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +o[st] || 0)) : 0; }); });
   return { mode: d.mode === 'detail' ? 'detail' : 'simple', lessons, n: QUICK_COUNTS.includes(d.n) ? d.n : 3, kind: QUICK_PRESETS.includes(d.kind) ? d.kind : 'write', per,
-    pass: Number.isInteger(d.pass) && d.pass >= 1 ? d.pass : null, limit: Number.isInteger(d.limit) && d.limit >= 0 && d.limit <= 120 ? d.limit : 5, seed: d.seed, swaps: d.swaps || {},
+    pass: Number.isInteger(d.pass) && d.pass >= 1 ? d.pass : null, limitSec: Number.isInteger(d.limitSec) && d.limitSec >= 0 && d.limitSec <= QUICK_MAX_SEC ? d.limitSec : Number.isInteger(d.limit) && d.limit >= 0 && d.limit <= 120 ? d.limit * 60 : 300,
+    limitBy: d.limitBy === 'end' ? 'end' : 'len', limitEnd: /^\d{1,2}:\d{2}$/.test(d.limitEnd || '') ? d.limitEnd : '', seed: d.seed, swaps: d.swaps || {},
     fixed: d.fixed && Array.isArray(d.fixed.slots) && d.fixed.slots.length ? d.fixed : null };   // fixed: the problems of an earlier test, to give them again
 }
 /** keepFixed: the change does not touch the problems (pass line, time limit, a swap) */
+const minText = n => T('tc.timerMin', { n });
+/** the time limit the draft gives a test started now: seconds (0 = none), or null when the end time has passed */
+function draftLimit(d) {
+  if (d.limitBy !== 'end') return d.limitSec;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(d.limitEnd); if (!m) return null;
+  const now = new Date(nowMs()), end = new Date(now); end.setHours(+m[1], +m[2], 0, 0);
+  const sec = Math.round((end.getTime() - now.getTime()) / 1000) - QUICK_COUNTDOWN;
+  return sec >= 10 && sec <= QUICK_MAX_SEC ? sec : null;
+}
+const limitText = d => { const sec = draftLimit(d); return d.limitBy === 'end' ? (sec === null ? T('tc.quick.endPast') : `${T('tc.live.until', { t: d.limitEnd })} (≈ ${minText(Math.max(1, Math.round(sec / 60)))})`) : sec ? spanText(sec, minText) : T('tc.quick.noLimit'); };
 const saveQDraft = (d, keepFixed) => { if (!keepFixed) d.fixed = null; Store.set(QDRAFT, d); };
 const QLAST = id => `sqln.quickLast.${id}`;
 /* the class's quick tests so far (newest first): in the class row (quick_log), or in this browser until schema.sql has been run again */
@@ -274,8 +285,8 @@ function quickHTML(c) {
         <p class="prob-text">${problemHTML(p, L())}</p><details><summary class="muted small">${H('hint.answer')}</summary><pre class="sql">${highlightSQL(p.sql)}</pre></details></div>`).join('')}</div>`;
   return `<section class="card quick-setup">
       <h2>⚡ ${H('tc.quick.title')}</h2><p class="muted">${H('tc.quick.sub')}</p>
-      <div class="q-startbar"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n ? '' : 'disabled'}>⚡ ${H('tc.quick.start')}</button>
-        <span class="q-sum">${n ? H('tc.quick.summary', { n, pass: pass || n, t: d.limit ? T('tc.timerMin', { n: d.limit }) : T('tc.quick.noLimit') }) : H('ck.pickLesson')}${d.fixed ? ` · <b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b>` : ''}</span></div>
+      <div class="q-startbar"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n && draftLimit(d) !== null ? '' : 'disabled'}>⚡ ${H('tc.quick.start')}</button>
+        <span class="q-sum">${n ? H('tc.quick.summary', { n, pass: pass || n, t: limitText(d) }) : H('ck.pickLesson')}${d.fixed ? ` · <b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b>` : ''}</span></div>
       <div class="fld"><span>${H('tc.quick.lessons')}</span>
         <div class="q-chapters">${asg.length ? `<button class="btn btn-ghost btn-xs q-ch ${asgOn ? 'on' : ''}" data-act="quickChapter" data-v="@assign" aria-pressed="${asgOn}">${I.book}${H('tc.quick.fromAssign')} <span class="muted">${asg.length}</span></button>` : ''}
           ${CHAPTERS.map(ch => { const ks = checkLessons().filter(l => l.ch === ch.key).map(l => l.key); if (!ks.length) return ''; const on = ks.every(k => chosen.has(k)), some = !on && ks.some(k => chosen.has(k));
@@ -287,8 +298,13 @@ function quickHTML(c) {
       ${d.mode === 'detail' ? detail : simple}
       <div class="q-row">
         <div class="fld"><span>${H('tc.quick.pass')}</span>${passBox}</div>
-        <div class="fld"><span>${H('tc.quick.limit')}</span><div class="q-limit">${seg('limit', QUICK_LIMITS, d.limit, v => (v ? H('tc.timerMin', { n: v }) : H('tc.quick.noLimit')))}
-          <label class="q-min"><input type="number" min="1" max="120" inputmode="numeric" data-qnum="limit" value="${d.limit || ''}" aria-label="${esc(T('tc.quick.limit'))}"><span>${H('tc.quick.minUnit')}</span></label></div></div>
+        <div class="fld"><span>${H('tc.quick.limit')}</span>
+          <div class="q-limit">${seg('limitBy', ['len', 'end'], d.limitBy, v => H(v === 'len' ? 'tc.live.byLen' : 'tc.live.byEnd'))}
+          ${d.limitBy === 'end'
+    ? `<label class="q-min"><input type="time" data-qnum="end" value="${esc(d.limitEnd)}" aria-label="${esc(T('tc.live.byEnd'))}"></label><span class="muted small">${draftLimit(d) === null ? (d.limitEnd ? H('tc.quick.endPast') : '') : '≈ ' + esc(minText(Math.max(1, Math.round(draftLimit(d) / 60))))}</span>`
+    : `${seg('limit', QUICK_LIMITS, d.limitSec % 60 ? -1 : d.limitSec / 60, v => (v ? H('tc.timerMin', { n: v }) : H('tc.quick.noLimit')))}
+            <label class="q-min"><input type="number" min="0" max="180" inputmode="numeric" data-qnum="min" value="${Math.floor(d.limitSec / 60) || ''}" placeholder="0" aria-label="${esc(T('tc.live.minUnit'))}"><span>${H('tc.live.minUnit')}</span></label>
+            <label class="q-min"><input type="number" min="0" max="59" step="5" inputmode="numeric" data-qnum="sec" value="${d.limitSec % 60 || ''}" placeholder="0" aria-label="${esc(T('tc.quick.secUnit'))}"><span>${H('tc.quick.secUnit')}</span></label>`}</div></div>
       </div>
       ${d.lessons.length && !d.fixed && n < wanted ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : ''}
       ${preview}
@@ -350,7 +366,7 @@ function quickRunHTML(c, q, running) {
   const rule = H('tc.quick.meta', { n: q.n, pass, t: fmtTime(q.at) });
   const head = running
     ? `<div class="q-head"><span class="live-st"><i class="live-dot"></i><b>${H('tc.quick.on')}</b></span><span data-qclock>${quickClock(q)}</span><span class="muted small">${rule}</span>
-        <span class="row-btns">${q.end ? `<button class="btn btn-ghost btn-sm" data-act="quickMore">${H('tc.quick.more')}</button>` : ''}<button class="btn btn-ghost btn-sm" data-act="quickBig">${I.screen}${H('tc.quick.big')}</button><button class="btn btn-ghost btn-sm" data-act="quickStop">${H('tc.quick.stop')}</button></span></div>`
+        <span class="row-btns">${q.end ? [-1, 1, 5].map(m => `<button class="btn btn-ghost btn-sm" data-act="quickMore" data-m="${m}">${m > 0 ? '+' : '−'}${Math.abs(m)} ${H('tc.live.minUnit')}</button>`).join('') : ''}<button class="btn btn-ghost btn-sm" data-act="quickBig">${I.screen}${H('tc.quick.big')}</button><button class="btn btn-ghost btn-sm" data-act="quickStop">${H('tc.quick.stop')}</button></span></div>`
     : `<div class="q-head"><b>${H('tc.quick.last')}</b><span class="muted small">${rule}</span></div>`;
   const st = quickStats(S.qAtt || [], q, S.members);
   return `<section class="card quick-run ${running ? 'on' : ''}">${head}
@@ -1047,9 +1063,10 @@ const actions = {
     else if (k === 'kind') { d.kind = v; d.swaps = {}; }
     else if (k === 'mode') { d.mode = v; d.swaps = {}; }
     else if (k === 'pass') d.pass = v === '' ? null : +v;
-    else if (k === 'limit') d.limit = +v;
+    else if (k === 'limit') d.limitSec = +v * 60;
+    else if (k === 'limitBy') { d.limitBy = v; if (v === 'end' && !d.limitEnd) d.limitEnd = clockHM(new Date(nowMs() + (d.limitSec || 300) * 1000 + 60000)); }
     if (k === 'n' || k === 'mode') d.swaps = {};
-    saveQDraft(d, k === 'pass' || k === 'limit'); refreshTab();
+    saveQDraft(d, k === 'pass' || k === 'limit' || k === 'limitBy'); refreshTab();
   },
   quickChapter(el) {   // a whole chapter on or off ('' = none)
     const d = quickDraft(S.klass), v = el.dataset.v;
@@ -1084,7 +1101,9 @@ const actions = {
     if (!slots.length) return;
     el.disabled = true;
     await syncClock(backend.serverNow);
-    const q = newQuick({ seed: d.seed, slots, pass: d.pass && d.pass < slots.length ? d.pass : null, limit: d.limit }, nowMs());
+    const sec = draftLimit(d);
+    if (sec === null) { el.disabled = false; toast(T('tc.quick.endPast')); refreshTab(); return; }
+    const q = newQuick({ seed: d.seed, slots, pass: d.pass && d.pass < slots.length ? d.pass : null, limitSec: sec }, nowMs());
     try {
       await saveQuick(q, logPut(quickLog(S.klass), q));
       d.seed = randomCode(4); d.swaps = {}; saveQDraft(d);   // the next quick test gets new problems
@@ -1092,9 +1111,10 @@ const actions = {
     }
     catch (e) { console.error(e); el.disabled = false; toast(quickError(e)); }
   },
-  async quickMore() {   // one more minute
+  async quickMore(el) {   // more time, or less (never less than 10 seconds from now)
     const q = S.klass.quick; if (!q || !q.end) return;
-    const end = Math.max(new Date(q.end).getTime(), nowMs()) + 60000;
+    const m = +el.dataset.m || 1, base = Math.max(new Date(q.end).getTime(), nowMs());
+    const end = Math.max(nowMs() + 10000, base + m * 60000);
     const nq = Object.assign({}, q, { end: new Date(end).toISOString() });
     try { await saveQuick(nq, logPut(quickLog(S.klass), nq)); qPhaseShown = null; refreshTab(); }
     catch (e) { console.error(e); toast(quickError(e)); }
@@ -1119,7 +1139,7 @@ const actions = {
     const d = quickDraft(S.klass), slots = q.slots.filter(x => LESSON_BY_KEY[x.k]), shape = slotsShape(slots), same = !!el.dataset.same;
     const order = checkLessons().map(l => l.key);
     Object.assign(d, { mode: 'detail', lessons: order.filter(k => shape.lessons.includes(k)), per: shape.per, swaps: {}, pass: q.pass < q.n ? q.pass : null,
-      limit: q.end ? Math.max(1, Math.min(120, Math.round((new Date(q.end).getTime() - new Date(q.at).getTime()) / 60000))) : 0,
+      limitSec: Math.min(QUICK_MAX_SEC, limitSecOf(q)), limitBy: 'len',
       seed: same ? q.seed : randomCode(4), fixed: same ? { seed: q.seed, slots, at: q.at } : null });
     saveQDraft(d, true); refreshTab(); toast(T(same ? 'tc.quick.readySame' : 'tc.quick.readyNew'));
     const top = document.querySelector('.quick-setup'); if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1243,7 +1263,13 @@ document.addEventListener('change', async e => {
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }
   if (el.dataset.qlesson) { const d = quickDraft(S.klass); d.lessons = el.checked ? [...new Set([...d.lessons, el.dataset.qlesson])] : d.lessons.filter(k => k !== el.dataset.qlesson); const order = checkLessons().map(l => l.key); d.lessons = order.filter(k => d.lessons.includes(k)); d.swaps = {}; saveQDraft(d); refreshTab(); return; }
-  if (el.dataset.qnum === 'limit') { const d = quickDraft(S.klass), v = Math.round(+el.value); d.limit = v >= 1 && v <= 120 ? v : 0; saveQDraft(d, true); el.blur(); refreshTab(); return; }
+  if (el.dataset.qnum === 'min' || el.dataset.qnum === 'sec') {   // minutes and seconds, any length
+    const d = quickDraft(S.klass), box = el.closest('.q-limit'), num = k => Math.max(0, Math.round(+(box.querySelector(`[data-qnum="${k}"]`) || {}).value || 0));
+    d.limitSec = Math.min(QUICK_MAX_SEC, num('min') * 60 + Math.min(59, num('sec'))); saveQDraft(d, true);
+    setTimeout(() => { const f = document.activeElement; if (!(f && f.dataset && (f.dataset.qnum === 'min' || f.dataset.qnum === 'sec'))) refreshTab(); }, 50);   // moving from minutes to seconds: do not redraw under the cursor
+    return;
+  }
+  if (el.dataset.qnum === 'end') { const d = quickDraft(S.klass); d.limitEnd = el.value || ''; saveQDraft(d, true); el.blur(); refreshTab(); return; }
   if (el.dataset.qsel === 'pass') { const d = quickDraft(S.klass); d.pass = el.value === '' ? null : +el.value; saveQDraft(d, true); refreshTab(); return; }
   if (el.dataset.act2 === 'boardHide') { S.boardHide = el.checked; saveView(); return; }
   if (el.dataset.act2 === 'mistakeProb') { S.mistakeProb = el.value; refreshTab(); return; }

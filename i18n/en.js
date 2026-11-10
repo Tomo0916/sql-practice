@@ -1105,7 +1105,6 @@ export default {
   "lec.quiz": "What do you think?",
   "lec.quizHint": "Choose an answer, or press Next to see it.",
   "tc.quick.pickOne": "Choose lessons one by one",
-  "tc.quick.minUnit": "min (any number)",
   "tc.quick.sameAs": "the same problems as the test of {t}",
   "tc.quick.hist": "Quick tests so far",
   "tc.quick.histLine": "{n} problems · {a} / {b} passed",
@@ -1134,5 +1133,7 @@ export default {
   "qk.noAnswer": "(no answer)",
   "qk.afterNote": "When the test is over, you can see the answers.",
   "qk.seeResult": "See the result and answers",
-  "tc.quick.del": "Remove"
+  "tc.quick.del": "Remove",
+  "tc.quick.secUnit": "sec",
+  "tc.quick.endPast": "Set an end time later than now."
 };

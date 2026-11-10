@@ -1105,7 +1105,6 @@ export default {
   "lec.quiz": "{予想|よそう}して みよう",
   "lec.quizHint": "{答|こた}えを えらぶか、「{次|つぎ}へ」で {答|こた}えを {見|み}ます。",
   "tc.quick.pickOne": "レッスンを 1つずつ {選|えら}ぶ",
-  "tc.quick.minUnit": "{分|ふん}（{自由|じゆう}に {入力|にゅうりょく}）",
   "tc.quick.sameAs": "{t} の テストと {同|おな}じ {問題|もんだい}",
   "tc.quick.hist": "これまでの クイックテスト",
   "tc.quick.histLine": "{n}{問|もん} · {a} / {b} {人|にん}が {合格|ごうかく}",
@@ -1134,5 +1133,7 @@ export default {
   "qk.noAnswer": "（{答|こた}えて いません）",
   "qk.afterNote": "テストが {終|お}わると、{答|こた}えを {見|み}る ことが できます。",
   "qk.seeResult": "{結果|けっか}と {答|こた}えを {見|み}る",
-  "tc.quick.del": "{消|け}す"
+  "tc.quick.del": "{消|け}す",
+  "tc.quick.secUnit": "{秒|びょう}",
+  "tc.quick.endPast": "{終|お}わる {時刻|じこく}を、{今|いま}より あとに して ください。"
 };

@@ -1105,7 +1105,6 @@ export default {
   "lec.quiz": "予想してみよう",
   "lec.quizHint": "答えを選ぶか、「次へ」で答えを見ます。",
   "tc.quick.pickOne": "レッスンを 1 つずつ選ぶ",
-  "tc.quick.minUnit": "分（自由に入力）",
   "tc.quick.sameAs": "{t} のテストと同じ問題",
   "tc.quick.hist": "これまでのクイックテスト",
   "tc.quick.histLine": "{n}問 · {a} / {b} 人が合格",
@@ -1134,5 +1133,7 @@ export default {
   "qk.noAnswer": "（答えていません）",
   "qk.afterNote": "テストが終わると、答えを確認できます。",
   "qk.seeResult": "結果と答えを見る",
-  "tc.quick.del": "削除"
+  "tc.quick.del": "削除",
+  "tc.quick.secUnit": "秒",
+  "tc.quick.endPast": "終了時刻を、今より後の時刻にしてください。"
 };

@@ -1104,7 +1104,6 @@ export default {
   "lec.quiz": "Hãy thử đoán",
   "lec.quizHint": "Chọn một đáp án, hoặc bấm Tiếp để xem đáp án.",
   "tc.quick.pickOne": "Chọn từng bài học",
-  "tc.quick.minUnit": "phút (tự nhập)",
   "tc.quick.sameAs": "cùng câu hỏi với bài kiểm tra lúc {t}",
   "tc.quick.hist": "Các bài kiểm tra nhanh trước đây",
   "tc.quick.histLine": "{n} câu · {a} / {b} đạt",
@@ -1133,5 +1132,7 @@ export default {
   "qk.noAnswer": "(chưa trả lời)",
   "qk.afterNote": "Khi bài kiểm tra kết thúc, bạn có thể xem đáp án.",
   "qk.seeResult": "Xem kết quả và đáp án",
-  "tc.quick.del": "Xóa"
+  "tc.quick.del": "Xóa",
+  "tc.quick.secUnit": "giây",
+  "tc.quick.endPast": "Hãy đặt giờ kết thúc sau thời điểm hiện tại."
 };

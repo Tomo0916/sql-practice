@@ -108,12 +108,17 @@ function relabel(list) {
   const seen = {};
   return list.map(p => { const k = p.stage === 'order' ? 'order' + (p.level || 1) : p.stage; seen[k] = (seen[k] || 0) + 1; return Object.assign({}, p, { wn: seen[k], of: 1 }); });
 }
-/** a new quick test: { seed, slots, pass, limit }; nowMs = the server's time; it starts after the countdown */
+export const QUICK_MAX_SEC = 3 * 3600;            // the longest time limit
+/** a length of time for people: whole minutes through `minutes(n)` (the language's own "5 min"), otherwise 1:30 */
+export const spanText = (sec, minutes) => (sec % 60 === 0 ? minutes(sec / 60) : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`);
+/** the time limit of a test in seconds (0 = none) */
+export const limitSecOf = q => (q && q.end ? Math.max(1, Math.round((new Date(q.end).getTime() - new Date(q.at).getTime()) / 1000)) : 0);
+/** a new quick test: { seed, slots, pass, limitSec (or limit in minutes) }; nowMs = the server's time; it starts after the countdown */
 export function newQuick(d, nowMs) {
   const at = (nowMs || Date.now()) + QUICK_COUNTDOWN * 1000, n = d.slots.length;
-  const limit = Math.max(0, +d.limit || 0);
+  const sec = Math.min(QUICK_MAX_SEC, Math.max(0, Math.round(d.limitSec !== undefined ? +d.limitSec || 0 : (+d.limit || 0) * 60)));
   return { id: randomCode(5), seed: d.seed, slots: d.slots.map(x => ({ k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
-    pass: Math.max(1, Math.min(n, +d.pass || n)), end: limit ? new Date(at + limit * 60000).toISOString() : null };
+    pass: Math.max(1, Math.min(n, +d.pass || n)), end: sec ? new Date(at + sec * 1000).toISOString() : null };
 }
 /** the problems of a quick test, with their quick ids (answers hidden until it is over) */
 export function quickProblems(engine, q) {

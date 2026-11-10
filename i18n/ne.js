@@ -1104,7 +1104,6 @@ export default {
   "lec.quiz": "अनुमान गरौँ",
   "lec.quizHint": "उत्तर छान्नुहोस्, वा उत्तर हेर्न “अर्को” थिच्नुहोस्।",
   "tc.quick.pickOne": "पाठहरू एक-एक गरी छान्नुहोस्",
-  "tc.quick.minUnit": "मिनेट (आफैँ लेख्नुहोस्)",
   "tc.quick.sameAs": "{t} को परीक्षाकै प्रश्नहरू",
   "tc.quick.hist": "अहिलेसम्मका छिटो परीक्षाहरू",
   "tc.quick.histLine": "{n} प्रश्न · {a} / {b} जना उत्तीर्ण",
@@ -1133,5 +1132,7 @@ export default {
   "qk.noAnswer": "(उत्तर छैन)",
   "qk.afterNote": "परीक्षा सकिएपछि उत्तरहरू हेर्न सकिन्छ।",
   "qk.seeResult": "नतिजा र उत्तर हेर्नुहोस्",
-  "tc.quick.del": "हटाउनुहोस्"
+  "tc.quick.del": "हटाउनुहोस्",
+  "tc.quick.secUnit": "सेकेन्ड",
+  "tc.quick.endPast": "अन्त्य समय अहिलेभन्दा पछि राख्नुहोस्।"
 };

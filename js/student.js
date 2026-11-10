@@ -25,7 +25,7 @@ import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
-import { quickOn, quickProblems, quickPhase, passOf } from './quick.js';
+import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
@@ -599,7 +599,7 @@ function quickBannerHTML() {
   if (!quickOn(S.klass) || S.route.view === 'quick' || qFinished() || qPhaseNow() === 'up') return '';
   return `<div class="live-banner quick-banner"><span>⚡ ${H('qk.banner')}</span><a class="btn btn-ok btn-sm" href="#/quick">${H('qk.back')}${I.next}</a></div>`;
 }
-const qRuleHTML = q => H('qk.ruleLine', { n: q.n, pass: passOf(q), t: q.end ? T('qk.minutes', { n: Math.max(1, Math.round((new Date(q.end).getTime() - new Date(q.at).getTime()) / 60000)) }) : T('qk.noLimit') });
+const qRuleHTML = q => H('qk.ruleLine', { n: q.n, pass: passOf(q), t: q.end ? spanText(limitSecOf(q), n => T('qk.minutes', { n })) : T('qk.noLimit') });
 function quickViewHTML() {
   document.title = `${T('qk.title')} · SQL Practice`;
   if (!quickOn(S.klass)) {
@@ -611,7 +611,7 @@ function quickViewHTML() {
   if (ph === 'wait') return `<main class="wrap narrow"><section class="card empty quick-wait">
       <div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.soon')}</p>
       <p class="qk-count" data-qk-clock>${qClockHTML()}</p>
-      <div class="qk-tiles"><div><b>${n}</b><span>${H('tc.quick.count')}</span></div><div><b>${passOf(q)} / ${n}</b><span>${H('tc.quick.pass')}</span></div><div><b>${q.end ? H('qk.minutes', { n: Math.max(1, Math.round((new Date(q.end).getTime() - new Date(q.at).getTime()) / 60000)) }) : '∞'}</b><span>${H('tc.quick.limit')}</span></div></div>
+      <div class="qk-tiles"><div><b>${n}</b><span>${H('tc.quick.count')}</span></div><div><b>${passOf(q)} / ${n}</b><span>${H('tc.quick.pass')}</span></div><div><b>${q.end ? esc(spanText(limitSecOf(q), k => T('qk.minutes', { n: k }))) : '∞'}</b><span>${H('tc.quick.limit')}</span></div></div>
       <p class="muted small">${H('qk.rule')}</p></section></main>`;
   if (ph === 'up') {   // the time is over: the result, and the model answers to learn from
     const passed = ok >= passOf(q);
