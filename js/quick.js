@@ -143,7 +143,7 @@ export function quickProgress(attempts, q) {
   const out = new Map();
   if (!q) return out;
   const pre = `quick:${q.id}:`, pass = passOf(q);
-  const stop = q.end ? new Date(q.end).getTime() + QUICK_GRACE : Infinity;
+  const stop = stopOf(q);
   attempts.filter(a => a.problem_id && a.problem_id.startsWith(pre) && new Date(a.created_at).getTime() <= stop)
     .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : (a.id || 0) - (b.id || 0)))
     .forEach(a => {
@@ -156,4 +156,76 @@ export function quickProgress(attempts, q) {
       out.set(a.user_id, s);
     });
   return out;
+}
+
+/* ---------- results: after (or during) a quick test ----------
+ * The class keeps a list of its quick tests (quick_log, newest first; each entry is the test
+ * itself plus `stopped` when the teacher ended it). The answers stay in the class log, so the
+ * result of an old test can be worked out again at any time (until the log is cleared). */
+export const QUICK_LOG_MAX = 30;
+/** the list with this test put in (new) or replaced (same id) */
+export function logPut(log, q) {
+  const rest = (Array.isArray(log) ? log : []).filter(x => x && x.id && x.id !== q.id);
+  return [q, ...rest].slice(0, QUICK_LOG_MAX);
+}
+export const logDrop = (log, id) => (Array.isArray(log) ? log : []).filter(x => x && x.id !== id);
+/** the moment answers stop counting: the time limit, or when the teacher ended the test */
+const stopOf = q => Math.min(q.end ? new Date(q.end).getTime() + QUICK_GRACE : Infinity, q.stopped ? new Date(q.stopped).getTime() + QUICK_GRACE : Infinity);
+/**
+ * The result of a quick test.
+ * attempts = the class log (rows of stage 'quick'), members = [{ user_id, nickname }]
+ * → { rows: one per member [{ user_id, nickname, started, ok: [true/false per problem], tries: [answers per problem], score, passed, ms (to the pass line) }],
+ *     perQ: one per problem [{ solved, tried, rate (of those who started), tries (answers by everyone), wrong: [{ sql, reason, n }] the most common wrong answers }],
+ *     started, passed, avg (right answers per student who started) }
+ */
+export function quickStats(attempts, q, members) {
+  const n = q.n, pass = passOf(q), pre = `quick:${q.id}:`, stop = stopOf(q), t0 = new Date(q.at).getTime();
+  const mine = attempts.filter(a => a.problem_id && a.problem_id.startsWith(pre) && new Date(a.created_at).getTime() <= stop)
+    .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : (a.id || 0) - (b.id || 0)));
+  const by = new Map();
+  const wrong = Array.from({ length: n }, () => new Map());
+  for (const a of mine) {
+    const i = +a.problem_id.slice(pre.length);
+    if (!(i >= 0 && i < n)) continue;
+    const s = by.get(a.user_id) || { ok: Array(n).fill(false), tries: Array(n).fill(0), at: null };
+    if (s.ok[i]) continue;   // answers after the first right one are looking back
+    s.tries[i]++;
+    if (a.ok) { s.ok[i] = true; if (!s.at && s.ok.filter(Boolean).length >= pass) s.at = new Date(a.created_at).getTime(); }
+    else if (a.sql) {
+      const key = String(a.sql).replace(/\s+/g, ' ').trim();
+      const w = wrong[i].get(key) || { sql: key, reason: a.reason || null, n: 0, who: new Set() };
+      w.n++; w.who.add(a.user_id); wrong[i].set(key, w);
+    }
+    by.set(a.user_id, s);
+  }
+  const rows = members.map(m => {
+    const s = by.get(m.user_id);
+    const score = s ? s.ok.filter(Boolean).length : 0;
+    return { user_id: m.user_id, nickname: m.nickname, started: !!s, ok: s ? s.ok : Array(n).fill(false), tries: s ? s.tries : Array(n).fill(0), score, passed: !!s && score >= pass, ms: s && s.at ? Math.max(0, s.at - t0) : null };
+  });
+  const started = rows.filter(r => r.started);
+  const perQ = Array.from({ length: n }, (_, i) => {
+    const tried = started.filter(r => r.tries[i] > 0).length, solved = started.filter(r => r.ok[i]).length;
+    return { solved, tried, rate: started.length ? solved / started.length : 0, tries: started.reduce((a, r) => a + r.tries[i], 0),
+      wrong: [...wrong[i].values()].map(w => ({ sql: w.sql, reason: w.reason, n: w.who.size })).sort((a, b) => b.n - a.n || (a.sql < b.sql ? -1 : 1)).slice(0, 3) };
+  });
+  return { rows, perQ, started: started.length, passed: rows.filter(r => r.passed).length, avg: started.length ? started.reduce((a, r) => a + r.score, 0) / started.length : 0 };
+}
+/** the result as CSV (for a spreadsheet): one row per student. head = column names [name, score, passed, time, tries] */
+export function quickCSV(stats, q, head) {
+  // a name that starts like a formula gets a ' in front, so a spreadsheet shows it as text
+  const cell = v => { let s = String(v == null ? '' : v); if (/^[=+\-@]/.test(s)) s = `'${s}`; return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const qs = Array.from({ length: q.n }, (_, i) => `Q${i + 1}`);
+  const lines = [[head[0], head[1], head[2], head[3], ...qs, head[4]]];
+  for (const r of stats.rows) lines.push([r.nickname, r.started ? r.score : '', r.started ? (r.passed ? 1 : 0) : '', r.ms === null ? '' : Math.round(r.ms / 1000), ...r.ok.map((o, i) => (r.started ? (o ? 1 : r.tries[i] ? 0 : '') : '')), r.started ? r.tries.reduce((a, b) => a + b, 0) : '']);
+  return '﻿' + lines.map(l => l.map(cell).join(',')).join('\r\n') + '\r\n';
+}
+/** the shape of a test, to make another like it: { lessons: [keys in order], per: { key: { fill, order1, order2, write } } } */
+export function slotsShape(slots) {
+  const lessons = [], per = {};
+  for (const x of slots || []) {
+    if (!per[x.k]) { per[x.k] = { fill: 0, order1: 0, order2: 0, write: 0 }; lessons.push(x.k); }
+    per[x.k][x.st] = (per[x.k][x.st] || 0) + 1;
+  }
+  return { lessons, per };
 }

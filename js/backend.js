@@ -68,6 +68,11 @@ export async function getClass(classId) {
   const sb = await client();
   return check(await sb.from('classes').select('*').eq('id', classId).maybeSingle());
 }
+/** the parts of the class row a student's screen follows (a light request, for when the live connection missed a change) */
+export async function classPulse(classId) {
+  const sb = await client();
+  return check(await sb.from('classes').select('name, set_code, lessons, answer_policy, timer_end, format, live_until, quick').eq('id', classId).maybeSingle());
+}
 export async function leaveClass(classId) {
   const sb = await client();
   const { data } = await sb.auth.getSession();
