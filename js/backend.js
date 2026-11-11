@@ -68,6 +68,11 @@ export async function getClass(classId) {
   const sb = await client();
   return check(await sb.from('classes').select('*').eq('id', classId).maybeSingle());
 }
+/** the parts of the class row a student's screen follows (a light request, for when the live connection missed a change) */
+export async function classPulse(classId) {
+  const sb = await client();
+  return check(await sb.from('classes').select('name, set_code, lessons, answer_policy, timer_end, format, live_until, quick').eq('id', classId).maybeSingle());
+}
 export async function leaveClass(classId) {
   const sb = await client();
   const { data } = await sb.auth.getSession();
@@ -110,12 +115,14 @@ export async function flushAttempts() {
 if (typeof window !== 'undefined') window.addEventListener('online', () => flushAttempts());
 
 /** Live updates of the class assignment for students. Returns an unsubscribe function. */
-export async function watchClass(classId, onChange) {
+export async function watchClass(classId, onChange, onPing) {
   const sb = await client();
   const ch = sb.channel('class-' + classId)
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classes', filter: `id=eq.${classId}` }, p => onChange(p.new))
     .subscribe();
-  return () => sb.removeChannel(ch);
+  // the teacher's page also says "changed" directly (pingClass): read the row again
+  const ping = sb.channel('ping-' + classId).on('broadcast', { event: 'changed' }, () => { if (onPing) onPing(); }).subscribe();
+  return () => { sb.removeChannel(ch); sb.removeChannel(ping); };
 }
 
 /** the server's clock (null if unknown) */
@@ -150,13 +157,21 @@ export async function myClasses() {
   return check(await sb.from('classes').select('*').eq('teacher_id', s.user.id).order('created_at', { ascending: false }));
 }
 export async function createClass(name) { const sb = await client(); return check(await sb.rpc('create_class', { p_name: name })); }
-export async function updateClass(id, patch) { const sb = await client(); return check(await sb.from('classes').update(patch).eq('id', id).select().single()); }
+/**
+ * Tell the students of a class that its row has changed (a short message to everyone who is connected).
+ * The students then read the row again; this does not depend on the database's own change events.
+ */
+export async function pingClass(id) {
+  try { const sb = await client(), ch = sb.channel('ping-' + id); await ch.send({ type: 'broadcast', event: 'changed', payload: {} }); sb.removeChannel(ch); } catch (e) { /* the students also ask by themselves */ }
+}
+const pinged = (id, row) => { pingClass(id); return row; };
+export async function updateClass(id, patch) { const sb = await client(); return pinged(id, check(await sb.from('classes').update(patch).eq('id', id).select().single())); }
 /** class timer: the server sets the end time. Error 'timer_missing' when schema.sql has not been run again yet. */
-export async function startTimer(id, sec) { const sb = await client(); try { return check(await sb.rpc('start_timer', { p_class: id, p_sec: sec })); } catch (e) { if (e.code === 'PGRST202' || /could not find the function|schema cache/i.test(e.message)) { e.raw = e.message; e.message = 'timer_missing'; } throw e; } }
+export async function startTimer(id, sec) { const sb = await client(); try { return pinged(id, check(await sb.rpc('start_timer', { p_class: id, p_sec: sec }))); } catch (e) { if (e.code === 'PGRST202' || /could not find the function|schema cache/i.test(e.message)) { e.raw = e.message; e.message = 'timer_missing'; } throw e; } }
 /** class live: the students work on the assignment until the end time. Error 'live_missing' when schema.sql has not been run again yet. */
-export async function startLive(id, min) { const sb = await client(); try { return check(await sb.rpc('start_live', { p_class: id, p_min: min })); } catch (e) { if (e.code === 'PGRST202' || /could not find the function|schema cache/i.test(e.message)) { e.raw = e.message; e.message = 'live_missing'; } throw e; } }
-export async function stopLive(id) { const sb = await client(); return check(await sb.rpc('stop_live', { p_class: id })); }
-export async function stopTimer(id) { const sb = await client(); return check(await sb.rpc('stop_timer', { p_class: id })); }
+export async function startLive(id, min) { const sb = await client(); try { return pinged(id, check(await sb.rpc('start_live', { p_class: id, p_min: min }))); } catch (e) { if (e.code === 'PGRST202' || /could not find the function|schema cache/i.test(e.message)) { e.raw = e.message; e.message = 'live_missing'; } throw e; } }
+export async function stopLive(id) { const sb = await client(); return pinged(id, check(await sb.rpc('stop_live', { p_class: id }))); }
+export async function stopTimer(id) { const sb = await client(); return pinged(id, check(await sb.rpc('stop_timer', { p_class: id }))); }
 export async function deleteClass(id) { const sb = await client(); check(await sb.from('classes').delete().eq('id', id)); }
 export async function members(classId) { const sb = await client(); return check(await sb.from('members').select('user_id, nickname, joined_at').eq('class_id', classId).order('joined_at')); }
 export async function removeMember(classId, userId) { const sb = await client(); check(await sb.from('members').delete().eq('class_id', classId).eq('user_id', userId)); }

@@ -15,7 +15,7 @@ import { hasLecture } from './lectures.js';
 import { altAnswers } from './alt.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { checkLessons } from './check.js';
-import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems } from './quick.js';
+import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape } from './quick.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
 import { drawJoinLines } from './viz.js';
@@ -217,15 +217,43 @@ function quickDraft(c) {
   const per = {};
   lessons.forEach(k => { const o = (d.per || {})[k] || { write: 1 }; per[k] = {}; KINDS.forEach(st => { per[k][st] = kindsOf(k).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +o[st] || 0)) : 0; }); });
   return { mode: d.mode === 'detail' ? 'detail' : 'simple', lessons, n: QUICK_COUNTS.includes(d.n) ? d.n : 3, kind: QUICK_PRESETS.includes(d.kind) ? d.kind : 'write', per,
-    pass: Number.isInteger(d.pass) && d.pass >= 1 ? d.pass : null, limit: QUICK_LIMITS.includes(d.limit) ? d.limit : 5, seed: d.seed, swaps: d.swaps || {} };
+    pass: Number.isInteger(d.pass) && d.pass >= 1 ? d.pass : null, limitSec: Number.isInteger(d.limitSec) && d.limitSec >= 0 && d.limitSec <= QUICK_MAX_SEC ? d.limitSec : Number.isInteger(d.limit) && d.limit >= 0 && d.limit <= 120 ? d.limit * 60 : 300,
+    limitBy: d.limitBy === 'end' ? 'end' : 'len', limitEnd: /^\d{1,2}:\d{2}$/.test(d.limitEnd || '') ? d.limitEnd : '', seed: d.seed, swaps: d.swaps || {},
+    fixed: d.fixed && Array.isArray(d.fixed.slots) && d.fixed.slots.length ? d.fixed : null };   // fixed: the problems of an earlier test, to give them again
 }
-const saveQDraft = d => Store.set(QDRAFT, d);
+/** keepFixed: the change does not touch the problems (pass line, time limit, a swap) */
+const minText = n => T('tc.timerMin', { n });
+/** the time limit the draft gives a test started now: seconds (0 = none), or null when the end time has passed */
+function draftLimit(d) {
+  if (d.limitBy !== 'end') return d.limitSec;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(d.limitEnd); if (!m) return null;
+  const now = new Date(nowMs()), end = new Date(now); end.setHours(+m[1], +m[2], 0, 0);
+  const sec = Math.round((end.getTime() - now.getTime()) / 1000) - QUICK_COUNTDOWN;
+  return sec >= 10 && sec <= QUICK_MAX_SEC ? sec : null;
+}
+const limitText = d => { const sec = draftLimit(d); return d.limitBy === 'end' ? (sec === null ? T('tc.quick.endPast') : `${T('tc.live.until', { t: d.limitEnd })} (≈ ${minText(Math.max(1, Math.round(sec / 60)))})`) : sec ? spanText(sec, minText) : T('tc.quick.noLimit'); };
+const saveQDraft = (d, keepFixed) => { if (!keepFixed) d.fixed = null; Store.set(QDRAFT, d); };
 const QLAST = id => `sqln.quickLast.${id}`;
+/* the class's quick tests so far (newest first): in the class row (quick_log), or in this browser until schema.sql has been run again */
+const QLOG = id => `sqln.quickLog.${id}`;
+const logInDb = c => Object.prototype.hasOwnProperty.call(c, 'quick_log');
+function quickLog(c) {
+  const log = logInDb(c) ? (Array.isArray(c.quick_log) ? c.quick_log : []) : Store.get(QLOG(c.id), []);
+  const last = Store.get(QLAST(c.id), null);   // a test from before the list existed
+  return last && last.id && !log.length ? [last] : log;
+}
+/** save the running test (or null) and the list together */
+async function saveQuick(quick, log) {
+  const c = S.klass;
+  if (logInDb(c)) S.klass = await backend.updateClass(c.id, { quick, quick_log: log });
+  else { S.klass = await backend.updateClass(c.id, { quick }); Store.set(QLOG(c.id), log); }
+  Store.del(QLAST(c.id));
+}
 const mmssOf = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 /** the draft's test: one slot per problem (easy or detailed set-up), with the teacher's swaps */
 function draftSlots(d) {
-  if (!d.lessons.length) return [];
-  const base = d.mode === 'detail' ? detailSlots(S.engine, d.per, d.lessons, d.seed) : simpleSlots(S.engine, d.lessons, d.n, d.kind, d.seed);
+  if (!d.lessons.length && !d.fixed) return [];
+  const base = d.fixed ? d.fixed.slots : d.mode === 'detail' ? detailSlots(S.engine, d.per, d.lessons, d.seed) : simpleSlots(S.engine, d.lessons, d.n, d.kind, d.seed);
   return applySwaps(S.engine, base, d.swaps, d.seed);
 }
 function quickHTML(c) {
@@ -234,7 +262,7 @@ function quickHTML(c) {
   const slots = draftSlots(d), probs = slotProblems(S.engine, d.seed, slots), n = probs.length;
   const pass = d.pass && d.pass < n ? d.pass : null;
   const lessonBtn = l => `<label class="chk"><input type="checkbox" data-qlesson="${l.key}" ${chosen.has(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`;
-  const asg = checkLessons().filter(l => assigned.has(l.key)), others = checkLessons().filter(l => !assigned.has(l.key));
+  const asg = checkLessons().filter(l => assigned.has(l.key)), asgOn = asg.length > 0 && asg.length === chosen.size && asg.every(l => chosen.has(l.key));
   const seg = (k, vals, cur, label) => `<div class="seg">${vals.map(v => `<button class="seg-b ${cur === v ? 'on' : ''}" data-act="quickSet" data-k="${k}" data-v="${v === null ? '' : v}" aria-pressed="${cur === v}">${label(v)}</button>`).join('')}</div>`;
   const passLabel = v => (v === null ? H('tc.quick.passAll') : H('tc.quick.passN', { n: v }));
   const passBox = n <= 6
@@ -251,32 +279,71 @@ function quickHTML(c) {
       <tfoot><tr><th>${H('tc.quick.sum')}</th>${KINDS.map(st => `<td class="center"><b>${slots.filter(x => x.st === st).length}</b></td>`).join('')}<td class="n"><b>${n}</b></td></tr></tfoot></table></div>
       <div class="row-btns left"><span class="muted small">${H('tc.quick.allTo')}</span>${KINDS.map(st => `<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="${st}">${H(KIND_LABEL[st])} ×1</button>`).join('')}<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="">${H('tc.quick.clear')}</button></div></div>`;
   const wanted = d.mode === 'detail' ? d.lessons.reduce((a, k) => a + KINDS.reduce((b, st) => b + d.per[k][st], 0), 0) : d.n;
-  const last = Store.get(QLAST(c.id), null);
   const preview = !n ? '' : `<div class="q-preview"><div class="q-preview-h"><b>${H('tc.quick.preview')} (${n})</b><button class="btn btn-ghost btn-xs" data-act="quickReshuffle">${I.shuffle}${H('tc.quick.reshuffle')}</button></div>
       ${probs.map((p, j) => `<div class="pv-item q-pv"><div class="q-pv-h"><b>Q${j + 1}</b> <span class="tag st-${p.stage}">${stageNameH(p)}</span> <span class="muted small">Lesson ${LESSON_BY_KEY[p.lesson].no} · ${esc(themeName(p, L()))}</span>
         <button class="btn btn-ghost btn-xs" data-act="quickSwap" data-k="${j}" ${nextFree(S.engine, slots, j, d.seed) === null ? 'disabled' : ''} title="${esc(T('tc.quick.swapTip'))}">${I.repeat}${H('tc.quick.swap')}</button></div>
         <p class="prob-text">${problemHTML(p, L())}</p><details><summary class="muted small">${H('hint.answer')}</summary><pre class="sql">${highlightSQL(p.sql)}</pre></details></div>`).join('')}</div>`;
   return `<section class="card quick-setup">
       <h2>⚡ ${H('tc.quick.title')}</h2><p class="muted">${H('tc.quick.sub')}</p>
+      <div class="q-startbar"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n && draftLimit(d) !== null ? '' : 'disabled'}>⚡ ${H('tc.quick.start')}</button>
+        <span class="q-sum">${n ? H('tc.quick.summary', { n, pass: pass || n, t: limitText(d) }) : H('ck.pickLesson')}${d.fixed ? ` · <b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b>` : ''}</span></div>
       <div class="fld"><span>${H('tc.quick.lessons')}</span>
-        <div class="q-chapters"><small class="muted">${H('tc.quick.byChapter')}</small>${CHAPTERS.map(ch => { const ks = checkLessons().filter(l => l.ch === ch.key).map(l => l.key); if (!ks.length) return ''; const on = ks.every(k => chosen.has(k)), some = !on && ks.some(k => chosen.has(k));
+        <div class="q-chapters">${asg.length ? `<button class="btn btn-ghost btn-xs q-ch ${asgOn ? 'on' : ''}" data-act="quickChapter" data-v="@assign" aria-pressed="${asgOn}">${I.book}${H('tc.quick.fromAssign')} <span class="muted">${asg.length}</span></button>` : ''}
+          ${CHAPTERS.map(ch => { const ks = checkLessons().filter(l => l.ch === ch.key).map(l => l.key); if (!ks.length) return ''; const on = ks.every(k => chosen.has(k)), some = !on && ks.some(k => chosen.has(k));
           return `<button class="btn btn-ghost btn-xs q-ch ${on ? 'on' : some ? 'some' : ''}" style="--cc:var(--c-${ch.key})" data-act="quickChapter" data-v="${ch.key}" aria-pressed="${on}" title="${esc(T('ck.chapterTip'))}">${rubyHTML(raw('ch.' + ch.key, L()))} <span class="muted">${ks.filter(k => chosen.has(k)).length}/${ks.length}</span></button>`; }).join('')}
           ${chosen.size ? `<button class="btn btn-ghost btn-xs" data-act="quickChapter" data-v="">${H('tc.quick.none')}</button>` : ''}</div>
-        ${asg.length ? `<div class="q-lessons"><small class="muted">${H('tc.quick.fromAssign')}</small>${asg.map(lessonBtn).join('')}</div>` : ''}
-        <details class="q-more" ${!asg.length || others.some(l => chosen.has(l.key)) ? 'open' : ''}><summary>${H('tc.quick.otherLessons')}</summary>${CHAPTERS.map(ch => { const ls = others.filter(l => l.ch === ch.key); return ls.length ? `<div class="q-lessons"><small class="muted">${rubyHTML(raw('ch.' + ch.key, L()))}</small>${ls.map(lessonBtn).join('')}</div>` : ''; }).join('')}</details></div>
+        ${chosen.size ? `<div class="q-chips">${d.lessons.map(k => { const l = LESSON_BY_KEY[k]; return `<button class="q-chip" style="--cc:var(--c-${l.ch})" data-act="quickDrop" data-l="${k}" title="${esc(T('tc.remove'))}">${l.no}. ${lessonTitleHTML(l, L())}<i>×</i></button>`; }).join('')}</div>` : ''}
+        <details class="q-more" data-qpick ${S.qPick || !chosen.size ? 'open' : ''}><summary>${H('tc.quick.pickOne')}</summary>${CHAPTERS.map(ch => { const ls = checkLessons().filter(l => l.ch === ch.key); return ls.length ? `<div class="q-lessons"><small class="muted">${rubyHTML(raw('ch.' + ch.key, L()))}</small>${ls.map(lessonBtn).join('')}</div>` : ''; }).join('')}</details></div>
       <div class="fld"><span>${H('tc.quick.how')}</span>${seg('mode', ['simple', 'detail'], d.mode, v => H('tc.quick.mode.' + v))}</div>
       ${d.mode === 'detail' ? detail : simple}
       <div class="q-row">
         <div class="fld"><span>${H('tc.quick.pass')}</span>${passBox}</div>
-        <div class="fld"><span>${H('tc.quick.limit')}</span>${seg('limit', QUICK_LIMITS, d.limit, v => (v ? H('tc.timerMin', { n: v }) : H('tc.quick.noLimit')))}</div>
+        <div class="fld"><span>${H('tc.quick.limit')}</span>
+          <div class="q-limit">${seg('limitBy', ['len', 'end'], d.limitBy, v => H(v === 'len' ? 'tc.live.byLen' : 'tc.live.byEnd'))}
+          ${d.limitBy === 'end'
+    ? `<label class="q-min"><input type="time" data-qnum="end" value="${esc(d.limitEnd)}" aria-label="${esc(T('tc.live.byEnd'))}"></label><span class="muted small">${draftLimit(d) === null ? (d.limitEnd ? H('tc.quick.endPast') : '') : '≈ ' + esc(minText(Math.max(1, Math.round(draftLimit(d) / 60))))}</span>`
+    : `${seg('limit', QUICK_LIMITS, d.limitSec % 60 ? -1 : d.limitSec / 60, v => (v ? H('tc.timerMin', { n: v }) : H('tc.quick.noLimit')))}
+            <label class="q-min"><input type="number" min="0" max="180" inputmode="numeric" data-qnum="min" value="${Math.floor(d.limitSec / 60) || ''}" placeholder="0" aria-label="${esc(T('tc.live.minUnit'))}"><span>${H('tc.live.minUnit')}</span></label>
+            <label class="q-min"><input type="number" min="0" max="59" step="5" inputmode="numeric" data-qnum="sec" value="${d.limitSec % 60 || ''}" placeholder="0" aria-label="${esc(T('tc.quick.secUnit'))}"><span>${H('tc.quick.secUnit')}</span></label>`}</div></div>
       </div>
-      ${d.lessons.length ? (n < wanted ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : '') : `<p class="muted">${H('ck.pickLesson')}</p>`}
+      ${d.lessons.length && !d.fixed && n < wanted ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : ''}
       ${preview}
-      <div class="q-startrow"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n ? '' : 'disabled'}>⚡ ${H('tc.quick.start')}</button>
-        ${n ? `<span class="muted small">${H('tc.quick.summary', { n, pass: pass || n, t: d.limit ? T('tc.timerMin', { n: d.limit }) : T('tc.quick.noLimit') })}</span>` : ''}</div>
       <p class="muted small">${H('tc.quick.note')}</p>
     </section>
-    ${last && last.id ? quickRunHTML(c, last, false) : ''}`;
+    ${quickHistoryHTML(c)}`;
+}
+/* ---------- results: each problem (how many got it, the common wrong answers) and each student ---------- */
+function quickPerQHTML(q, st, probs) {
+  return `<div class="q-perq">${probs.map((p, i) => { const x = st.perQ[i] || { rate: 0, solved: 0, wrong: [] }, pct = Math.round(x.rate * 100);
+    return `<details class="q-pq"><summary><b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span><span class="muted small">Lesson ${LESSON_BY_KEY[p.lesson].no}</span>
+        <span class="q-bar ${st.started && pct < 50 ? 'low' : ''}"><i style="width:${st.started ? pct : 0}%"></i></span><b class="q-pct">${st.started ? pct + '%' : '—'}</b><span class="muted small">${x.solved} / ${st.started}</span></summary>
+      <p class="prob-text">${problemHTML(p, L())}</p><pre class="sql">${highlightSQL(p.sql)}</pre>
+      ${x.wrong.length ? `<div class="q-wrong"><b class="small">${H('tc.quick.wrongTop')}</b>${x.wrong.map(w => `<div class="q-w"><span class="q-wn" title="${esc(T('tc.quick.wrongN', { n: w.n }))}">${w.n}</span><pre class="sql wrong">${highlightSQL(w.sql)}</pre></div>`).join('')}</div>` : ''}</details>`; }).join('')}</div>`;
+}
+function quickTableHTML(q, st) {
+  const rank = r => (r.passed ? 0 : r.started ? 1 : 2);
+  const rows = [...st.rows].sort((a, b) => rank(a) - rank(b) || (a.passed ? (a.ms || 0) - (b.ms || 0) : b.score - a.score) || a.nickname.localeCompare(b.nickname));
+  const cell = (r, i) => (r.ok[i] ? `<td class="ok">○${r.tries[i] > 1 ? `<small>${r.tries[i]}</small>` : ''}</td>` : r.tries[i] ? `<td class="bad">×<small>${r.tries[i]}</small></td>` : '<td class="muted">–</td>');
+  return `<div class="q-table-wrap"><table class="q-table q-res"><thead><tr><th>${H('class.nickname')}</th>${Array.from({ length: q.n }, (_, i) => `<th class="center">Q${i + 1}</th>`).join('')}<th class="n">${H('tc.quick.colScore')}</th><th class="n">${H('tc.quick.colTime')}</th></tr></thead>
+    <tbody>${rows.map(r => `<tr class="${r.passed ? 'pass' : r.started ? '' : 'none'}"><th>${esc(r.nickname)}</th>${Array.from({ length: q.n }, (_, i) => cell(r, i)).join('')}<td class="n">${r.started ? `<b>${r.score}</b> / ${q.n}` : `<span class="muted">${H('tc.quick.notStarted')}</span>`}</td><td class="n">${r.ms === null ? '' : '✓ ' + mmssOf(r.ms)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="muted small">${H('tc.quick.tableNote')}</p>`;
+}
+function quickResultHTML(c, q) {
+  const st = quickStats(S.qAtt || [], q, S.members), probs = quickProblems(S.engine, q);
+  const btn = (act, label, extra = '') => `<button class="btn btn-ghost btn-sm" data-act="${act}" data-id="${q.id}" ${extra}>${label}</button>`;
+  return `<div class="q-result">
+      ${st.started ? `<div class="q-tiles"><div><b>${st.passed} / ${S.members.length}</b><span>${H('tc.quick.passedN')}</span></div><div><b>${st.avg.toFixed(1)} / ${q.n}</b><span>${H('tc.quick.avg')}</span></div><div><b>${st.started}</b><span>${H('tc.quick.took')}</span></div></div>` : `<p class="muted">${H('tc.quick.noAnswers')}</p>`}
+      <h3>${H('tc.quick.perQ')}</h3>${quickPerQHTML(q, st, probs)}
+      ${st.started ? `<h3>${H('tc.quick.perStudent')}</h3>${quickTableHTML(q, st)}` : ''}
+      <div class="row-btns left">${st.started ? btn('quickCsv', '⬇ ' + H('tc.quick.csv')) : ''}${Array.isArray(q.slots) ? btn('quickAgain', I.shuffle + H('tc.quick.againNew')) + btn('quickAgain', I.repeat + H('tc.quick.againSame'), 'data-same="1"') : ''}${btn('quickDel', I.trash + H('tc.quick.del'))}</div></div>`;
+}
+function quickHistoryHTML(c) {
+  const log = quickLog(c).filter(q => q && q.id && !(quickOn(c) && q.id === c.quick.id));
+  if (!log.length) return '';
+  return `<section class="card quick-hist"><h2>${H('tc.quick.hist')}</h2>${logInDb(c) ? '' : `<p class="muted small">${H('tc.quick.localOnly')}</p>`}
+    ${log.map(q => { const open = S.qOpen === q.id, prog = quickProgress(S.qAtt || [], q), passed = S.members.filter(m => (prog.get(m.user_id) || {}).done).length;
+      const ls = [...new Set((q.slots || []).map(x => x.k))].filter(k => LESSON_BY_KEY[k]).map(k => LESSON_BY_KEY[k].no);
+      return `<div class="q-hist ${open ? 'open' : ''}"><button class="q-hist-h" data-act="quickOpen" data-id="${q.id}" aria-expanded="${open}"><b>${esc(fmtTime(q.at))}</b><span>${H('tc.quick.histLine', { n: q.n, a: passed, b: S.members.length })}</span>${ls.length ? `<span class="muted small">Lesson ${ls.join(', ')}</span>` : ''}<i class="q-caret">${open ? '▾' : '▸'}</i></button>${open ? quickResultHTML(c, q) : ''}</div>`; }).join('')}</section>`;
 }
 /** the clock of a quick test: the countdown, the time left, or "time is up" */
 function quickClock(q) {
@@ -299,12 +366,13 @@ function quickRunHTML(c, q, running) {
   const rule = H('tc.quick.meta', { n: q.n, pass, t: fmtTime(q.at) });
   const head = running
     ? `<div class="q-head"><span class="live-st"><i class="live-dot"></i><b>${H('tc.quick.on')}</b></span><span data-qclock>${quickClock(q)}</span><span class="muted small">${rule}</span>
-        <span class="row-btns">${q.end ? `<button class="btn btn-ghost btn-sm" data-act="quickMore">${H('tc.quick.more')}</button>` : ''}<button class="btn btn-ghost btn-sm" data-act="quickBig">${I.screen}${H('tc.quick.big')}</button><button class="btn btn-ghost btn-sm" data-act="quickStop">${H('tc.quick.stop')}</button></span></div>`
+        <span class="row-btns">${q.end ? [-1, 1, 5].map(m => `<button class="btn btn-ghost btn-sm" data-act="quickMore" data-m="${m}">${m > 0 ? '+' : '−'}${Math.abs(m)} ${H('tc.live.minUnit')}</button>`).join('') : ''}<button class="btn btn-ghost btn-sm" data-act="quickBig">${I.screen}${H('tc.quick.big')}</button><button class="btn btn-ghost btn-sm" data-act="quickStop">${H('tc.quick.stop')}</button></span></div>`
     : `<div class="q-head"><b>${H('tc.quick.last')}</b><span class="muted small">${rule}</span></div>`;
+  const st = quickStats(S.qAtt || [], q, S.members);
   return `<section class="card quick-run ${running ? 'on' : ''}">${head}
       <div class="q-count"><b class="q-big">${done.length}</b><span>/ ${S.members.length} ${H(pass < q.n ? 'tc.quick.passedN' : 'tc.quick.passed')}</span></div>
       <ul class="q-roster" id="q-roster">${done.map(chip).join('')}${going.map(chip).join('')}${none.map(chip).join('')}</ul>
-      <details class="q-probs"><summary>${H('tc.quick.problems')} (${probs.length})</summary>${probs.map((p, i) => `<div class="pv-item"><b>Q${i + 1}</b> <span class="tag st-${p.stage}">${stageNameH(p)}</span> <span class="muted small">Lesson ${LESSON_BY_KEY[p.lesson].no}</span><p class="prob-text">${problemHTML(p, L())}</p><pre class="sql">${highlightSQL(p.sql)}</pre></div>`).join('')}</details>
+      <h3 class="q-h3">${H('tc.quick.perQ')}</h3>${quickPerQHTML(q, st, probs)}
     </section>`;
 }
 function quickBigHTML() {
@@ -995,13 +1063,15 @@ const actions = {
     else if (k === 'kind') { d.kind = v; d.swaps = {}; }
     else if (k === 'mode') { d.mode = v; d.swaps = {}; }
     else if (k === 'pass') d.pass = v === '' ? null : +v;
-    else if (k === 'limit') d.limit = +v;
+    else if (k === 'limit') d.limitSec = +v * 60;
+    else if (k === 'limitBy') { d.limitBy = v; if (v === 'end' && !d.limitEnd) d.limitEnd = clockHM(new Date(nowMs() + (d.limitSec || 300) * 1000 + 60000)); }
     if (k === 'n' || k === 'mode') d.swaps = {};
-    saveQDraft(d); refreshTab();
+    saveQDraft(d, k === 'pass' || k === 'limit' || k === 'limitBy'); refreshTab();
   },
   quickChapter(el) {   // a whole chapter on or off ('' = none)
     const d = quickDraft(S.klass), v = el.dataset.v;
     if (!v) d.lessons = [];
+    else if (v === '@assign') { const order = checkLessons().map(l => l.key), asg = new Set(S.klass.lessons || []); d.lessons = order.filter(k => asg.has(k)); }
     else {
       const ks = checkLessons().filter(l => l.ch === v).map(l => l.key), on = ks.every(k => d.lessons.includes(k));
       d.lessons = on ? d.lessons.filter(k => !ks.includes(k)) : [...d.lessons, ...ks];
@@ -1009,6 +1079,7 @@ const actions = {
     }
     d.swaps = {}; saveQDraft(d); refreshTab();
   },
+  quickDrop(el) { const d = quickDraft(S.klass); d.lessons = d.lessons.filter(k => k !== el.dataset.l); d.swaps = {}; saveQDraft(d); refreshTab(); },
   quickPer(el) {
     const d = quickDraft(S.klass), row = d.per[el.dataset.l]; if (!row) return;
     row[el.dataset.st] = Math.max(0, Math.min(FORMAT_MAX, row[el.dataset.st] + +el.dataset.d)); d.swaps = {};
@@ -1022,7 +1093,7 @@ const actions = {
   quickSwap(el) {
     const d = quickDraft(S.klass), slots = draftSlots(d), j = +el.dataset.k, i = nextFree(S.engine, slots, j, d.seed);
     if (i === null) return;
-    d.swaps = Object.assign({}, d.swaps, { [j]: i }); saveQDraft(d); refreshTab();
+    d.swaps = Object.assign({}, d.swaps, { [j]: i }); saveQDraft(d, true); refreshTab();
   },
   quickReshuffle() { const d = quickDraft(S.klass); d.seed = randomCode(4); d.swaps = {}; saveQDraft(d); refreshTab(); },
   async quickStart(el) {
@@ -1030,24 +1101,52 @@ const actions = {
     if (!slots.length) return;
     el.disabled = true;
     await syncClock(backend.serverNow);
-    const q = newQuick({ seed: d.seed, slots, pass: d.pass && d.pass < slots.length ? d.pass : null, limit: d.limit }, nowMs());
+    const sec = draftLimit(d);
+    if (sec === null) { el.disabled = false; toast(T('tc.quick.endPast')); refreshTab(); return; }
+    const q = newQuick({ seed: d.seed, slots, pass: d.pass && d.pass < slots.length ? d.pass : null, limitSec: sec }, nowMs());
     try {
-      S.klass = await backend.updateClass(S.klass.id, { quick: q }); Store.set(QLAST(S.klass.id), q);
+      await saveQuick(q, logPut(quickLog(S.klass), q));
       d.seed = randomCode(4); d.swaps = {}; saveQDraft(d);   // the next quick test gets new problems
       qPhaseShown = null; render(); toast(T('tc.quick.started'));
     }
     catch (e) { console.error(e); el.disabled = false; toast(quickError(e)); }
   },
-  async quickMore() {   // one more minute
+  async quickMore(el) {   // more time, or less (never less than 10 seconds from now)
     const q = S.klass.quick; if (!q || !q.end) return;
-    const end = Math.max(new Date(q.end).getTime(), nowMs()) + 60000;
+    const m = +el.dataset.m || 1, base = Math.max(new Date(q.end).getTime(), nowMs());
+    const end = Math.max(nowMs() + 10000, base + m * 60000);
     const nq = Object.assign({}, q, { end: new Date(end).toISOString() });
-    try { S.klass = await backend.updateClass(S.klass.id, { quick: nq }); Store.set(QLAST(S.klass.id), nq); qPhaseShown = null; refreshTab(); }
+    try { await saveQuick(nq, logPut(quickLog(S.klass), nq)); qPhaseShown = null; refreshTab(); }
     catch (e) { console.error(e); toast(quickError(e)); }
   },
   async quickStop() {
     if (!confirm(T('tc.quick.stopConfirm'))) return;
-    try { S.klass = await backend.updateClass(S.klass.id, { quick: null }); render(); }
+    const q = S.klass.quick;
+    try { await saveQuick(null, q ? logPut(quickLog(S.klass), Object.assign({}, q, { stopped: new Date(nowMs()).toISOString() })) : quickLog(S.klass)); S.qOpen = q ? q.id : null; render(); }   // the result opens below
+    catch (e) { console.error(e); toast(quickError(e)); }
+  },
+  quickOpen(el) { S.qOpen = S.qOpen === el.dataset.id ? null : el.dataset.id; refreshTab(); },
+  quickCsv(el) {
+    const q = quickLog(S.klass).find(x => x.id === el.dataset.id); if (!q) return;
+    const csv = quickCSV(quickStats(S.qAtt || [], q, S.members), q, [T('class.nickname'), T('tc.quick.colScore'), T('tc.quick.csvPassed'), T('tc.quick.csvSec'), T('tc.quick.csvTries')]);
+    const a = document.createElement('a'), d = new Date(q.at), two = x => String(x).padStart(2, '0');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `quick-${S.klass.code}-${d.getFullYear()}${two(d.getMonth() + 1)}${two(d.getDate())}-${two(d.getHours())}${two(d.getMinutes())}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  },
+  quickAgain(el) {   // the same shape with new problems, or the very same problems
+    const q = quickLog(S.klass).find(x => x.id === el.dataset.id); if (!q || !Array.isArray(q.slots)) return;
+    const d = quickDraft(S.klass), slots = q.slots.filter(x => LESSON_BY_KEY[x.k]), shape = slotsShape(slots), same = !!el.dataset.same;
+    const order = checkLessons().map(l => l.key);
+    Object.assign(d, { mode: 'detail', lessons: order.filter(k => shape.lessons.includes(k)), per: shape.per, swaps: {}, pass: q.pass < q.n ? q.pass : null,
+      limitSec: Math.min(QUICK_MAX_SEC, limitSecOf(q)), limitBy: 'len',
+      seed: same ? q.seed : randomCode(4), fixed: same ? { seed: q.seed, slots, at: q.at } : null });
+    saveQDraft(d, true); refreshTab(); toast(T(same ? 'tc.quick.readySame' : 'tc.quick.readyNew'));
+    const top = document.querySelector('.quick-setup'); if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+  async quickDel(el) {
+    if (!confirm(T('tc.quick.delConfirm'))) return;
+    try { await saveQuick(S.klass.quick || null, logDrop(quickLog(S.klass), el.dataset.id)); refreshTab(); }
     catch (e) { console.error(e); toast(quickError(e)); }
   },
   quickBig() { modal(`<div class="modal-body">${quickBigHTML()}</div>`, { wide: true }); },
@@ -1158,12 +1257,20 @@ document.addEventListener('click', e => {
   const fn = actions[el.dataset.act];
   if (fn) { e.preventDefault(); fn(el); }
 });
+document.addEventListener('toggle', e => { if (e.target.matches && e.target.matches('details[data-qpick]')) S.qPick = e.target.open; }, true);
 document.addEventListener('change', async e => {
   const el = e.target;
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }
   if (el.dataset.qlesson) { const d = quickDraft(S.klass); d.lessons = el.checked ? [...new Set([...d.lessons, el.dataset.qlesson])] : d.lessons.filter(k => k !== el.dataset.qlesson); const order = checkLessons().map(l => l.key); d.lessons = order.filter(k => d.lessons.includes(k)); d.swaps = {}; saveQDraft(d); refreshTab(); return; }
-  if (el.dataset.qsel === 'pass') { const d = quickDraft(S.klass); d.pass = el.value === '' ? null : +el.value; saveQDraft(d); refreshTab(); return; }
+  if (el.dataset.qnum === 'min' || el.dataset.qnum === 'sec') {   // minutes and seconds, any length
+    const d = quickDraft(S.klass), box = el.closest('.q-limit'), num = k => Math.max(0, Math.round(+(box.querySelector(`[data-qnum="${k}"]`) || {}).value || 0));
+    d.limitSec = Math.min(QUICK_MAX_SEC, num('min') * 60 + Math.min(59, num('sec'))); saveQDraft(d, true);
+    setTimeout(() => { const f = document.activeElement; if (!(f && f.dataset && (f.dataset.qnum === 'min' || f.dataset.qnum === 'sec'))) refreshTab(); }, 50);   // moving from minutes to seconds: do not redraw under the cursor
+    return;
+  }
+  if (el.dataset.qnum === 'end') { const d = quickDraft(S.klass); d.limitEnd = el.value || ''; saveQDraft(d, true); el.blur(); refreshTab(); return; }
+  if (el.dataset.qsel === 'pass') { const d = quickDraft(S.klass); d.pass = el.value === '' ? null : +el.value; saveQDraft(d, true); refreshTab(); return; }
   if (el.dataset.act2 === 'boardHide') { S.boardHide = el.checked; saveView(); return; }
   if (el.dataset.act2 === 'mistakeProb') { S.mistakeProb = el.value; refreshTab(); return; }
   const k = el.dataset.tk;

@@ -408,6 +408,33 @@ console.log('11. Check tests (確認テスト)');
     { user_id: 'v', problem_id: 'quick:QQ:1', ok: true, created_at: '2026-01-01T00:06:00Z' }, { user_id: 'w', problem_id: 'quick:OLD:0', ok: true, created_at: '2026-01-01T00:03:00Z' }];
   const pr = quickProgress(log, q);
   if (pr.get('u').done !== '2026-01-01T00:02:00Z' || pr.get('u').all !== '2026-01-01T00:03:00Z' || pr.has('v') || pr.has('w')) err('quick test: who has passed is wrong');
+  // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"
+  {
+    const { quickStats, quickCSV, logPut, logDrop, slotsShape, QUICK_LOG_MAX } = await import('../js/quick.js');
+    const t = m => `2026-01-01T00:0${m}:00Z`;
+    const rows = [
+      { user_id: 'u', problem_id: 'quick:QQ:0', ok: false, sql: 'SELECT  1;', reason: 'rows', created_at: t(1) }, { user_id: 'u', problem_id: 'quick:QQ:0', ok: true, sql: 'SELECT 2;', created_at: t(2) },
+      { user_id: 'u', problem_id: 'quick:QQ:0', ok: false, sql: 'SELECT 9;', created_at: t(3) },   // after the right answer: looking back, not counted
+      { user_id: 'v', problem_id: 'quick:QQ:0', ok: false, sql: 'SELECT 1;', reason: 'rows', created_at: t(1) }, { user_id: 'v', problem_id: 'quick:QQ:1', ok: true, sql: 'x', created_at: t(6) },   // too late
+      { user_id: 'gone', problem_id: 'quick:QQ:0', ok: true, sql: 'x', created_at: t(1) }];
+    const members = [{ user_id: 'u', nickname: 'Aoi' }, { user_id: 'v', nickname: '=Ren, "B"' }, { user_id: 'w', nickname: 'Yui' }];
+    const st = quickStats(rows, q, members);
+    const [ru, rv, rw] = st.rows;
+    if (!(ru.passed && ru.score === 1 && ru.tries[0] === 2 && ru.ms === 120000) || rv.passed || rv.score !== 0 || rv.tries[0] !== 1 || !rv.started || rw.started) err('quick results: a row of a student is wrong');
+    if (st.started !== 2 || st.passed !== 1 || st.avg !== 0.5) err('quick results: the totals are wrong');
+    if (st.perQ[0].solved !== 1 || st.perQ[0].rate !== 0.5 || st.perQ[0].tries !== 3 || st.perQ[1].solved !== 0) err('quick results: the numbers of a problem are wrong');
+    if (st.perQ[0].wrong.length !== 1 || st.perQ[0].wrong[0].n !== 2 || st.perQ[0].wrong[0].sql !== 'SELECT 1;') err('quick results: the common wrong answers are wrong');
+    if (quickStats(rows, Object.assign({}, q, { stopped: t(1) }), members).rows[0].score !== 0) err('quick results: answers after the teacher ended the test are counted');
+    const csv = quickCSV(st, q, ['Name', 'Right', 'Passed', 'Sec', 'Answers']).replace(/^﻿/, '').trim().split('\r\n');
+    const wantRen = '"' + "'=Ren, " + '""B"""' + ',0,0,,0,,1';
+    if (csv.length !== 4 || csv[0] !== 'Name,Right,Passed,Sec,Q1,Q2,Answers' || csv[1] !== 'Aoi,1,1,120,1,,2' || csv[2] !== wantRen || csv[3] !== 'Yui,,,,,,') err(`quick results: the CSV is wrong: ${JSON.stringify(csv)}`);
+    let lg = []; for (let i = 0; i < QUICK_LOG_MAX + 5; i++) lg = logPut(lg, { id: 'T' + i });
+    lg = logPut(lg, { id: 'T' + (QUICK_LOG_MAX + 4), stopped: 'x' });
+    if (lg.length !== QUICK_LOG_MAX || lg[0].stopped !== 'x' || lg[1].id !== 'T' + (QUICK_LOG_MAX + 3) || logDrop(lg, lg[0].id).length !== QUICK_LOG_MAX - 1) err('quick results: the list of tests is wrong');
+    const per = { where: { fill: 1, order1: 0, order2: 0, write: 2 }, orderby: { fill: 0, order1: 1, order2: 0, write: 1 } };
+    const sl = detailSlots(eng, per, ['where', 'orderby'], 'SH'), sh = slotsShape(sl);
+    if (JSON.stringify(sh.lessons) !== '["where","orderby"]' || JSON.stringify(sh.per) !== JSON.stringify(per)) err('quick results: “the same shape again” does not give the same shape');
+  }
   console.log(`   ${n} quick tests built`);
 }
 // ---------- every page script must parse as a module (a syntax error leaves the page blank) ----------

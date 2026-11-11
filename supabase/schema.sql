@@ -451,3 +451,9 @@ begin
     begin alter publication supabase_realtime add table public.classes;  exception when duplicate_object then null; end;
   end if;
 end $$;
+
+-- ---------- quick test results (2026-11-11) ----------
+-- quick_log = the class's quick tests so far (newest first, at most 30): each one is the test itself
+-- (id, seed, slots, at, n, pass, end) plus "stopped" when the teacher ended it.
+-- The answers stay in attempts (stage 'quick'), so a result can be worked out again at any time.
+alter table public.classes add column if not exists quick_log jsonb check (quick_log is null or jsonb_typeof(quick_log) = 'array');

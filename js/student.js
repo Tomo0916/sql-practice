@@ -25,7 +25,7 @@ import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
-import { quickOn, quickProblems, quickPhase, passOf } from './quick.js';
+import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
@@ -544,7 +544,28 @@ function qItems() {
 const qPhaseNow = () => (quickOn(S.klass) ? quickPhase(S.klass.quick, nowMs()) : 'none');
 function qState() {
   const q = S.klass && S.klass.quick, st = Store.get(QKEY_ST, null);
-  return q && st && st.id === q.id ? st : { id: q ? q.id : null, done: {}, at: 0 };
+  const c = S.klass ? S.klass.id : null;
+  return q && st && st.id === q.id ? Object.assign(st, { q, c, ans: st.ans || {} }) : { id: q ? q.id : null, done: {}, at: 0, ans: {}, q: q || null, c };
+}
+/** the last quick test this student saw, after it has ended (null when there is none) */
+const qLast = () => { const st = Store.get(QKEY_ST, null); return st && st.id && st.q && Array.isArray(st.q.slots) && S.klass && st.c === S.klass.id ? st : null; };
+/** keep the student's last answer to a problem (shown next to the model answer when the test is over) */
+function qAnswer(n, sql) { const st = qState(); if (!st.id) return; st.ans[n] = String(sql || '').slice(0, 2000); Store.set(QKEY_ST, st); }
+/** the answers to look back at: ○ / ×, the student's own last answer, and the model answer */
+function qReviewHTML(items, st) {
+  return `<section class="ck-review"><h2>${H('ck.review')}</h2>${items.map((p, i) => { const ok = !!st.done[p.qn], mine = (st.ans || {})[p.qn];
+    return `<details class="card ck-item" ${ok ? '' : 'open'}><summary>${ok ? '<b class="ck-m ok">○</b>' : '<b class="ck-m bad">×</b>'}<b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageLabelH(p)}</span></summary>
+      <p class="prob-text">${problemHTML(p, L())}</p>
+      ${ok ? '' : `<div class="ck-ans qk-mine"><span class="muted small">${H('qk.yourAnswer')}</span>${mine ? `<pre class="sql wrong">${highlightSQL(mine)}</pre>` : `<p class="muted small">${H('qk.noAnswer')}</p>`}</div>`}
+      <div class="ck-ans"><span class="muted small">${H('hint.answer')}</span><pre class="sql">${highlightSQL(p.sql)}</pre></div></details>`; }).join('')}</section>`;
+}
+/** the teacher has ended the test: the student's result and the answers */
+function quickEndedHTML(st) {
+  const items = quickProblems(S.engine, st.q), n = items.length, ok = items.filter(p => st.done[p.qn]).length, passed = ok >= passOf(st.q);
+  return `<main class="wrap narrow ck-result"><section class="card empty quick-done ${passed ? '' : 'not'}">
+      <div class="empty-icon">${passed ? '🎉' : '⚡'}</div><h1>${H('qk.endedTitle')}</h1><p class="big-score">${ok} / ${n}</p>
+      <p class="${passed ? 'qk-break' : 'muted'}">${H(passed ? 'qk.passTitle' : 'qk.upSub')}</p>
+      <a class="btn btn-primary" href="#/">${H('nav.home')}</a></section>${qReviewHTML(items, st)}</main>`;
 }
 const qDone = p => !!qState().done[p.qn];
 const qOk = () => qItems().filter(qDone).length;
@@ -570,24 +591,34 @@ function qClockHTML() {
   return q.end ? H('qk.left', { t: mmss(new Date(q.end).getTime() - nowMs()) }) : '';
 }
 function quickBannerHTML() {
+  if (S.klass && !quickOn(S.klass) && S.route.view !== 'quick') {   // just ended: a way back to the result and the answers
+    const last = qLast();
+    return last && S.qResSeen !== last.id && Date.now() - new Date(last.q.at).getTime() < 60 * 60000
+      ? `<div class="live-banner quick-banner ended"><span>⚡ ${H('qk.ended')}</span><a class="btn btn-ghost btn-sm" href="#/quick">${H('qk.seeResult')}${I.next}</a></div>` : '';
+  }
   if (!quickOn(S.klass) || S.route.view === 'quick' || qFinished() || qPhaseNow() === 'up') return '';
   return `<div class="live-banner quick-banner"><span>⚡ ${H('qk.banner')}</span><a class="btn btn-ok btn-sm" href="#/quick">${H('qk.back')}${I.next}</a></div>`;
 }
-const qRuleHTML = q => H('qk.ruleLine', { n: q.n, pass: passOf(q), t: q.end ? T('qk.minutes', { n: Math.max(1, Math.round((new Date(q.end).getTime() - new Date(q.at).getTime()) / 60000)) }) : T('qk.noLimit') });
+const qRuleHTML = q => H('qk.ruleLine', { n: q.n, pass: passOf(q), t: q.end ? spanText(limitSecOf(q), n => T('qk.minutes', { n })) : T('qk.noLimit') });
 function quickViewHTML() {
   document.title = `${T('qk.title')} · SQL Practice`;
-  if (!quickOn(S.klass)) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.none')}</p><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></section></main>`;
+  if (!quickOn(S.klass)) {
+    const last = S.klass && S.engine ? qLast() : null;
+    if (last) { S.qResSeen = last.id; return quickEndedHTML(last); }
+    return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.none')}</p><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></section></main>`;
+  }
   const q = S.klass.quick, items = qItems(), n = items.length, ok = qOk(), st = qState(), ph = qPhaseNow();
   if (ph === 'wait') return `<main class="wrap narrow"><section class="card empty quick-wait">
       <div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.soon')}</p>
-      <p class="qk-count" data-qk-clock>${qClockHTML()}</p><p class="qk-rule">${qRuleHTML(q)}</p><p class="muted small">${H('qk.rule')}</p></section></main>`;
+      <p class="qk-count" data-qk-clock>${qClockHTML()}</p>
+      <div class="qk-tiles"><div><b>${n}</b><span>${H('tc.quick.count')}</span></div><div><b>${passOf(q)} / ${n}</b><span>${H('tc.quick.pass')}</span></div><div><b>${q.end ? esc(spanText(limitSecOf(q), k => T('qk.minutes', { n: k }))) : '∞'}</b><span>${H('tc.quick.limit')}</span></div></div>
+      <p class="muted small">${H('qk.rule')}</p></section></main>`;
   if (ph === 'up') {   // the time is over: the result, and the model answers to learn from
     const passed = ok >= passOf(q);
     return `<main class="wrap narrow ck-result"><section class="card empty quick-done ${passed ? '' : 'not'}">
       <div class="empty-icon">${passed ? '🎉' : '⏱'}</div><h1>${H(passed ? 'qk.passTitle' : 'qk.upTitle')}</h1><p class="big-score">${ok} / ${n}</p>
       <p class="${passed ? 'qk-break' : 'muted'}">${H(passed ? 'qk.doneSub' : 'qk.upSub')}</p></section>
-      <section class="ck-review"><h2>${H('ck.review')}</h2>${items.map((p, i) => `<details class="card ck-item" ${qDone(p) ? '' : 'open'}><summary>${qDone(p) ? '<b class="ck-m ok">○</b>' : '<b class="ck-m bad">×</b>'}<b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageLabelH(p)}</span></summary>
-        <p class="prob-text">${problemHTML(p, L())}</p><div class="ck-ans"><span class="muted small">${H('hint.answer')}</span><pre class="sql">${highlightSQL(p.sql)}</pre></div></details>`).join('')}</section></main>`;
+      ${qReviewHTML(items, st)}</main>`;
   }
   if (qFinished() && !current()) {
     const secs = st.at ? Math.max(0, st.at - new Date(q.at).getTime()) : null;
@@ -596,21 +627,22 @@ function quickViewHTML() {
       <div class="empty-icon">🎉</div><h1>${H(all ? 'qk.doneTitle' : 'qk.passTitle')}</h1><p class="big-score">${ok} / ${n}</p>
       ${secs !== null ? `<p class="muted">${H('qk.time', { t: mmss(secs) })}</p>` : ''}
       <p class="qk-break">${H('qk.doneSub')}</p>
-      ${all ? '' : `<button class="btn btn-ghost" data-act="quickMore">${H('qk.more', { n: n - ok })}</button>`}</section></main>`;
+      <div class="ck-dots qk-dots center">${items.map(p => `<span class="${qDone(p) ? 'ok' : ''}">${p.qn + 1}</span>`).join('')}</div>
+      ${all ? '' : `<button class="btn btn-ghost" data-act="quickMore">${H('qk.more', { n: n - ok })}</button>`}
+      <p class="muted small">${H('qk.afterNote')}</p></section></main>`;
   }
-  const c = current();
+  const c = current(), pass = passOf(q);
   const prob = c ? c.prob : items.find(p => !qDone(p)), lesson = LESSON_BY_KEY[prob.lesson];
-  const pass = passOf(q);
   return `<main class="wrap">
     <div class="session-head">
       <h1>⚡ ${H('qk.title')}</h1>
       ${q.end ? `<b class="qk-left" data-qk-clock>${qClockHTML()}</b>` : ''}
+      <b class="qk-need ${ok >= pass ? 'ok' : ''}">${ok >= pass ? '✓ ' + H('qk.passTitle') : H('qk.toPass', { n: pass - ok })}</b>
       <div class="session-progress"><span>${ok} / ${n}</span><div class="bar"><i style="width:${Math.round(ok / n * 100)}%"></i></div></div>
     </div>
     <div class="session-layout">
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
         <p class="qk-rule small">${qRuleHTML(q)}</p>
-        ${pass < n && ok < pass ? `<p class="small"><b>${H('qk.toPass', { n: pass - ok })}</b></p>` : ''}
         <p class="muted small">${H('qk.rule')}</p>
         <div class="ck-dots qk-dots">${items.map(p => `<a href="#/quick/${p.qn}" class="${qDone(p) ? 'ok' : ''}${p.id === prob.id ? ' cur' : ''}" title="Q${p.qn + 1}" aria-label="Q${p.qn + 1}">${p.qn + 1}</a>`).join('')}</div></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
@@ -622,7 +654,8 @@ let qPhaseShown = null;
 setInterval(() => {
   if (!S.klass || !quickOn(S.klass)) { qPhaseShown = null; return; }
   const ph = qPhaseNow();
-  document.querySelectorAll('[data-qk-clock]').forEach(el => { const h = qClockHTML(); if (el.innerHTML !== h) el.innerHTML = h; });
+  const q = S.klass.quick, low = ph === 'run' && q.end && new Date(q.end).getTime() - nowMs() < 60000;
+  document.querySelectorAll('[data-qk-clock]').forEach(el => { const h = qClockHTML(); if (el.innerHTML !== h) el.innerHTML = h; el.classList.toggle('low', !!low); });
   if (qPhaseShown !== null && ph !== qPhaseShown && (S.route.view === 'quick' || ph === 'up')) { saveDraft(); render(); }
   qPhaseShown = ph;
 }, 300);
@@ -631,16 +664,17 @@ let quickSeen = Store.get('sqln.quickSeen', null), quickShown, quickEndShown;
 function quickChanged(announce) {
   const id = quickOn(S.klass) ? S.klass.quick.id : null, end = id ? S.klass.quick.end || null : null;
   if (id === quickShown) {   // the same test: only a new end time (one more minute) matters
-    if (id && end !== quickEndShown) { quickEndShown = end; if (S.route.view === 'quick' && qPhaseNow() !== 'run') { saveDraft(); render(); } }
+    if (id && end !== quickEndShown) { quickEndShown = end; if (Store.get(QKEY_ST, null)) Store.set(QKEY_ST, qState()); if (S.route.view === 'quick' && qPhaseNow() !== 'run') { saveDraft(); render(); } }
     return;
   }
   quickEndShown = end;
   const prev = quickShown; quickShown = id; S.qMore = false;
   if (id && id !== quickSeen) {   // a new quick test: open it (once)
     quickSeen = id; Store.set('sqln.quickSeen', id);
+    Store.set(QKEY_ST, qState());   // kept, so the result can be shown after the test
     if (!qFinished() && qPhaseNow() !== 'up') { saveDraft(); if (S.route.view !== 'quick') { location.hash = '#/quick'; } else render(); toast(T('qk.started')); return; }
   }
-  if (prev !== undefined) { if (S.route.view === 'quick') saveDraft(); render(); if (!id && prev && announce && S.route.view === 'quick') toast(T('qk.ended')); }
+  if (prev !== undefined) { if (S.route.view === 'quick') saveDraft(); render(); if (!id && prev && announce) toast(T('qk.ended')); }
 }
 /* ---------- the class assignment (and the class live) ----------
  * #/live shows the assigned lessons' problems one after another; the library on the side
@@ -1150,6 +1184,7 @@ function record(prob, ok, run, sql) {
   const empty = run.error && run.error.code === 'empty';
   if (!empty && prob.quick) {   // the quick test: retry until right; the class log tells the teacher who has finished
     if (qPhaseNow() !== 'run') { render(); return; }   // the time is over (or not started): the answer does not count
+    if (!qDone(prob)) qAnswer(prob.qn, sql);
     if (ok && !qDone(prob)) { qMark(prob.qn); bumpStreak(S.progress); }
     if (S.klass && backend.enabled) backend.logAttempt({ class_id: S.klass.id, problem_id: prob.id.slice(0, 80), lesson: prob.lesson, stage: 'quick', ok, reason: ok ? null : (run.grade ? run.grade.reason : 'error'), sql: String(sql).slice(0, 2000) });
   } else if (!empty && prob.test) {   // a check test: only the test keeps score; the lessons' progress is not touched
@@ -1579,11 +1614,22 @@ async function watchKlass() {
     restoreFromServer().then(() => { if (S.route.view !== 'lesson' || !S.editor) render(); });
     backend.myPinSet(S.klass.id).then(v => { const need = v === false; if (need !== S.pinNeeded) { S.pinNeeded = need; if (S.route.view !== 'lesson') render(); } }).catch(() => {});
     if (unwatch) unwatch();
-    unwatch = await backend.watchClass(S.klass.id, row => applyClassRow(row, true));
+    unwatch = await backend.watchClass(S.klass.id, row => applyClassRow(row, true), () => pulseClass());
     syncClock(backend.serverNow).then(tickTimer);
     backend.flushAttempts();
   } catch (e) { /* offline: keep cached class */ }
 }
+// A change of the class reaches the student in three ways: the database's change event, the teacher's page
+// saying "changed" (both over the live connection), and asking again here, in case the connection is down.
+let pulsing = false;
+async function pulseClass() {
+  if (!S.klass || !backend.enabled || pulsing || document.hidden || !navigator.onLine) return;
+  pulsing = true;
+  try { const c = await backend.classPulse(S.klass.id); if (c && S.klass) applyClassRow(c, true); } catch (e) { /* offline */ }
+  pulsing = false;
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pulseClass(); });
+setInterval(pulseClass, 5000);   // every 5 seconds while the page is in front: a start is never missed for long
 function applyClassRow(c, live) {
   const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format);
   Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null, live_until: c.live_until || null, quick: c.quick || null });
