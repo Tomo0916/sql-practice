@@ -1164,5 +1164,8 @@ export default {
   "tp.other": "换一张表",
   "tp.single": "一张表",
   "tp.join": "两张表（JOIN）",
-  "tp.none": "在这个范围内，这张表无法出题。"
+  "tp.none": "在这个范围内，这张表无法出题。",
+  "tc.quick.table": "表",
+  "tc.quick.tableAny": "各种表（通常）",
+  "tc.quick.tableSkip": "无法使用这张表的课程：{l}"
 };

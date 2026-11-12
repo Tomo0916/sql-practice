@@ -8,6 +8,7 @@
  *           (kinds: fill, order1, order2, write; i = position in that lesson's shuffled problems of that kind,
  *           so the teacher can swap a problem for another of the same lesson and kind)
  *   (older tests: code + pick — the check-test code of a shuffled pool and positions in it)
+ *   tb   — (optional) one table for every problem: a table name, or the key of a pair of tables for JOIN
  *   n    — number of problems;  pass — right answers needed to pass (≤ n)
  *   at   — start time (server time, ISO): a few seconds after the teacher presses start,
  *          so everyone begins together after a countdown
@@ -18,6 +19,7 @@
  * ========================================================= */
 import { normCheck, decodeCheck, buildCheck } from './check.js';
 import { randomCode, stagesOf, LESSON_BY_KEY, FORMAT_KEYS, FORMAT_MAX } from './engine.js';
+import { tableSets, makeProblem } from './mastery.js';
 
 export const QUICK_COUNTS = [1, 2, 3, 4, 5];
 export const QUICK_LIMITS = [0, 3, 5, 10, 15];   // minutes; 0 = no limit
@@ -31,22 +33,33 @@ export const passOf = q => Math.max(1, Math.min(q.n, +q.pass || q.n));
 
 /* ---------- the problems: one pool per lesson and kind, slots that point into the pools ---------- */
 export const KINDS = FORMAT_KEYS;   // fill, order1, order2, write
-/** the kinds a lesson has (Lesson 2 and data analysis have no fill-in / ordering) */
-export function kindsOf(key) {
+const setOf = (engine, tb) => (tb ? tableSets(engine).find(x => x.key === tb) || null : null);
+/** the lessons a quick test on one table can use (null = any table: every lesson) */
+export const tableLessons = (engine, tb) => { const set = setOf(engine, tb); return set ? set.lessons : null; };
+/** the kinds a lesson has (Lesson 2 and data analysis have no fill-in / ordering); with a table: none when the lesson cannot use it */
+export function kindsOf(key, engine, tb) {
   const l = LESSON_BY_KEY[key]; if (!l || l.kind === 'quiz') return [];
+  if (tb && engine) { const set = setOf(engine, tb); if (!set || !set.lessons.includes(key)) return []; }
   const own = stagesOf(l);
   return KINDS.filter(k => k === 'write' || (k === 'fill' ? own.includes('fill') : own.includes('order')));
 }
 const poolCache = new Map();
-/** all the problems of one lesson and kind, shuffled by the seed (up to FORMAT_MAX) */
-export function kindPool(engine, key, st, seed) {
-  const id = `${key}|${st}|${seed}`;
+/** all the problems of one lesson and kind, shuffled by the seed (up to FORMAT_MAX); tb = only on that table */
+export function kindPool(engine, key, st, seed, tb) {
+  const id = `${key}|${st}|${seed}|${tb || ''}`;
   if (poolCache.has(id)) return poolCache.get(id);
   const f = { fill: 0, order1: 0, order2: 0, write: 0 }; f[st] = FORMAT_MAX;
   let out = [];
-  if (kindsOf(key).includes(st)) {
+  if (kindsOf(key, engine, tb).includes(st)) {
     const seen = new Set();
-    out = buildCheck(engine, normCheck({ lessons: [key], f, max: 0, seed }), `${seed}${st}`).filter(p => !seen.has(p.sql) && seen.add(p.sql));
+    if (tb) {   // one table: new problems of the lesson made on that table
+      const set = setOf(engine, tb), lesson = LESSON_BY_KEY[key], theme = set.ds.table || set.ds.key;
+      for (let i = 0; i < FORMAT_MAX * 4 && out.length < FORMAT_MAX; i++) {
+        const p = engine.genOne(lesson, set.ds, `QT${seed}|${key}|${st}|${i}`); if (!p) continue;
+        const pr = makeProblem(engine, lesson, p, theme, st);
+        if (pr && !seen.has(pr.sql)) { seen.add(pr.sql); out.push(Object.assign(pr, { id: `check:${seed}:${tb}:${pr.id}`, kind: 'practice', test: true, src: pr.id })); }
+      }
+    } else out = buildCheck(engine, normCheck({ lessons: [key], f, max: 0, seed }), `${seed}${st}`).filter(p => !seen.has(p.sql) && seen.add(p.sql));
   }
   if (poolCache.size > 400) poolCache.clear();
   poolCache.set(id, out);
@@ -54,9 +67,9 @@ export function kindPool(engine, key, st, seed) {
 }
 const SIMPLE_KINDS = { write: ['write'], mix: ['fill', 'order1', 'write'], order: ['order1', 'order2'] };
 /** the first position of a lesson's pool of this kind that is free: not used, and not the same query as another slot (a fill-in and a write of one query would give it away) */
-function freeIndex(engine, k, st, seed, slots, from = 0, skip = -1) {
-  const pool = kindPool(engine, k, st, seed);
-  const sqls = new Set(slots.filter((y, m) => m !== skip).map(y => (kindPool(engine, y.k, y.st, seed)[y.i] || {}).sql));
+function freeIndex(engine, k, st, seed, slots, from = 0, skip = -1, tb) {
+  const pool = kindPool(engine, k, st, seed, tb);
+  const sqls = new Set(slots.filter((y, m) => m !== skip).map(y => (kindPool(engine, y.k, y.st, seed, tb)[y.i] || {}).sql));
   for (let step = 0; step < pool.length; step++) {
     const i = (from + step) % pool.length;
     if (!sqls.has(pool[i].sql) && !slots.some((y, m) => m !== skip && y.k === k && y.st === st && y.i === i)) return i;
@@ -64,44 +77,45 @@ function freeIndex(engine, k, st, seed, slots, from = 0, skip = -1) {
   return null;
 }
 /** easy set-up: n problems spread over the lessons, of the kinds of a preset */
-export function simpleSlots(engine, lessons, n, kind, seed) {
+export function simpleSlots(engine, lessons, n, kind, seed, tb) {
   const kinds = SIMPLE_KINDS[kind] || SIMPLE_KINDS.write, out = [];
+  lessons = lessons.filter(k => kindsOf(k, engine, tb).length);
   if (!lessons.length) return out;
   for (let r = 0; r < FORMAT_MAX * kinds.length && out.length < n; r++) for (let j = 0; j < lessons.length && out.length < n; j++) {
-    const k = lessons[j], st0 = kinds[(j + r) % kinds.length], st = kindsOf(k).includes(st0) ? st0 : 'write';
-    const i = freeIndex(engine, k, st, seed, out);
+    const k = lessons[j], st0 = kinds[(j + r) % kinds.length], st = kindsOf(k, engine, tb).includes(st0) ? st0 : 'write';
+    const i = freeIndex(engine, k, st, seed, out, 0, -1, tb);
     if (i !== null) out.push({ k, st, i });
   }
   return out;
 }
 /** detailed set-up: per lesson, how many of each kind  { lessonKey: { fill, order1, order2, write } } */
-export function detailSlots(engine, per, order, seed) {
+export function detailSlots(engine, per, order, seed, tb) {
   const out = [];
   for (const k of order) {
     const c = per[k] || {};
     for (const st of KINDS) {
-      const want = kindsOf(k).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +c[st] || 0)) : 0;
-      for (let w = 0; w < want; w++) { const i = freeIndex(engine, k, st, seed, out); if (i === null) break; out.push({ k, st, i }); }
+      const want = kindsOf(k, engine, tb).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +c[st] || 0)) : 0;
+      for (let w = 0; w < want; w++) { const i = freeIndex(engine, k, st, seed, out, 0, -1, tb); if (i === null) break; out.push({ k, st, i }); }
     }
   }
   return out;
 }
 /** the slots with the teacher's swaps { slotNumber: i } (only free positions) */
-export function applySwaps(engine, slots, swaps, seed) {
+export function applySwaps(engine, slots, swaps, seed, tb) {
   const out = slots.map(x => Object.assign({}, x));
   Object.entries(swaps || {}).forEach(([j, i]) => {
     const x = out[+j]; if (!x || !Number.isInteger(i)) return;
-    if (freeIndex(engine, x.k, x.st, seed, out, i, +j) === i) x.i = i;
+    if (freeIndex(engine, x.k, x.st, seed, out, i, +j, tb) === i) x.i = i;
   });
   return out;
 }
 /** another problem of the same lesson and kind for slot j (null when there is none) */
-export function nextFree(engine, slots, j, seed) {
-  const x = slots[j], i = freeIndex(engine, x.k, x.st, seed, slots, x.i + 1, j);
+export function nextFree(engine, slots, j, seed, tb) {
+  const x = slots[j], i = freeIndex(engine, x.k, x.st, seed, slots, x.i + 1, j, tb);
   return i === null || i === x.i ? null : i;
 }
-export function slotProblems(engine, seed, slots) {
-  return relabel(slots.map(x => kindPool(engine, x.k, x.st, seed)[x.i]).filter(Boolean));
+export function slotProblems(engine, seed, slots, tb) {
+  return relabel(slots.map(x => kindPool(engine, x.k, x.st, seed, tb)[x.i]).filter(Boolean));
 }
 /** "Write 1, 2 …" counted inside the test (not the lesson's own numbers) */
 function relabel(list) {
@@ -117,14 +131,14 @@ export const limitSecOf = q => (q && q.end ? Math.max(1, Math.round((new Date(q.
 export function newQuick(d, nowMs) {
   const at = (nowMs || Date.now()) + QUICK_COUNTDOWN * 1000, n = d.slots.length;
   const sec = Math.min(QUICK_MAX_SEC, Math.max(0, Math.round(d.limitSec !== undefined ? +d.limitSec || 0 : (+d.limit || 0) * 60)));
-  return { id: randomCode(5), seed: d.seed, slots: d.slots.map(x => ({ k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
+  return { id: randomCode(5), seed: d.seed, ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => ({ k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
     pass: Math.max(1, Math.min(n, +d.pass || n)), end: sec ? new Date(at + sec * 1000).toISOString() : null };
 }
 /** the problems of a quick test, with their quick ids (answers hidden until it is over) */
 export function quickProblems(engine, q) {
   if (!q) return [];
   let list;
-  if (Array.isArray(q.slots)) list = slotProblems(engine, q.seed, q.slots);
+  if (Array.isArray(q.slots)) list = slotProblems(engine, q.seed, q.slots, q.tb || '');
   else {   // an older test: a shuffled pool and positions in it
     const cfg = decodeCheck(q.code); if (!cfg) return [];
     const pool = buildCheck(engine, cfg, cfg.seed);

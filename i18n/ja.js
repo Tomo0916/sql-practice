@@ -1165,5 +1165,8 @@ export default {
   "tp.other": "別のテーブルにする",
   "tp.single": "1 つのテーブル",
   "tp.join": "2 つのテーブル（JOIN）",
-  "tp.none": "この範囲では、このテーブルで出せる問題がありません。"
+  "tp.none": "この範囲では、このテーブルで出せる問題がありません。",
+  "tc.quick.table": "テーブル",
+  "tc.quick.tableAny": "いろいろなテーブル（ふつう）",
+  "tc.quick.tableSkip": "このテーブルでは出せないレッスン：{l}"
 };

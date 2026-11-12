@@ -1164,5 +1164,8 @@ export default {
   "tp.other": "Tabel lain",
   "tp.single": "Satu tabel",
   "tp.join": "Dua tabel (JOIN)",
-  "tp.none": "Tidak ada soal yang bisa dibuat dengan tabel ini untuk cakupan ini."
+  "tp.none": "Tidak ada soal yang bisa dibuat dengan tabel ini untuk cakupan ini.",
+  "tc.quick.table": "Tabel",
+  "tc.quick.tableAny": "Berbagai tabel (biasa)",
+  "tc.quick.tableSkip": "Pelajaran yang tidak bisa memakai tabel ini: {l}"
 };

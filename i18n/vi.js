@@ -1164,5 +1164,8 @@ export default {
   "tp.other": "Bảng khác",
   "tp.single": "Một bảng",
   "tp.join": "Hai bảng (JOIN)",
-  "tp.none": "Không tạo được câu hỏi nào với bảng này trong phạm vi này."
+  "tp.none": "Không tạo được câu hỏi nào với bảng này trong phạm vi này.",
+  "tc.quick.table": "Bảng",
+  "tc.quick.tableAny": "Nhiều bảng khác nhau (thông thường)",
+  "tc.quick.tableSkip": "Bài học không dùng được bảng này: {l}"
 };

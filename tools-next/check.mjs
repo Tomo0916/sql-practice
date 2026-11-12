@@ -446,6 +446,21 @@ console.log('11. Check tests (確認テスト)');
     }
     if (LESSONS.some(l => M.patternsOf(l.key, eng).list.length > 1 && M.patternsOf(l.key, eng).list.some(tp => !M.patLabel(l.key, tp)))) err('review: a pattern has no name (a case label in the lecture)');
   }
+  // a quick test on one table: every problem uses it, lessons that cannot use it are left out, and the students get the same problems
+  {
+    const { tableLessons, kindPool } = await import('../js/quick.js');
+    for (const tb of ['movies', 'shop']) {
+      const ls = ['where', 'orderby', 'groupby', 'inner', 'left'], can = tableLessons(eng, tb);
+      const slots = simpleSlots(eng, ls, 5, 'mix', 'TB', tb), probs = slotProblems(eng, 'TB', slots, tb);
+      const names = tb === 'shop' ? ['customers', 'orders'] : [tb];   // (a pair of tables gives one query for each of these JOIN lessons: 2 problems)
+      if (probs.length !== (tb === 'shop' ? 2 : 5) || probs.some(p => p.tables.some(t => !names.includes(t))) || slots.some(x => !can.includes(x.k)) || new Set(probs.map(p => p.sql)).size !== probs.length) err(`quick test on one table (${tb}): another table, a lesson that cannot use it, or a repeated query`);
+      const qt = newQuick({ seed: 'TB', tb, slots, pass: 3, limitSec: 90 }, Date.parse('2026-01-01T00:00:00Z'));
+      const qp = quickProblems(eng, JSON.parse(JSON.stringify(qt)));
+      if (qt.tb !== tb || qp.map(p => p.sql).join('|') !== probs.map(p => p.sql).join('|') || qp.some(p => !p.test || p.kind !== 'practice')) err(`quick test on one table (${tb}): the students do not get the teacher's problems`);
+      if (detailSlots(eng, { where: { fill: 1, order1: 1, order2: 1, write: 2 }, inner: { write: 1 } }, ['where', 'inner'], 'TB', tb).length !== (tb === 'shop' ? 1 : 5)) err(`quick test on one table (${tb}): the detailed set-up is wrong`);
+    }
+    if (newQuick({ seed: 'TB', slots: simpleSlots(eng, ['where'], 1, 'write', 'TB'), pass: 1 }, 0).tb !== undefined) err('quick test: a test on various tables carries a table');
+  }
   // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"
   {
     const { quickStats, quickCSV, logPut, logDrop, slotsShape, QUICK_LOG_MAX } = await import('../js/quick.js');

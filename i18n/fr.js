@@ -1164,5 +1164,8 @@ export default {
   "tp.other": "Une autre table",
   "tp.single": "Une table",
   "tp.join": "Deux tables (JOIN)",
-  "tp.none": "Aucun problème possible sur cette table pour cette étendue."
+  "tp.none": "Aucun problème possible sur cette table pour cette étendue.",
+  "tc.quick.table": "Table",
+  "tc.quick.tableAny": "Tables variées (habituel)",
+  "tc.quick.tableSkip": "Leçons qui ne peuvent pas utiliser cette table : {l}"
 };
