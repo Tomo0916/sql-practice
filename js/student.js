@@ -25,7 +25,7 @@ import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
-import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N } from './mastery.js';
+import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N, tableSets, tableCourse } from './mastery.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
@@ -122,6 +122,7 @@ function parseRoute() {
   if (h[0] === 'l' && LESSON_BY_KEY[h[1]]) return { view: 'lesson', key: h[1], idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };   // current() keeps it inside the lesson's problems
   if (h[0] === 'review' || h[0] === 'mix') return { view: 'session', kind: h[0] };
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
+  if (h[0] === 'table') return { view: 'session', kind: 'table', ds: h[1] || null };
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
   if (h[0] === 'mastery') return { view: 'mastery' };
@@ -286,6 +287,10 @@ function homeHTML() {
           }).join('')}</ul></article>`;
       }).join('')}
     </section>
+    <section class="card mixcard drillcard">
+      <div><span class="drill-ic">🗂</span><div><b>${H('tp.title')}</b><p class="muted">${H('tp.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/table">${H('tp.open')}</a>
+    </section>
     <section class="card mixcard">
       <div>${I.shuffle}<div><b>${H('mix.title')}</b><p class="muted">${H('mix.sub')}</p></div></div>
       <a class="btn btn-ghost" href="#/mix">${H('mix.start')}</a>
@@ -392,6 +397,7 @@ function startSession(kind) {
 function sessionHTML() {
   const kind = S.route.kind;
   if (kind === 'check') return checkHTML();
+  if (kind === 'table') return oneTableHTML();
   if (!S.session || S.session.kind !== kind || (kind === 'drill' && S.session.key !== S.route.key)) startSession(kind);
   const ses = S.session;
   document.title = `${T(kind === 'review' ? 'nav.review' : kind === 'drill' ? 'drill.title' : 'mix.title')} · SQL Practice`;
@@ -419,6 +425,68 @@ function sessionHTML() {
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
         ${prob.pat ? patBoxHTML(prob) : ''}
         <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details></aside>
+      <div class="main" id="ws">${workspaceHTML(prob)}</div>
+    </div>
+  </main>`;
+}
+/* ---------- one table, many queries (同じテーブルで練習): #/table = choose, #/table/<name> = practise ---------- */
+const TP_KEY = 'sqln.oneTable';
+function tpConfig() {
+  const c = Store.get(TP_KEY, null) || {}, sets = tableSets(S.engine);
+  const chapters = CHAPTERS.filter(ch => LESSONS.some(l => l.ch === ch.key && sets[0].lessons.includes(l.key))).map(ch => ch.key);
+  const started = chapters.filter(k => LESSONS.some(l => l.ch === k && S.progress.lessons[l.key] && S.progress.lessons[l.key].done));
+  let ch = Array.isArray(c.ch) ? c.ch.filter(k => chapters.includes(k)) : [];
+  if (!ch.length) ch = started.length ? started : chapters.slice(0, 1);
+  return { chapters, ch, fmt: ['fill', 'order2', 'write'].includes(c.fmt) ? c.fmt : 'write', per: c.per === 2 ? 2 : 1 };
+}
+const tpLessons = (set, cfg) => (set.join ? set.lessons : set.lessons.filter(k => cfg.ch.includes(LESSON_BY_KEY[k].ch)));
+function startOneTable(ds) {
+  const cfg = tpConfig(), set = tableSets(S.engine).find(x => x.key === ds);
+  const items = set ? tableCourse(S.engine, ds, tpLessons(set, cfg), cfg.fmt, cfg.per, `tp|${ds}|${Date.now()}`) : [];
+  S.session = { kind: 'table', ds, items, i: 0, done: {} };
+}
+const tpFmtName = f => H(f === 'fill' ? 'stage.fill' : f === 'order2' ? 'stage.order' : 'rv.write');
+function oneTableSetupHTML() {
+  const cfg = tpConfig(), sets = tableSets(S.engine);
+  const seg = (k, vals, cur, label) => `<div class="seg">${vals.map(v => `<button class="${v === cur ? 'on' : ''}" data-act="tpSet" data-k="${k}" data-v="${v}" aria-pressed="${v === cur}">${label(v)}</button>`).join('')}</div>`;
+  const card = set => { const n = tpLessons(set, cfg).length * (set.join ? 1 : cfg.per);
+    return `<a class="card tp-card" href="#/table/${set.key}"><div class="tp-names">${set.tables.map(t => `<b class="mono">${esc(t)}</b>`).join('<i>+</i>')}</div>
+      ${set.tables.map(t => `<div class="tb-cols">${ALL_TABLES[t].columns.map(([c, ty]) => `<span class="col-chip static">${esc(c)}<small>${ty === 'INTEGER' ? '123' : 'abc'}</small></span>`).join('')}</div>`).join('')}
+      <span class="tp-go"><span class="muted small">${H('prob.rows', { n: ALL_TABLES[set.tables[0]].rows.length })}${set.join ? '' : ` · ${H('tp.perN', { n })}`}</span><span class="btn btn-primary btn-sm">${H('tp.begin')}${I.next}</span></span></a>`; };
+  return `<main class="wrap tp-wrap"><h1 class="page-title">🗂 ${H('tp.title')}</h1><p class="muted">${H('tp.sub')}</p>
+    <section class="card tp-set">
+      <div class="fld"><span>${H('tp.range')}</span><div class="q-chapters">${cfg.chapters.map(k => { const on = cfg.ch.includes(k); return `<button class="btn btn-ghost btn-xs q-ch ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="tpSet" data-k="ch" data-v="${k}" aria-pressed="${on}">${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}</div></div>
+      <div class="q-row"><div class="fld"><span>${H('tp.format')}</span>${seg('fmt', ['fill', 'order2', 'write'], cfg.fmt, tpFmtName)}</div>
+        <div class="fld"><span>${H('tp.per')}</span>${seg('per', [1, 2], cfg.per, v => H('tp.perN', { n: v }))}</div></div>
+    </section>
+    <h2 class="tp-h">${H('tp.single')}</h2><div class="tp-grid">${sets.filter(x => !x.join).map(card).join('')}</div>
+    <h2 class="tp-h">${H('tp.join')}</h2><div class="tp-grid">${sets.filter(x => x.join).map(card).join('')}</div></main>`;
+}
+function oneTableHTML() {
+  document.title = `${T('tp.title')} · SQL Practice`;
+  const ds = S.route.ds, set = ds ? tableSets(S.engine).find(x => x.key === ds) : null;
+  if (!set) return oneTableSetupHTML();
+  if (!S.session || S.session.kind !== 'table' || S.session.ds !== ds) startOneTable(ds);
+  const ses = S.session, names = set.tables.map(t => `<span class="mono">${esc(t)}</span>`).join(' + ');
+  if (!ses.items.length) return `<main class="wrap narrow"><section class="card empty"><h1>${H('tp.title')}</h1><p class="muted">${H('tp.none')}</p><a class="btn btn-primary" href="#/table">${H('tp.other')}</a></section></main>`;
+  if (ses.i >= ses.items.length) {
+    const ok = Object.values(ses.done).filter(Boolean).length;
+    return `<main class="wrap narrow"><section class="card empty">
+      <div class="empty-icon">${I.fire}</div><h1>${H('review.finished')}</h1><p class="muted">${names}</p><p class="big-score">${ok} / ${ses.items.length}</p>
+      <div class="row-btns"><button class="btn btn-primary" data-act="tpAgain">${I.repeat}${H('tp.again')}</button><a class="btn btn-ghost" href="#/table">${H('tp.other')}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
+  }
+  const prob = ses.items[ses.i], lesson = LESSON_BY_KEY[prob.lesson];
+  return `<main class="wrap">
+    <div class="session-head">
+      <h1>🗂 ${names}</h1>
+      <div class="session-progress"><span>${ses.i + 1} / ${ses.items.length}</span><div class="bar"><i style="width:${Math.round(ses.i / ses.items.length * 100)}%"></i></div></div>
+    </div>
+    <div class="session-layout">
+      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details>
+        <div class="tp-steps">${[...new Set(ses.items.map(p => p.lesson))].map(k => { const ps = ses.items.filter(p => p.lesson === k), all = ps.every(p => ses.done[p.id]), cur = k === prob.lesson;
+          return `<span class="${cur ? 'cur' : all ? 'ok' : ps.some(p => ses.done[p.id] === false) ? 'bad' : ''}" title="${esc(lessonTitle(LESSON_BY_KEY[k], L()))}">${LESSON_BY_KEY[k].no}</span>`; }).join('')}</div>
+        <a class="btn btn-ghost btn-xs" href="#/table">${H('tp.other')}</a></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
@@ -1388,6 +1456,13 @@ const actions = {
   place(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).concat(el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   unplace(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).filter(x => x !== el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   resetOrder() { const c = current(); delete S.progress.drafts['o:' + c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
+  tpSet(el) {
+    const cfg = tpConfig(), k = el.dataset.k, v = el.dataset.v;
+    if (k === 'ch') { const on = cfg.ch.includes(v); cfg.ch = on ? cfg.ch.filter(x => x !== v) : cfg.chapters.filter(x => x === v || cfg.ch.includes(x)); if (!cfg.ch.length) cfg.ch = [v]; }
+    else if (k === 'fmt') cfg.fmt = v; else if (k === 'per') cfg.per = +v;
+    Store.set(TP_KEY, { ch: cfg.ch, fmt: cfg.fmt, per: cfg.per }); render();
+  },
+  tpAgain() { S.session = null; render(); window.scrollTo(0, 0); },
   reviewMore() { S.session = null; render(); window.scrollTo(0, 0); },
   quickMore() { S.qMore = true; const f = qItems().find(p => !qDone(p)); location.hash = f ? `#/quick/${f.qn}` : '#/quick'; },
   sessionNext() { saveDraft(); if (S.session.kind === 'drill' && !S.session.done[S.session.items[S.session.i].id]) S.session.streak = 0; S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },

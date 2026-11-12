@@ -1151,5 +1151,19 @@ export default {
   "rv.lv3": "Mastered",
   "rv.masteredN": "patterns mastered",
   "rv.dueNow": "In today's review",
-  "rv.notDone": "Starts when you finish the lesson"
+  "rv.notDone": "Starts when you finish the lesson",
+  "tp.title": "Practise on one table",
+  "tp.sub": "Choose one table. The problems follow the lessons in order and all use that table: the data stays, only the SQL changes.",
+  "tp.homeSub": "Pick one table and practise from SELECT to aggregates on it.",
+  "tp.open": "Choose a table",
+  "tp.range": "Range",
+  "tp.format": "Format",
+  "tp.per": "Problems per lesson",
+  "tp.perN": "{n}",
+  "tp.begin": "Start with this table",
+  "tp.again": "Same table, new problems",
+  "tp.other": "Another table",
+  "tp.single": "One table",
+  "tp.join": "Two tables (JOIN)",
+  "tp.none": "No problems can be made on this table for this range."
 };

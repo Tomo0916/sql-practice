@@ -435,6 +435,15 @@ console.log('11. Check tests (確認テスト)');
       if (pr.stage !== (tok.startsWith('order') ? 'order' : tok) || (pr.p && !l.fixed && !topicsOf(l.key, pr.p).includes(topic)) || !eng.exec(pr.sql)) { miss++; if (miss < 4) err(`review: Lesson ${l.no}, pattern "${topic}", ${tok}: no problem of that pattern and format`); }
     }
     if (!miss) console.log(`   review by pattern: ${LESSONS.reduce((a, l) => a + M.patternsOf(l.key, eng).list.length, 0)} patterns, ${total} problems made`);
+    // one table, many queries: every problem uses the chosen table, in lesson order, in the chosen format
+    for (const set of M.tableSets(eng)) for (const tok of ['fill', 'order2', 'write']) {
+      const c = M.tableCourse(eng, set.key, set.lessons, tok, set.join ? 1 : 2, 'ck');
+      const order = c.map(p => LESSONS.findIndex(l => l.key === p.lesson));
+      if (c.some(p => p.tables.some(t => !set.tables.includes(t)))) err(`one table: a problem for ${set.key} uses another table`);
+      if (new Set(c.map(p => p.lesson)).size !== set.lessons.length || order.some((x, i) => i && x < order[i - 1]) || new Set(c.map(p => p.sql)).size !== c.length) err(`one table: ${set.key} (${tok}) misses a lesson, is out of order, or repeats a query`);
+      if (!set.join && c.length !== set.lessons.length * 2) err(`one table: ${set.key} (${tok}) does not give 2 problems per lesson`);
+      if (tok === 'write' && c.some(p => p.stage !== 'write')) err(`one table: ${set.key} is not all writing`);
+    }
     if (LESSONS.some(l => M.patternsOf(l.key, eng).list.length > 1 && M.patternsOf(l.key, eng).list.some(tp => !M.patLabel(l.key, tp)))) err('review: a pattern has no name (a case label in the lecture)');
   }
   // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"

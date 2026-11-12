@@ -114,6 +114,15 @@ export function patPick(progress, t, engine, n = REVIEW_N, skip = []) {
 export const lessonLevels = (progress, key, engine) => patternsOf(key, engine).list.map(topic => ({ topic, st: (progress.pat || {})[patKey(key, topic)] || null, level: patLevel((progress.pat || {})[patKey(key, topic)], LESSON_BY_KEY[key]) }));
 
 /* ---------- a problem for a pattern, in the format of its step ---------- */
+/** an extra problem (not one of the lesson's own) from parameters, in a format: 'fill' | 'order1' | 'order2' | 'write' | 'quiz'; null when it cannot be made in that format */
+export function makeProblem(engine, lesson, p, theme, token) {
+  const pr = engine.buildProblem(lesson, p, 'review', 0, theme);
+  Object.assign(pr, { kind: 'review', stage: token.startsWith('order') ? 'order' : token, level: token === 'order2' ? 2 : token === 'order1' ? 1 : undefined, wn: 1, of: 1 });
+  pr.id = `${lesson.key}:review:${token}:${hashStr(pr.sql).toString(36)}`;
+  if (pr.stage === 'order' && !engine.orderTask(pr)) return null;
+  if (pr.stage === 'fill' && !engine.fillTask(pr)) return null;
+  return pr;
+}
 /**
  * A new problem of this lesson that asks for this pattern, as fill-in / ordering / writing.
  * seed changes the data and the numbers. When no problem of the pattern is found (rare),
@@ -124,14 +133,7 @@ export function patProblem(engine, lessonKey, topic, st, seed) {
   const state = st || patStart(lesson), step = Math.max(0, Math.min(state.f, ladder.length - 1));
   const mark = pr => Object.assign(pr, { pat: patKey(lessonKey, topic), topic, step, steps_n: ladder.length });
   if (lesson.fixed) return mark(engine.reviewProblem(lesson, `${seed}|${topic}`));
-  const build = (p, theme, token) => {
-    const pr = engine.buildProblem(lesson, p, 'review', 0, theme);
-    Object.assign(pr, { kind: 'review', stage: token.startsWith('order') ? 'order' : token, level: token === 'order2' ? 2 : token === 'order1' ? 1 : undefined, wn: 1, of: 1 });
-    pr.id = `${lessonKey}:review:${token}:${hashStr(pr.sql).toString(36)}`;
-    if (pr.stage === 'order' && !engine.orderTask(pr)) return null;
-    if (pr.stage === 'fill' && !engine.fillTask(pr)) return null;
-    return pr;
-  };
+  const build = (p, theme, token) => makeProblem(engine, lesson, p, theme, token);
   let spare = null;
   // the format of the step first; a problem that cannot be made in that format moves towards writing
   for (let s = step; s < ladder.length; s++) {
@@ -150,4 +152,42 @@ export function patProblem(engine, lessonKey, topic, st, seed) {
     if (spare) return mark(spare);
   }
   return mark(engine.reviewProblem(lesson, `${seed}|${topic}`));
+}
+
+/* ---------- one table, many queries (同じテーブルで練習) ----------
+ * The lessons' problems move from table to table. Here the student chooses one table
+ * (or one pair of tables for JOIN) and practises the lessons in order on it,
+ * so only the query changes from problem to problem. */
+import { SINGLE_DATASETS, JOIN_DATASETS } from './datasets.js';
+/** the tables to choose from: [{ key, tables: [names], join, lessons: [keys that can use it] }] */
+export function tableSets(engine) {
+  const can = l => !l.fixed && l.kind !== 'quiz';
+  const single = LESSONS.filter(l => can(l) && engine.themesFor(l) === SINGLE_DATASETS).map(l => l.key);
+  const join = LESSONS.filter(l => can(l) && engine.themesFor(l) === JOIN_DATASETS).map(l => l.key);
+  return [...SINGLE_DATASETS.map(d => ({ key: d.table, tables: [d.table], join: false, lessons: single, ds: d })),
+    ...JOIN_DATASETS.map(d => ({ key: d.key, tables: [d.left.table, d.right.table], join: true, lessons: join, ds: d }))];
+}
+/**
+ * The problems of a round on one table: `per` problems for each lesson, in lesson order,
+ * in the format `token` ('fill' | 'order2' | 'write'; a lesson without that format moves towards writing).
+ * A lesson's problems ask for different patterns when it has several.
+ */
+export function tableCourse(engine, setKey, lessonKeys, token, per, seed) {
+  const set = tableSets(engine).find(x => x.key === setKey); if (!set) return [];
+  const out = [], seen = new Set(), theme = set.ds.table || set.ds.key;
+  for (const l of LESSONS.filter(x => lessonKeys.includes(x.key) && set.lessons.includes(x.key))) {
+    const ladder = ladderOf(l), from = Math.max(0, ladder.indexOf(token)), used = new Set();
+    for (let j = 0; j < per; j++) {
+      let pick = null;
+      for (let round = 0; round < 16 && !(pick && pick.fresh); round++) {
+        const p = engine.genOne(l, set.ds, `${seed}|${l.key}|${j}|${round}`); if (!p) continue;
+        const tp = topicsOf(l.key, p).join('+'), fresh = !used.has(tp);
+        if (pick && !fresh) continue;
+        let pr = null; for (let s = from; s < ladder.length && !pr; s++) pr = makeProblem(engine, l, p, theme, ladder[s]);
+        if (pr && !seen.has(pr.sql)) pick = { pr, tp, fresh };
+      }
+      if (pick) { used.add(pick.tp); seen.add(pick.pr.sql); out.push(pick.pr); }
+    }
+  }
+  return out;
 }

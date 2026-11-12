@@ -1150,5 +1150,19 @@ export default {
   "rv.lv3": "Maîtrisé",
   "rv.masteredN": "motifs maîtrisés",
   "rv.dueNow": "Dans la révision du jour",
-  "rv.notDone": "Commence quand la leçon est terminée"
+  "rv.notDone": "Commence quand la leçon est terminée",
+  "tp.title": "S'entraîner sur une seule table",
+  "tp.sub": "Choisissez une table. Les problèmes suivent l'ordre des leçons et utilisent tous cette table : les données restent, seul le SQL change.",
+  "tp.homeSub": "Choisissez une table et entraînez-vous dessus, de SELECT aux agrégats.",
+  "tp.open": "Choisir une table",
+  "tp.range": "Étendue",
+  "tp.format": "Format",
+  "tp.per": "Problèmes par leçon",
+  "tp.perN": "{n}",
+  "tp.begin": "Commencer avec cette table",
+  "tp.again": "Même table, nouveaux problèmes",
+  "tp.other": "Une autre table",
+  "tp.single": "Une table",
+  "tp.join": "Deux tables (JOIN)",
+  "tp.none": "Aucun problème possible sur cette table pour cette étendue."
 };
