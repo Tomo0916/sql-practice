@@ -9,6 +9,7 @@
  *           so the teacher can swap a problem for another of the same lesson and kind)
  *   (older tests: code + pick — the check-test code of a shuffled pool and positions in it)
  *   tb   — (optional) one table for every problem: a table name, or the key of a pair of tables for JOIN
+ *   lv, once — (optional) a level test: the chapters (numbers in level.js) it measures; only the first answer to each problem counts
  *   n    — number of problems;  pass — right answers needed to pass (≤ n)
  *   at   — start time (server time, ISO): a few seconds after the teacher presses start,
  *          so everyone begins together after a countdown
@@ -131,7 +132,7 @@ export const limitSecOf = q => (q && q.end ? Math.max(1, Math.round((new Date(q.
 export function newQuick(d, nowMs) {
   const at = (nowMs || Date.now()) + QUICK_COUNTDOWN * 1000, n = d.slots.length;
   const sec = Math.min(QUICK_MAX_SEC, Math.max(0, Math.round(d.limitSec !== undefined ? +d.limitSec || 0 : (+d.limit || 0) * 60)));
-  return { id: randomCode(5), seed: d.seed, ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => ({ k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
+  return { id: randomCode(5), seed: d.seed, ...(Array.isArray(d.lv) && d.lv.length ? { lv: d.lv.slice(), once: true } : {}), ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => ({ k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
     pass: Math.max(1, Math.min(n, +d.pass || n)), end: sec ? new Date(at + sec * 1000).toISOString() : null };
 }
 /** the problems of a quick test, with their quick ids (answers hidden until it is over) */
@@ -167,10 +168,11 @@ export function quickProgress(attempts, q) {
     .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : (a.id || 0) - (b.id || 0)))
     .forEach(a => {
       const i = +a.problem_id.slice(pre.length);
-      const s = out.get(a.user_id) || { ok: new Set(), tries: 0, first: a.created_at, done: null, all: null, last: a.created_at };
-      s.tries++; s.last = a.created_at;
+      const s = out.get(a.user_id) || { ok: new Set(), seen: new Set(), tries: 0, first: a.created_at, done: null, all: null, last: a.created_at };
+      if (q.once && s.seen.has(i)) return;   // a level test: only the first answer counts
+      s.seen.add(i); s.tries++; s.last = a.created_at;
       if (a.ok) s.ok.add(i);
-      if (!s.done && s.ok.size >= pass) s.done = a.created_at;
+      if (!s.done && (q.once ? s.seen.size >= q.n : s.ok.size >= pass)) s.done = a.created_at;   // a level test: done = every problem answered
       if (!s.all && s.ok.size >= q.n) s.all = a.created_at;
       out.set(a.user_id, s);
     });
@@ -207,7 +209,7 @@ export function quickStats(attempts, q, members) {
     const i = +a.problem_id.slice(pre.length);
     if (!(i >= 0 && i < n)) continue;
     const s = by.get(a.user_id) || { ok: Array(n).fill(false), tries: Array(n).fill(0), at: null };
-    if (s.ok[i]) continue;   // answers after the first right one are looking back
+    if (s.ok[i] || (q.once && s.tries[i])) continue;   // answers after the first right one are looking back; a level test counts the first answer only
     s.tries[i]++;
     if (a.ok) { s.ok[i] = true; if (!s.at && s.ok.filter(Boolean).length >= pass) s.at = new Date(a.created_at).getTime(); }
     else if (a.sql) {
@@ -247,4 +249,18 @@ export function slotsShape(slots) {
     per[x.k][x.st] = (per[x.k][x.st] || 0) + 1;
   }
   return { lessons, per };
+}
+
+/* ---------- a level test sent to the class: 3 writing problems for each chosen chapter ---------- */
+import { LV_CHAPTERS, testLessons } from './level.js';
+export function levelSlots(engine, chapters, seed, tb) {
+  const per = {}, order = [];
+  chapters.slice().sort((a, b) => a - b).forEach(c => testLessons(LV_CHAPTERS[c]).forEach(k => { if (!per[k]) { per[k] = { write: 0 }; order.push(k); } per[k].write++; }));
+  return detailSlots(engine, per, order, seed, tb);
+}
+/** a student's results of a level test → the level's profile: right answers per chapter (chapters not in the test keep `prev`) */
+export function levelProfile(items, done, chapters, prev) {
+  const prof = LV_CHAPTERS.map((c, i) => (prev && prev[i] !== undefined ? prev[i] : null));
+  chapters.forEach(c => { prof[c] = items.filter(p => LV_CHAPTERS.indexOf(LESSON_BY_KEY[p.lesson].ch) === c && done[p.qn]).length; });
+  return prof;
 }
