@@ -435,7 +435,31 @@ console.log('11. Check tests (確認テスト)');
       if (pr.stage !== (tok.startsWith('order') ? 'order' : tok) || (pr.p && !l.fixed && !topicsOf(l.key, pr.p).includes(topic)) || !eng.exec(pr.sql)) { miss++; if (miss < 4) err(`review: Lesson ${l.no}, pattern "${topic}", ${tok}: no problem of that pattern and format`); }
     }
     if (!miss) console.log(`   review by pattern: ${LESSONS.reduce((a, l) => a + M.patternsOf(l.key, eng).list.length, 0)} patterns, ${total} problems made`);
+    // one table, many queries: every problem uses the chosen table, in lesson order, in the chosen format
+    for (const set of M.tableSets(eng)) for (const tok of ['fill', 'order2', 'write']) {
+      const c = M.tableCourse(eng, set.key, set.lessons, tok, set.join ? 1 : 2, 'ck');
+      const order = c.map(p => LESSONS.findIndex(l => l.key === p.lesson));
+      if (c.some(p => p.tables.some(t => !set.tables.includes(t)))) err(`one table: a problem for ${set.key} uses another table`);
+      if (new Set(c.map(p => p.lesson)).size !== set.lessons.length || order.some((x, i) => i && x < order[i - 1]) || new Set(c.map(p => p.sql)).size !== c.length) err(`one table: ${set.key} (${tok}) misses a lesson, is out of order, or repeats a query`);
+      if (!set.join && c.length !== set.lessons.length * 2) err(`one table: ${set.key} (${tok}) does not give 2 problems per lesson`);
+      if (tok === 'write' && c.some(p => p.stage !== 'write')) err(`one table: ${set.key} is not all writing`);
+    }
     if (LESSONS.some(l => M.patternsOf(l.key, eng).list.length > 1 && M.patternsOf(l.key, eng).list.some(tp => !M.patLabel(l.key, tp)))) err('review: a pattern has no name (a case label in the lecture)');
+  }
+  // a quick test on one table: every problem uses it, lessons that cannot use it are left out, and the students get the same problems
+  {
+    const { tableLessons, kindPool } = await import('../js/quick.js');
+    for (const tb of ['movies', 'shop']) {
+      const ls = ['where', 'orderby', 'groupby', 'inner', 'left'], can = tableLessons(eng, tb);
+      const slots = simpleSlots(eng, ls, 5, 'mix', 'TB', tb), probs = slotProblems(eng, 'TB', slots, tb);
+      const names = tb === 'shop' ? ['customers', 'orders'] : [tb];   // (a pair of tables gives one query for each of these JOIN lessons: 2 problems)
+      if (probs.length !== (tb === 'shop' ? 2 : 5) || probs.some(p => p.tables.some(t => !names.includes(t))) || slots.some(x => !can.includes(x.k)) || new Set(probs.map(p => p.sql)).size !== probs.length) err(`quick test on one table (${tb}): another table, a lesson that cannot use it, or a repeated query`);
+      const qt = newQuick({ seed: 'TB', tb, slots, pass: 3, limitSec: 90 }, Date.parse('2026-01-01T00:00:00Z'));
+      const qp = quickProblems(eng, JSON.parse(JSON.stringify(qt)));
+      if (qt.tb !== tb || qp.map(p => p.sql).join('|') !== probs.map(p => p.sql).join('|') || qp.some(p => !p.test || p.kind !== 'practice')) err(`quick test on one table (${tb}): the students do not get the teacher's problems`);
+      if (detailSlots(eng, { where: { fill: 1, order1: 1, order2: 1, write: 2 }, inner: { write: 1 } }, ['where', 'inner'], 'TB', tb).length !== (tb === 'shop' ? 1 : 5)) err(`quick test on one table (${tb}): the detailed set-up is wrong`);
+    }
+    if (newQuick({ seed: 'TB', slots: simpleSlots(eng, ['where'], 1, 'write', 'TB'), pass: 1 }, 0).tb !== undefined) err('quick test: a test on various tables carries a table');
   }
   // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"
   {

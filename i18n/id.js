@@ -1150,5 +1150,22 @@ export default {
   "rv.lv3": "Dikuasai",
   "rv.masteredN": "pola dikuasai",
   "rv.dueNow": "Ada di ulangan hari ini",
-  "rv.notDone": "Mulai setelah pelajaran selesai"
+  "rv.notDone": "Mulai setelah pelajaran selesai",
+  "tp.title": "Berlatih dengan satu tabel",
+  "tp.sub": "Pilih satu tabel. Soal mengikuti urutan pelajaran dan semuanya memakai tabel itu: datanya tetap, hanya SQL yang berubah.",
+  "tp.homeSub": "Pilih satu tabel dan berlatih dari SELECT sampai agregasi.",
+  "tp.open": "Pilih tabel",
+  "tp.range": "Cakupan",
+  "tp.format": "Format",
+  "tp.per": "Soal per pelajaran",
+  "tp.perN": "{n} soal",
+  "tp.begin": "Mulai dengan tabel ini",
+  "tp.again": "Tabel sama, soal baru",
+  "tp.other": "Tabel lain",
+  "tp.single": "Satu tabel",
+  "tp.join": "Dua tabel (JOIN)",
+  "tp.none": "Tidak ada soal yang bisa dibuat dengan tabel ini untuk cakupan ini.",
+  "tc.quick.table": "Tabel",
+  "tc.quick.tableAny": "Berbagai tabel (biasa)",
+  "tc.quick.tableSkip": "Pelajaran yang tidak bisa memakai tabel ini: {l}"
 };

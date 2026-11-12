@@ -1151,5 +1151,22 @@ export default {
   "rv.lv3": "定着",
   "rv.masteredN": "パターンが定着",
   "rv.dueNow": "今日の復習に出る",
-  "rv.notDone": "レッスンを終えると始まります"
+  "rv.notDone": "レッスンを終えると始まります",
+  "tp.title": "同じテーブルで練習",
+  "tp.sub": "テーブルを 1 つ選ぶと、そのテーブルだけを使って、レッスンの順に問題が出ます。データは変わらず、SQL だけが変わります。",
+  "tp.homeSub": "テーブルを 1 つ決めて、SELECT から集計まで続けて練習します。",
+  "tp.open": "テーブルを選ぶ",
+  "tp.range": "範囲",
+  "tp.format": "形式",
+  "tp.per": "1 レッスンの問題数",
+  "tp.perN": "{n} 問",
+  "tp.begin": "このテーブルで始める",
+  "tp.again": "同じテーブルで、新しい問題",
+  "tp.other": "別のテーブルにする",
+  "tp.single": "1 つのテーブル",
+  "tp.join": "2 つのテーブル（JOIN）",
+  "tp.none": "この範囲では、このテーブルで出せる問題がありません。",
+  "tc.quick.table": "テーブル",
+  "tc.quick.tableAny": "いろいろなテーブル（ふつう）",
+  "tc.quick.tableSkip": "このテーブルでは出せないレッスン：{l}"
 };

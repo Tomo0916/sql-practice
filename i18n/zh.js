@@ -1150,5 +1150,22 @@ export default {
   "rv.lv3": "已掌握",
   "rv.masteredN": "种题型已掌握",
   "rv.dueNow": "在今天的复习中",
-  "rv.notDone": "完成课程后开始"
+  "rv.notDone": "完成课程后开始",
+  "tp.title": "用同一张表练习",
+  "tp.sub": "选择一张表。题目按课程顺序出现，全部使用这张表：数据不变，只有 SQL 在变。",
+  "tp.homeSub": "选定一张表，从 SELECT 到聚合连续练习。",
+  "tp.open": "选择表",
+  "tp.range": "范围",
+  "tp.format": "形式",
+  "tp.per": "每课题数",
+  "tp.perN": "{n} 题",
+  "tp.begin": "用这张表开始",
+  "tp.again": "同一张表，新题目",
+  "tp.other": "换一张表",
+  "tp.single": "一张表",
+  "tp.join": "两张表（JOIN）",
+  "tp.none": "在这个范围内，这张表无法出题。",
+  "tc.quick.table": "表",
+  "tc.quick.tableAny": "各种表（通常）",
+  "tc.quick.tableSkip": "无法使用这张表的课程：{l}"
 };

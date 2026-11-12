@@ -1150,5 +1150,22 @@ export default {
   "rv.lv3": "Thành thạo",
   "rv.masteredN": "dạng đã thành thạo",
   "rv.dueNow": "Có trong ôn tập hôm nay",
-  "rv.notDone": "Bắt đầu khi học xong bài"
+  "rv.notDone": "Bắt đầu khi học xong bài",
+  "tp.title": "Luyện tập với một bảng",
+  "tp.sub": "Chọn một bảng. Các câu hỏi đi theo thứ tự bài học và đều dùng bảng đó: dữ liệu giữ nguyên, chỉ SQL thay đổi.",
+  "tp.homeSub": "Chọn một bảng và luyện từ SELECT đến tổng hợp.",
+  "tp.open": "Chọn bảng",
+  "tp.range": "Phạm vi",
+  "tp.format": "Dạng bài",
+  "tp.per": "Số câu mỗi bài học",
+  "tp.perN": "{n} câu",
+  "tp.begin": "Bắt đầu với bảng này",
+  "tp.again": "Cùng bảng, câu hỏi mới",
+  "tp.other": "Bảng khác",
+  "tp.single": "Một bảng",
+  "tp.join": "Hai bảng (JOIN)",
+  "tp.none": "Không tạo được câu hỏi nào với bảng này trong phạm vi này.",
+  "tc.quick.table": "Bảng",
+  "tc.quick.tableAny": "Nhiều bảng khác nhau (thông thường)",
+  "tc.quick.tableSkip": "Bài học không dùng được bảng này: {l}"
 };
