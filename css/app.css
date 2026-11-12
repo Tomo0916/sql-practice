@@ -1033,3 +1033,36 @@ body.pj-open { overflow: hidden; }
 .tp-steps span.ok { background: var(--ok); border-color: transparent; color: #fff; }
 .tp-steps span.bad { background: var(--bad-soft, #fde8e8); border-color: transparent; color: var(--bad); }
 .tp-steps span.cur { background: var(--accent); border-color: transparent; color: #fff; }
+
+/* ---------- SQL level ---------- */
+.lv-hub { display: flex; flex-direction: column; gap: 14px; }
+.lv-card { display: grid; grid-template-columns: auto 1fr; gap: 14px 24px; align-items: center; padding: 22px 24px; }
+.lv-card .row-btns { grid-column: 1 / -1; }
+.lv-badge { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 120px; padding: 14px 18px; border-radius: 16px; background: var(--accent); color: #fff; }
+.lv-badge b { font-size: 2.4rem; line-height: 1.1; }
+.lv-badge small, .lv-badge span { color: rgba(255, 255, 255, .85) !important; }
+.lv-now { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.lv-now.center { align-items: center; margin: 8px 0; }
+.lv-now h2 { margin: 0; padding-left: 10px; border-left: 4px solid var(--cc, var(--accent)); }
+.lv-card2 { padding: 18px 22px; }
+.lv-card2 h2 { margin: 0 0 8px; font-size: 1rem; }
+.lv-big { font-size: 3rem; font-weight: 800; margin: 4px 0; color: var(--accent); }
+.lv-big small { font-size: 1.2rem; color: var(--ink-3); }
+.lv-steps { list-style: none; margin: 10px auto; padding: 0; display: flex; flex-direction: column; gap: 6px; max-width: 520px; text-align: left; }
+.lv-steps li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid var(--line); border-left: 4px solid var(--cc, var(--line-2)); border-radius: 10px; background: var(--surface); }
+.lv-steps li > b { flex: none; width: 26px; height: 26px; display: inline-grid; place-items: center; border-radius: 50%; background: var(--surface-2); color: var(--ink-3); font-size: .8rem; }
+.lv-steps li > span { flex: 1; min-width: 0; }
+.lv-steps li.ok > b { background: var(--ok); color: #fff; }
+.lv-steps li.cur { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.lv-steps li.cur > b { background: var(--accent); color: #fff; }
+.lv-hero.up { border: 2px solid var(--ok); }
+.lv-chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: .82rem; white-space: nowrap; }
+.lv-dots { display: inline-flex; gap: 3px; margin-left: 6px; vertical-align: middle; }
+.lv-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line-2); }
+.lv-dots i.ok { background: var(--ok); border-color: transparent; }
+.lv-dots i.bad { background: var(--bad); border-color: transparent; }
+.lv-dist { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.lv-dist > span { display: inline-flex; flex-direction: column; align-items: center; min-width: 50px; padding: 4px 8px; border-radius: 8px; background: var(--accent-soft); }
+.lv-dist > span.zero { background: var(--surface-2); opacity: .7; }
+.lv-dist small { font-size: .7rem; color: var(--ink-3); }
+@media (max-width: 560px) { .lv-card { grid-template-columns: 1fr; } }

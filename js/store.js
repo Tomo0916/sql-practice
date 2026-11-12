@@ -44,6 +44,7 @@ export function mergeProgress(stored, mine) {
   out.lessons = Object.assign({}, stored.lessons, mine.lessons);
   out.pat = Object.assign({}, stored.pat);   // review by pattern: the state with the later answer wins (more answers on the same day)
   Object.entries(mine.pat || {}).forEach(([k, v]) => { const x = out.pat[k]; if (!x || (v.last || 0) > (x.last || 0) || ((v.last || 0) === (x.last || 0) && (v.n || 0) >= (x.n || 0))) out.pat[k] = v; });
+  out.level = (stored.level || {}).upd > ((mine.level || {}).upd || 0) ? stored.level : mine.level || stored.level || null;   // the SQL level: the later change wins
   out.streak = (stored.streak || {}).day > (mine.streak || {}).day || ((stored.streak || {}).day === (mine.streak || {}).day && (stored.streak || {}).n > (mine.streak || {}).n) ? stored.streak : mine.streak;
   out.klass = {};   // the class assignment's rounds: solved in that class (the earliest time wins)
   new Set([...Object.keys(stored.klass || {}), ...Object.keys(mine.klass || {})]).forEach(k => { out.klass[k] = earliest((stored.klass || {})[k] || {}, (mine.klass || {})[k] || {}); });

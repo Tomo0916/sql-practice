@@ -461,6 +461,33 @@ console.log('11. Check tests (確認テスト)');
     }
     if (newQuick({ seed: 'TB', slots: simpleSlots(eng, ['where'], 1, 'write', 'TB'), pass: 1 }, 0).tb !== undefined) err('quick test: a test on various tables carries a table');
   }
+  // SQL level: the test, the level it gives, practice at the level, and the row the teacher's page reads
+  {
+    const V = await import('../js/level.js');
+    const items = V.buildTest(eng, 'LV');
+    if (items.length !== V.LV_MAX * V.LV_PER || items.some(p => p.stage !== 'write' || !p.test || !eng.exec(p.sql)) || new Set(items.map(p => p.id)).size !== items.length) err('level test: not 3 writing problems per chapter');
+    if (items.some(p => LESSON_BY_KEY[p.lesson].ch !== V.LV_CHAPTERS[p.ch])) err('level test: a problem is in the wrong chapter');
+    const mark = (pat) => { const d = {}; items.forEach(p => { const n = +pat[p.ch]; const j = +p.id.split(':')[3]; if (pat[p.ch] !== '-') d[p.id] = j < n; }); return d; };
+    const run = pat => { const all = mark(pat), d = {}; for (let i = 0; i < items.length; i++) { d[items[i].id] = !!all[items[i].id]; if (V.testEnds(items, d, i)) break; } return d; };
+    let st = V.afterTest(items, run('332100'), 5);
+    if (st.lv !== 3 || st.prof.join() !== '3,3,2,1,0,' || V.levelTag(st) !== 'lv:3:33210-') err(`level test: wrong level or it did not stop after two failed chapters (${st.lv}, ${st.prof.join()})`);
+    if (V.afterTest(items, run('313033'), 5).lv !== 1 || V.afterTest(items, run('333333'), 5).lv !== 6 || V.afterTest(items, run('000000'), 5).prof.join() !== '0,0,,,,') err('level test: the level is not the chapters passed in a row');
+    // practice: 3 from the chapter being learned in its format + 2 from passed chapters; the format and the level move
+    st = V.afterTest(items, run('332033'), 5);   // Lv 3; chapters 5 and 6 are known already
+    const round = V.buildRound(eng, st, 'R1'), tg = round.filter(p => p.target);
+    if (round.length !== V.LV_ROUND || tg.length !== 3 || tg.some(p => LESSON_BY_KEY[p.lesson].ch !== 'change' || p.stage !== 'fill') || round.filter(p => !p.target).some(p => p.stage !== 'write' || !['basics', 'filter', 'sort'].includes(LESSON_BY_KEY[p.lesson].ch))) err('level practice: a round is not 3 fill-in problems of the chapter + 2 written ones from passed chapters');
+    const all = r => Object.fromEntries(r.map(p => [p.id, true]));
+    let res = V.afterRound(st, round, all(round), 9);
+    if (res.st.fmt !== 1 || res.up || res.move !== 'up' || st.fmt !== 0) err('level practice: all right does not move to the next format');
+    res = V.afterRound(res.st, round, {}, 9); if (res.st.fmt !== 0 || res.move !== 'down') err('level practice: none right does not move a format back');
+    let s2 = Object.assign({}, st, { fmt: 2 });
+    res = V.afterRound(s2, round, all(round), 9); if (res.up || res.st.streak !== 1) err('level practice: one perfect writing round passes the chapter');
+    res = V.afterRound(res.st, round, all(round), 9);
+    if (!res.up || res.st.lv !== 6 || res.st.fmt !== 0) err(`level practice: two perfect writing rounds do not pass the chapter (and the chapters the test showed as known): Lv ${res.st.lv}`);
+    if (V.buildRound(eng, res.st, 'R2').length !== V.LV_ROUND || V.buildRound(eng, { lv: 0, prof: [], fmt: 0 }, 'R3').filter(p => p.target).length !== V.LV_ROUND) err('level practice: a round at the first or the last level is wrong');
+    const lg = V.levelsFromLog([{ user_id: 'u', problem_id: 'lv:2:32----', created_at: '2026-01-01T00:00:00Z' }, { user_id: 'u', problem_id: 'lv:3:322---', created_at: '2026-01-02T00:00:00Z' }, { user_id: 'v', problem_id: 'where:write:x', created_at: '2026-01-02T00:00:00Z' }]);
+    if (lg.size !== 1 || lg.get('u').lv !== 3 || lg.get('u').prof.join() !== '3,2,2,,,') err('level: the teacher does not read the latest level from the class log');
+  }
   // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"
   {
     const { quickStats, quickCSV, logPut, logDrop, slotsShape, QUICK_LOG_MAX } = await import('../js/quick.js');
