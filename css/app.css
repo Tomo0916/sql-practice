@@ -977,3 +977,42 @@ body.pj-open { overflow: hidden; }
 .quick-banner.ended { background: var(--surface-2); color: var(--ink); }
 @media (max-width: 560px) { .q-startbar .btn { width: 100%; } }
 .qk-tiles b * { font-size: inherit; color: inherit; }
+
+/* ---------- review by pattern: the ladder of formats, results, the mastery map ---------- */
+.rv-pat { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); }
+.rv-ladder { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: .76rem; }
+.rv-ladder span { padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-3); background: var(--surface); white-space: nowrap; }
+.rv-ladder span.done { color: var(--ok); border-color: transparent; background: var(--ok-soft); }
+.rv-ladder span.cur { color: #fff; border-color: transparent; background: var(--accent); font-weight: 700; }
+.rv-ladder i { font-style: normal; color: var(--ink-3); }
+.rv-result { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.rv-item { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; }
+.rv-what { display: flex; flex-direction: column; flex: 1 1 180px; min-width: 0; }
+.rv-next { margin-left: auto; white-space: nowrap; }
+.rv-map { display: flex; flex-direction: column; gap: 14px; }
+.rv-top { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 16px 20px; }
+.rv-total { display: flex; flex-direction: column; gap: 2px; min-width: 150px; }
+.rv-total b { font-size: 1.7rem; font-variant-numeric: tabular-nums; }
+.rv-total b small { font-size: 1rem; color: var(--ink-3); font-weight: 600; }
+.rv-total span { font-size: .8rem; color: var(--ink-3); }
+.rv-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: .82rem; color: var(--ink-2); flex: 1; }
+.rv-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.rv-ch { padding: 16px 20px; border-top: 4px solid var(--cc, var(--accent)); }
+.rv-ch h2 { margin: 0 0 8px; font-size: 1.05rem; }
+.rv-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 7px 0; border-top: 1px solid var(--line); }
+.rv-row:first-of-type { border-top: 0; }
+.rv-row.off .rv-lesson { color: var(--ink-3); }
+.rv-lesson { display: flex; align-items: center; gap: 10px; flex: 1 1 240px; min-width: 0; color: var(--ink); text-decoration: none; }
+.rv-lesson:hover span:last-child { text-decoration: underline; }
+.rv-cells { display: flex; flex-wrap: wrap; gap: 5px; }
+.rv-cell { position: relative; display: inline-block; width: 22px; height: 22px; outline: none; }
+.rv-cell i { display: block; width: 100%; height: 100%; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line-2); }
+.rv-cell.lv1 i { background: #f6c453; border-color: transparent; }
+.rv-cell.lv2 i { background: #7cc6a4; border-color: transparent; }
+.rv-cell.lv3 i { background: var(--ok); border-color: transparent; }
+.rv-cell.due i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent); }
+.rv-tip { display: none; position: absolute; z-index: 6; bottom: calc(100% + 8px); right: -6px; min-width: 130px; max-width: 240px; padding: 6px 10px; border-radius: 8px; background: var(--ink); color: var(--surface); font-size: .78rem; line-height: 1.35; text-align: center; white-space: normal; pointer-events: none; }
+.rv-tip b, .rv-tip small { display: block; color: inherit; }
+.rv-tip small { opacity: .8; }
+.rv-cell:hover .rv-tip, .rv-cell:focus .rv-tip { display: block; }
+.rv-legend .rv-cell { width: 16px; height: 16px; }

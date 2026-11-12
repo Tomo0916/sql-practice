@@ -13,7 +13,7 @@ import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, formatKey, grade, checkAnsw
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
-import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, reviewResult, dueLessons, bumpStreak, today } from './store.js';
+import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
 import { choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
@@ -25,6 +25,7 @@ import { hasLecture, LECTURES } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
+import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N } from './mastery.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
@@ -123,6 +124,7 @@ function parseRoute() {
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
+  if (h[0] === 'mastery') return { view: 'mastery' };
   if (h[0] === 'tables') return { view: 'tables' };
   if (h[0] === 'check') return { view: 'session', kind: 'check', code: h.slice(1).join('/') || null };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
@@ -190,6 +192,7 @@ function render() {
   else if (r.view === 'live') body = liveViewHTML();
   else if (r.view === 'quick') body = quickViewHTML();
   else if (r.view === 'solved') body = solvedHTML();
+  else if (r.view === 'mastery') body = masteryHTML();
   else if (r.view === 'lecture') body = lectureHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
@@ -199,7 +202,7 @@ function render() {
 }
 
 function headerHTML() {
-  const due = S.engine ? dueLessons(S.progress).length : 0;
+  const due = S.engine ? reviewCount() : 0;
   const v = S.route.view;
   return `<header class="topbar"><div class="topbar-in">
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
@@ -225,7 +228,7 @@ function footerHTML() {
 function homeHTML() {
   const allDone = LESSONS.filter(l => S.progress.lessons[l.key] && S.progress.lessons[l.key].done).length;
   const solved = Object.keys(S.progress.solved).length;
-  const due = dueLessons(S.progress);
+  const due = reviewCount();
   const last = S.progress.last;
   const contHash = last && LESSON_BY_KEY[last.key] ? `#/l/${last.key}/${last.idx || 0}` : `#/l/${LESSONS[0].key}/0`;
   const streak = S.progress.streak && S.progress.streak.day >= today() - 86400000 ? S.progress.streak.n : 0;
@@ -249,7 +252,8 @@ function homeHTML() {
         <p>${rubyHTML(raw('home.sub', L()))}</p>
         <div class="hero-btns">
           <a class="btn btn-light" href="${contHash}">${esc(last ? T('home.continue') : T('home.start'))} ${I.next}</a>
-          ${due.length ? `<a class="btn btn-glass" href="#/review">${I.repeat}${H('home.reviewDue', { n: due.length })}</a>` : ''}
+          ${due ? `<a class="btn btn-glass" href="#/review">${I.repeat}${H('rv.today', { n: due })}</a>` : ''}
+          <a class="btn btn-glass" href="#/mastery">${H('rv.map')}</a>
         </div>
         <div class="hero-deco" aria-hidden="true">SELECT *</div>
       </div>
@@ -371,8 +375,12 @@ function startSession(kind) {
   if (kind === 'drill') return startDrill(S.route.key);
   const day = todayCode();
   let keys;
-  if (kind === 'review') keys = dueLessons(S.progress);
-  else {
+  if (kind === 'review') {   // by pattern: what is waiting today, each in the format of its step
+    const n = (S.rvRound = (S.rvRound || 0) + 1);
+    const items = patPick(S.progress, today(), S.engine).map(x => Object.assign(patProblem(S.engine, x.lesson, x.topic, x.st, `rv|${day}|${n}|${x.key}`), { fresh: !x.st }));
+    S.session = { kind, items, i: 0, done: {}, moves: {} };
+    return;
+  } else {
     const touched = LESSONS.filter(l => problemsOf(l).some(p => isSolved(p.id))).map(l => l.key);
     const pool = touched.length ? touched : LESSONS.slice(0, 6).map(l => l.key);
     const R = makeRng(`mix|${Date.now()}`);
@@ -391,8 +399,9 @@ function sessionHTML() {
   if (!ses.items.length) {
     return `<main class="wrap narrow"><section class="card empty">
       <div class="empty-icon">${I.check}</div><h1>${H('review.none')}</h1><p class="muted">${H('review.noneSub')}</p>
-      <div class="row-btns"><a class="btn btn-primary" href="#/mix">${I.shuffle}${H('mix.start')}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
+      <div class="row-btns"><a class="btn btn-primary" href="#/mix">${I.shuffle}${H('mix.start')}</a><a class="btn btn-ghost" href="#/mastery">${H('rv.map')}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
   }
+  if (ses.i >= ses.items.length && kind === 'review') return reviewDoneHTML(ses);
   if (ses.i >= ses.items.length) {
     const ok = Object.values(ses.done).filter(Boolean).length;
     return `<main class="wrap narrow"><section class="card empty">
@@ -408,10 +417,49 @@ function sessionHTML() {
     </div>
     <div class="session-layout">
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        ${prob.pat ? patBoxHTML(prob) : ''}
         <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
+}
+/* ---------- review by pattern: the ladder of formats, the result of a round, the mastery map ---------- */
+const LV_KEYS = ['rv.lv0', 'rv.lv1', 'rv.lv2', 'rv.lv3'];
+const stepName = tok => H(tok === 'fill' ? 'stage.fill' : tok.startsWith('order') ? 'stage.order' : tok === 'quiz' ? 'rv.quiz' : 'rv.write');
+const patNameHTML = (key, topic) => { const l = patLabel(key, topic); return l ? rubyHTML(l[L() === 'ja' || L() === 'easy' ? L() : 'en'] || l.en) : lessonTitleHTML(LESSON_BY_KEY[key], L()); };
+const ladderHTML = (lesson, at) => `<div class="rv-ladder">${ladderOf(lesson).map((tok, i) => `<span class="${i < at ? 'done' : i === at ? 'cur' : ''}">${stepName(tok)}</span>`).join('<i>→</i>')}</div>`;
+function patBoxHTML(prob) {
+  const lesson = LESSON_BY_KEY[prob.lesson];
+  return `<div class="rv-pat"><small class="muted">${H('rv.pattern')}${prob.fresh ? ` <b class="tag">${H('rv.new')}</b>` : ''}</small><b>${patNameHTML(prob.lesson, prob.topic)}</b>${ladderOf(lesson).length > 1 ? ladderHTML(lesson, prob.step) : ''}</div>`;
+}
+/** patterns waiting today (those due, and new ones up to one round) */
+function reviewCount() { const w = patWaiting(S.progress, today(), S.engine); return w.due.length + Math.min(w.fresh.length, REVIEW_N); }
+const daysText = due => { const d = Math.round((due - today()) / 86400000); return d <= 1 ? H('rv.tomorrow') : H('rv.inDays', { n: d }); };
+function reviewDoneHTML(ses) {
+  const ok = Object.values(ses.done).filter(Boolean).length, more = reviewCount();
+  return `<main class="wrap narrow"><section class="card empty">
+      <div class="empty-icon">${I.fire}</div><h1>${H('review.finished')}</h1><p class="big-score">${ok} / ${ses.items.length}</p>
+      <div class="row-btns">${more ? `<button class="btn btn-primary" data-act="reviewMore">${I.repeat}${H('rv.more', { n: Math.min(more, REVIEW_N) })}</button>` : ''}<a class="btn ${more ? 'btn-ghost' : 'btn-primary'}" href="#/">${H('nav.home')}</a><a class="btn btn-ghost" href="#/mastery">${H('rv.map')}</a></div></section>
+    <section class="rv-result">${ses.items.map(p => { const lesson = LESSON_BY_KEY[p.lesson], m = ses.moves[p.id], good = ses.done[p.id];
+      return `<div class="card rv-item"><b class="ck-m ${good ? 'ok' : 'bad'}">${good ? '○' : m ? '×' : '–'}</b>
+        <div class="rv-what"><small class="muted">${H('lesson.of', { a: lesson.no })} · ${lessonTitleHTML(lesson, L())}</small><b>${patNameHTML(p.lesson, p.topic)}</b></div>
+        ${m ? `${ladderOf(lesson).length > 1 ? ladderHTML(lesson, m.to) : ''}<span class="rv-next muted small">${daysText(m.due)}</span>` : ''}</div>`; }).join('')}</section></main>`;
+}
+function masteryHTML() {
+  document.title = `${T('rv.map')} · SQL Practice`;
+  const t = today(); let all = 0, got = 0;
+  const rows = CHAPTERS.map(ch => { const ls = LESSONS.filter(l => l.ch === ch.key); if (!ls.length) return '';
+    return `<section class="card rv-ch" style="--cc:var(--c-${ch.key})"><h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2>${ls.map(l => { const done = !!(S.progress.lessons[l.key] && S.progress.lessons[l.key].done), lv = lessonLevels(S.progress, l.key, S.engine);
+      all += lv.length; got += lv.filter(x => x.level === 3).length;
+      return `<div class="rv-row ${done ? '' : 'off'}"><a class="rv-lesson" href="#/l/${l.key}/0"><span class="lesson-num">${l.no}</span><span>${lessonTitleHTML(l, L())}</span></a>
+        <div class="rv-cells">${lv.map(x => { const due = done && !!(x.st && x.st.n && x.st.due <= t), level = done ? x.level : 0;
+          return `<span class="rv-cell lv${level} ${due ? 'due' : ''}" tabindex="0"><i></i><span class="rv-tip"><b>${lv.length > 1 ? patNameHTML(l.key, x.topic) : H(LV_KEYS[level])}</b>${lv.length > 1 ? `<small>${H(LV_KEYS[level])}</small>` : ''}${done && x.st && x.st.n && !due ? `<small>${daysText(x.st.due)}</small>` : ''}${done ? '' : `<small>${H('rv.notDone')}</small>`}</span></span>`; }).join('')}</div></div>`; }).join('')}</section>`; }).join('');
+  const due = reviewCount();
+  return `<main class="wrap rv-map"><h1 class="page-title">${H('rv.map')}</h1><p class="muted">${H('rv.mapSub')}</p>
+    <div class="card rv-top"><div class="rv-total"><b>${got}<small> / ${all}</small></b><span>${H('rv.masteredN')}</span><div class="bar"><i style="width:${all ? Math.round(got / all * 100) : 0}%"></i></div></div>
+      <div class="rv-legend">${[0, 1, 2, 3].map(i => `<span><span class="rv-cell lv${i}"><i></i></span>${H(LV_KEYS[i])}</span>`).join('')}<span><span class="rv-cell lv1 due"><i></i></span>${H('rv.dueNow')}</span></div>
+      ${due ? `<a class="btn btn-primary" href="#/review">${I.repeat}${H('rv.today', { n: due })}</a>` : ''}</div>
+    ${rows}</main>`;
 }
 
 /* ---------- check test (確認テスト): chosen lessons, chosen formats, random order ----------
@@ -1209,7 +1257,11 @@ function record(prob, ok, run, sql) {
     } else S.progress.wrong[prob.id] = (S.progress.wrong[prob.id] || 0) + 1;
     if (S.route.view === 'session' && S.session && S.session.done[prob.id] === undefined) {
       S.session.done[prob.id] = ok;
-      if (S.session.kind === 'review') reviewResult(S.progress, prob.lesson, ok);
+      if (S.session.kind === 'review' && prob.pat) {   // only this pattern moves: up a step (or a longer gap), or down a step
+        S.progress.pat = S.progress.pat || {};
+        const next = patResult(S.progress.pat[prob.pat], LESSON_BY_KEY[prob.lesson], ok, today());
+        S.progress.pat[prob.pat] = next; S.session.moves[prob.id] = { to: next.f, due: next.due };
+      }
       if (S.session.kind === 'drill') {
         S.session.streak = ok ? S.session.streak + 1 : 0;
         S.session.best = Math.max(S.session.best, S.session.streak);
@@ -1336,6 +1388,7 @@ const actions = {
   place(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).concat(el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   unplace(el) { const c = current(); const k = 'o:' + c.prob.id; S.progress.drafts[k] = (S.progress.drafts[k] || []).filter(x => x !== el.dataset.id); delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb']); },
   resetOrder() { const c = current(); delete S.progress.drafts['o:' + c.prob.id]; delete S.runs[c.prob.id]; save(); refresh(['stage', 'fb', 'res']); },
+  reviewMore() { S.session = null; render(); window.scrollTo(0, 0); },
   quickMore() { S.qMore = true; const f = qItems().find(p => !qDone(p)); location.hash = f ? `#/quick/${f.qn}` : '#/quick'; },
   sessionNext() { saveDraft(); if (S.session.kind === 'drill' && !S.session.done[S.session.items[S.session.i].id]) S.session.streak = 0; S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
   drillAgain() { S.session = null; render(); window.scrollTo(0, 0); },

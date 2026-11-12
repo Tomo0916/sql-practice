@@ -408,6 +408,35 @@ console.log('11. Check tests (確認テスト)');
     { user_id: 'v', problem_id: 'quick:QQ:1', ok: true, created_at: '2026-01-01T00:06:00Z' }, { user_id: 'w', problem_id: 'quick:OLD:0', ok: true, created_at: '2026-01-01T00:03:00Z' }];
   const pr = quickProgress(log, q);
   if (pr.get('u').done !== '2026-01-01T00:02:00Z' || pr.get('u').all !== '2026-01-01T00:03:00Z' || pr.has('v') || pr.has('w')) err('quick test: who has passed is wrong');
+  // review by pattern: the ladder, the gaps, what is picked, and a problem for every pattern in every format
+  {
+    const M = await import('../js/mastery.js'), { topicsOf } = await import('../js/lecture-topics.js');
+    const D = M.DAY, t0 = 1000 * D, W = LESSON_BY_KEY.where, top = M.ladderOf(W).length - 1;
+    if (M.ladderOf(W).join() !== 'fill,order2,write' || M.ladderOf(LESSON_BY_KEY.intro).join() !== 'quiz') err('review: the ladder of formats is wrong');
+    let st = M.patResult(null, W, true, t0);                       // a new pattern starts one step below writing
+    if (st.f !== top || st.due !== t0 + D || M.patLevel(st, W) !== 1) err('review: a right answer does not move up to writing');
+    st = M.patResult(st, W, true, t0 + D); if (st.due !== t0 + 2 * D || M.patLevel(st, W) !== 2) err('review: the first gap is not 1 day');
+    st = M.patResult(st, W, true, t0 + 2 * D); if (st.due !== t0 + 5 * D) err('review: the second gap is not 3 days');
+    st = M.patResult(st, W, true, t0 + 5 * D); if (st.due !== t0 + 12 * D || M.patLevel(st, W) !== 3) err('review: the third gap is not 7 days, or the pattern is not mastered');
+    const bad = M.patResult(st, W, false, t0 + 12 * D);
+    if (bad.f !== top - 1 || bad.s !== 0 || bad.due !== t0 + 13 * D || bad.ng !== 1 || st.f !== top) err('review: a wrong answer does not go one step down (or changes the old state)');
+    if (M.patResult({ f: 0, s: 0, n: 1 }, W, false, t0).f !== 0) err('review: the ladder goes below its first step');
+    // what is waiting: lessons finished before today; due first, a few new ones mixed in
+    const prog = { lessons: { where: { done: t0 - D }, select: { done: t0 - D }, orderby: { done: t0 } }, pat: {} };
+    const w0 = M.patWaiting(prog, t0, eng);
+    if (w0.due.length || !w0.fresh.length || w0.fresh.some(x => x.lesson === 'orderby')) err('review: a lesson finished today is reviewed today, or nothing is new');
+    w0.fresh.filter(x => x.lesson === 'where').forEach((x, i) => { prog.pat[x.key] = { f: top, s: 1, n: 2, ng: 0, due: t0 - i * D, last: t0 - 5 * D }; });
+    const pick = M.patPick(prog, t0, eng);
+    if (pick.length !== M.REVIEW_N || pick.filter(x => !x.st).length !== 1 || new Set(pick.map(x => x.key)).size !== pick.length) err(`review: a round is not ${M.REVIEW_N} patterns with the new ones mixed in`);
+    // every pattern of every lesson can be asked in every format of its ladder
+    let miss = 0, total = 0;
+    for (const l of LESSONS) for (const topic of M.patternsOf(l.key, eng).list) for (let f = 0; f < M.ladderOf(l).length; f++) for (const seed of ['a', 'b']) {
+      const pr = M.patProblem(eng, l.key, topic, { f }, seed), tok = M.ladderOf(l)[f]; total++;
+      if (pr.stage !== (tok.startsWith('order') ? 'order' : tok) || (pr.p && !l.fixed && !topicsOf(l.key, pr.p).includes(topic)) || !eng.exec(pr.sql)) { miss++; if (miss < 4) err(`review: Lesson ${l.no}, pattern "${topic}", ${tok}: no problem of that pattern and format`); }
+    }
+    if (!miss) console.log(`   review by pattern: ${LESSONS.reduce((a, l) => a + M.patternsOf(l.key, eng).list.length, 0)} patterns, ${total} problems made`);
+    if (LESSONS.some(l => M.patternsOf(l.key, eng).list.length > 1 && M.patternsOf(l.key, eng).list.some(tp => !M.patLabel(l.key, tp)))) err('review: a pattern has no name (a case label in the lecture)');
+  }
   // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"
   {
     const { quickStats, quickCSV, logPut, logDrop, slotsShape, QUICK_LOG_MAX } = await import('../js/quick.js');
