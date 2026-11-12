@@ -26,6 +26,7 @@ import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
 import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N, tableSets, tableCourse } from './mastery.js';
+import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog } from './level.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
@@ -122,6 +123,7 @@ function parseRoute() {
   if (h[0] === 'l' && LESSON_BY_KEY[h[1]]) return { view: 'lesson', key: h[1], idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };   // current() keeps it inside the lesson's problems
   if (h[0] === 'review' || h[0] === 'mix') return { view: 'session', kind: h[0] };
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
+  if (h[0] === 'level') return { view: 'session', kind: 'level', sub: h[1] === 'test' || h[1] === 'go' ? h[1] : null };
   if (h[0] === 'table') return { view: 'session', kind: 'table', ds: h[1] || null };
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
@@ -287,6 +289,10 @@ function homeHTML() {
           }).join('')}</ul></article>`;
       }).join('')}
     </section>
+    <section class="card mixcard drillcard lvcard">
+      <div><span class="drill-ic">🎯</span><div><b>${H('lv.title')}${lvState() ? ` <span class="tag">Lv.${lvState().lv}</span>` : ''}</b><p class="muted">${H('lv.homeSub')}</p></div></div>
+      <a class="btn ${lvState() ? 'btn-ghost' : 'btn-primary'}" href="${lvState() ? '#/level' : '#/level'}">${H(lvState() ? 'lv.open' : 'lv.startTest')}</a>
+    </section>
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">🗂</span><div><b>${H('tp.title')}</b><p class="muted">${H('tp.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/table">${H('tp.open')}</a>
@@ -398,6 +404,7 @@ function sessionHTML() {
   const kind = S.route.kind;
   if (kind === 'check') return checkHTML();
   if (kind === 'table') return oneTableHTML();
+  if (kind === 'level') return levelHTML();
   if (!S.session || S.session.kind !== kind || (kind === 'drill' && S.session.key !== S.route.key)) startSession(kind);
   const ses = S.session;
   document.title = `${T(kind === 'review' ? 'nav.review' : kind === 'drill' ? 'drill.title' : 'mix.title')} · SQL Practice`;
@@ -428,6 +435,82 @@ function sessionHTML() {
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
+}
+/* ---------- level (レベル): #/level = the level and what to do, #/level/test = the placement test, #/level/go = a round of practice ---------- */
+const lvState = () => (S.progress.level && Number.isInteger(S.progress.level.lv) ? S.progress.level : null);
+const chName = k => rubyHTML(raw('ch.' + k, L()));
+/** tell the class (the teacher's page reads the latest row); once for each change */
+function levelSend() {
+  const st = lvState(); if (!st || !S.klass || !backend.enabled) return;
+  const tag = `${S.klass.id}|${levelTag(st)}|${st.at}`;
+  if (Store.get('sqln.levelSent', '') === tag) return;
+  Store.set('sqln.levelSent', tag);
+  backend.logAttempt({ class_id: S.klass.id, problem_id: levelTag(st), lesson: 'level', stage: 'review', ok: true, reason: null, sql: '' });
+}
+function levelSet(st) { S.progress.level = st; save(); levelSend(); }
+const fmtLadderHTML = at => `<div class="rv-ladder">${LV_FORMATS.map((f, i) => `<span class="${i < at ? 'done' : i === at ? 'cur' : ''}">${H(f === 'fill' ? 'stage.fill' : f === 'order2' ? 'stage.order' : 'rv.write')}</span>`).join('<i>→</i>')}</div>`;
+function levelStepsHTML(st) {
+  return `<ol class="lv-steps">${LV_CHAPTERS.map((k, i) => { const ok = st && (i < st.lv || passed(st.prof[i])), cur = st && i === st.lv;
+    return `<li class="${ok ? 'ok' : cur ? 'cur' : ''}" style="--cc:var(--c-${k})"><b>${ok ? '✓' : i + 1}</b><span>${chName(k)}</span>${st && st.prof[i] !== null && st.prof[i] !== undefined && st.at ? `<small class="muted">${H('lv.testScore', { a: Math.min(LV_PER, st.prof[i]), b: LV_PER })}</small>` : ''}</li>`; }).join('')}</ol>`;
+}
+function levelHubHTML() {
+  const st = lvState();
+  if (!st) return `<main class="wrap narrow"><section class="card empty lv-hero"><div class="empty-icon">🎯</div><h1>${H('lv.title')}</h1><p class="muted">${H('lv.intro')}</p>
+      ${levelStepsHTML(null)}<p class="muted small">${H('lv.testNote', { n: LV_MAX * LV_PER })}</p>
+      <div class="row-btns"><a class="btn btn-primary btn-lg" href="#/level/test">${H('lv.startTest')}${I.next}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
+  const ch = targetChapter(st), first = ch ? chapterLessons(ch)[0] : null;
+  return `<main class="wrap narrow lv-hub"><section class="card lv-card">
+      <div class="lv-badge"><small>${H('lv.title')}</small><b>Lv.${st.lv}</b><span class="muted small">/ ${LV_MAX}</span></div>
+      <div class="lv-now">${ch ? `<small class="muted">${H('lv.learning')}</small><h2 style="--cc:var(--c-${ch})">${chName(ch)}</h2>${fmtLadderHTML(st.fmt || 0)}
+          <p class="muted small">${(st.fmt || 0) < 2 ? H('lv.ruleUp') : H('lv.rulePass', { a: st.streak || 0, b: LV_STREAK })}</p>` : `<h2>🎉 ${H('lv.allDone')}</h2><p class="muted small">${H('lv.allDoneSub')}</p>`}</div>
+      <div class="row-btns left"><a class="btn btn-primary btn-lg" href="#/level/go">${I.repeat}${H('lv.practice')}</a>${first ? `<a class="btn btn-ghost" href="#/l/${first}/0">${H('lv.toLessons')}</a>` : ''}</div></section>
+    <section class="card lv-card2"><h2>${H('lv.map')}</h2>${levelStepsHTML(st)}
+      <div class="row-btns left"><button class="btn btn-ghost btn-sm" data-act="levelRetest">${H('lv.retest')}</button></div></section></main>`;
+}
+function levelHTML() {
+  document.title = `${T('lv.title')} · SQL Practice`;
+  const sub = S.route.sub;
+  if (!sub || (sub === 'go' && !lvState())) { if (S.session && S.session.kind === 'level') S.session = null; return levelHubHTML(); }
+  if (!S.session || S.session.kind !== 'level' || S.session.sub !== sub) {
+    const seed = randomCode(5);
+    S.session = sub === 'test' ? { kind: 'level', sub, items: buildTest(S.engine, seed), i: 0, done: {}, ans: {} } : { kind: 'level', sub, items: buildRound(S.engine, lvState(), seed), i: 0, done: {}, before: lvState() };
+  }
+  const ses = S.session;
+  if (ses.end || ses.i >= ses.items.length) return sub === 'test' ? levelTestDoneHTML(ses) : levelRoundDoneHTML(ses);
+  const prob = ses.items[ses.i], lesson = LESSON_BY_KEY[prob.lesson], st = lvState();
+  const n = ses.items.length;
+  return `<main class="wrap">
+    <div class="session-head">
+      <h1>🎯 ${H(sub === 'test' ? 'lv.testTitle' : 'lv.practice')}</h1>
+      ${sub === 'test' ? '' : `<b class="qk-need">Lv.${st.lv}</b>`}
+      <div class="session-progress"><span>${ses.i + 1} / ${n}</span><div class="bar"><i style="width:${Math.round(ses.i / n * 100)}%"></i></div></div>
+    </div>
+    <div class="session-layout">
+      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${chName(lesson.ch)}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+        ${sub === 'test' ? `<p class="muted small">${H('lv.testRule')}</p><button class="btn btn-ghost btn-sm" data-act="sessionNext">${H('lv.dontKnow')}</button>`
+    : `${prob.target ? `<div class="rv-pat"><small class="muted">${H('lv.learning')}</small>${fmtLadderHTML(st.fmt || 0)}</div>` : `<p class="muted small">${H('lv.keep')}</p>`}
+        <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details>`}</aside>
+      <div class="main" id="ws">${workspaceHTML(prob)}</div>
+    </div>
+  </main>`;
+}
+function levelTestDoneHTML(ses) {
+  if (!ses.saved) { ses.saved = true; levelSet(afterTest(ses.items, ses.done, Date.now())); }
+  const st = lvState(), ch = targetChapter(st);
+  return `<main class="wrap narrow lv-hub"><section class="card empty lv-hero"><div class="empty-icon">🎯</div><h1>${H('lv.result')}</h1>
+      <p class="lv-big">Lv.${st.lv}<small> / ${LV_MAX}</small></p>
+      <p class="muted">${ch ? H('lv.resultNext', { c: T('ch.' + ch).replace(/\{([^|}]+)\|[^}]+\}/g, '$1') }) : H('lv.allDone')}</p>
+      ${levelStepsHTML(st)}
+      <div class="row-btns"><a class="btn btn-primary btn-lg" href="#/level/go">${I.repeat}${H('lv.practice')}</a><a class="btn btn-ghost" href="#/level">${H('lv.title')}</a></div></section></main>`;
+}
+function levelRoundDoneHTML(ses) {
+  if (!ses.res) { ses.res = afterRound(ses.before, ses.items, ses.done, Date.now()); levelSet(ses.res.st); }
+  const r = ses.res, st = r.st, ok = ses.items.filter(p => ses.done[p.id]).length, ch = targetChapter(st);
+  const msg = r.up ? H('lv.up', { n: st.lv }) : r.move === 'up' ? H('lv.fmtUp') : r.move === 'down' ? H('lv.fmtDown') : (ses.before.fmt || 0) >= 2 && st.streak ? H('lv.rulePass', { a: st.streak, b: LV_STREAK }) : H('lv.again');
+  return `<main class="wrap narrow lv-hub"><section class="card empty lv-hero ${r.up ? 'up' : ''}"><div class="empty-icon">${r.up ? '🎉' : I.fire}</div><h1>${r.up ? `Lv.${st.lv}` : H('review.finished')}</h1>
+      <p class="big-score">${ok} / ${ses.items.length}</p><p class="${r.up ? 'qk-break' : 'muted'}">${msg}</p>
+      ${ch ? `<div class="lv-now center"><small class="muted">${H('lv.learning')}：${chName(ch)}</small>${fmtLadderHTML(st.fmt || 0)}</div>` : ''}
+      <div class="row-btns"><button class="btn btn-primary btn-lg" data-act="levelMore">${I.repeat}${H('rv.more', { n: 5 })}</button><a class="btn btn-ghost" href="#/level">${H('lv.title')}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
 }
 /* ---------- one table, many queries (同じテーブルで練習): #/table = choose, #/table/<name> = practise ---------- */
 const TP_KEY = 'sqln.oneTable', TP_PER = [1, 2, 3, 5];   // problems per lesson (a lesson with fewer different queries on the table gives fewer)
@@ -1306,7 +1389,7 @@ function record(prob, ok, run, sql) {
   } else if (!empty && prob.test) {   // a check test: only the test keeps score; the lessons' progress is not touched
     if (ok) bumpStreak(S.progress);
     const ses = S.session;
-    if (ses && ses.kind === 'check' && ses.done[prob.id] === undefined) { ses.done[prob.id] = ok; ses.ans[prob.id] = String(sql).slice(0, 2000); }
+    if (ses && (ses.kind === 'check' || (ses.kind === 'level' && ses.sub === 'test')) && ses.done[prob.id] === undefined) { ses.done[prob.id] = ok; ses.ans[prob.id] = String(sql).slice(0, 2000); }
   } else if (!empty) {
     if (ok) {
       const lesson = LESSON_BY_KEY[prob.lesson];
@@ -1465,7 +1548,17 @@ const actions = {
   tpAgain() { S.session = null; render(); window.scrollTo(0, 0); },
   reviewMore() { S.session = null; render(); window.scrollTo(0, 0); },
   quickMore() { S.qMore = true; const f = qItems().find(p => !qDone(p)); location.hash = f ? `#/quick/${f.qn}` : '#/quick'; },
-  sessionNext() { saveDraft(); if (S.session.kind === 'drill' && !S.session.done[S.session.items[S.session.i].id]) S.session.streak = 0; S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
+  levelRetest() { if (confirm(T('lv.retestConfirm'))) { S.session = null; location.hash = '#/level/test'; } },
+  levelMore() { S.session = null; render(); window.scrollTo(0, 0); },
+  sessionNext() {
+    const ses = S.session;
+    if (ses && ses.kind === 'level' && ses.sub === 'test' && ses.i < ses.items.length) {   // the placement test: no answer = wrong; it may end early
+      const p = ses.items[ses.i]; if (ses.done[p.id] === undefined) ses.done[p.id] = false;
+      if (testEnds(ses.items, ses.done, ses.i)) ses.end = true;
+    }
+    return actions.sessionNext2();
+  },
+  sessionNext2() { saveDraft(); if (S.session.kind === 'drill' && !S.session.done[S.session.items[S.session.i].id]) S.session.streak = 0; S.session.i++; S.tab = 'user'; render(); window.scrollTo(0, 0); },
   drillAgain() { S.session = null; render(); window.scrollTo(0, 0); },
   drillLevel(el) { Store.set('sqln.drillLevel', el.dataset.v); S.session = null; render(); },
   checkBegin() { const cfg = decodeCheck(S.route.code); if (!cfg) return; startCheck(S.route.code, cfg); render(); window.scrollTo(0, 0); },
@@ -1700,7 +1793,11 @@ async function restoreFromServer() {
   const q = S.klass.quick, qpre = q && q.id ? `quick:${q.id}:` : null;
   rows.filter(a => a.ok && qpre && a.problem_id.startsWith(qpre)).forEach(a => { if (qMark(+a.problem_id.slice(qpre.length))) changed = true; });
   const mine = new Set(assignedSeq().map(p => p.id));   // this class's problems now: solved in this class counts for the assignment
-  rows.filter(a => a.ok).forEach(a => {
+  if (!lvState()) {   // the level from another device (the latest row the student's pages wrote)
+    const x = [...levelsFromLog(rows).values()][0];
+    if (x) { const at = new Date(x.at).getTime(); S.progress.level = { lv: x.lv, prof: LV_CHAPTERS.map((c, i) => (x.prof[i] === undefined ? null : x.prof[i])), fmt: 0, streak: 0, ptr: 0, at, upd: at, rounds: 0 }; Store.set('sqln.levelSent', `${S.klass.id}|${levelTag(S.progress.level)}|${at}`); changed = true; }
+  }
+  rows.filter(a => a.ok && !isLevelRow(a)).forEach(a => {
     if (mine.has(a.problem_id) && markRound(a.problem_id, new Date(a.created_at).getTime())) changed = true;
     if (!S.progress.solved[a.problem_id]) { S.progress.solved[a.problem_id] = new Date(a.created_at).getTime(); changed = true; }
     if (!S.progress.answers[a.problem_id] && a.sql) { S.progress.answers[a.problem_id] = { sql: a.sql, at: new Date(a.created_at).getTime() }; changed = true; }
@@ -1734,6 +1831,7 @@ actions.leave = async () => {
 };
 let unwatch = null;
 async function watchKlass() {
+  levelSend();   // the class's teacher sees the level (a row in the class log)
   if (!S.klass || !backend.enabled) return;
   try {
     const c = await backend.getClass(S.klass.id);
