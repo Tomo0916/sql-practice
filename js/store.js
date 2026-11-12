@@ -21,11 +21,12 @@ export function saveSettings(s) { Store.set(KEYS.settings, s); }
  * solved:  problemId → time (ids do not depend on language)
  * wrong:   problemId → number of wrong runs
  * drafts:  problemId → text in editor / blanks / order
- * lessons: lessonKey → { done, due, ivl }   (spaced review)
+ * lessons: lessonKey → { done, due, ivl }   (done = when the lesson was finished)
+ * pat:     "lesson|pattern" → { f, s, due, n, ng, last }   (review by pattern: js/mastery.js)
  */
 export function loadProgress() {
   const p = Store.get(KEYS.progress, null) || {};
-  return Object.assign({ solved: {}, wrong: {}, drafts: {}, answers: {}, lessons: {}, drill: {}, klass: {}, last: null, streak: { day: 0, n: 0 } }, p);
+  return Object.assign({ solved: {}, wrong: {}, drafts: {}, answers: {}, lessons: {}, drill: {}, pat: {}, klass: {}, last: null, streak: { day: 0, n: 0 } }, p);
 }
 /**
  * Two tabs (or windows) of the app share one record: before saving, take what the other one saved,
@@ -41,6 +42,8 @@ export function mergeProgress(stored, mine) {
   out.wrong = max(stored.wrong, mine.wrong);
   out.drill = max(stored.drill, mine.drill);
   out.lessons = Object.assign({}, stored.lessons, mine.lessons);
+  out.pat = Object.assign({}, stored.pat);   // review by pattern: the state with the later answer wins (more answers on the same day)
+  Object.entries(mine.pat || {}).forEach(([k, v]) => { const x = out.pat[k]; if (!x || (v.last || 0) > (x.last || 0) || ((v.last || 0) === (x.last || 0) && (v.n || 0) >= (x.n || 0))) out.pat[k] = v; });
   out.streak = (stored.streak || {}).day > (mine.streak || {}).day || ((stored.streak || {}).day === (mine.streak || {}).day && (stored.streak || {}).n > (mine.streak || {}).n) ? stored.streak : mine.streak;
   out.klass = {};   // the class assignment's rounds: solved in that class (the earliest time wins)
   new Set([...Object.keys(stored.klass || {}), ...Object.keys(mine.klass || {})]).forEach(k => { out.klass[k] = earliest((stored.klass || {})[k] || {}, (mine.klass || {})[k] || {}); });
