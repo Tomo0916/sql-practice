@@ -430,14 +430,14 @@ function sessionHTML() {
   </main>`;
 }
 /* ---------- one table, many queries (同じテーブルで練習): #/table = choose, #/table/<name> = practise ---------- */
-const TP_KEY = 'sqln.oneTable';
+const TP_KEY = 'sqln.oneTable', TP_PER = [1, 2, 3, 5];   // problems per lesson (a lesson with fewer different queries on the table gives fewer)
 function tpConfig() {
   const c = Store.get(TP_KEY, null) || {}, sets = tableSets(S.engine);
   const chapters = CHAPTERS.filter(ch => LESSONS.some(l => l.ch === ch.key && sets[0].lessons.includes(l.key))).map(ch => ch.key);
   const started = chapters.filter(k => LESSONS.some(l => l.ch === k && S.progress.lessons[l.key] && S.progress.lessons[l.key].done));
   let ch = Array.isArray(c.ch) ? c.ch.filter(k => chapters.includes(k)) : [];
   if (!ch.length) ch = started.length ? started : chapters.slice(0, 1);
-  return { chapters, ch, fmt: ['fill', 'order2', 'write'].includes(c.fmt) ? c.fmt : 'write', per: c.per === 2 ? 2 : 1 };
+  return { chapters, ch, fmt: ['fill', 'order2', 'write'].includes(c.fmt) ? c.fmt : 'write', per: TP_PER.includes(c.per) ? c.per : 1 };
 }
 const tpLessons = (set, cfg) => (set.join ? set.lessons : set.lessons.filter(k => cfg.ch.includes(LESSON_BY_KEY[k].ch)));
 function startOneTable(ds) {
@@ -457,7 +457,7 @@ function oneTableSetupHTML() {
     <section class="card tp-set">
       <div class="fld"><span>${H('tp.range')}</span><div class="q-chapters">${cfg.chapters.map(k => { const on = cfg.ch.includes(k); return `<button class="btn btn-ghost btn-xs q-ch ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="tpSet" data-k="ch" data-v="${k}" aria-pressed="${on}">${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}</div></div>
       <div class="q-row"><div class="fld"><span>${H('tp.format')}</span>${seg('fmt', ['fill', 'order2', 'write'], cfg.fmt, tpFmtName)}</div>
-        <div class="fld"><span>${H('tp.per')}</span>${seg('per', [1, 2], cfg.per, v => H('tp.perN', { n: v }))}</div></div>
+        <div class="fld"><span>${H('tp.per')}</span>${seg('per', TP_PER, cfg.per, v => H('tp.perN', { n: v }))}</div></div>
     </section>
     <h2 class="tp-h">${H('tp.single')}</h2><div class="tp-grid">${sets.filter(x => !x.join).map(card).join('')}</div>
     <h2 class="tp-h">${H('tp.join')}</h2><div class="tp-grid">${sets.filter(x => x.join).map(card).join('')}</div></main>`;
