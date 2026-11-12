@@ -1197,5 +1197,16 @@ export default {
   "lv.fmtDown": "Next time the format is one step easier.",
   "lv.again": "Get all 3 right to move on. Try once more.",
   "lv.notTaken": "Not yet",
-  "lv.teacherNote": "When students take the test under “SQL level” on their home page, their level appears here."
+  "lv.teacherNote": "When students take the test under “SQL level” on their home page, their level appears here.",
+  "tc.quick.goal": "What to send",
+  "tc.quick.lvChapters": "Units (chapters) to measure",
+  "tc.quick.lvAll": "All",
+  "tc.quick.lvNote": "3 writing problems per chapter. 2 of 3 right passes the chapter.",
+  "tc.quick.lvSub": "Send a level test to everyone at once. When it is over, each student has a level and can practise problems that fit it.",
+  "tc.quick.lvStart": "Send the level test",
+  "tc.quick.lvSum": "{n} problems ({c} chapters)",
+  "tc.quick.lvPick": "Choose the units",
+  "tc.quick.lvAfter": "See the results as levels in the Students tab and in “Quick tests so far” below. Chapters not chosen keep each student's earlier result.",
+  "qk.lvWait": "You can see the answers when the teacher ends the test.",
+  "qk.lvRule": "Only your first answer is recorded. You cannot try again."
 };

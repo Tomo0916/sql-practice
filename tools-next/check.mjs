@@ -488,6 +488,20 @@ console.log('11. Check tests (確認テスト)');
     const lg = V.levelsFromLog([{ user_id: 'u', problem_id: 'lv:2:32----', created_at: '2026-01-01T00:00:00Z' }, { user_id: 'u', problem_id: 'lv:3:322---', created_at: '2026-01-02T00:00:00Z' }, { user_id: 'v', problem_id: 'where:write:x', created_at: '2026-01-02T00:00:00Z' }]);
     if (lg.size !== 1 || lg.get('u').lv !== 3 || lg.get('u').prof.join() !== '3,2,2,,,') err('level: the teacher does not read the latest level from the class log');
   }
+  // a level test sent to the class: chosen chapters, first answer only, the level from it
+  {
+    const Q = await import('../js/quick.js'), V = await import('../js/level.js');
+    const sl = Q.levelSlots(eng, [1, 4], 'LT');
+    const qt = Q.newQuick({ seed: 'LT', slots: sl, lv: [1, 4], limitSec: 600 }, Date.parse('2026-01-01T00:00:00Z'));
+    const items = Q.quickProblems(eng, JSON.parse(JSON.stringify(qt)));
+    if (items.length !== 6 || !qt.once || qt.pass !== 6 || items.some(p => p.stage !== 'write' || !['filter', 'agg'].includes(LESSON_BY_KEY[p.lesson].ch))) err('level test (class): not 3 writing problems for each chosen chapter');
+    const t = s => new Date(Date.parse(qt.at) + s * 1000).toISOString(), row = (i, ok, s) => ({ user_id: 'u', problem_id: `quick:${qt.id}:${i}`, ok, created_at: t(s) });
+    const rows = [row(0, false, 1), row(0, true, 2), row(1, true, 3), row(2, true, 4)];
+    const stq = Q.quickStats(rows, qt, [{ user_id: 'u', nickname: 'A' }]);
+    if (stq.rows[0].score !== 2 || stq.rows[0].ok[0]) err('level test (class): an answer after the first one counts');
+    const prof = Q.levelProfile(items, { 1: 1, 2: 1, 3: 1, 4: 1 }, [1, 4], [3, 0, 2, null, null, null]);
+    if (prof.join() !== '3,2,2,,2,' || V.levelOf(prof) !== 3) err(`level test (class): the profile is wrong (${prof.join()})`);
+  }
   // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"
   {
     const { quickStats, quickCSV, logPut, logDrop, slotsShape, QUICK_LOG_MAX } = await import('../js/quick.js');

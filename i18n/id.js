@@ -1196,5 +1196,16 @@ export default {
   "lv.fmtDown": "Berikutnya formatnya satu tingkat lebih mudah.",
   "lv.again": "Jawab benar ketiganya untuk maju. Coba sekali lagi.",
   "lv.notTaken": "Belum",
-  "lv.teacherNote": "Saat siswa mengikuti tes di “Level SQL” pada halaman beranda mereka, levelnya muncul di sini."
+  "lv.teacherNote": "Saat siswa mengikuti tes di “Level SQL” pada halaman beranda mereka, levelnya muncul di sini.",
+  "tc.quick.goal": "Yang dikirim",
+  "tc.quick.lvChapters": "Unit (bab) yang diukur",
+  "tc.quick.lvAll": "Semua",
+  "tc.quick.lvNote": "3 soal menulis per bab. Benar 2 dari 3 berarti lulus bab itu.",
+  "tc.quick.lvSub": "Kirim tes level ke semua siswa sekaligus. Setelah selesai, setiap siswa punya level dan bisa berlatih soal yang sesuai.",
+  "tc.quick.lvStart": "Kirim tes level",
+  "tc.quick.lvSum": "{n} soal ({c} bab)",
+  "tc.quick.lvPick": "Pilih unit",
+  "tc.quick.lvAfter": "Lihat hasil sebagai level di tab Siswa dan di “Tes cepat sebelumnya” di bawah. Bab yang tidak dipilih tetap memakai hasil siswa sebelumnya.",
+  "qk.lvWait": "Jawaban bisa dilihat setelah guru mengakhiri tes.",
+  "qk.lvRule": "Hanya jawaban pertama yang dicatat. Tidak bisa mencoba lagi."
 };
