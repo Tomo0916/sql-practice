@@ -1207,5 +1207,10 @@ export default {
   "tc.quick.lvPick": "请选择单元",
   "tc.quick.lvAfter": "结果可在“学生”标签的等级和下方“以往的快速测验”中查看。未选择的章保留学生之前的结果。",
   "qk.lvWait": "老师结束测验后可以查看答案。",
-  "qk.lvRule": "只记录第一次的答案，不能重做。"
+  "qk.lvRule": "只记录第一次的答案，不能重做。",
+  "order.g.kw": "SQL 关键字",
+  "order.g.table": "表名",
+  "order.g.col": "列名",
+  "order.g.op": "符号",
+  "order.g.val": "值"
 };

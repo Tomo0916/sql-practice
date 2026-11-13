@@ -1207,5 +1207,10 @@ export default {
   "tc.quick.lvPick": "Hãy chọn đơn vị",
   "tc.quick.lvAfter": "Xem kết quả dưới dạng trình độ ở tab Học sinh và ở “Các bài kiểm tra nhanh trước đây” bên dưới. Các chương không chọn giữ kết quả cũ của học sinh.",
   "qk.lvWait": "Bạn có thể xem đáp án khi giáo viên kết thúc bài kiểm tra.",
-  "qk.lvRule": "Chỉ câu trả lời đầu tiên được ghi lại. Không thể làm lại."
+  "qk.lvRule": "Chỉ câu trả lời đầu tiên được ghi lại. Không thể làm lại.",
+  "order.g.kw": "Từ khóa SQL",
+  "order.g.table": "Tên bảng",
+  "order.g.col": "Tên cột",
+  "order.g.op": "Ký hiệu",
+  "order.g.val": "Giá trị"
 };

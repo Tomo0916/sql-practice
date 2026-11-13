@@ -1208,5 +1208,10 @@ export default {
   "tc.quick.lvPick": "Choose the units",
   "tc.quick.lvAfter": "See the results as levels in the Students tab and in “Quick tests so far” below. Chapters not chosen keep each student's earlier result.",
   "qk.lvWait": "You can see the answers when the teacher ends the test.",
-  "qk.lvRule": "Only your first answer is recorded. You cannot try again."
+  "qk.lvRule": "Only your first answer is recorded. You cannot try again.",
+  "order.g.kw": "SQL words",
+  "order.g.table": "Table names",
+  "order.g.col": "Column names",
+  "order.g.op": "Symbols",
+  "order.g.val": "Values"
 };
