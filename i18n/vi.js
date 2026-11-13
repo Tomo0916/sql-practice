@@ -1196,5 +1196,10 @@ export default {
   "lv.fmtDown": "Lần tới dạng bài sẽ dễ hơn một bậc.",
   "lv.again": "Đúng cả 3 câu để đi tiếp. Hãy thử lại.",
   "lv.notTaken": "Chưa làm",
-  "lv.teacherNote": "Khi học sinh làm bài kiểm tra ở “Trình độ SQL” trên trang chủ, trình độ sẽ hiện ở đây."
+  "lv.teacherNote": "Khi học sinh làm bài kiểm tra ở “Trình độ SQL” trên trang chủ, trình độ sẽ hiện ở đây.",
+  "order.g.kw": "Từ khóa SQL",
+  "order.g.table": "Tên bảng",
+  "order.g.col": "Tên cột",
+  "order.g.op": "Ký hiệu",
+  "order.g.val": "Giá trị"
 };

@@ -1196,5 +1196,10 @@ export default {
   "lv.fmtDown": "下次的形式会简单一级。",
   "lv.again": "3 题全对才能前进。再试一次吧。",
   "lv.notTaken": "未测",
-  "lv.teacherNote": "学生在首页的“SQL 等级”参加测验后，等级会显示在这里。"
+  "lv.teacherNote": "学生在首页的“SQL 等级”参加测验后，等级会显示在这里。",
+  "order.g.kw": "SQL 关键字",
+  "order.g.table": "表名",
+  "order.g.col": "列名",
+  "order.g.op": "符号",
+  "order.g.val": "值"
 };

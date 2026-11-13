@@ -334,7 +334,7 @@ function quickTableHTML(q, st) {
   const rows = [...st.rows].sort((a, b) => rank(a) - rank(b) || (a.passed ? (a.ms || 0) - (b.ms || 0) : b.score - a.score) || a.nickname.localeCompare(b.nickname));
   const cell = (r, i) => (r.ok[i] ? `<td class="ok">○${r.tries[i] > 1 ? `<small>${r.tries[i]}</small>` : ''}</td>` : r.tries[i] ? `<td class="bad">×<small>${r.tries[i]}</small></td>` : '<td class="muted">–</td>');
   return `<div class="q-table-wrap"><table class="q-table q-res"><thead><tr><th>${H('class.nickname')}</th>${Array.from({ length: q.n }, (_, i) => `<th class="center">Q${i + 1}</th>`).join('')}<th class="n">${H('tc.quick.colScore')}</th><th class="n">${H('tc.quick.colTime')}</th></tr></thead>
-    <tbody>${rows.map(r => `<tr class="${r.passed ? 'pass' : r.started ? '' : 'none'}"><th>${esc(r.nickname)}</th>${Array.from({ length: q.n }, (_, i) => cell(r, i)).join('')}<td class="n">${r.started ? `<b>${r.score}</b> / ${q.n}` : `<span class="muted">${H('tc.quick.notStarted')}</span>`}</td><td class="n">${r.ms === null ? '' : '✓ ' + mmssOf(r.ms)}</td></tr>`).join('')}</tbody></table></div>
+    <tbody>${rows.map(r => `<tr class="${r.passed ? 'pass' : r.started ? '' : 'none'}"><th title="${esc(r.nickname)}">${esc(r.nickname)}</th>${Array.from({ length: q.n }, (_, i) => cell(r, i)).join('')}<td class="n">${r.started ? `<b>${r.score}</b> / ${q.n}` : `<span class="muted">${H('tc.quick.notStarted')}</span>`}</td><td class="n">${r.ms === null ? '' : '✓ ' + mmssOf(r.ms)}</td></tr>`).join('')}</tbody></table></div>
     <p class="muted small">${H('tc.quick.tableNote')}</p>`;
 }
 function quickResultHTML(c, q) {
@@ -368,9 +368,9 @@ function quickRunHTML(c, q, running) {
   const done = rows.filter(r => r.s && r.s.done).sort((a, b) => (a.s.done < b.s.done ? -1 : 1));
   const going = rows.filter(r => r.s && !r.s.done).sort((a, b) => b.s.ok.size - a.s.ok.size || a.m.nickname.localeCompare(b.m.nickname));
   const none = rows.filter(r => !r.s).sort((a, b) => a.m.nickname.localeCompare(b.m.nickname));
-  const chip = r => !r.s ? `<li class="q-st none"><b>${esc(r.m.nickname)}</b><span>${H('tc.quick.notStarted')}</span></li>`
-    : r.s.done ? `<li class="q-st done"><b>${esc(r.m.nickname)}</b><span>✓ ${mmssOf(new Date(r.s.done).getTime() - t0)}${pass < q.n ? ` · ${r.s.ok.size}/${q.n}` : ''}</span></li>`
-    : `<li class="q-st going"><b>${esc(r.m.nickname)}</b><span>${r.s.ok.size} / ${q.n}</span></li>`;
+  const chip = r => !r.s ? `<li class="q-st none" title="${esc(r.m.nickname)}"><b>${esc(r.m.nickname)}</b><span>${H('tc.quick.notStarted')}</span></li>`
+    : r.s.done ? `<li class="q-st done" title="${esc(r.m.nickname)}"><b>${esc(r.m.nickname)}</b><span>✓ ${mmssOf(new Date(r.s.done).getTime() - t0)}${pass < q.n ? ` · ${r.s.ok.size}/${q.n}` : ''}</span></li>`
+    : `<li class="q-st going" title="${esc(r.m.nickname)}"><b>${esc(r.m.nickname)}</b><span>${r.s.ok.size} / ${q.n}</span></li>`;
   const probs = quickProblems(S.engine, q);
   const rule = H('tc.quick.meta', { n: q.n, pass, t: fmtTime(q.at) });
   const head = running
@@ -390,7 +390,7 @@ function quickBigHTML() {
   const prog = quickProgress(S.qAtt || [], q);
   const done = S.members.map(m => ({ m, s: prog.get(m.user_id) })).filter(r => r.s && r.s.done).sort((a, b) => (a.s.done < b.s.done ? -1 : 1));
   return `<div class="q-bigview"><h2>⚡ ${H('tc.quick.bigTitle')}</h2><div class="q-bigclock">${quickClock(q)}</div><p class="q-big">${done.length} / ${S.members.length}</p>
-    <ul class="q-names">${done.map(r => `<li>${esc(r.m.nickname)}</li>`).join('')}</ul></div>`;
+    <ul class="q-names">${done.map(r => `<li title="${esc(r.m.nickname)}">${esc(r.m.nickname)}</li>`).join('')}</ul></div>`;
 }
 let qPhaseShown = null;
 setInterval(() => {

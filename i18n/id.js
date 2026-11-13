@@ -1196,5 +1196,10 @@ export default {
   "lv.fmtDown": "Berikutnya formatnya satu tingkat lebih mudah.",
   "lv.again": "Jawab benar ketiganya untuk maju. Coba sekali lagi.",
   "lv.notTaken": "Belum",
-  "lv.teacherNote": "Saat siswa mengikuti tes di “Level SQL” pada halaman beranda mereka, levelnya muncul di sini."
+  "lv.teacherNote": "Saat siswa mengikuti tes di “Level SQL” pada halaman beranda mereka, levelnya muncul di sini.",
+  "order.g.kw": "Kata SQL",
+  "order.g.table": "Nama tabel",
+  "order.g.col": "Nama kolom",
+  "order.g.op": "Simbol",
+  "order.g.val": "Nilai"
 };

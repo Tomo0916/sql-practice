@@ -1197,5 +1197,10 @@ export default {
   "lv.fmtDown": "次は 1 つやさしい形式にもどります。",
   "lv.again": "3 問とも正解で、次に進みます。もう一度やってみましょう。",
   "lv.notTaken": "まだ",
-  "lv.teacherNote": "生徒がホームの「SQL レベル」でテストを受けると、ここにレベルが出ます。"
+  "lv.teacherNote": "生徒がホームの「SQL レベル」でテストを受けると、ここにレベルが出ます。",
+  "order.g.kw": "SQL のことば",
+  "order.g.table": "テーブル名",
+  "order.g.col": "列名・名前",
+  "order.g.op": "記号",
+  "order.g.val": "値"
 };

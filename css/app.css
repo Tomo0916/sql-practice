@@ -43,6 +43,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--s
 a { color: var(--accent); }
 button, input, select, textarea { font: inherit; color: inherit; }
 code, pre { font-family: var(--mono); }
+/* SQL symbols as typed (>=, <=, <>): no ligatures that join them into ≥ ≤ ≠ */
+*, *::before, *::after { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
 h1, h2, h3 { line-height: 1.35; }
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 2px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
@@ -1066,3 +1068,12 @@ body.pj-open { overflow: hidden; }
 .lv-dist > span.zero { background: var(--surface-2); opacity: .7; }
 .lv-dist small { font-size: .7rem; color: var(--ink-3); }
 @media (max-width: 560px) { .lv-card { grid-template-columns: 1fr; } }
+
+/* ordering pieces in groups */
+.ord-pool.grouped { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.ord-grp { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.ord-grp-h { font-size: .74rem; font-weight: 700; color: var(--ink-3); }
+.ord-grp-items { display: flex; flex-wrap: wrap; gap: 6px; }
+/* quick test: the full name on hover */
+.q-st b, .q-names li, .q-res th { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-res tbody th { max-width: 160px; }
