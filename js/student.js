@@ -1239,6 +1239,24 @@ function fillHTML(prob) {
       </div>
     </section>`;
 }
+/* ordering pieces, grouped by what they start with: SQL words, table names, column names (and names given with AS), symbols, values */
+const ORD_KW = new Set(['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'ORDER', 'GROUP', 'BY', 'HAVING', 'LIMIT', 'OFFSET', 'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'JOIN', 'INNER', 'LEFT', 'ON', 'AS', 'DISTINCT', 'BETWEEN', 'IN', 'LIKE', 'IS', 'NULL', 'ASC', 'DESC']);
+const ORD_FN = /^(COUNT|SUM|AVG|MAX|MIN|ROUND|LENGTH|UPPER|LOWER|COALESCE)\(/i;
+const ORD_GROUPS = ['kw', 'table', 'col', 'op', 'val'];
+function pieceGroup(text) {
+  const w = text.trim().split(/\s+/)[0], bare = w.replace(/^\(+|[,;)]+$/g, '');
+  if (ORD_KW.has(w.toUpperCase())) return 'kw';
+  if (ALL_TABLES[bare]) return 'table';
+  if (ORD_FN.test(w) || /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_*][A-Za-z0-9_]*)?$/.test(bare)) return 'col';
+  if (/^(=|<>|!=|<=|>=|<|>|\*|\+|-|\/|%|\|\|)$/.test(bare)) return 'op';
+  return 'val';
+}
+const groupsOf = task => {
+  if (!task.fine) return null;
+  const gs = ORD_GROUPS.map(key => ({ key, items: task.chunks.filter(c => pieceGroup(c.text) === key) })).filter(g => g.items.length);
+  return gs.length > 1 ? gs : null;
+};
+const chipBtn = c => `<button class="ord-chip" data-act="place" data-id="${c.id}"><code>${highlightSQL(c.text)}</code></button>`;
 function orderHTML(prob) {
   const task = S.engine.orderTask(prob);
   if (!task) return writeHTML(prob);
@@ -1250,7 +1268,7 @@ function orderHTML(prob) {
       <div class="ord-label">${H('order.answer')}</div>
       <ol class="ord-ans ${run && run.grade && run.grade.ok ? 'ok' : ''}" aria-live="polite">${placed.length ? placed.map((id, i) => `<li><button class="ord-chip placed" data-act="unplace" data-id="${id}" aria-label="${esc(T('order.remove'))}"><span class="ord-n">${i + 1}</span><code>${highlightSQL(byId[id].text)}</code>${I.x}</button></li>`).join('') : `<li class="ord-empty">${H('order.empty')}</li>`}</ol>
       <div class="ord-label">${H('order.pool')}</div>
-      <div class="ord-pool">${pool.map(c => `<button class="ord-chip" data-act="place" data-id="${c.id}"><code>${highlightSQL(c.text)}</code></button>`).join('') || `<span class="muted small">${H('order.allUsed')}</span>`}</div>
+      <div class="ord-pool ${groupsOf(task) ? 'grouped' : ''}">${groupsOf(task) ? groupsOf(task).map(g => `<div class="ord-grp"><small class="ord-grp-h">${H('order.g.' + g.key)}</small><div class="ord-grp-items">${g.items.filter(c => !placed.includes(c.id)).map(chipBtn).join('') || '<span class="muted small">—</span>'}</div></div>`).join('') : pool.map(chipBtn).join('') || `<span class="muted small">${H('order.allUsed')}</span>`}</div>
       ${task.fine ? `<p class="ord-level">${H('order.fine')}</p>` : ''}<p class="muted small">${H('order.tip')} ${H('order.dragTip')}</p>
       <div class="actions">
         <button class="btn btn-primary btn-run" data-act="checkOrder" ${placed.length ? '' : 'disabled'}>${I.check}${H('fill.check')}</button>

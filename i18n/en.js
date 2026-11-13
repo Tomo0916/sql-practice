@@ -1197,5 +1197,10 @@ export default {
   "lv.fmtDown": "Next time the format is one step easier.",
   "lv.again": "Get all 3 right to move on. Try once more.",
   "lv.notTaken": "Not yet",
-  "lv.teacherNote": "When students take the test under “SQL level” on their home page, their level appears here."
+  "lv.teacherNote": "When students take the test under “SQL level” on their home page, their level appears here.",
+  "order.g.kw": "SQL words",
+  "order.g.table": "Table names",
+  "order.g.col": "Column names",
+  "order.g.op": "Symbols",
+  "order.g.val": "Values"
 };
