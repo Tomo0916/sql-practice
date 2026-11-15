@@ -1207,5 +1207,10 @@ export default {
   "tc.quick.lvPick": "Pilih unit",
   "tc.quick.lvAfter": "Lihat hasil sebagai level di tab Siswa dan di “Tes cepat sebelumnya” di bawah. Bab yang tidak dipilih tetap memakai hasil siswa sebelumnya.",
   "qk.lvWait": "Jawaban bisa dilihat setelah guru mengakhiri tes.",
-  "qk.lvRule": "Hanya jawaban pertama yang dicatat. Tidak bisa mencoba lagi."
+  "qk.lvRule": "Hanya jawaban pertama yang dicatat. Tidak bisa mencoba lagi.",
+  "order.g.kw": "Kata SQL",
+  "order.g.table": "Nama tabel",
+  "order.g.col": "Nama kolom",
+  "order.g.op": "Simbol",
+  "order.g.val": "Nilai"
 };

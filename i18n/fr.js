@@ -1207,5 +1207,10 @@ export default {
   "tc.quick.lvPick": "Choisissez les unités",
   "tc.quick.lvAfter": "Voir les résultats comme niveaux dans l'onglet Élèves et dans « Tests rapides précédents » ci-dessous. Les chapitres non choisis gardent le résultat précédent de chaque élève.",
   "qk.lvWait": "Vous verrez les réponses quand l'enseignant terminera le test.",
-  "qk.lvRule": "Seule votre première réponse est enregistrée. Pas de nouvel essai."
+  "qk.lvRule": "Seule votre première réponse est enregistrée. Pas de nouvel essai.",
+  "order.g.kw": "Mots SQL",
+  "order.g.table": "Noms de tables",
+  "order.g.col": "Noms de colonnes",
+  "order.g.op": "Symboles",
+  "order.g.val": "Valeurs"
 };
