@@ -1196,5 +1196,16 @@ export default {
   "lv.fmtDown": "La prochaine fois, le format sera un peu plus facile.",
   "lv.again": "3 réponses justes pour avancer. Essayez encore.",
   "lv.notTaken": "Pas encore",
-  "lv.teacherNote": "Quand les élèves passent le test dans « Niveau SQL » sur leur page d'accueil, leur niveau apparaît ici."
+  "lv.teacherNote": "Quand les élèves passent le test dans « Niveau SQL » sur leur page d'accueil, leur niveau apparaît ici.",
+  "tc.quick.goal": "Que envoyer",
+  "tc.quick.lvChapters": "Unités (chapitres) à mesurer",
+  "tc.quick.lvAll": "Toutes",
+  "tc.quick.lvNote": "3 problèmes à écrire par chapitre. 2 justes sur 3 valident le chapitre.",
+  "tc.quick.lvSub": "Envoyer un test de niveau à tous en même temps. À la fin, chaque élève a un niveau et peut pratiquer des problèmes adaptés.",
+  "tc.quick.lvStart": "Envoyer le test de niveau",
+  "tc.quick.lvSum": "{n} problèmes ({c} chapitres)",
+  "tc.quick.lvPick": "Choisissez les unités",
+  "tc.quick.lvAfter": "Voir les résultats comme niveaux dans l'onglet Élèves et dans « Tests rapides précédents » ci-dessous. Les chapitres non choisis gardent le résultat précédent de chaque élève.",
+  "qk.lvWait": "Vous verrez les réponses quand l'enseignant terminera le test.",
+  "qk.lvRule": "Seule votre première réponse est enregistrée. Pas de nouvel essai."
 };

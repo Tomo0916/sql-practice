@@ -1196,5 +1196,16 @@ export default {
   "lv.fmtDown": "下次的形式会简单一级。",
   "lv.again": "3 题全对才能前进。再试一次吧。",
   "lv.notTaken": "未测",
-  "lv.teacherNote": "学生在首页的“SQL 等级”参加测验后，等级会显示在这里。"
+  "lv.teacherNote": "学生在首页的“SQL 等级”参加测验后，等级会显示在这里。",
+  "tc.quick.goal": "发送内容",
+  "tc.quick.lvChapters": "要测的单元（章）",
+  "tc.quick.lvAll": "全部",
+  "tc.quick.lvNote": "每章 3 道书写题。3 题答对 2 题即该章合格。",
+  "tc.quick.lvSub": "同时向全体学生发送等级测验。结束后，每个学生都会得到等级，并能练习适合的题目。",
+  "tc.quick.lvStart": "发送等级测验",
+  "tc.quick.lvSum": "{n} 题（{c} 章）",
+  "tc.quick.lvPick": "请选择单元",
+  "tc.quick.lvAfter": "结果可在“学生”标签的等级和下方“以往的快速测验”中查看。未选择的章保留学生之前的结果。",
+  "qk.lvWait": "老师结束测验后可以查看答案。",
+  "qk.lvRule": "只记录第一次的答案，不能重做。"
 };

@@ -26,7 +26,8 @@ import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
 import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N, tableSets, tableCourse } from './mastery.js';
-import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog } from './level.js';
+import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog, levelOf } from './level.js';
+import { levelProfile } from './quick.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
@@ -160,7 +161,7 @@ function current() {
   if (r.view === 'quick') {
     const items = qItems(); if (!items.length || qPhaseNow() !== 'run' || ((r.raw === '' || r.idx < 0) && qFinished())) return null;   // countdown, time up, or the "passed" screen
     if (r.raw === '' || r.idx < 0) {   // #/quick: the first unsolved problem, and keep it (it must not move on when solved)
-      const first = items.find(p => !qDone(p)) || items[0];
+      const first = items.find(p => !(qOnce() ? qTried(p) : qDone(p))) || items[0];
       Object.assign(r, { idx: first.qn, raw: String(first.qn) }); history.replaceState(null, '', `#/quick/${first.qn}`);
     }
     const prob = items[Math.min(r.idx, items.length - 1)];
@@ -760,6 +761,7 @@ function qReviewHTML(items, st) {
 }
 /** the teacher has ended the test: the student's result and the answers */
 function quickEndedHTML(st) {
+  if (st.q && st.q.once) qLevelApply(st);
   const items = quickProblems(S.engine, st.q), n = items.length, ok = items.filter(p => st.done[p.qn]).length, passed = ok >= passOf(st.q);
   return `<main class="wrap narrow ck-result"><section class="card empty quick-done ${passed ? '' : 'not'}">
       <div class="empty-icon">${passed ? '🎉' : '⚡'}</div><h1>${H('qk.endedTitle')}</h1><p class="big-score">${ok} / ${n}</p>
@@ -767,8 +769,19 @@ function quickEndedHTML(st) {
       <a class="btn btn-primary" href="#/">${H('nav.home')}</a></section>${qReviewHTML(items, st)}</main>`;
 }
 const qDone = p => !!qState().done[p.qn];
+/** a level test from the teacher: one answer per problem */
+const qOnce = () => !!(S.klass && S.klass.quick && S.klass.quick.once);
+const qTried = p => qDone(p) || !!(qState().tried || {})[p.qn];
+function qTry(n) { const st = qState(); st.tried = st.tried || {}; st.tried[n] = Date.now(); Store.set(QKEY_ST, st); }
+/** a level test is over for this student: the level from its chapters (other chapters keep the level they had) */
+function qLevelApply(st) {
+  const q = st && st.q; if (!q || !q.once || !Array.isArray(q.lv) || Store.get('sqln.lvQuick', '') === q.id) return;
+  Store.set('sqln.lvQuick', q.id);
+  const items = quickProblems(S.engine, q), prev = lvState(), prof = levelProfile(items, st.done, q.lv, prev ? prev.prof : null), now = Date.now();
+  levelSet({ lv: levelOf(prof), prof, fmt: 0, streak: 0, ptr: 0, at: now, upd: now, rounds: 0 });
+}
 const qOk = () => qItems().filter(qDone).length;
-const qAllDone = () => { const items = qItems(); return items.length > 0 && items.every(qDone); };
+const qAllDone = () => { const items = qItems(); return items.length > 0 && items.every(qOnce() ? qTried : qDone); };
 const qPassed = () => quickOn(S.klass) && qItems().length > 0 && qOk() >= passOf(S.klass.quick);
 /** the student is through: everything right, or the pass line and not going on with the rest */
 const qFinished = () => qAllDone() || (qPassed() && !S.qMore);
@@ -780,7 +793,8 @@ function qMark(n) {
 }
 function qNext(prob) {
   const items = qItems(), i = items.findIndex(p => p.id === prob.id);
-  return items.slice(i + 1).find(p => !qDone(p)) || items.slice(0, Math.max(0, i)).find(p => !qDone(p)) || null;
+  const open = qOnce() ? p => !qTried(p) : p => !qDone(p);
+  return items.slice(i + 1).find(open) || items.slice(0, Math.max(0, i)).find(open) || null;
 }
 const mmss = ms => { const t = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
 function qClockHTML() {
@@ -812,6 +826,14 @@ function quickViewHTML() {
       <p class="qk-count" data-qk-clock>${qClockHTML()}</p>
       <div class="qk-tiles"><div><b>${n}</b><span>${H('tc.quick.count')}</span></div><div><b>${passOf(q)} / ${n}</b><span>${H('tc.quick.pass')}</span></div><div><b>${q.end ? esc(spanText(limitSecOf(q), k => T('qk.minutes', { n: k }))) : '∞'}</b><span>${H('tc.quick.limit')}</span></div></div>
       <p class="muted small">${H('qk.rule')}</p></section></main>`;
+  if (q.once && (ph === 'up' || (qAllDone() && !current()))) {   // a level test: the new level, then the answers
+    qLevelApply(st); const lv = lvState();
+    return `<main class="wrap narrow ck-result"><section class="card empty lv-hero"><div class="empty-icon">🎯</div><h1>${H('lv.result')}</h1>
+      <p class="lv-big">Lv.${lv ? lv.lv : 0}<small> / ${LV_MAX}</small></p><p class="big-score">${ok} / ${n}</p>
+      ${levelStepsHTML(lv)}<p class="muted small">${H('qk.lvWait')}</p>
+      <div class="row-btns"><a class="btn btn-primary" href="#/level">${H('lv.open')}</a></div></section>
+      ${ph === 'up' ? qReviewHTML(items, st) : ''}</main>`;
+  }
   if (ph === 'up') {   // the time is over: the result, and the model answers to learn from
     const passed = ok >= passOf(q);
     return `<main class="wrap narrow ck-result"><section class="card empty quick-done ${passed ? '' : 'not'}">
@@ -831,19 +853,19 @@ function quickViewHTML() {
       <p class="muted small">${H('qk.afterNote')}</p></section></main>`;
   }
   const c = current(), pass = passOf(q);
-  const prob = c ? c.prob : items.find(p => !qDone(p)), lesson = LESSON_BY_KEY[prob.lesson];
+  const prob = c ? c.prob : items.find(p => !(q.once ? qTried(p) : qDone(p))) || items[0], lesson = LESSON_BY_KEY[prob.lesson];
   return `<main class="wrap">
     <div class="session-head">
       <h1>⚡ ${H('qk.title')}</h1>
       ${q.end ? `<b class="qk-left" data-qk-clock>${qClockHTML()}</b>` : ''}
-      <b class="qk-need ${ok >= pass ? 'ok' : ''}">${ok >= pass ? '✓ ' + H('qk.passTitle') : H('qk.toPass', { n: pass - ok })}</b>
+      ${q.once ? `<b class="qk-need">🎯 ${H('lv.testTitle')}</b>` : `<b class="qk-need ${ok >= pass ? 'ok' : ''}">${ok >= pass ? '✓ ' + H('qk.passTitle') : H('qk.toPass', { n: pass - ok })}</b>`}
       <div class="session-progress"><span>${ok} / ${n}</span><div class="bar"><i style="width:${Math.round(ok / n * 100)}%"></i></div></div>
     </div>
     <div class="session-layout">
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
-        <p class="qk-rule small">${qRuleHTML(q)}</p>
-        <p class="muted small">${H('qk.rule')}</p>
-        <div class="ck-dots qk-dots">${items.map(p => `<a href="#/quick/${p.qn}" class="${qDone(p) ? 'ok' : ''}${p.id === prob.id ? ' cur' : ''}" title="Q${p.qn + 1}" aria-label="Q${p.qn + 1}">${p.qn + 1}</a>`).join('')}</div></aside>
+        ${q.once ? '' : `<p class="qk-rule small">${qRuleHTML(q)}</p>`}
+        <p class="muted small">${H(q.once ? 'qk.lvRule' : 'qk.rule')}</p>
+        <div class="ck-dots qk-dots">${items.map(p => `<a href="#/quick/${p.qn}" class="${qDone(p) ? 'ok' : q.once && qTried(p) ? 'bad' : ''}${p.id === prob.id ? ' cur' : ''}" title="Q${p.qn + 1}" aria-label="Q${p.qn + 1}">${p.qn + 1}</a>`).join('')}</div></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
@@ -1290,7 +1312,7 @@ function feedbackHTML(prob) {
   const raw = run.error && !(run.dx || []).length ? `<pre class="errmsg">${esc(run.error.message)}</pre>` : '';
   const tested = prob.test && !prob.quick && S.session && S.session.done[prob.id] !== undefined;   // a check test: the first answer counted; go on
   const qn = S.route.view === 'quick' ? qNext(prob) : null;
-  const skip = qn ? `<a class="btn btn-ghost btn-sm fb-next" href="#/quick/${qn.qn}">${H('qk.other')}</a>` : S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
+  const skip = qn ? `<a class="btn ${qOnce() ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" href="#/quick/${qn.qn}">${qOnce() ? H('btn.next') + I.next : H('qk.other')}</a>` : S.route.view === 'quick' && qOnce() ? `<a class="btn btn-primary fb-next" href="#/quick/done">${H('qk.finish')}</a>` : S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
   return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${run.error && !run.quiet && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
 }
 
@@ -1383,7 +1405,9 @@ function record(prob, ok, run, sql) {
   const empty = run.error && run.error.code === 'empty';
   if (!empty && prob.quick) {   // the quick test: retry until right; the class log tells the teacher who has finished
     if (qPhaseNow() !== 'run') { render(); return; }   // the time is over (or not started): the answer does not count
+    if (qOnce() && qTried(prob)) { S.runs[prob.id] = run; render(); return run; }   // a level test: the first answer was recorded
     if (!qDone(prob)) qAnswer(prob.qn, sql);
+    if (qOnce()) qTry(prob.qn);
     if (ok && !qDone(prob)) { qMark(prob.qn); bumpStreak(S.progress); }
     if (S.klass && backend.enabled) backend.logAttempt({ class_id: S.klass.id, problem_id: prob.id.slice(0, 80), lesson: prob.lesson, stage: 'quick', ok, reason: ok ? null : (run.grade ? run.grade.reason : 'error'), sql: String(sql).slice(0, 2000) });
   } else if (!empty && prob.test) {   // a check test: only the test keeps score; the lessons' progress is not touched

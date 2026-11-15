@@ -1196,5 +1196,16 @@ export default {
   "lv.fmtDown": "Lần tới dạng bài sẽ dễ hơn một bậc.",
   "lv.again": "Đúng cả 3 câu để đi tiếp. Hãy thử lại.",
   "lv.notTaken": "Chưa làm",
-  "lv.teacherNote": "Khi học sinh làm bài kiểm tra ở “Trình độ SQL” trên trang chủ, trình độ sẽ hiện ở đây."
+  "lv.teacherNote": "Khi học sinh làm bài kiểm tra ở “Trình độ SQL” trên trang chủ, trình độ sẽ hiện ở đây.",
+  "tc.quick.goal": "Nội dung gửi",
+  "tc.quick.lvChapters": "Đơn vị (chương) cần đo",
+  "tc.quick.lvAll": "Tất cả",
+  "tc.quick.lvNote": "3 câu viết cho mỗi chương. Đúng 2/3 là đạt chương đó.",
+  "tc.quick.lvSub": "Gửi bài kiểm tra trình độ cho cả lớp cùng lúc. Khi kết thúc, mỗi học sinh có trình độ và có thể luyện câu hỏi phù hợp.",
+  "tc.quick.lvStart": "Gửi bài kiểm tra trình độ",
+  "tc.quick.lvSum": "{n} câu ({c} chương)",
+  "tc.quick.lvPick": "Hãy chọn đơn vị",
+  "tc.quick.lvAfter": "Xem kết quả dưới dạng trình độ ở tab Học sinh và ở “Các bài kiểm tra nhanh trước đây” bên dưới. Các chương không chọn giữ kết quả cũ của học sinh.",
+  "qk.lvWait": "Bạn có thể xem đáp án khi giáo viên kết thúc bài kiểm tra.",
+  "qk.lvRule": "Chỉ câu trả lời đầu tiên được ghi lại. Không thể làm lại."
 };
