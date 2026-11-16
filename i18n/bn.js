@@ -1240,5 +1240,9 @@ export default {
   "bs.s.update": "মান বদল: UPDATE টেবিল SET কলাম = মান WHERE …",
   "bs.s.delete": "সারি মুছে ফেলা: DELETE FROM টেবিল WHERE …",
   "bs.groupSelect": "ডেটা পড়ার কাঠামো (SELECT)",
-  "bs.groupChange": "ডেটা বদলানোর কাঠামো"
+  "bs.groupChange": "ডেটা বদলানোর কাঠামো",
+  "bs.detail": "প্রতিটি বিষয়ের কাঠামো",
+  "bs.detailSub": "LIKE, BETWEEN, IS NULL, GROUP BY, JOIN ইত্যাদি প্রতিটি বিষয়ের কাঠামো। উপরের মূল কাঠামো হয়ে গেলে কঠিন বিষয় বেছে অনুশীলন করুন।",
+  "bs.slot.cond": "শর্ত",
+  "bs.slot.expr": "রাশি"
 };

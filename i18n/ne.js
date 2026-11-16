@@ -1240,5 +1240,9 @@ export default {
   "bs.s.update": "मान बदल्ने: UPDATE तालिका SET स्तम्भ = मान WHERE …",
   "bs.s.delete": "पङ्क्ति मेटाउने: DELETE FROM तालिका WHERE …",
   "bs.groupSelect": "डाटा पढ्ने ढाँचा (SELECT)",
-  "bs.groupChange": "डाटा बदल्ने ढाँचा"
+  "bs.groupChange": "डाटा बदल्ने ढाँचा",
+  "bs.detail": "हरेक विषयको ढाँचा",
+  "bs.detailSub": "LIKE, BETWEEN, IS NULL, GROUP BY, JOIN आदि हरेक विषयको ढाँचा। माथिका आधारभूत ढाँचा भएपछि गाह्रो लागेको विषय छानेर अभ्यास गर्नुहोस्।",
+  "bs.slot.cond": "सर्त",
+  "bs.slot.expr": "गणना"
 };

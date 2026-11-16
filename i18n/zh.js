@@ -1240,5 +1240,9 @@ export default {
   "bs.s.update": "修改值：UPDATE 表 SET 列 = 值 WHERE …",
   "bs.s.delete": "删除行：DELETE FROM 表 WHERE …",
   "bs.groupSelect": "读取数据的句型（SELECT）",
-  "bs.groupChange": "修改数据的句型"
+  "bs.groupChange": "修改数据的句型",
+  "bs.detail": "各项目的句型",
+  "bs.detailSub": "LIKE、BETWEEN、IS NULL、GROUP BY、JOIN 等各个项目的句型。完成上面的基础句型后，选择不擅长的项目来练习。",
+  "bs.slot.cond": "条件",
+  "bs.slot.expr": "计算式"
 };

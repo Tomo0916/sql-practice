@@ -1240,5 +1240,9 @@ export default {
   "bs.s.update": "Modifier des valeurs : UPDATE table SET col = valeur WHERE …",
   "bs.s.delete": "Supprimer des lignes : DELETE FROM table WHERE …",
   "bs.groupSelect": "Formes qui lisent les données (SELECT)",
-  "bs.groupChange": "Formes qui modifient les données"
+  "bs.groupChange": "Formes qui modifient les données",
+  "bs.detail": "Formes par élément",
+  "bs.detailSub": "Les formes de chaque élément : LIKE, BETWEEN, IS NULL, GROUP BY, JOIN, etc. Une fois les formes de base acquises, choisissez les éléments difficiles pour vous.",
+  "bs.slot.cond": "condition",
+  "bs.slot.expr": "expression"
 };

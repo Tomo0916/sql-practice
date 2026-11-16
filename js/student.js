@@ -27,7 +27,7 @@ import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
 import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N, tableSets, tableCourse } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog, levelOf } from './level.js';
-import { BASIC_STEPS, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, nextStep, basicProblem, stepForMistake } from './basics.js';
+import { BASIC_STEPS, BASIC_CORE, BASIC_DETAIL, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, nextStep, basicProblem, stepForMistake } from './basics.js';
 import { levelProfile } from './quick.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
@@ -293,7 +293,7 @@ function homeHTML() {
       }).join('')}
     </section>
     <section class="card mixcard drillcard">
-      <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_STEPS.filter(x => bsState(x.key).clear).length} / ${BASIC_STEPS.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
+      <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_CORE.filter(x => bsState(x.key).clear).length} / ${BASIC_CORE.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/basics">${H('bs.open')}</a>
     </section>
     <section class="card mixcard drillcard lvcard">
@@ -522,28 +522,35 @@ function levelRoundDoneHTML(ses) {
 }
 /* ---------- the root drill (基礎の型): #/basics = the steps, #/basics/<step> = practise one shape ---------- */
 const bsState = k => Object.assign(basicStart(), (S.progress.basics || {})[k]);
-const SLOT = { col: 'col', table: 'table', value: 'val', text: 'val', n: 'val' };
+const SLOT = { col: 'col', group: 'col', num: 'col', key: 'col', alias: 'col', table: 'table', value: 'val', text: 'val', number: 'val', n: 'val', min: 'val', max: 'val', skip: 'val', cond: 'cond', expr: 'expr' };
+const slotName = k => H(k === 'cond' ? 'bs.slot.cond' : k === 'expr' ? 'bs.slot.expr' : 'order.g.' + k);
+/** the name of a step: the core ones have their own, the others are the lesson's title */
+const bsName = key => (BASIC_BY_KEY[key].core ? H('bs.s.' + key) : `${LESSON_BY_KEY[BASIC_BY_KEY[key].lesson].no}. ${lessonTitleHTML(LESSON_BY_KEY[BASIC_BY_KEY[key].lesson], L())}`);
 /** a shape with its slots: SELECT [列], [列] FROM [テーブル]; */
 function shapeHTML(shape) {
-  return `<code class="bs-shape">${shape.split(/(\{[a-z]+\})/).map(part => { const m = /^\{([a-z]+)\}$/.exec(part); return m ? `<span class="bs-slot ${SLOT[m[1]]}">${H('order.g.' + SLOT[m[1]])}</span>` : highlightSQL(part); }).join('')}</code>`;
+  return `<code class="bs-shape">${shape.split(/(\{[a-z]+\})/).map(part => { const m = /^\{([a-z]+)\}$/.exec(part); const k = SLOT[m && m[1]] || 'val'; return m ? `<span class="bs-slot ${k}">${slotName(k)}</span>` : highlightSQL(part); }).join('')}</code>`;
 }
-const fmtName = f => H(BASIC_FORMATS[f] === 'fill' ? 'stage.fill' : BASIC_FORMATS[f] === 'write' ? 'rv.write' : 'stage.order');
-function bsLadderHTML(st) {
-  return `<div class="rv-ladder">${BASIC_FORMATS.map((f, i) => `<span class="${st.clear || i < st.f ? 'done' : i === st.f ? 'cur' : ''}">${fmtName(i)}</span>`).join('<i>→</i>')}</div>`;
+const fmtName = tok => H(tok === 'fill' ? 'stage.fill' : tok === 'write' ? 'rv.write' : 'stage.order');
+function bsLadderHTML(st, step) {
+  return `<div class="rv-ladder">${step.formats.map((f, i) => `<span class="${st.clear || i < st.f ? 'done' : i === st.f ? 'cur' : ''}">${fmtName(f)}</span>`).join('<i>→</i>')}</div>`;
 }
-const bsNeed = st => (st.clear ? H('bs.cleared') : st.f < BASIC_FORMATS.length - 1 ? H('bs.needUp', { n: BASIC_UP - st.run }) : H('bs.needClear', { n: BASIC_CLEAR - st.run }));
+const bsNeed = (st, step) => (st.clear ? H('bs.cleared') : st.f < step.formats.length - 1 ? H('bs.needUp', { n: BASIC_UP - st.run }) : H('bs.needClear', { n: BASIC_CLEAR - st.run }));
 function basicsHubHTML() {
-  const next = nextStep(S.progress.basics), done = BASIC_STEPS.filter(s => bsState(s.key).clear).length;
+  const next = nextStep(S.progress.basics), done = BASIC_CORE.filter(s => bsState(s.key).clear).length;
   return `<main class="wrap narrow bs-hub"><h1 class="page-title">🧱 ${H('bs.title')}</h1><p class="muted">${H('bs.sub')}</p>
-    <div class="card bs-top"><b>${done} / ${BASIC_STEPS.length}</b><span class="muted small">${H('bs.mastered')}</span><div class="bar"><i style="width:${Math.round(done / BASIC_STEPS.length * 100)}%"></i></div>
+    <div class="card bs-top"><b>${done} / ${BASIC_CORE.length}</b><span class="muted small">${H('bs.mastered')}</span><div class="bar"><i style="width:${Math.round(done / BASIC_CORE.length * 100)}%"></i></div>
       <a class="btn btn-primary" href="#/basics/${next}">${H('bs.go')}${I.next}</a></div>
-    <ol class="bs-steps">${BASIC_STEPS.map((st, i) => { const x = bsState(st.key), head = i === 0 ? 'bs.groupSelect' : st.key === 'insert' ? 'bs.groupChange' : null;
-      return `${head ? `<li class="bs-group">${H(head)}</li>` : ''}${stepLi(st, i, x)}`; }).join('')}</ol></main>`;
+    <ol class="bs-steps">${BASIC_CORE.map((st, i) => { const x = bsState(st.key), head = i === 0 ? 'bs.groupSelect' : st.key === 'insert' ? 'bs.groupChange' : null;
+      return `${head ? `<li class="bs-group">${H(head)}</li>` : ''}${stepLi(st, i, x)}`; }).join('')}</ol>
+    <h2 class="bs-h2">${H('bs.detail')}</h2><p class="muted small">${H('bs.detailSub')}</p>
+    ${CHAPTERS.map(ch => { const ss = BASIC_DETAIL.filter(st => st.ch === ch.key); if (!ss.length) return ''; const got = ss.filter(st => bsState(st.key).clear).length, open = ss.some(st => bsState(st.key).n);
+      return `<details class="bs-ch" style="--cc:var(--c-${ch.key})" ${open ? 'open' : ''}><summary><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b><span class="muted small">${got} / ${ss.length}</span></summary>
+        <ol class="bs-steps">${ss.map(st => stepLi(st, null, bsState(st.key))).join('')}</ol></details>`; }).join('')}</main>`;
 }
 function stepLi(st, i, x) {
   const next = nextStep(S.progress.basics);
-  return `<li class="card bs-step ${x.clear ? 'ok' : st.key === next ? 'cur' : ''}"><div class="bs-no">${x.clear ? '✓' : i + 1}</div>
-        <div class="bs-body"><b>${H('bs.s.' + st.key)}</b>${shapeHTML(st.shape)}${bsLadderHTML(x)}</div>
+  return `<li class="card bs-step ${x.clear ? 'ok' : st.key === next ? 'cur' : ''}"><div class="bs-no">${x.clear ? '✓' : i === null ? '·' : i + 1}</div>
+        <div class="bs-body"><b>${bsName(st.key)}</b>${shapeHTML(st.shape)}${bsLadderHTML(x, st)}</div>
         <a class="btn ${st.key === next ? 'btn-primary' : 'btn-ghost'} btn-sm" href="#/basics/${st.key}">${H(x.n ? 'bs.again' : 'bs.start')}</a></li>`;
 }
 function basicsHTML() {
@@ -558,17 +565,17 @@ function basicsHTML() {
   if (ses.i >= ses.items.length) {
     const ok = Object.values(ses.done).filter(Boolean).length, x = bsState(key), nk = nextStep(S.progress.basics);
     return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${x.clear ? '🎉' : '🧱'}</div><h1>${H(x.clear ? 'bs.cleared' : 'review.finished')}</h1>
-      <p class="muted">${H('bs.s.' + key)}</p><p class="big-score">${ok} / ${ses.items.length}</p>${bsLadderHTML(x)}<p class="muted small">${bsNeed(x)}</p>
+      <p class="muted">${bsName(key)}</p><p class="big-score">${ok} / ${ses.items.length}</p>${bsLadderHTML(x, step)}<p class="muted small">${bsNeed(x, step)}</p>
       <div class="row-btns"><button class="btn ${x.clear && nk !== key ? 'btn-ghost' : 'btn-primary'}" data-act="bsMore">${I.repeat}${H('rv.more', { n: BASIC_ROUND })}</button>
         ${x.clear && nk !== key ? `<a class="btn btn-primary" href="#/basics/${nk}">${H('bs.nextStep')}${I.next}</a>` : ''}<a class="btn btn-ghost" href="#/basics">${H('bs.title')}</a></div></section></main>`;
   }
   const prob = ses.items[ses.i], x = bsState(key);
   return `<main class="wrap">
-    <div class="session-head"><h1>🧱 ${H('bs.s.' + key)}</h1>
+    <div class="session-head"><h1>🧱 ${bsName(key)}</h1>
       <div class="session-progress"><span>${ses.i + 1} / ${BASIC_ROUND}</span><div class="bar"><i style="width:${Math.round(ses.i / BASIC_ROUND * 100)}%"></i></div></div></div>
     <div class="session-layout">
       <aside class="card side-card bs-side"><div class="chap">${H('bs.title')}</div><h2>${H('bs.shape')}</h2>${shapeHTML(step.shape)}
-        ${bsLadderHTML(x)}<p class="muted small">${bsNeed(x)}</p><a class="btn btn-ghost btn-xs" href="#/basics">${H('bs.allSteps')}</a></aside>
+        ${bsLadderHTML(x, step)}<p class="muted small">${bsNeed(x, step)}</p><a class="btn btn-ghost btn-xs" href="#/basics">${H('bs.allSteps')}</a></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
@@ -1392,7 +1399,7 @@ function feedbackHTML(prob) {
   const qn = S.route.view === 'quick' ? qNext(prob) : null;
   const skip = qn ? `<a class="btn ${qOnce() ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" href="#/quick/${qn.qn}">${qOnce() ? H('btn.next') + I.next : H('qk.other')}</a>` : S.route.view === 'quick' && qOnce() ? `<a class="btn btn-primary fb-next" href="#/quick/done">${H('qk.finish')}</a>` : S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
   const back = stepForMistake(prob, run.sql, run.dx);
-  const backHTML = back ? `<div class="bs-back"><span>🧱 ${H('bs.backTitle')}</span><span class="muted small">${H('bs.s.' + back)}</span><a class="btn btn-ghost btn-sm" href="#/basics/${back}">${H('bs.backGo')}${I.next}</a></div>` : '';
+  const backHTML = back ? `<div class="bs-back"><span>🧱 ${H('bs.backTitle')}</span><span class="muted small">${bsName(back)}</span><a class="btn btn-ghost btn-sm" href="#/basics/${back}">${H('bs.backGo')}${I.next}</a></div>` : '';
   return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${backHTML}${run.error && !run.quiet && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
 }
 
@@ -1512,7 +1519,7 @@ function record(prob, ok, run, sql) {
     } else S.progress.wrong[prob.id] = (S.progress.wrong[prob.id] || 0) + 1;
     if (S.route.view === 'session' && S.session && S.session.done[prob.id] === undefined) {
       S.session.done[prob.id] = ok;
-      if (S.session.kind === 'basics' && prob.basic) { S.progress.basics = S.progress.basics || {}; S.progress.basics[prob.basic] = basicResult(S.progress.basics[prob.basic], ok); }
+      if (S.session.kind === 'basics' && prob.basic) { S.progress.basics = S.progress.basics || {}; S.progress.basics[prob.basic] = basicResult(S.progress.basics[prob.basic], ok, BASIC_BY_KEY[prob.basic].formats.length - 1); }
       if (S.session.kind === 'review' && prob.pat) {   // only this pattern moves: up a step (or a longer gap), or down a step
         S.progress.pat = S.progress.pat || {};
         const next = patResult(S.progress.pat[prob.pat], LESSON_BY_KEY[prob.lesson], ok, today());
