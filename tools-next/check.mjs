@@ -502,6 +502,30 @@ console.log('11. Check tests (確認テスト)');
     const prof = Q.levelProfile(items, { 1: 1, 2: 1, 3: 1, 4: 1 }, [1, 4], [3, 0, 2, null, null, null]);
     if (prof.join() !== '3,2,2,,2,' || V.levelOf(prof) !== 3) err(`level test (class): the profile is wrong (${prof.join()})`);
   }
+  // the root drill (basic shapes): every step makes problems of its shape in every format; the ladder; the way back from a mistake
+  {
+    const B = await import('../js/basics.js');
+    for (const st of B.BASIC_STEPS) for (let f = 0; f < 3; f++) for (const seed of ['a', 'b', 'c']) {
+      const p = B.basicProblem(eng, st.key, f, seed), tok = B.BASIC_FORMATS[f];
+      if (!p || p.stage !== (tok.startsWith('order') ? 'order' : tok) || !eng.exec(p.sql)) { err(`basic shapes: ${st.key} cannot be asked as ${tok}`); continue; }
+      const sql = p.sql;
+      const okShape = { cols: !/WHERE|ORDER/.test(sql), wnum: /WHERE \w+ (=|<>|>=|<=|>|<) \d/.test(sql), wtext: /WHERE \w+ (=|<>) '/.test(sql), order: /ORDER BY \w+ (ASC|DESC);$/.test(sql), limit: /LIMIT \d+;$/.test(sql),
+        insert: /^INSERT INTO \w+ \(.+\) VALUES \(.+\);$/.test(sql), update: /^UPDATE \w+ SET .+ WHERE .+;$/.test(sql), delete: /^DELETE FROM \w+ WHERE .+;$/.test(sql) }[st.key];
+      if (!okShape) err(`basic shapes: ${st.key} gave another shape: ${sql}`);
+    }
+    let x = null; for (const ok of [true, true, true, false, true, true, true, true, true, true, true]) x = B.basicResult(x, ok);   // fill ×2 → order: 1 right, 1 wrong → fill ×2 → order ×2 → write ×3
+    if (x.f !== 2 || !x.clear || x.n !== 11 || x.ok !== 10) err(`basic shapes: the ladder is wrong (${JSON.stringify(x)})`);
+    if (B.basicResult({ f: 2, run: 2 }, false).f !== 1 || B.basicResult({ f: 0, run: 0 }, false).f !== 0) err('basic shapes: a wrong answer does not go one format back');
+    if (B.nextStep({ cols: { clear: true }, wnum: { clear: true } }) !== 'wtext') err('basic shapes: the next step is wrong');
+    const op = { lesson: 'orderby', sql: 'SELECT a, b FROM t ORDER BY b DESC;' };
+    const back = (sql, keys, prob = op) => B.stepForMistake(prob, sql, keys.map(key => ({ key })));
+    if (back('a, b FROM t', []) !== 'cols' || back('SELECT a b FROM t', ['missingComma']) !== 'cols' || back("SELECT a FROM t ORDER BY b DESC", ['clauseOrder']) !== 'order'
+      || back("SELECT a FROM t WHERE c = x", ['quote']) !== 'wtext' || back('SELECT a, b FROM t ORDER BY b ASC;', ['order']) !== null
+      || back('a FROM t', [], Object.assign({ test: true }, op)) !== null
+      || back('INSERT t VALUES (1);', [], { lesson: 'insert', sql: 'INSERT INTO t VALUES (1);' }) !== 'insert' || back('INSERT INTO t (a) VALUES (1);', ['values'], { lesson: 'insert', sql: 'INSERT INTO t (a) VALUES (2);' }) !== null
+      || back('UPDATE t price = 1 WHERE id = 1;', [], { lesson: 'update', sql: 'UPDATE t SET price = 1 WHERE id = 1;' }) !== 'update' || back('UPDATE t SET price = 1;', [], { lesson: 'update', sql: 'UPDATE t SET price = 1 WHERE id = 1;' }) !== 'update'
+      || back('DELETE * FROM t WHERE id = 1;', [], { lesson: 'delete', sql: 'DELETE FROM t WHERE id = 1;' }) !== 'delete' || back('DELETE FROM t WHERE id = 2;', ['delValues'], { lesson: 'delete', sql: 'DELETE FROM t WHERE id = 1;' }) !== null) err('basic shapes: the way back from a mistake is wrong');
+  }
   // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"
   {
     const { quickStats, quickCSV, logPut, logDrop, slotsShape, QUICK_LOG_MAX } = await import('../js/quick.js');

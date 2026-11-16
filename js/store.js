@@ -26,7 +26,7 @@ export function saveSettings(s) { Store.set(KEYS.settings, s); }
  */
 export function loadProgress() {
   const p = Store.get(KEYS.progress, null) || {};
-  return Object.assign({ solved: {}, wrong: {}, drafts: {}, answers: {}, lessons: {}, drill: {}, pat: {}, klass: {}, last: null, streak: { day: 0, n: 0 } }, p);
+  return Object.assign({ solved: {}, wrong: {}, drafts: {}, answers: {}, lessons: {}, drill: {}, pat: {}, basics: {}, klass: {}, last: null, streak: { day: 0, n: 0 } }, p);
 }
 /**
  * Two tabs (or windows) of the app share one record: before saving, take what the other one saved,
@@ -42,6 +42,7 @@ export function mergeProgress(stored, mine) {
   out.wrong = max(stored.wrong, mine.wrong);
   out.drill = max(stored.drill, mine.drill);
   out.lessons = Object.assign({}, stored.lessons, mine.lessons);
+  out.basics = Object.assign({}, stored.basics, mine.basics);   // the root drill: this page's state wins
   out.pat = Object.assign({}, stored.pat);   // review by pattern: the state with the later answer wins (more answers on the same day)
   Object.entries(mine.pat || {}).forEach(([k, v]) => { const x = out.pat[k]; if (!x || (v.last || 0) > (x.last || 0) || ((v.last || 0) === (x.last || 0) && (v.n || 0) >= (x.n || 0))) out.pat[k] = v; });
   out.level = (stored.level || {}).upd > ((mine.level || {}).upd || 0) ? stored.level : mine.level || stored.level || null;   // the SQL level: the later change wins
