@@ -1119,3 +1119,9 @@ body.pj-open { overflow: hidden; }
 .bs-back > span:first-child { font-weight: 700; }
 .bs-back .btn { margin-left: auto; }
 .bs-group { margin: 8px 0 -2px; font-size: .86rem; font-weight: 700; color: var(--ink-3); list-style: none; }
+.bs-h2 { margin: 18px 0 0; font-size: 1.05rem; }
+.bs-ch { border: 1px solid var(--line); border-left: 4px solid var(--cc, var(--line-2)); border-radius: 12px; background: var(--surface); padding: 0 12px; }
+.bs-ch > summary { display: flex; align-items: center; gap: 10px; padding: 12px 4px; cursor: pointer; }
+.bs-ch[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.bs-ch .bs-steps { margin-bottom: 12px; }
+.bs-slot.cond { color: #1f8f6a; } .bs-slot.expr { color: #b0457a; }

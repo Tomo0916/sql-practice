@@ -1240,5 +1240,9 @@ export default {
   "bs.s.update": "අගය වෙනස් කිරීම: UPDATE වගුව SET තීරුව = අගය WHERE …",
   "bs.s.delete": "පේළි මැකීම: DELETE FROM වගුව WHERE …",
   "bs.groupSelect": "දත්ත කියවන රටා (SELECT)",
-  "bs.groupChange": "දත්ත වෙනස් කරන රටා"
+  "bs.groupChange": "දත්ත වෙනස් කරන රටා",
+  "bs.detail": "එක් එක් අංගයේ රටා",
+  "bs.detailSub": "LIKE, BETWEEN, IS NULL, GROUP BY, JOIN ආදී එක් එක් අංගයේ රටා. ඉහළ මූලික රටා අවසන් වූ පසු අපහසු අංග තෝරා පුහුණු වන්න.",
+  "bs.slot.cond": "කොන්දේසිය",
+  "bs.slot.expr": "ගණනය"
 };

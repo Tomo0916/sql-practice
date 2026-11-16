@@ -1241,5 +1241,9 @@ export default {
   "bs.s.update": "{値|あたい}を {変|か}える {型|かた}：UPDATE テーブル SET {列|れつ} = {値|あたい} WHERE …",
   "bs.s.delete": "{行|ぎょう}を {消|け}す {型|かた}：DELETE FROM テーブル WHERE …",
   "bs.groupSelect": "データを とりだす {型|かた}（SELECT）",
-  "bs.groupChange": "データを {変|か}える {型|かた}"
+  "bs.groupChange": "データを {変|か}える {型|かた}",
+  "bs.detail": "こうもくごとの {型|かた}",
+  "bs.detailSub": "LIKE・BETWEEN・IS NULL・GROUP BY・JOIN など、1つずつの こうもくの {型|かた}です。{上|うえ}の {基本|きほん}の {型|かた}が できたら、にがてな こうもくを {選|えら}んで {練習|れんしゅう}しましょう。",
+  "bs.slot.cond": "{条件|じょうけん}",
+  "bs.slot.expr": "{計算|けいさん}の {式|しき}"
 };

@@ -1241,5 +1241,9 @@ export default {
   "bs.s.update": "Change values: UPDATE table SET col = value WHERE …",
   "bs.s.delete": "Remove rows: DELETE FROM table WHERE …",
   "bs.groupSelect": "Shapes that read data (SELECT)",
-  "bs.groupChange": "Shapes that change data"
+  "bs.groupChange": "Shapes that change data",
+  "bs.detail": "Shapes for each item",
+  "bs.detailSub": "The shapes of each item: LIKE, BETWEEN, IS NULL, GROUP BY, JOIN and more. When the basic shapes above are done, pick the items you find hard.",
+  "bs.slot.cond": "condition",
+  "bs.slot.expr": "expression"
 };

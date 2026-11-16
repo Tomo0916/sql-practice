@@ -1240,5 +1240,9 @@ export default {
   "bs.s.update": "Mengubah nilai: UPDATE tabel SET kol = nilai WHERE …",
   "bs.s.delete": "Menghapus baris: DELETE FROM tabel WHERE …",
   "bs.groupSelect": "Bentuk untuk membaca data (SELECT)",
-  "bs.groupChange": "Bentuk untuk mengubah data"
+  "bs.groupChange": "Bentuk untuk mengubah data",
+  "bs.detail": "Bentuk per item",
+  "bs.detailSub": "Bentuk untuk setiap item: LIKE, BETWEEN, IS NULL, GROUP BY, JOIN, dan lainnya. Setelah bentuk dasar di atas selesai, pilih item yang sulit bagi Anda.",
+  "bs.slot.cond": "kondisi",
+  "bs.slot.expr": "ekspresi"
 };
