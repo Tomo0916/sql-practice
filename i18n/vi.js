@@ -1240,5 +1240,9 @@ export default {
   "bs.s.update": "Đổi giá trị: UPDATE bảng SET cột = giá trị WHERE …",
   "bs.s.delete": "Xóa dòng: DELETE FROM bảng WHERE …",
   "bs.groupSelect": "Mẫu lấy dữ liệu (SELECT)",
-  "bs.groupChange": "Mẫu thay đổi dữ liệu"
+  "bs.groupChange": "Mẫu thay đổi dữ liệu",
+  "bs.detail": "Mẫu theo từng mục",
+  "bs.detailSub": "Mẫu của từng mục: LIKE, BETWEEN, IS NULL, GROUP BY, JOIN, v.v. Khi đã xong các mẫu cơ bản ở trên, hãy chọn mục bạn thấy khó.",
+  "bs.slot.cond": "điều kiện",
+  "bs.slot.expr": "biểu thức"
 };

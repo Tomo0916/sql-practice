@@ -1240,5 +1240,9 @@ export default {
   "bs.s.update": "တန်ဖိုးပြောင်း: UPDATE ဇယား SET ကော်လံ = တန်ဖိုး WHERE …",
   "bs.s.delete": "အတန်းဖျက်: DELETE FROM ဇယား WHERE …",
   "bs.groupSelect": "ဒေတာဖတ်သော ပုံစံ (SELECT)",
-  "bs.groupChange": "ဒေတာပြောင်းသော ပုံစံ"
+  "bs.groupChange": "ဒေတာပြောင်းသော ပုံစံ",
+  "bs.detail": "အကြောင်းအရာအလိုက် ပုံစံ",
+  "bs.detailSub": "LIKE, BETWEEN, IS NULL, GROUP BY, JOIN စသည့် အကြောင်းအရာတစ်ခုချင်း၏ ပုံစံ။ အထက်ပါ အခြေခံပုံစံ ပြီးလျှင် ခက်သော အကြောင်းအရာကို ရွေး၍ လေ့ကျင့်ပါ။",
+  "bs.slot.cond": "အခြေအနေ",
+  "bs.slot.expr": "တွက်ချက်ပုံ"
 };

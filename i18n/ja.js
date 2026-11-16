@@ -1241,5 +1241,9 @@ export default {
   "bs.s.update": "値を変える型：UPDATE テーブル SET 列 = 値 WHERE …",
   "bs.s.delete": "行を消す型：DELETE FROM テーブル WHERE …",
   "bs.groupSelect": "データを取り出す型（SELECT）",
-  "bs.groupChange": "データを変える型"
+  "bs.groupChange": "データを変える型",
+  "bs.detail": "項目ごとの型",
+  "bs.detailSub": "LIKE・BETWEEN・IS NULL・GROUP BY・JOIN など、1 つ 1 つの項目の型です。上の基本の型ができたら、苦手な項目を選んで練習しましょう。",
+  "bs.slot.cond": "条件",
+  "bs.slot.expr": "計算式"
 };
