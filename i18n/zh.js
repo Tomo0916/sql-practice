@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "表名",
   "order.g.col": "列名",
   "order.g.op": "符号",
-  "order.g.val": "值"
+  "order.g.val": "值",
+  "tc.quick.going": "作答中",
+  "tc.quick.lgPass": "合格"
 };

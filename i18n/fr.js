@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "Noms de tables",
   "order.g.col": "Noms de colonnes",
   "order.g.op": "Symboles",
-  "order.g.val": "Valeurs"
+  "order.g.val": "Valeurs",
+  "tc.quick.going": "En cours",
+  "tc.quick.lgPass": "Réussi"
 };

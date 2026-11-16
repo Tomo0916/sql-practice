@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "Tên bảng",
   "order.g.col": "Tên cột",
   "order.g.op": "Ký hiệu",
-  "order.g.val": "Giá trị"
+  "order.g.val": "Giá trị",
+  "tc.quick.going": "Đang làm",
+  "tc.quick.lgPass": "Đạt"
 };

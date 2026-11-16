@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "तालिकाको नाम",
   "order.g.col": "स्तम्भको नाम",
   "order.g.op": "चिन्ह",
-  "order.g.val": "मान"
+  "order.g.val": "मान",
+  "tc.quick.going": "गर्दै",
+  "tc.quick.lgPass": "उत्तीर्ण"
 };

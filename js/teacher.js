@@ -391,18 +391,26 @@ function quickRunHTML(c, q, running) {
   const done = rows.filter(r => r.s && r.s.done).sort((a, b) => (a.s.done < b.s.done ? -1 : 1));
   const going = rows.filter(r => r.s && !r.s.done).sort((a, b) => b.s.ok.size - a.s.ok.size || a.m.nickname.localeCompare(b.m.nickname));
   const none = rows.filter(r => !r.s).sort((a, b) => a.m.nickname.localeCompare(b.m.nickname));
-  const chip = r => !r.s ? `<li class="q-st none" title="${esc(r.m.nickname)}"><b>${esc(r.m.nickname)}</b><span>${H('tc.quick.notStarted')}</span></li>`
-    : r.s.done ? `<li class="q-st done" title="${esc(r.m.nickname)}"><b>${esc(r.m.nickname)}</b><span>✓ ${mmssOf(new Date(r.s.done).getTime() - t0)}${pass < q.n ? ` · ${r.s.ok.size}/${q.n}` : ''}</span></li>`
-    : `<li class="q-st going" title="${esc(r.m.nickname)}"><b>${esc(r.m.nickname)}</b><span>${r.s.ok.size} / ${q.n}</span></li>`;
+  const st = quickStats(S.qAtt || [], q, S.members), byU = new Map(st.rows.map(r => [r.user_id, r]));
+  // one square per problem: green = right, red = tried and not right yet, grey = not tried
+  const cells = r => { const x = byU.get(r.m.user_id); return `<span class="q-cells">${Array.from({ length: q.n }, (_, i) => `<i class="${x && x.ok[i] ? 'ok' : x && x.tries[i] ? 'bad' : ''}" title="Q${i + 1}"></i>`).join('')}</span>`; };
+  const bar = r => `<span class="q-pbar"><i style="width:${Math.round((r.s ? r.s.ok.size : 0) / q.n * 100)}%"></i><i class="q-pline" style="left:${Math.round(pass / q.n * 100)}%"></i></span>`;
+  const chip = r => !r.s ? `<li class="q-st none" title="${esc(r.m.nickname)}"><div class="q-st-h"><b>${esc(r.m.nickname)}</b><span>${H('tc.quick.notStarted')}</span></div>${cells(r)}</li>`
+    : r.s.done ? `<li class="q-st done" title="${esc(r.m.nickname)}"><div class="q-st-h"><b>${esc(r.m.nickname)}</b><span>✓ ${mmssOf(new Date(r.s.done).getTime() - t0)} · ${r.s.ok.size}/${q.n}</span></div>${cells(r)}${bar(r)}</li>`
+    : `<li class="q-st going" title="${esc(r.m.nickname)}"><div class="q-st-h"><b>${esc(r.m.nickname)}</b><span>${r.s.ok.size} / ${q.n}</span></div>${cells(r)}${bar(r)}</li>`;
+  const tot = S.members.length || 1, pct = n => Math.round(n / tot * 100);
+  const classBar = `<div class="q-classbar" role="img" aria-label="${esc(`${done.length} / ${going.length} / ${none.length}`)}">
+      <i class="done" style="width:${pct(done.length)}%"></i><i class="going" style="width:${pct(going.length)}%"></i><i class="none" style="width:${pct(none.length)}%"></i></div>
+    <div class="q-legend"><span><i class="done"></i>${H('tc.quick.lgPass')} <b>${done.length}</b></span><span><i class="going"></i>${H('tc.quick.going')} <b>${going.length}</b></span><span><i class="none"></i>${H('tc.quick.notStarted')} <b>${none.length}</b></span></div>`;
   const probs = quickProblems(S.engine, q);
   const rule = H('tc.quick.meta', { n: q.n, pass, t: fmtTime(q.at) });
   const head = running
     ? `<div class="q-head"><span class="live-st"><i class="live-dot"></i><b>${H('tc.quick.on')}</b></span><span data-qclock>${quickClock(q)}</span><span class="muted small">${rule}</span>
         <span class="row-btns">${q.end ? [-1, 1, 5].map(m => `<button class="btn btn-ghost btn-sm" data-act="quickMore" data-m="${m}">${m > 0 ? '+' : '−'}${Math.abs(m)} ${H('tc.live.minUnit')}</button>`).join('') : ''}<button class="btn btn-ghost btn-sm" data-act="quickBig">${I.screen}${H('tc.quick.big')}</button><button class="btn btn-ghost btn-sm" data-act="quickStop">${H('tc.quick.stop')}</button></span></div>`
     : `<div class="q-head"><b>${H('tc.quick.last')}</b><span class="muted small">${rule}</span></div>`;
-  const st = quickStats(S.qAtt || [], q, S.members);
   return `<section class="card quick-run ${running ? 'on' : ''}">${head}
       <div class="q-count"><b class="q-big">${done.length}</b><span>/ ${S.members.length} ${H(pass < q.n ? 'tc.quick.passedN' : 'tc.quick.passed')}</span></div>
+      ${classBar}
       <ul class="q-roster" id="q-roster">${done.map(chip).join('')}${going.map(chip).join('')}${none.map(chip).join('')}</ul>
       <h3 class="q-h3">${H('tc.quick.perQ')}</h3>${quickPerQHTML(q, st, probs)}
     </section>`;

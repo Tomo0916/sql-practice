@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "Nama tabel",
   "order.g.col": "Nama kolom",
   "order.g.op": "Simbol",
-  "order.g.val": "Nilai"
+  "order.g.val": "Nilai",
+  "tc.quick.going": "Sedang mengerjakan",
+  "tc.quick.lgPass": "Lulus"
 };

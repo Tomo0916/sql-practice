@@ -1213,5 +1213,7 @@ export default {
   "order.g.table": "テーブル名",
   "order.g.col": "列名・名前",
   "order.g.op": "記号",
-  "order.g.val": "値"
+  "order.g.val": "値",
+  "tc.quick.going": "解いている",
+  "tc.quick.lgPass": "合格"
 };

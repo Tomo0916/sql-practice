@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "ဇယားအမည်",
   "order.g.col": "ကော်လံအမည်",
   "order.g.op": "သင်္ကေတ",
-  "order.g.val": "တန်ဖိုး"
+  "order.g.val": "တန်ဖိုး",
+  "tc.quick.going": "ဖြေဆိုနေ",
+  "tc.quick.lgPass": "အောင်"
 };

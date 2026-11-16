@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "টেবিলের নাম",
   "order.g.col": "কলামের নাম",
   "order.g.op": "চিহ্ন",
-  "order.g.val": "মান"
+  "order.g.val": "মান",
+  "tc.quick.going": "করছে",
+  "tc.quick.lgPass": "উত্তীর্ণ"
 };

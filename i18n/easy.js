@@ -1213,5 +1213,7 @@ export default {
   "order.g.table": "テーブルの {名前|なまえ}",
   "order.g.col": "{列|れつ}の {名前|なまえ}",
   "order.g.op": "きごう",
-  "order.g.val": "{値|あたい}"
+  "order.g.val": "{値|あたい}",
+  "tc.quick.going": "{解|と}いて いる",
+  "tc.quick.lgPass": "{合格|ごうかく}"
 };

@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "වගු නම්",
   "order.g.col": "තීරු නම්",
   "order.g.op": "සංකේත",
-  "order.g.val": "අගයන්"
+  "order.g.val": "අගයන්",
+  "tc.quick.going": "කරමින්",
+  "tc.quick.lgPass": "සමත්"
 };
