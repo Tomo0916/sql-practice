@@ -415,13 +415,10 @@ function quickRunHTML(c, q, running) {
       <h3 class="q-h3">${H('tc.quick.perQ')}</h3>${quickPerQHTML(q, st, probs)}
     </section>`;
 }
-function quickBigHTML() {
+function quickBigHTML() {   // for the projector: the time only (no names, no count of who has passed)
   const q = S.klass && S.klass.quick;
   if (!q) return '';
-  const prog = quickProgress(S.qAtt || [], q);
-  const done = S.members.map(m => ({ m, s: prog.get(m.user_id) })).filter(r => r.s && r.s.done).sort((a, b) => (a.s.done < b.s.done ? -1 : 1));
-  return `<div class="q-bigview"><h2>⚡ ${H('tc.quick.bigTitle')}</h2><div class="q-bigclock">${quickClock(q)}</div><p class="q-big">${done.length} / ${S.members.length}</p>
-    <ul class="q-names">${done.map(r => `<li title="${esc(r.m.nickname)}">${esc(r.m.nickname)}</li>`).join('')}</ul></div>`;
+  return `<div class="q-bigview"><h2>⚡ ${H('tc.quick.title')}</h2><div class="q-bigclock">${quickClock(q)}</div></div>`;
 }
 let qPhaseShown = null;
 setInterval(() => {
