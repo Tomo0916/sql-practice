@@ -1235,5 +1235,10 @@ export default {
   "bs.s.wnum": "Lọc theo số: WHERE cột >= số",
   "bs.s.wtext": "Lọc theo chữ: WHERE cột = 'chữ'",
   "bs.s.order": "Sắp xếp: ORDER BY cột DESC",
-  "bs.s.limit": "Lấy các dòng đầu: ORDER BY … LIMIT n"
+  "bs.s.limit": "Lấy các dòng đầu: ORDER BY … LIMIT n",
+  "bs.s.insert": "Thêm dòng: INSERT INTO bảng (cột, cột) VALUES (giá trị, giá trị)",
+  "bs.s.update": "Đổi giá trị: UPDATE bảng SET cột = giá trị WHERE …",
+  "bs.s.delete": "Xóa dòng: DELETE FROM bảng WHERE …",
+  "bs.groupSelect": "Mẫu lấy dữ liệu (SELECT)",
+  "bs.groupChange": "Mẫu thay đổi dữ liệu"
 };

@@ -1236,5 +1236,10 @@ export default {
   "bs.s.wnum": "数で絞る型：WHERE 列 >= 数",
   "bs.s.wtext": "文字で絞る型：WHERE 列 = '文字'",
   "bs.s.order": "並べる型：ORDER BY 列 DESC",
-  "bs.s.limit": "上から取る型：ORDER BY … LIMIT 数"
+  "bs.s.limit": "上から取る型：ORDER BY … LIMIT 数",
+  "bs.s.insert": "行を追加する型：INSERT INTO テーブル (列, 列) VALUES (値, 値)",
+  "bs.s.update": "値を変える型：UPDATE テーブル SET 列 = 値 WHERE …",
+  "bs.s.delete": "行を消す型：DELETE FROM テーブル WHERE …",
+  "bs.groupSelect": "データを取り出す型（SELECT）",
+  "bs.groupChange": "データを変える型"
 };

@@ -1235,5 +1235,10 @@ export default {
   "bs.s.wnum": "Filtrer par un nombre : WHERE col >= nombre",
   "bs.s.wtext": "Filtrer par du texte : WHERE col = 'texte'",
   "bs.s.order": "Trier : ORDER BY col DESC",
-  "bs.s.limit": "Prendre les premières lignes : ORDER BY … LIMIT n"
+  "bs.s.limit": "Prendre les premières lignes : ORDER BY … LIMIT n",
+  "bs.s.insert": "Ajouter une ligne : INSERT INTO table (col, col) VALUES (valeur, valeur)",
+  "bs.s.update": "Modifier des valeurs : UPDATE table SET col = valeur WHERE …",
+  "bs.s.delete": "Supprimer des lignes : DELETE FROM table WHERE …",
+  "bs.groupSelect": "Formes qui lisent les données (SELECT)",
+  "bs.groupChange": "Formes qui modifient les données"
 };

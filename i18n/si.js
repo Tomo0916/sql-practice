@@ -1235,5 +1235,10 @@ export default {
   "bs.s.wnum": "අංකයෙන් පෙරීම: WHERE තීරුව >= අංකය",
   "bs.s.wtext": "අකුරෙන් පෙරීම: WHERE තීරුව = 'අකුරු'",
   "bs.s.order": "පිළිවෙළ: ORDER BY තීරුව DESC",
-  "bs.s.limit": "ඉහළ පේළි ගැනීම: ORDER BY … LIMIT n"
+  "bs.s.limit": "ඉහළ පේළි ගැනීම: ORDER BY … LIMIT n",
+  "bs.s.insert": "පේළියක් එක් කිරීම: INSERT INTO වගුව (තීරුව, තීරුව) VALUES (අගය, අගය)",
+  "bs.s.update": "අගය වෙනස් කිරීම: UPDATE වගුව SET තීරුව = අගය WHERE …",
+  "bs.s.delete": "පේළි මැකීම: DELETE FROM වගුව WHERE …",
+  "bs.groupSelect": "දත්ත කියවන රටා (SELECT)",
+  "bs.groupChange": "දත්ත වෙනස් කරන රටා"
 };

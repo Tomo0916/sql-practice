@@ -1236,5 +1236,10 @@ export default {
   "bs.s.wnum": "Filter by a number: WHERE col >= number",
   "bs.s.wtext": "Filter by text: WHERE col = 'text'",
   "bs.s.order": "Sort: ORDER BY col DESC",
-  "bs.s.limit": "Take the top rows: ORDER BY … LIMIT n"
+  "bs.s.limit": "Take the top rows: ORDER BY … LIMIT n",
+  "bs.s.insert": "Add a row: INSERT INTO table (col, col) VALUES (value, value)",
+  "bs.s.update": "Change values: UPDATE table SET col = value WHERE …",
+  "bs.s.delete": "Remove rows: DELETE FROM table WHERE …",
+  "bs.groupSelect": "Shapes that read data (SELECT)",
+  "bs.groupChange": "Shapes that change data"
 };

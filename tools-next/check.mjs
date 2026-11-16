@@ -509,7 +509,8 @@ console.log('11. Check tests (確認テスト)');
       const p = B.basicProblem(eng, st.key, f, seed), tok = B.BASIC_FORMATS[f];
       if (!p || p.stage !== (tok.startsWith('order') ? 'order' : tok) || !eng.exec(p.sql)) { err(`basic shapes: ${st.key} cannot be asked as ${tok}`); continue; }
       const sql = p.sql;
-      const okShape = { cols: !/WHERE|ORDER/.test(sql), wnum: /WHERE \w+ (=|<>|>=|<=|>|<) \d/.test(sql), wtext: /WHERE \w+ (=|<>) '/.test(sql), order: /ORDER BY \w+ (ASC|DESC);$/.test(sql), limit: /LIMIT \d+;$/.test(sql) }[st.key];
+      const okShape = { cols: !/WHERE|ORDER/.test(sql), wnum: /WHERE \w+ (=|<>|>=|<=|>|<) \d/.test(sql), wtext: /WHERE \w+ (=|<>) '/.test(sql), order: /ORDER BY \w+ (ASC|DESC);$/.test(sql), limit: /LIMIT \d+;$/.test(sql),
+        insert: /^INSERT INTO \w+ \(.+\) VALUES \(.+\);$/.test(sql), update: /^UPDATE \w+ SET .+ WHERE .+;$/.test(sql), delete: /^DELETE FROM \w+ WHERE .+;$/.test(sql) }[st.key];
       if (!okShape) err(`basic shapes: ${st.key} gave another shape: ${sql}`);
     }
     let x = null; for (const ok of [true, true, true, false, true, true, true, true, true, true, true]) x = B.basicResult(x, ok);   // fill ×2 → order: 1 right, 1 wrong → fill ×2 → order ×2 → write ×3
@@ -520,7 +521,10 @@ console.log('11. Check tests (確認テスト)');
     const back = (sql, keys, prob = op) => B.stepForMistake(prob, sql, keys.map(key => ({ key })));
     if (back('a, b FROM t', []) !== 'cols' || back('SELECT a b FROM t', ['missingComma']) !== 'cols' || back("SELECT a FROM t ORDER BY b DESC", ['clauseOrder']) !== 'order'
       || back("SELECT a FROM t WHERE c = x", ['quote']) !== 'wtext' || back('SELECT a, b FROM t ORDER BY b ASC;', ['order']) !== null
-      || back('a FROM t', [], Object.assign({ test: true }, op)) !== null || back('a FROM t', [], { lesson: 'insert', sql: 'INSERT INTO t VALUES (1);' }) !== null) err('basic shapes: the way back from a mistake is wrong');
+      || back('a FROM t', [], Object.assign({ test: true }, op)) !== null
+      || back('INSERT t VALUES (1);', [], { lesson: 'insert', sql: 'INSERT INTO t VALUES (1);' }) !== 'insert' || back('INSERT INTO t (a) VALUES (1);', ['values'], { lesson: 'insert', sql: 'INSERT INTO t (a) VALUES (2);' }) !== null
+      || back('UPDATE t price = 1 WHERE id = 1;', [], { lesson: 'update', sql: 'UPDATE t SET price = 1 WHERE id = 1;' }) !== 'update' || back('UPDATE t SET price = 1;', [], { lesson: 'update', sql: 'UPDATE t SET price = 1 WHERE id = 1;' }) !== 'update'
+      || back('DELETE * FROM t WHERE id = 1;', [], { lesson: 'delete', sql: 'DELETE FROM t WHERE id = 1;' }) !== 'delete' || back('DELETE FROM t WHERE id = 2;', ['delValues'], { lesson: 'delete', sql: 'DELETE FROM t WHERE id = 1;' }) !== null) err('basic shapes: the way back from a mistake is wrong');
   }
   // results: per student and per problem, the common wrong answers, CSV, the list of tests, "the same shape again"
   {

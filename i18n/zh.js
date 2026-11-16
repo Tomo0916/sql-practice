@@ -1235,5 +1235,10 @@ export default {
   "bs.s.wnum": "按数字筛选：WHERE 列 >= 数字",
   "bs.s.wtext": "按文字筛选：WHERE 列 = '文字'",
   "bs.s.order": "排序：ORDER BY 列 DESC",
-  "bs.s.limit": "取前几行：ORDER BY … LIMIT 数"
+  "bs.s.limit": "取前几行：ORDER BY … LIMIT 数",
+  "bs.s.insert": "添加行：INSERT INTO 表 (列, 列) VALUES (值, 值)",
+  "bs.s.update": "修改值：UPDATE 表 SET 列 = 值 WHERE …",
+  "bs.s.delete": "删除行：DELETE FROM 表 WHERE …",
+  "bs.groupSelect": "读取数据的句型（SELECT）",
+  "bs.groupChange": "修改数据的句型"
 };

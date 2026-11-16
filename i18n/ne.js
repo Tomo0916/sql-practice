@@ -1235,5 +1235,10 @@ export default {
   "bs.s.wnum": "सङ्ख्याले छान्ने: WHERE स्तम्भ >= सङ्ख्या",
   "bs.s.wtext": "अक्षरले छान्ने: WHERE स्तम्भ = 'अक्षर'",
   "bs.s.order": "क्रम मिलाउने: ORDER BY स्तम्भ DESC",
-  "bs.s.limit": "माथिका पङ्क्ति लिने: ORDER BY … LIMIT n"
+  "bs.s.limit": "माथिका पङ्क्ति लिने: ORDER BY … LIMIT n",
+  "bs.s.insert": "पङ्क्ति थप्ने: INSERT INTO तालिका (स्तम्भ, स्तम्भ) VALUES (मान, मान)",
+  "bs.s.update": "मान बदल्ने: UPDATE तालिका SET स्तम्भ = मान WHERE …",
+  "bs.s.delete": "पङ्क्ति मेटाउने: DELETE FROM तालिका WHERE …",
+  "bs.groupSelect": "डाटा पढ्ने ढाँचा (SELECT)",
+  "bs.groupChange": "डाटा बदल्ने ढाँचा"
 };

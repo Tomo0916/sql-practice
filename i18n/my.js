@@ -1235,5 +1235,10 @@ export default {
   "bs.s.wnum": "ဂဏန်းဖြင့် စစ်: WHERE ကော်လံ >= ဂဏန်း",
   "bs.s.wtext": "စာသားဖြင့် စစ်: WHERE ကော်လံ = 'စာသား'",
   "bs.s.order": "စီ: ORDER BY ကော်လံ DESC",
-  "bs.s.limit": "အပေါ်ဆုံးအတန်းယူ: ORDER BY … LIMIT n"
+  "bs.s.limit": "အပေါ်ဆုံးအတန်းယူ: ORDER BY … LIMIT n",
+  "bs.s.insert": "အတန်းထည့်: INSERT INTO ဇယား (ကော်လံ, ကော်လံ) VALUES (တန်ဖိုး, တန်ဖိုး)",
+  "bs.s.update": "တန်ဖိုးပြောင်း: UPDATE ဇယား SET ကော်လံ = တန်ဖိုး WHERE …",
+  "bs.s.delete": "အတန်းဖျက်: DELETE FROM ဇယား WHERE …",
+  "bs.groupSelect": "ဒေတာဖတ်သော ပုံစံ (SELECT)",
+  "bs.groupChange": "ဒေတာပြောင်းသော ပုံစံ"
 };

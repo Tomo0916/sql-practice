@@ -9,6 +9,9 @@
  *   wtext … WHERE 列 = '文字';
  *   order … ORDER BY 列 DESC;
  *   limit … ORDER BY 列 DESC LIMIT 数;
+ *   insert INSERT INTO テーブル (列, 列) VALUES (値, 値);
+ *   update UPDATE テーブル SET 列 = 値 WHERE 列 = 値;
+ *   delete DELETE FROM テーブル WHERE 列 = 値;
  * Each step climbs fill-in → put the clauses in order → write:
  *   2 right in a row → the next format; a wrong answer → one format back;
  *   3 right in a row in writing → the step is mastered.
@@ -31,7 +34,11 @@ export const BASIC_STEPS = [
   { key: 'wnum', lesson: 'where', shape: 'SELECT {col}, {col} FROM {table} WHERE {col} >= {value};', fits: (p, t) => t.some(x => x.startsWith('num.')) },
   { key: 'wtext', lesson: 'where', shape: "SELECT {col}, {col} FROM {table} WHERE {col} = '{text}';", fits: (p, t) => t.some(x => x.startsWith('text.')) },
   { key: 'order', lesson: 'orderby', shape: 'SELECT {col}, {col} FROM {table} ORDER BY {col} DESC;', fits: (p, t) => !t.includes('two') },
-  { key: 'limit', lesson: 'limit', shape: 'SELECT {col}, {col} FROM {table} ORDER BY {col} DESC LIMIT {n};', fits: (p, t) => !t.includes('offset') }
+  { key: 'limit', lesson: 'limit', shape: 'SELECT {col}, {col} FROM {table} ORDER BY {col} DESC LIMIT {n};', fits: (p, t) => !t.includes('offset') },
+  // the statements that change data
+  { key: 'insert', lesson: 'insert', shape: 'INSERT INTO {table} ({col}, {col}) VALUES ({value}, {value});', fits: () => true },
+  { key: 'update', lesson: 'update', shape: 'UPDATE {table} SET {col} = {value} WHERE {col} = {value};', fits: () => true },
+  { key: 'delete', lesson: 'delete', shape: 'DELETE FROM {table} WHERE {col} = {value};', fits: () => true }
 ];
 export const BASIC_BY_KEY = Object.fromEntries(BASIC_STEPS.map(s => [s.key, s]));
 
@@ -71,10 +78,16 @@ const QUOTE_KEYS = new Set(['quote', 'quoteOpen', 'doubleQuote', 'smartQuote']);
  * Only for SELECT problems outside tests and outside the drill itself.
  */
 export function stepForMistake(prob, sql, dx) {
-  if (!prob || prob.basic || prob.test || prob.quick || !/^\s*SELECT\b/i.test(prob.sql || '')) return null;
-  const l = LESSON_BY_KEY[prob.lesson]; if (!l || l.ch === 'change' || l.kind === 'quiz') return null;
+  if (!prob || prob.basic || prob.test || prob.quick) return null;
+  const l = LESSON_BY_KEY[prob.lesson]; if (!l || l.kind === 'quiz') return null;
   const s = String(sql || ''), keys = new Set((dx || []).map(d => d.key));
   if (!s.trim()) return null;
+  const verb = (/^\s*(SELECT|INSERT|UPDATE|DELETE)\b/i.exec(prob.sql || '') || [])[1];
+  if (!verb) return null;
+  if (verb.toUpperCase() !== 'SELECT') {   // a statement that changes data: its own shape
+    const k = verb.toLowerCase(), shape = { insert: /^\s*INSERT\s+INTO\s+\w+\s*(\([^)]*\))?\s*VALUES\s*\(/i, update: /^\s*UPDATE\s+\w+\s+SET\s+\w+\s*=.+\bWHERE\b/is, delete: /^\s*DELETE\s+FROM\s+\w+\s+WHERE\b/i }[k];
+    return !shape.test(s) || [...keys].some(x => SHAPE_KEYS.has(x)) ? k : null;
+  }
   if (!/\bSELECT\b/i.test(s) || !/\bFROM\b/i.test(s) || [...keys].some(k => SHAPE_KEYS.has(k))) return 'cols';
   if ([...keys].some(k => QUOTE_KEYS.has(k))) return 'wtext';
   if (keys.has('clauseOrder')) return /\bLIMIT\b/i.test(prob.sql) ? 'limit' : /\bORDER\s+BY\b/i.test(prob.sql) ? 'order' : 'wnum';

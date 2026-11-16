@@ -1235,5 +1235,10 @@ export default {
   "bs.s.wnum": "সংখ্যা দিয়ে ছাঁকা: WHERE কলাম >= সংখ্যা",
   "bs.s.wtext": "লেখা দিয়ে ছাঁকা: WHERE কলাম = 'লেখা'",
   "bs.s.order": "সাজানো: ORDER BY কলাম DESC",
-  "bs.s.limit": "উপরের সারি নেওয়া: ORDER BY … LIMIT n"
+  "bs.s.limit": "উপরের সারি নেওয়া: ORDER BY … LIMIT n",
+  "bs.s.insert": "সারি যোগ: INSERT INTO টেবিল (কলাম, কলাম) VALUES (মান, মান)",
+  "bs.s.update": "মান বদল: UPDATE টেবিল SET কলাম = মান WHERE …",
+  "bs.s.delete": "সারি মুছে ফেলা: DELETE FROM টেবিল WHERE …",
+  "bs.groupSelect": "ডেটা পড়ার কাঠামো (SELECT)",
+  "bs.groupChange": "ডেটা বদলানোর কাঠামো"
 };

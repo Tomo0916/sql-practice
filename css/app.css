@@ -1118,3 +1118,4 @@ body.pj-open { overflow: hidden; }
 .bs-back { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); }
 .bs-back > span:first-child { font-weight: 700; }
 .bs-back .btn { margin-left: auto; }
+.bs-group { margin: 8px 0 -2px; font-size: .86rem; font-weight: 700; color: var(--ink-3); list-style: none; }

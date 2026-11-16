@@ -1235,5 +1235,10 @@ export default {
   "bs.s.wnum": "Menyaring dengan angka: WHERE kol >= angka",
   "bs.s.wtext": "Menyaring dengan teks: WHERE kol = 'teks'",
   "bs.s.order": "Mengurutkan: ORDER BY kol DESC",
-  "bs.s.limit": "Mengambil baris teratas: ORDER BY … LIMIT n"
+  "bs.s.limit": "Mengambil baris teratas: ORDER BY … LIMIT n",
+  "bs.s.insert": "Menambah baris: INSERT INTO tabel (kol, kol) VALUES (nilai, nilai)",
+  "bs.s.update": "Mengubah nilai: UPDATE tabel SET kol = nilai WHERE …",
+  "bs.s.delete": "Menghapus baris: DELETE FROM tabel WHERE …",
+  "bs.groupSelect": "Bentuk untuk membaca data (SELECT)",
+  "bs.groupChange": "Bentuk untuk mengubah data"
 };

@@ -537,10 +537,14 @@ function basicsHubHTML() {
   return `<main class="wrap narrow bs-hub"><h1 class="page-title">🧱 ${H('bs.title')}</h1><p class="muted">${H('bs.sub')}</p>
     <div class="card bs-top"><b>${done} / ${BASIC_STEPS.length}</b><span class="muted small">${H('bs.mastered')}</span><div class="bar"><i style="width:${Math.round(done / BASIC_STEPS.length * 100)}%"></i></div>
       <a class="btn btn-primary" href="#/basics/${next}">${H('bs.go')}${I.next}</a></div>
-    <ol class="bs-steps">${BASIC_STEPS.map((st, i) => { const x = bsState(st.key);
-      return `<li class="card bs-step ${x.clear ? 'ok' : st.key === next ? 'cur' : ''}"><div class="bs-no">${x.clear ? '✓' : i + 1}</div>
+    <ol class="bs-steps">${BASIC_STEPS.map((st, i) => { const x = bsState(st.key), head = i === 0 ? 'bs.groupSelect' : st.key === 'insert' ? 'bs.groupChange' : null;
+      return `${head ? `<li class="bs-group">${H(head)}</li>` : ''}${stepLi(st, i, x)}`; }).join('')}</ol></main>`;
+}
+function stepLi(st, i, x) {
+  const next = nextStep(S.progress.basics);
+  return `<li class="card bs-step ${x.clear ? 'ok' : st.key === next ? 'cur' : ''}"><div class="bs-no">${x.clear ? '✓' : i + 1}</div>
         <div class="bs-body"><b>${H('bs.s.' + st.key)}</b>${shapeHTML(st.shape)}${bsLadderHTML(x)}</div>
-        <a class="btn ${st.key === next ? 'btn-primary' : 'btn-ghost'} btn-sm" href="#/basics/${st.key}">${H(x.n ? 'bs.again' : 'bs.start')}</a></li>`; }).join('')}</ol></main>`;
+        <a class="btn ${st.key === next ? 'btn-primary' : 'btn-ghost'} btn-sm" href="#/basics/${st.key}">${H(x.n ? 'bs.again' : 'bs.start')}</a></li>`;
 }
 function basicsHTML() {
   document.title = `${T('bs.title')} · SQL Practice`;

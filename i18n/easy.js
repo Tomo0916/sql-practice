@@ -1236,5 +1236,10 @@ export default {
   "bs.s.wnum": "{数|かず}で しぼる {型|かた}：WHERE {列|れつ} >= {数|かず}",
   "bs.s.wtext": "{文字|もじ}で しぼる {型|かた}：WHERE {列|れつ} = '{文字|もじ}'",
   "bs.s.order": "ならべる {型|かた}：ORDER BY {列|れつ} DESC",
-  "bs.s.limit": "{上|うえ}から とる {型|かた}：ORDER BY … LIMIT {数|かず}"
+  "bs.s.limit": "{上|うえ}から とる {型|かた}：ORDER BY … LIMIT {数|かず}",
+  "bs.s.insert": "{行|ぎょう}を ふやす {型|かた}：INSERT INTO テーブル ({列|れつ}, {列|れつ}) VALUES ({値|あたい}, {値|あたい})",
+  "bs.s.update": "{値|あたい}を {変|か}える {型|かた}：UPDATE テーブル SET {列|れつ} = {値|あたい} WHERE …",
+  "bs.s.delete": "{行|ぎょう}を {消|け}す {型|かた}：DELETE FROM テーブル WHERE …",
+  "bs.groupSelect": "データを とりだす {型|かた}（SELECT）",
+  "bs.groupChange": "データを {変|か}える {型|かた}"
 };
