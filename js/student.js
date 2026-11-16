@@ -784,7 +784,7 @@ const qOk = () => qItems().filter(qDone).length;
 const qAllDone = () => { const items = qItems(); return items.length > 0 && items.every(qOnce() ? qTried : qDone); };
 const qPassed = () => quickOn(S.klass) && qItems().length > 0 && qOk() >= passOf(S.klass.quick);
 /** the student is through: everything right, or the pass line and not going on with the rest */
-const qFinished = () => qAllDone() || (qPassed() && !S.qMore);
+const qFinished = () => qAllDone();   // reaching the pass line does not stop the test: the student goes on to the end
 function qMark(n) {
   const st = qState(); if (!st.id || st.done[n]) return false;
   st.done[n] = Date.now();
@@ -1315,7 +1315,7 @@ function feedbackHTML(prob) {
     const c = current();
     const isLast = !c || prob.idx >= c.probs.length - 1;
     let next = '';
-    if (S.route.view === 'quick') { const n = qPassed() && !S.qMore ? null : qNext(prob); next = n ? `<a class="btn btn-ok fb-next" href="#/quick/${n.qn}">${H('btn.next')}${I.next}</a>` : `<a class="btn btn-ok fb-next" href="#/quick/done">${H('qk.finish')}${I.next}</a>`; }
+    if (S.route.view === 'quick') { const n = qNext(prob); next = n ? `<a class="btn btn-ok fb-next" href="#/quick/${n.qn}">${H('btn.next')}${I.next}</a>` : `<a class="btn btn-ok fb-next" href="#/quick/done">${H('qk.finish')}${I.next}</a>`; }
     else if (S.route.view === 'session') next = `<button class="btn btn-ok fb-next" data-act="sessionNext">${H('btn.next')}${I.next}</button>`;
     else if (S.route.view === 'live') {   // the assignment: on to the next unsolved assigned problem, in any lesson
       const n = nextAssigned(prob);
