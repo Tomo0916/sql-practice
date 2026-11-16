@@ -1026,7 +1026,7 @@ export default {
   "qk.back": "Back to the test",
   "qk.none": "There is no quick test now.",
   "qk.doneTitle": "All correct!",
-  "qk.doneSub": "Well done. Take a break as your teacher says.",
+  "qk.doneSub": "Well done.",
   "qk.time": "Time: {t}",
   "qk.rule": "You can answer again until it is right. Hints and answers are hidden.",
   "qk.started": "A quick test has started.",
@@ -1035,7 +1035,7 @@ export default {
   "qk.other": "Another problem",
   "tc.tabQuick": "Quick test",
   "tc.quick.title": "Quick test",
-  "tc.quick.sub": "Give everyone a short test at the same time. Students who reach the pass line can take a break. You see here who has passed.",
+  "tc.quick.sub": "Give everyone a short test at the same time. You see here how far each student has got.",
   "tc.quick.lessons": "Lessons",
   "tc.quick.fromAssign": "Assigned lessons",
   "tc.quick.otherLessons": "Choose from other lessons",
@@ -1213,5 +1213,7 @@ export default {
   "order.g.table": "Table names",
   "order.g.col": "Column names",
   "order.g.op": "Symbols",
-  "order.g.val": "Values"
+  "order.g.val": "Values",
+  "tc.quick.going": "Working",
+  "tc.quick.lgPass": "Passed"
 };

@@ -1026,7 +1026,7 @@ export default {
   "qk.back": "テストにもどる",
   "qk.none": "今はクイックテストはありません。",
   "qk.doneTitle": "全問正解！",
-  "qk.doneSub": "よくできました。先生の指示にしたがって休憩してください。",
+  "qk.doneSub": "よくできました。",
   "qk.time": "かかった時間 {t}",
   "qk.rule": "正解するまで何回でも答えられます。ヒントと答えは見られません。",
   "qk.started": "クイックテストが始まりました。",
@@ -1035,7 +1035,7 @@ export default {
   "qk.other": "ほかの問題へ",
   "tc.tabQuick": "クイックテスト",
   "tc.quick.title": "クイックテスト",
-  "tc.quick.sub": "少ない問題数のテストを全員に同時に出します。合格ラインに届いた生徒から休憩に入れます。だれが合格したかがここに表示されます。",
+  "tc.quick.sub": "少ない問題数のテストを全員に同時に出します。だれがどこまで解いたかを、ここで見られます。",
   "tc.quick.lessons": "出題するレッスン",
   "tc.quick.fromAssign": "課題のレッスン",
   "tc.quick.otherLessons": "ほかのレッスンから選ぶ",
@@ -1213,5 +1213,7 @@ export default {
   "order.g.table": "テーブル名",
   "order.g.col": "列名・名前",
   "order.g.op": "記号",
-  "order.g.val": "値"
+  "order.g.val": "値",
+  "tc.quick.going": "解いている",
+  "tc.quick.lgPass": "合格"
 };

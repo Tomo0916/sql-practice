@@ -1025,7 +1025,7 @@ export default {
   "qk.back": "Quay lại bài kiểm tra",
   "qk.none": "Hiện không có bài kiểm tra nhanh.",
   "qk.doneTitle": "Đúng hết!",
-  "qk.doneSub": "Làm tốt lắm. Hãy nghỉ giải lao theo hướng dẫn của giáo viên.",
+  "qk.doneSub": "Làm tốt lắm.",
   "qk.time": "Thời gian: {t}",
   "qk.rule": "Bạn có thể trả lời lại đến khi đúng. Gợi ý và đáp án bị ẩn.",
   "qk.started": "Bài kiểm tra nhanh đã bắt đầu.",
@@ -1034,7 +1034,7 @@ export default {
   "qk.other": "Bài khác",
   "tc.tabQuick": "Kiểm tra nhanh",
   "tc.quick.title": "Kiểm tra nhanh",
-  "tc.quick.sub": "Cho cả lớp làm một bài kiểm tra ngắn cùng lúc. Học sinh đạt mức qua có thể nghỉ giải lao. Tại đây bạn thấy ai đã đạt.",
+  "tc.quick.sub": "Cho cả lớp làm một bài kiểm tra ngắn cùng lúc. Tại đây bạn thấy mỗi học sinh đã làm đến đâu.",
   "tc.quick.lessons": "Bài học",
   "tc.quick.fromAssign": "Bài học được giao",
   "tc.quick.otherLessons": "Chọn từ các bài học khác",
@@ -1212,5 +1212,7 @@ export default {
   "order.g.table": "Tên bảng",
   "order.g.col": "Tên cột",
   "order.g.op": "Ký hiệu",
-  "order.g.val": "Giá trị"
+  "order.g.val": "Giá trị",
+  "tc.quick.going": "Đang làm",
+  "tc.quick.lgPass": "Đạt"
 };
