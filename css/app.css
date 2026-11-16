@@ -1099,3 +1099,22 @@ body.pj-open { overflow: hidden; }
 .q-st.done .q-pbar i:first-child { background: var(--ok); }
 .q-pline { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--ink-3); border-radius: 1px; }
 .q-roster { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+/* ---------- the root drill: basic shapes ---------- */
+.bs-hub { display: flex; flex-direction: column; gap: 12px; }
+.bs-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 14px 18px; }
+.bs-top > b { font-size: 1.5rem; }
+.bs-top .bar { flex: 1 1 160px; }
+.bs-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bs-step { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.bs-step.cur { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.bs-no { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--surface-2); color: var(--ink-3); }
+.bs-step.ok .bs-no { background: var(--ok); color: #fff; }
+.bs-step.cur .bs-no { background: var(--accent); color: #fff; }
+.bs-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.bs-shape { display: block; padding: 8px 12px; border-radius: 8px; background: var(--code-bg); color: var(--code-ink); font-size: .92rem; line-height: 1.9; white-space: normal; }
+.bs-slot { display: inline-block; padding: 0 8px; margin: 0 1px; border-radius: 6px; font-family: var(--sans); font-size: .78rem; font-weight: 700; line-height: 1.6; border: 1.5px dashed currentColor; }
+.bs-slot.col { color: #2b7bd6; } .bs-slot.table { color: #8a5cd1; } .bs-slot.val { color: #c46a1b; }
+.bs-side .bs-shape { margin: 8px 0; font-size: .86rem; }
+.bs-back { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); }
+.bs-back > span:first-child { font-weight: 700; }
+.bs-back .btn { margin-left: auto; }
