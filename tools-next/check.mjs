@@ -659,5 +659,38 @@ console.log('14. Adaptive level test (適応型レベルテスト)');
   console.log('   profiles, slips, second looks and stops as planned');
 }
 
+/* ---------- 15. difficulty levels of the lessons ---------- */
+console.log('15. Difficulty levels (難易度)');
+{
+  const Ls = await import('../js/lessons.js'), Q = await import('../js/quick.js');
+  let made = 0;
+  for (const l of Ls.LESSONS) {
+    const lvs = Ls.levelsOf(l.key);
+    if (l.ch === 'analysis' || l.kind === 'quiz' || l.fixed) { if (lvs.length) err(`levels: ${l.key} should have none`); continue; }
+    if (!lvs.length) { err(`levels: ${l.key} has no level`); continue; }
+    const sizes = [];
+    for (const L of lvs) {
+      const spec = Ls.levelSpec(l.key, L), sets = eng.themesFor(l); let got = 0, cols = null;
+      for (let i = 0; i < 24 && got < 6; i++) {
+        const p = eng.genLevel(l, sets[i % sets.length], `chk|${l.key}|${i}`, L); if (!p) continue;
+        const sql = l.sql(p), r = eng.exec(sql);
+        if (Ls.variantOf(l.key, sql) !== spec.v || (p.more || []).length !== spec.more) err(`levels: ${l.key} Lv${L} gave ${sql}`);
+        if (!r || (!r.dml && !r.values.length)) err(`levels: ${l.key} Lv${L} has no rows: ${sql}`);
+        if (!r.dml) cols = Math.max(cols || 0, r.columns.length);
+        const pr = makeProbe(l, p); if (!pr) err(`levels: ${l.key} Lv${L} cannot be made into a problem`);
+        got++; made++;
+      }
+      if (!got) err(`levels: ${l.key} Lv${L} cannot be made`);
+      sizes.push(cols);
+    }
+    if (Ls.MORE_COLS.has(l.key) && sizes.some((c, i) => i && c !== null && sizes[i - 1] !== null && c < sizes[i - 1])) err(`levels: ${l.key} gets fewer columns at a higher level`);
+  }
+  // a quick test at a level: every problem is of that level (or the lesson's highest)
+  const slots = Q.simpleSlots(eng, ['select', 'orderby', 'groupby', 'inner'], 8, 'write', 'LVQ', '', 3), ps = Q.slotProblems(eng, 'LVQ', slots, '');
+  if (ps.length < 4 || ps.some(p => p.lv !== Q.levelFor(p.lesson, 3))) err(`levels: a quick test at Lv3 has problems of another level (${ps.map(p => p.lesson + p.lv).join()})`);
+  console.log(`   ${made} problems made at their levels`);
+}
+function makeProbe(l, p) { try { return eng.buildProblem(l, p, 'write', 0, 'chk'); } catch (e) { return null; } }
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

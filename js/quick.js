@@ -9,6 +9,7 @@
  *           so the teacher can swap a problem for another of the same lesson and kind)
  *           a shape mix (型ミックス) test: slots { b: shape, k: its lesson, st: kind, i }, the problems of that basic shape
  *   (older tests: code + pick — the check-test code of a shuffled pool and positions in it)
+ *   lv on a slot — (optional) the difficulty (lessons.js levelsOf): the lesson's problems of that level
  *   tb   — (optional) one table for every problem: a table name, or the key of a pair of tables for JOIN
  *   lv, once — (optional) a level test: the chapters (numbers in level.js) it measures; only the first answer to each problem counts
  *   n    — number of problems;  pass — right answers needed to pass (≤ n)
@@ -23,6 +24,7 @@ import { normCheck, decodeCheck, buildCheck } from './check.js';
 import { randomCode, stagesOf, LESSON_BY_KEY, FORMAT_KEYS, FORMAT_MAX, makeRng } from './engine.js';
 import { tableSets, makeProblem } from './mastery.js';
 import { BASIC_BY_KEY, basicProblem } from './basics.js';
+import { levelsOf } from './lessons.js';
 
 export const QUICK_COUNTS = [1, 2, 3, 4, 5];
 export const QUICK_LIMITS = [0, 3, 5, 10, 15];   // minutes; 0 = no limit
@@ -48,19 +50,23 @@ export function kindsOf(key, engine, tb) {
 }
 const poolCache = new Map();
 /** all the problems of one lesson and kind, shuffled by the seed (up to FORMAT_MAX); tb = only on that table */
-export function kindPool(engine, key, st, seed, tb) {
-  const id = `${key}|${st}|${seed}|${tb || ''}`;
+/** the level a lesson can give for a wanted level (its highest when it has fewer) */
+export const levelFor = (key, lv) => { const ls = levelsOf(key); return lv && ls.length ? Math.min(lv, ls[ls.length - 1]) : 0; };
+export function kindPool(engine, key, st, seed, tb, lv) {
+  lv = levelFor(key, lv);
+  const id = `${key}|${st}|${seed}|${tb || ''}|${lv || ''}`;
   if (poolCache.has(id)) return poolCache.get(id);
   const f = { fill: 0, order1: 0, order2: 0, write: 0 }; f[st] = FORMAT_MAX;
   let out = [];
   if (kindsOf(key, engine, tb).includes(st)) {
     const seen = new Set();
-    if (tb) {   // one table: new problems of the lesson made on that table
-      const set = setOf(engine, tb), lesson = LESSON_BY_KEY[key], theme = set.ds.table || set.ds.key;
-      for (let i = 0; i < FORMAT_MAX * 4 && out.length < FORMAT_MAX; i++) {
-        const p = engine.genOne(lesson, set.ds, `QT${seed}|${key}|${st}|${i}`); if (!p) continue;
+    if (tb || lv) {   // one table, or one level: new problems of the lesson made for it
+      const lesson = LESSON_BY_KEY[key], sets = tb ? [setOf(engine, tb).ds] : engine.themesFor(lesson);
+      for (let i = 0; i < FORMAT_MAX * 6 && out.length < FORMAT_MAX; i++) {
+        const ds = sets[i % sets.length], theme = ds.table || ds.key, sd = `QT${seed}|${key}|${st}|${lv || ''}|${i}`;
+        const p = lv ? engine.genLevel(lesson, ds, sd, lv) : engine.genOne(lesson, ds, sd); if (!p) continue;
         const pr = makeProblem(engine, lesson, p, theme, st);
-        if (pr && !seen.has(pr.sql)) { seen.add(pr.sql); out.push(Object.assign(pr, { id: `check:${seed}:${tb}:${pr.id}`, kind: 'practice', test: true, src: pr.id })); }
+        if (pr && !seen.has(pr.sql)) { seen.add(pr.sql); out.push(Object.assign(pr, { id: `check:${seed}:${tb || 'lv' + lv}:${pr.id}`, kind: 'practice', test: true, src: pr.id, lv })); }
       }
     } else out = buildCheck(engine, normCheck({ lessons: [key], f, max: 0, seed }), `${seed}${st}`).filter(p => !seen.has(p.sql) && seen.add(p.sql));
   }
@@ -89,7 +95,7 @@ export function shapePool(engine, b, st, seed) {
 /** the kind a shape gives for a wanted kind (a shape without ordering → write) */
 export const shapeKind = (b, st) => { const step = BASIC_BY_KEY[b]; return step && step.formats.includes(st) ? st : 'awrite'; };   // the shapes are all in words
 /** the pool a slot points into */
-const poolOf = (engine, x, seed, tb) => (x.b ? shapePool(engine, x.b, x.st, seed) : kindPool(engine, x.k, x.st, seed, tb));
+const poolOf = (engine, x, seed, tb) => (x.b ? shapePool(engine, x.b, x.st, seed) : kindPool(engine, x.k, x.st, seed, tb, x.lv));
 const SIMPLE_KINDS = { write: ['write'], mix: ['fill', 'order1', 'write'], order: ['order1', 'order2'] };
 /** the first position of a lesson's pool of this kind that is free: not used, and not the same query as another slot (a fill-in and a write of one query would give it away) */
 function freeIndex(engine, x, seed, slots, from = 0, skip = -1, tb) {
@@ -98,19 +104,19 @@ function freeIndex(engine, x, seed, slots, from = 0, skip = -1, tb) {
   const sqls = new Set(slots.filter((y, m) => m !== skip).map(y => keyOf(poolOf(engine, y, seed, tb)[y.i])));
   for (let step = 0; step < pool.length; step++) {
     const i = (from + step) % pool.length;
-    if (!sqls.has(keyOf(pool[i])) && !slots.some((y, m) => m !== skip && (y.b || '') === (x.b || '') && y.k === x.k && y.st === x.st && y.i === i)) return i;
+    if (!sqls.has(keyOf(pool[i])) && !slots.some((y, m) => m !== skip && (y.b || '') === (x.b || '') && (y.lv || 0) === (x.lv || 0) && y.k === x.k && y.st === x.st && y.i === i)) return i;
   }
   return null;
 }
 /** easy set-up: n problems spread over the lessons, of the kinds of a preset */
-export function simpleSlots(engine, lessons, n, kind, seed, tb) {
+export function simpleSlots(engine, lessons, n, kind, seed, tb, lv) {
   const kinds = SIMPLE_KINDS[kind] || SIMPLE_KINDS.write, out = [];
   lessons = lessons.filter(k => kindsOf(k, engine, tb).length);
   if (!lessons.length) return out;
   for (let r = 0; r < FORMAT_MAX * kinds.length && out.length < n; r++) for (let j = 0; j < lessons.length && out.length < n; j++) {
     const k = lessons[j], st0 = kinds[(j + r) % kinds.length], st = kindsOf(k, engine, tb).includes(st0) ? st0 : 'write';
-    const i = freeIndex(engine, { k, st }, seed, out, 0, -1, tb);
-    if (i !== null) out.push({ k, st, i });
+    const x = lv ? { k, st, lv: levelFor(k, lv) } : { k, st }, i = freeIndex(engine, x, seed, out, 0, -1, tb);
+    if (i !== null) out.push(Object.assign(x, { i }));
   }
   return out;
 }
@@ -129,13 +135,13 @@ export function shapeSlots(engine, shapes, n, kind, seed) {
   return out;
 }
 /** detailed set-up: per lesson, how many of each kind  { lessonKey: { fill, order1, order2, write } } */
-export function detailSlots(engine, per, order, seed, tb) {
+export function detailSlots(engine, per, order, seed, tb, lv) {
   const out = [];
   for (const k of order) {
     const c = per[k] || {};
     for (const st of KINDS) {
       const want = kindsOf(k, engine, tb).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +c[st] || 0)) : 0;
-      for (let w = 0; w < want; w++) { const i = freeIndex(engine, { k, st }, seed, out, 0, -1, tb); if (i === null) break; out.push({ k, st, i }); }
+      for (let w = 0; w < want; w++) { const x = lv ? { k, st, lv: levelFor(k, lv) } : { k, st }, i = freeIndex(engine, x, seed, out, 0, -1, tb); if (i === null) break; out.push(Object.assign(x, { i })); }
     }
   }
   return out;
@@ -171,7 +177,7 @@ export const limitSecOf = q => (q && q.end ? Math.max(1, Math.round((new Date(q.
 export function newQuick(d, nowMs) {
   const at = (nowMs || Date.now()) + QUICK_COUNTDOWN * 1000, n = d.slots.length;
   const sec = Math.min(QUICK_MAX_SEC, Math.max(0, Math.round(d.limitSec !== undefined ? +d.limitSec || 0 : (+d.limit || 0) * 60)));
-  return { id: randomCode(5), seed: d.seed, ...(Array.isArray(d.lv) && d.lv.length ? { lv: d.lv.slice(), once: true } : {}), ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => (x.b ? { b: x.b, k: x.k, st: x.st, i: x.i } : { k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
+  return { id: randomCode(5), seed: d.seed, ...(Array.isArray(d.lv) && d.lv.length ? { lv: d.lv.slice(), once: true } : {}), ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => (x.b ? { b: x.b, k: x.k, st: x.st, i: x.i } : x.lv ? { k: x.k, st: x.st, i: x.i, lv: x.lv } : { k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
     pass: Math.max(1, Math.min(n, +d.pass || n)), end: sec ? new Date(at + sec * 1000).toISOString() : null };
 }
 /** the problems of a quick test, with their quick ids (answers hidden until it is over) */
