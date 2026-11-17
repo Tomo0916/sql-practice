@@ -12,7 +12,7 @@ const { SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES } = await
 export const ANALYSIS_KEY = /^(L\.an_|ch\.analysis|ph\.(width|mean|sd)$|step\.(sub|case|month|window|mean|dev|coalesce|clean)$|an\.)/;
 export const ANALYSIS_LANGS = ['en', 'ja', 'easy', 'fr', 'id', 'vi', 'zh', 'ne', 'bn', 'my', 'si'];
 // the shape mix: names of ranges and formats
-const MIX_KEYS = ['bs.mix.r.core', 'bs.mix.r.learned', 'bs.mix.r.all', 'bs.mix.f.auto'];
+const MIX_KEYS = ['bs.mix.r.core', 'bs.mix.r.learned', 'bs.mix.r.all', 'bs.mix.f.auto', 'task.again', 'task.continue', 'task.start', 'tc.task.replace', 'tc.task.give', 'tc.task.schema', 'class.netError'];
 export function usedKeys() {
   const keys = new Set();
   for (const f of fs.readdirSync(path.join(root, 'js'))) {

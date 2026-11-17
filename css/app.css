@@ -1180,3 +1180,4 @@ body.pj-open { overflow: hidden; }
 .mx-res li b { flex: 1; } .mx-res li.ok { border-left: 4px solid var(--ok); } .mx-res li.ng { border-left: 4px solid var(--bad); }
 .mx-ok { color: var(--ok); font-weight: 800; }
 .bs-introtip { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; font-size: .85rem; }
+.taskcard { border-left: 4px solid var(--accent); } .taskcard.done { border-left-color: var(--ok); }

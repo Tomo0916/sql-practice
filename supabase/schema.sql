@@ -457,3 +457,10 @@ end $$;
 -- (id, seed, slots, at, n, pass, end) plus "stopped" when the teacher ended it.
 -- The answers stay in attempts (stage 'quick'), so a result can be worked out again at any time.
 alter table public.classes add column if not exists quick_log jsonb check (quick_log is null or jsonb_typeof(quick_log) = 'array');
+
+-- ---------- assignments beyond lessons: the shape mix (2026-11-17) ----------
+-- tasks = the class's other assignments, e.g. the shape mix (型ミックス) given as an assignment:
+--   {"mix": {"id", "shapes": [basic shapes], "kind": "mix|fill|order1|write", "n", "seed", "at"}}
+-- Everyone gets the same problems; the answers are logged like any other (problem_id task:<id>:<n>).
+-- The teacher sets it like any other class setting (classes_update policy); students read it with the class.
+alter table public.classes add column if not exists tasks jsonb check (tasks is null or jsonb_typeof(tasks) = 'object');

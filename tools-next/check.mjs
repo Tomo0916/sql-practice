@@ -597,6 +597,14 @@ console.log('13. Shape mix (型ミックス)');
       const st = BASIC_BY_KEY[p.basic]; if (f !== 'auto' && st.formats.includes(f) && st.formats[p.bf] !== f) err(`shape mix ${r}/${f}: ${p.basic} came as ${st.formats[p.bf]}`); });
     made += ps.length;
   }
+  const { shapeSlots, slotProblems, SHAPE_KINDS, SHAPE_COUNTS } = await import('../js/quick.js');   // the shape mix as a quick test / assignment
+  const core = mixSteps('core', () => true), all = mixSteps('all', () => true);
+  for (const shapes of [core, all, ['cols'], ['groupby', 'having']]) for (const k of SHAPE_KINDS) for (const n of SHAPE_COUNTS) {
+    const slots = shapeSlots(eng, shapes, n, k, 'chk' + n), ps = slotProblems(eng, 'chk' + n, slots, '');
+    if (ps.length !== slots.length || (slots.length < n && shapes.length > 1)) err(`shape quick test ${shapes.length} shapes / ${k} / ${n}: ${ps.length} problems`);
+    if (new Set(ps.map(p => p.sql + p.stage)).size !== ps.length) err(`shape quick test ${k}/${n}: the same problem twice`);
+    made += ps.length;
+  }
   console.log(`   ${made} problems made`);
 }
 

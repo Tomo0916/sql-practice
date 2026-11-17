@@ -26,7 +26,7 @@ export function saveSettings(s) { Store.set(KEYS.settings, s); }
  */
 export function loadProgress() {
   const p = Store.get(KEYS.progress, null) || {};
-  return Object.assign({ solved: {}, wrong: {}, drafts: {}, answers: {}, lessons: {}, drill: {}, pat: {}, basics: {}, cq: {}, klass: {}, last: null, streak: { day: 0, n: 0 } }, p);
+  return Object.assign({ solved: {}, wrong: {}, drafts: {}, answers: {}, lessons: {}, drill: {}, pat: {}, basics: {}, cq: {}, tasks: {}, klass: {}, last: null, streak: { day: 0, n: 0 } }, p);
 }
 /**
  * Two tabs (or windows) of the app share one record: before saving, take what the other one saved,
@@ -45,6 +45,8 @@ export function mergeProgress(stored, mine) {
   out.basics = Object.assign({}, stored.basics, mine.basics);   // the root drill: this page's state wins
   out.cq = Object.assign({}, stored.cq);   // the clause quiz: the higher best, the more rounds
   Object.entries(mine.cq || {}).forEach(([k, v]) => { const x = out.cq[k]; out.cq[k] = !x ? v : { n: Math.max(x.n || 0, v.n || 0), best: Math.max(x.best || 0, v.best || 0), last: (v.n || 0) >= (x.n || 0) ? v.last : x.last }; });
+  out.tasks = {};   // the shape-mix assignments: the problems solved on either side
+  new Set([...Object.keys(stored.tasks || {}), ...Object.keys(mine.tasks || {})]).forEach(k => { out.tasks[k] = [...new Set([...((stored.tasks || {})[k] || []), ...((mine.tasks || {})[k] || [])])]; });
   out.pat = Object.assign({}, stored.pat);   // review by pattern: the state with the later answer wins (more answers on the same day)
   Object.entries(mine.pat || {}).forEach(([k, v]) => { const x = out.pat[k]; if (!x || (v.last || 0) > (x.last || 0) || ((v.last || 0) === (x.last || 0) && (v.n || 0) >= (x.n || 0))) out.pat[k] = v; });
   out.level = (stored.level || {}).upd > ((mine.level || {}).upd || 0) ? stored.level : mine.level || stored.level || null;   // the SQL level: the later change wins
