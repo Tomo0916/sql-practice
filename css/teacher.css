@@ -447,3 +447,13 @@ details.rank .rk-head { justify-content: flex-end; }
 .key-item .q-alt { margin-top: 3px; font-size: .9em; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
 .key-item .q-alt > span:first-child { font-weight: 700; white-space: nowrap; }
 .key-item .q-alt .q-sql { margin: 0; }
+
+/* the shape mix as an assignment (型ミックスの課題) */
+.task-card { margin-top: 16px; display: grid; gap: 12px; }
+.task-card h2 { margin: 0; }
+.task-now { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; background: var(--surface-2); }
+.task-now-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.task-now-h .btn { margin-left: auto; }
+.task-tbl tr.done th { color: var(--ok); }
+.task-bar { display: inline-block; width: 80px; height: 8px; border-radius: 99px; background: var(--line); vertical-align: middle; overflow: hidden; }
+.task-bar i { display: block; height: 100%; background: var(--ok); }

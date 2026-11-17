@@ -7,6 +7,7 @@
  *   seed  — makes the problems; slots — the test, one per problem: { k: lesson, st: kind, i: which one }
  *           (kinds: fill, order1, order2, write; i = position in that lesson's shuffled problems of that kind,
  *           so the teacher can swap a problem for another of the same lesson and kind)
+ *           a shape mix (型ミックス) test: slots { b: shape, k: its lesson, st: kind, i }, the problems of that basic shape
  *   (older tests: code + pick — the check-test code of a shuffled pool and positions in it)
  *   tb   — (optional) one table for every problem: a table name, or the key of a pair of tables for JOIN
  *   lv, once — (optional) a level test: the chapters (numbers in level.js) it measures; only the first answer to each problem counts
@@ -19,8 +20,9 @@
  * (No DOM here: tools-next/check.mjs tests it in Node.)
  * ========================================================= */
 import { normCheck, decodeCheck, buildCheck } from './check.js';
-import { randomCode, stagesOf, LESSON_BY_KEY, FORMAT_KEYS, FORMAT_MAX } from './engine.js';
+import { randomCode, stagesOf, LESSON_BY_KEY, FORMAT_KEYS, FORMAT_MAX, makeRng } from './engine.js';
 import { tableSets, makeProblem } from './mastery.js';
+import { BASIC_BY_KEY, basicProblem } from './basics.js';
 
 export const QUICK_COUNTS = [1, 2, 3, 4, 5];
 export const QUICK_LIMITS = [0, 3, 5, 10, 15];   // minutes; 0 = no limit
@@ -66,14 +68,35 @@ export function kindPool(engine, key, st, seed, tb) {
   poolCache.set(id, out);
   return out;
 }
+const SHAPE_POOL = 12;   // problems per shape and kind (a test of a few shapes can still have 15 problems)
+/** the problems of one basic shape (基礎の型) in one kind, for a shape-mix quick test (up to SHAPE_POOL) */
+export function shapePool(engine, b, st, seed) {
+  const id = `shape|${b}|${st}|${seed}`;
+  if (poolCache.has(id)) return poolCache.get(id);
+  const step = BASIC_BY_KEY[b], out = [], seen = new Set();
+  if (step) {
+    const f = step.formats.includes(st) ? step.formats.indexOf(st) : step.formats.length - 1;
+    for (let i = 0; i < SHAPE_POOL * 3 && out.length < SHAPE_POOL; i++) {
+      const p = basicProblem(engine, b, f, `QS${seed}|${i}`);
+      if (p && !seen.has(p.sql)) { seen.add(p.sql); out.push(Object.assign(p, { id: `shape:${seed}:${b}:${i}`, kind: 'practice', test: true, src: p.id })); }
+    }
+  }
+  if (poolCache.size > 400) poolCache.clear();
+  poolCache.set(id, out);
+  return out;
+}
+/** the kind a shape gives for a wanted kind (a shape without ordering → write) */
+export const shapeKind = (b, st) => { const step = BASIC_BY_KEY[b]; return !step ? 'write' : step.formats.includes(st) ? st : st === 'order2' && step.formats.includes('order1') ? 'order1' : 'write'; };
+/** the pool a slot points into */
+const poolOf = (engine, x, seed, tb) => (x.b ? shapePool(engine, x.b, x.st, seed) : kindPool(engine, x.k, x.st, seed, tb));
 const SIMPLE_KINDS = { write: ['write'], mix: ['fill', 'order1', 'write'], order: ['order1', 'order2'] };
 /** the first position of a lesson's pool of this kind that is free: not used, and not the same query as another slot (a fill-in and a write of one query would give it away) */
-function freeIndex(engine, k, st, seed, slots, from = 0, skip = -1, tb) {
-  const pool = kindPool(engine, k, st, seed, tb);
-  const sqls = new Set(slots.filter((y, m) => m !== skip).map(y => (kindPool(engine, y.k, y.st, seed, tb)[y.i] || {}).sql));
+function freeIndex(engine, x, seed, slots, from = 0, skip = -1, tb) {
+  const pool = poolOf(engine, x, seed, tb);
+  const sqls = new Set(slots.filter((y, m) => m !== skip).map(y => (poolOf(engine, y, seed, tb)[y.i] || {}).sql));
   for (let step = 0; step < pool.length; step++) {
     const i = (from + step) % pool.length;
-    if (!sqls.has(pool[i].sql) && !slots.some((y, m) => m !== skip && y.k === k && y.st === st && y.i === i)) return i;
+    if (!sqls.has(pool[i].sql) && !slots.some((y, m) => m !== skip && (y.b || '') === (x.b || '') && y.k === x.k && y.st === x.st && y.i === i)) return i;
   }
   return null;
 }
@@ -84,8 +107,22 @@ export function simpleSlots(engine, lessons, n, kind, seed, tb) {
   if (!lessons.length) return out;
   for (let r = 0; r < FORMAT_MAX * kinds.length && out.length < n; r++) for (let j = 0; j < lessons.length && out.length < n; j++) {
     const k = lessons[j], st0 = kinds[(j + r) % kinds.length], st = kindsOf(k, engine, tb).includes(st0) ? st0 : 'write';
-    const i = freeIndex(engine, k, st, seed, out, 0, -1, tb);
+    const i = freeIndex(engine, { k, st }, seed, out, 0, -1, tb);
     if (i !== null) out.push({ k, st, i });
+  }
+  return out;
+}
+/** a shape-mix test: n problems over the shapes, each shape in turn; kind 'mix' = fill-in → ordering → write in turn */
+export const SHAPE_KINDS = ['mix', 'fill', 'order1', 'write'];
+export const SHAPE_COUNTS = [3, 5, 8, 10, 15];
+export function shapeSlots(engine, shapes, n, kind, seed) {
+  shapes = makeRng(`shapes|${seed}`).shuffle(shapes.filter(b => BASIC_BY_KEY[b])); const out = [];   // a different order of shapes each time: with few problems, every shape can come up
+  if (!shapes.length) return out;
+  const cyc = kind === 'mix' ? ['fill', 'order1', 'write'] : [kind];
+  for (let r = 0; r < SHAPE_POOL * 3 && out.length < n; r++) for (let j = 0; j < shapes.length && out.length < n; j++) {
+    const b = shapes[j], st = shapeKind(b, cyc[(r + j) % cyc.length]), x = { b, k: BASIC_BY_KEY[b].lesson, st };
+    const i = freeIndex(engine, x, seed, out, 0, -1, '');
+    if (i !== null) out.push(Object.assign(x, { i }));
   }
   return out;
 }
@@ -96,7 +133,7 @@ export function detailSlots(engine, per, order, seed, tb) {
     const c = per[k] || {};
     for (const st of KINDS) {
       const want = kindsOf(k, engine, tb).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +c[st] || 0)) : 0;
-      for (let w = 0; w < want; w++) { const i = freeIndex(engine, k, st, seed, out, 0, -1, tb); if (i === null) break; out.push({ k, st, i }); }
+      for (let w = 0; w < want; w++) { const i = freeIndex(engine, { k, st }, seed, out, 0, -1, tb); if (i === null) break; out.push({ k, st, i }); }
     }
   }
   return out;
@@ -106,17 +143,17 @@ export function applySwaps(engine, slots, swaps, seed, tb) {
   const out = slots.map(x => Object.assign({}, x));
   Object.entries(swaps || {}).forEach(([j, i]) => {
     const x = out[+j]; if (!x || !Number.isInteger(i)) return;
-    if (freeIndex(engine, x.k, x.st, seed, out, i, +j, tb) === i) x.i = i;
+    if (freeIndex(engine, x, seed, out, i, +j, tb) === i) x.i = i;
   });
   return out;
 }
 /** another problem of the same lesson and kind for slot j (null when there is none) */
 export function nextFree(engine, slots, j, seed, tb) {
-  const x = slots[j], i = freeIndex(engine, x.k, x.st, seed, slots, x.i + 1, j, tb);
+  const x = slots[j], i = freeIndex(engine, x, seed, slots, x.i + 1, j, tb);
   return i === null || i === x.i ? null : i;
 }
 export function slotProblems(engine, seed, slots, tb) {
-  return relabel(slots.map(x => kindPool(engine, x.k, x.st, seed, tb)[x.i]).filter(Boolean));
+  return relabel(slots.map(x => poolOf(engine, x, seed, tb)[x.i]).filter(Boolean));
 }
 /** "Write 1, 2 …" counted inside the test (not the lesson's own numbers) */
 function relabel(list) {
@@ -132,7 +169,7 @@ export const limitSecOf = q => (q && q.end ? Math.max(1, Math.round((new Date(q.
 export function newQuick(d, nowMs) {
   const at = (nowMs || Date.now()) + QUICK_COUNTDOWN * 1000, n = d.slots.length;
   const sec = Math.min(QUICK_MAX_SEC, Math.max(0, Math.round(d.limitSec !== undefined ? +d.limitSec || 0 : (+d.limit || 0) * 60)));
-  return { id: randomCode(5), seed: d.seed, ...(Array.isArray(d.lv) && d.lv.length ? { lv: d.lv.slice(), once: true } : {}), ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => ({ k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
+  return { id: randomCode(5), seed: d.seed, ...(Array.isArray(d.lv) && d.lv.length ? { lv: d.lv.slice(), once: true } : {}), ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => (x.b ? { b: x.b, k: x.k, st: x.st, i: x.i } : { k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
     pass: Math.max(1, Math.min(n, +d.pass || n)), end: sec ? new Date(at + sec * 1000).toISOString() : null };
 }
 /** the problems of a quick test, with their quick ids (answers hidden until it is over) */

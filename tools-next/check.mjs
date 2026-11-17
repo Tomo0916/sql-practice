@@ -19,6 +19,7 @@ import { SqlEngine, LESSON_BY_KEY, stagesOf, grade, todayCode, splitClauses } fr
 import { diagnose, findFix } from '../js/diagnose.js';
 import { LESSONS } from '../js/lessons.js';
 import { cqQuiz, CQ_SETS, BLANK } from '../js/clauses.js';
+import { mixSteps, mixProblems, MIX_RANGES, MIX_FORMATS, MIX_COUNTS, BASIC_BY_KEY } from '../js/basics.js';
 import { usedKeys, ANALYSIS_KEY, ANALYSIS_LANGS } from './build-i18n.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -584,6 +585,27 @@ console.log('12. Clause quiz (句ごとの基礎クイズ)');
     for (const c of [...q.choices, q.shown || {}]) if (c.tx && !(c.tx in en)) err(`clause quiz: missing text ${c.tx}`);
   }
   console.log(`   ${made} questions made`);
+}
+console.log('13. Shape mix (型ミックス)');
+{
+  let made = 0;
+  for (const r of MIX_RANGES) for (const f of MIX_FORMATS) for (let i = 0; i < 3; i++) {
+    const steps = mixSteps(r, st => st.core), ps = mixProblems(eng, steps, f, 20, () => 1, `chk${r}${f}${i}`);
+    if (ps.length !== 20) err(`shape mix ${r}/${f}: ${ps.length} of 20 problems`);
+    if (new Set(ps.map(p => p.id)).size !== ps.length) err(`shape mix ${r}/${f}: the same id twice`);
+    ps.forEach((p, j) => { if (!steps.includes(p.basic)) err(`shape mix ${r}: ${p.basic} is outside the range`); if (j && steps.length > 1 && ps[j - 1].basic === p.basic && j % steps.length === 0) warn(`shape mix ${r}: ${p.basic} twice in a row`);
+      const st = BASIC_BY_KEY[p.basic]; if (f !== 'auto' && st.formats.includes(f) && st.formats[p.bf] !== f) err(`shape mix ${r}/${f}: ${p.basic} came as ${st.formats[p.bf]}`); });
+    made += ps.length;
+  }
+  const { shapeSlots, slotProblems, SHAPE_KINDS, SHAPE_COUNTS } = await import('../js/quick.js');   // the shape mix as a quick test / assignment
+  const core = mixSteps('core', () => true), all = mixSteps('all', () => true);
+  for (const shapes of [core, all, ['cols'], ['groupby', 'having']]) for (const k of SHAPE_KINDS) for (const n of SHAPE_COUNTS) {
+    const slots = shapeSlots(eng, shapes, n, k, 'chk' + n), ps = slotProblems(eng, 'chk' + n, slots, '');
+    if (ps.length !== slots.length || (slots.length < n && shapes.length > 1)) err(`shape quick test ${shapes.length} shapes / ${k} / ${n}: ${ps.length} problems`);
+    if (new Set(ps.map(p => p.sql + p.stage)).size !== ps.length) err(`shape quick test ${k}/${n}: the same problem twice`);
+    made += ps.length;
+  }
+  console.log(`   ${made} problems made`);
 }
 
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);

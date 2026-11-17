@@ -69,9 +69,16 @@ export async function getClass(classId) {
   return check(await sb.from('classes').select('*').eq('id', classId).maybeSingle());
 }
 /** the parts of the class row a student's screen follows (a light request, for when the live connection missed a change) */
+let pulseTasks = true;   // false once the database turned out to have no tasks column (schema.sql not run again yet)
 export async function classPulse(classId) {
-  const sb = await client();
-  return check(await sb.from('classes').select('name, set_code, lessons, answer_policy, timer_end, format, live_until, quick').eq('id', classId).maybeSingle());
+  const sb = await client(), cols = 'name, set_code, lessons, answer_policy, timer_end, format, live_until, quick';
+  if (pulseTasks) {
+    const r = await sb.from('classes').select(cols + ', tasks').eq('id', classId).maybeSingle();
+    if (!r.error) return r.data;
+    if (!/tasks/.test(r.error.message || '')) return check(r);
+    pulseTasks = false;
+  }
+  return check(await sb.from('classes').select(cols).eq('id', classId).maybeSingle());
 }
 export async function leaveClass(classId) {
   const sb = await client();

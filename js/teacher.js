@@ -17,7 +17,8 @@ import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
-import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape } from './quick.js';
+import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS } from './quick.js';
+import { BASIC_STEPS, BASIC_CORE, BASIC_BY_KEY } from './basics.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
 import { drawJoinLines } from './viz.js';
@@ -221,7 +222,8 @@ function quickDraft(c) {
   lessons.forEach(k => { const o = (d.per || {})[k] || { write: 1 }; per[k] = {}; KINDS.forEach(st => { per[k][st] = kindsOf(k).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +o[st] || 0)) : 0; }); });
   return { mode: d.mode === 'detail' ? 'detail' : 'simple', lessons, n: QUICK_COUNTS.includes(d.n) ? d.n : 3, kind: QUICK_PRESETS.includes(d.kind) ? d.kind : 'write', per,
     pass: Number.isInteger(d.pass) && d.pass >= 1 ? d.pass : null, limitSec: Number.isInteger(d.limitSec) && d.limitSec >= 0 && d.limitSec <= QUICK_MAX_SEC ? d.limitSec : Number.isInteger(d.limit) && d.limit >= 0 && d.limit <= 120 ? d.limit * 60 : 300,
-    goal: d.goal === 'level' ? 'level' : 'quick',   // 'level' = a level test: chosen chapters, first answer only
+    goal: d.goal === 'level' || d.goal === 'shape' ? d.goal : 'quick',   // 'level' = a level test: chosen chapters, first answer only; 'shape' = the shape mix (型ミックス)
+    shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), sk: SHAPE_KINDS.includes(d.sk) ? d.sk : 'mix', sn: SHAPE_COUNTS.includes(d.sn) ? d.sn : 5,
     lv: Array.isArray(d.lv) ? d.lv.filter(i => Number.isInteger(i) && i >= 0 && i < LV_MAX) : [0, 1, 2],
     tb,   // one table for every problem ('' = the usual mix of tables)
     limitBy: d.limitBy === 'end' ? 'end' : 'len', limitEnd: /^\d{1,2}:\d{2}$/.test(d.limitEnd || '') ? d.limitEnd : '', seed: d.seed, swaps: d.swaps || {},
@@ -259,9 +261,34 @@ const mmssOf = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${M
 /** the draft's test: one slot per problem (easy or detailed set-up), with the teacher's swaps */
 function draftSlots(d) {
   if (d.goal === 'level' && !d.fixed) return d.lv.length ? levelSlots(S.engine, d.lv, d.seed, d.tb) : [];
+  if (d.goal === 'shape') return applySwaps(S.engine, d.fixed ? d.fixed.slots : shapeSlots(S.engine, d.shapes, d.sn, d.sk, d.seed), d.swaps, d.seed, '');
   if (!d.lessons.length && !d.fixed) return [];
   const base = d.fixed ? d.fixed.slots : d.mode === 'detail' ? detailSlots(S.engine, d.per, d.lessons, d.seed, d.tb) : simpleSlots(S.engine, d.lessons, d.n, d.kind, d.seed, d.tb);
   return applySwaps(S.engine, base, d.swaps, d.seed, d.tb);
+}
+/* ---------- the basic shapes (基礎の型): names and a picker, for the shape-mix quick test and assignment ---------- */
+const shapeNameH = k => { const st = BASIC_BY_KEY[k]; return st.core ? H('bs.s.' + k) : `${LESSON_BY_KEY[st.lesson].no}. ${lessonTitleHTML(LESSON_BY_KEY[st.lesson], L())}`; };
+const shapeKindH = v => H(v === 'mix' ? 'tc.shape.k.mix' : KIND_LABEL[v]);
+const shapeCh = st => (st.core ? (st.lesson === 'select' ? 'basics' : LESSON_BY_KEY[st.lesson].ch) : st.ch);
+/** chosen shapes as chips, quick buttons (the 8 basic ones, a chapter, none) and every shape to tick; act = the action of the clicks */
+function shapePickHTML(chosen, act) {
+  const on = new Set(chosen), core = BASIC_CORE.map(x => x.key), coreOn = core.every(k => on.has(k));
+  return `<div class="fld"><span>${H('tc.shape.which')}</span>
+    <div class="q-chapters"><button class="btn btn-ghost btn-xs q-ch ${coreOn ? 'on' : ''}" data-act="${act}" data-v="@core" aria-pressed="${coreOn}">${H('bs.mix.r.core')}</button>
+      ${CHAPTERS.map(ch => { const ks = BASIC_STEPS.filter(st => shapeCh(st) === ch.key).map(st => st.key); if (!ks.length) return ''; const all = ks.every(k => on.has(k)), some = !all && ks.some(k => on.has(k));
+        return `<button class="btn btn-ghost btn-xs q-ch ${all ? 'on' : some ? 'some' : ''}" style="--cc:var(--c-${ch.key})" data-act="${act}" data-v="@${ch.key}" aria-pressed="${all}">${rubyHTML(raw('ch.' + ch.key, L()))} <span class="muted">${ks.filter(k => on.has(k)).length}/${ks.length}</span></button>`; }).join('')}
+      ${on.size ? `<button class="btn btn-ghost btn-xs" data-act="${act}" data-v="">${H('tc.quick.none')}</button>` : ''}</div>
+    ${on.size ? `<div class="q-chips">${BASIC_STEPS.filter(st => on.has(st.key)).map(st => `<button class="q-chip" style="--cc:var(--c-${shapeCh(st)})" data-act="${act}" data-v="${st.key}" title="${esc(T('tc.remove'))}">${shapeNameH(st.key)}<i>×</i></button>`).join('')}</div>` : ''}
+    <details class="q-more"><summary>${H('tc.shape.pickOne')}</summary><div class="q-lessons">${BASIC_STEPS.filter(st => !on.has(st.key)).map(st => `<button class="btn btn-ghost btn-xs" data-act="${act}" data-v="${st.key}">＋ ${shapeNameH(st.key)}</button>`).join('')}</div></details></div>`;
+}
+/** a click on the picker → the new list of shapes */
+function shapeToggle(list, v) {
+  const order = BASIC_STEPS.map(st => st.key), set = new Set(list);
+  if (!v) return [];
+  const ks = v === '@core' ? BASIC_CORE.map(x => x.key) : v[0] === '@' ? BASIC_STEPS.filter(st => shapeCh(st) === v.slice(1)).map(st => st.key) : [v];
+  const all = ks.every(k => set.has(k));
+  ks.forEach(k => (all ? set.delete(k) : set.add(k)));
+  return order.filter(k => set.has(k));
 }
 function quickHTML(c) {
   if (quickOn(c)) return quickRunHTML(c, c.quick, true);
@@ -287,15 +314,39 @@ function quickHTML(c) {
       <div class="row-btns left"><span class="muted small">${H('tc.quick.allTo')}</span>${KINDS.map(st => `<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="${st}">${H(KIND_LABEL[st])} ×1</button>`).join('')}<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="">${H('tc.quick.clear')}</button></div></div>`;
   const wanted = d.mode === 'detail' ? d.lessons.reduce((a, k) => a + KINDS.reduce((b, st) => b + d.per[k][st], 0), 0) : d.n;
   const preview = !n ? '' : `<div class="q-preview"><div class="q-preview-h"><b>${H('tc.quick.preview')} (${n})</b><button class="btn btn-ghost btn-xs" data-act="quickReshuffle">${I.shuffle}${H('tc.quick.reshuffle')}</button></div>
-      ${probs.map((p, j) => `<div class="pv-item q-pv"><div class="q-pv-h"><b>Q${j + 1}</b> <span class="tag st-${p.stage}">${stageNameH(p)}</span> <span class="muted small">Lesson ${LESSON_BY_KEY[p.lesson].no} · ${esc(themeName(p, L()))}</span>
+      ${probs.map((p, j) => `<div class="pv-item q-pv"><div class="q-pv-h"><b>Q${j + 1}</b> <span class="tag st-${p.stage}">${stageNameH(p)}</span> <span class="muted small">${p.basic ? `🧱 ${shapeNameH(p.basic)}` : `Lesson ${LESSON_BY_KEY[p.lesson].no}`} · ${esc(themeName(p, L()))}</span>
         <button class="btn btn-ghost btn-xs" data-act="quickSwap" data-k="${j}" ${nextFree(S.engine, slots, j, d.seed, d.tb) === null ? 'disabled' : ''} title="${esc(T('tc.quick.swapTip'))}">${I.repeat}${H('tc.quick.swap')}</button></div>
         <p class="prob-text">${problemHTML(p, L())}</p><details><summary class="muted small">${H('hint.answer')}</summary><pre class="sql">${highlightSQL(p.sql)}</pre></details></div>`).join('')}</div>`;
+  const passLimit = `      <div class="q-row">
+        <div class="fld"><span>${H('tc.quick.pass')}</span>${passBox}</div>
+        <div class="fld"><span>${H('tc.quick.limit')}</span>
+          <div class="q-limit">${seg('limitBy', ['len', 'end'], d.limitBy, v => H(v === 'len' ? 'tc.live.byLen' : 'tc.live.byEnd'))}
+          ${d.limitBy === 'end'
+    ? `<label class="q-min"><input type="time" data-qnum="end" value="${esc(d.limitEnd)}" aria-label="${esc(T('tc.live.byEnd'))}"></label><span class="muted small">${draftLimit(d) === null ? (d.limitEnd ? H('tc.quick.endPast') : '') : '≈ ' + esc(minText(Math.max(1, Math.round(draftLimit(d) / 60))))}</span>`
+    : `${seg('limit', QUICK_LIMITS, d.limitSec % 60 ? -1 : d.limitSec / 60, v => (v ? H('tc.timerMin', { n: v }) : H('tc.quick.noLimit')))}
+            <label class="q-min"><input type="number" min="0" max="180" inputmode="numeric" data-qnum="min" value="${Math.floor(d.limitSec / 60) || ''}" placeholder="0" aria-label="${esc(T('tc.live.minUnit'))}"><span>${H('tc.live.minUnit')}</span></label>
+            <label class="q-min"><input type="number" min="0" max="59" step="5" inputmode="numeric" data-qnum="sec" value="${d.limitSec % 60 || ''}" placeholder="0" aria-label="${esc(T('tc.quick.secUnit'))}"><span>${H('tc.quick.secUnit')}</span></label>`}</div></div>
+      </div>
+`;
   const lvMode = d.goal === 'level';
-  const goalSeg = `<div class="fld"><span>${H('tc.quick.goal')}</span>${seg('goal', ['quick', 'level'], d.goal, v => (v === 'level' ? '🎯 ' + H('lv.testTitle') : '⚡ ' + H('tc.quick.title')))}</div>`;
+  const goalSeg = `<div class="fld"><span>${H('tc.quick.goal')}</span>${seg('goal', ['quick', 'level', 'shape'], d.goal, v => (v === 'level' ? '🎯 ' + H('lv.testTitle') : v === 'shape' ? '🧱 ' + H('bs.mix.title') : '⚡ ' + H('tc.quick.title')))}</div>`;
   const lvPick = `<div class="fld"><span>${H('tc.quick.lvChapters')}</span><div class="q-chapters">${LV_CHAPTERS.map((k, i) => { const on = d.lv.includes(i);
       return `<button class="btn btn-ghost btn-xs q-ch ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="quickLv" data-v="${i}" aria-pressed="${on}">${i + 1}. ${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}
       <button class="btn btn-ghost btn-xs" data-act="quickLv" data-v="all">${H('tc.quick.lvAll')}</button></div>
       <p class="muted small">${H('tc.quick.lvNote')}</p></div>`;
+  if (d.goal === 'shape') return `<section class="card quick-setup">
+      <h2>🧱 ${H('bs.mix.title')}</h2><p class="muted">${H('tc.shape.sub')}</p>
+      <div class="q-startbar"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n && draftLimit(d) !== null ? '' : 'disabled'}>🧱 ${H('tc.quick.start')}</button>
+        <span class="q-sum">${n ? H('tc.quick.summary', { n, pass: pass || n, t: limitText(d) }) : H('tc.shape.pick')}${d.fixed ? ` · <b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b>` : ''}</span></div>
+      ${goalSeg}
+      ${shapePickHTML(d.shapes, 'quickShape')}
+      <div class="q-row"><div class="fld"><span>${H('tc.quick.count')}</span>${seg('sn', SHAPE_COUNTS, d.sn, v => v)}</div>
+        <div class="fld"><span>${H('tc.quick.kind')}</span>${seg('sk', SHAPE_KINDS, d.sk, shapeKindH)}</div></div>
+      ${passLimit}
+      ${preview}
+      <p class="muted small">${H('tc.quick.note')}</p>
+    </section>
+    ${quickHistoryHTML(c)}`;
   if (lvMode) return `<section class="card quick-setup">
       <h2>🎯 ${H('lv.testTitle')}</h2><p class="muted">${H('tc.quick.lvSub')}</p>
       <div class="q-startbar"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n && draftLimit(d) !== null ? '' : 'disabled'}>🎯 ${H('tc.quick.lvStart')}</button>
@@ -328,17 +379,7 @@ function quickHTML(c) {
         ${d.tb && d.lessons.some(k => !tableLessons(S.engine, d.tb).includes(k)) ? `<span class="muted small">${H('tc.quick.tableSkip', { l: d.lessons.filter(k => !tableLessons(S.engine, d.tb).includes(k)).map(k => LESSON_BY_KEY[k].no).join(', ') })}</span>` : ''}</div></div>
       <div class="fld"><span>${H('tc.quick.how')}</span>${seg('mode', ['simple', 'detail'], d.mode, v => H('tc.quick.mode.' + v))}</div>
       ${d.mode === 'detail' ? detail : simple}
-      <div class="q-row">
-        <div class="fld"><span>${H('tc.quick.pass')}</span>${passBox}</div>
-        <div class="fld"><span>${H('tc.quick.limit')}</span>
-          <div class="q-limit">${seg('limitBy', ['len', 'end'], d.limitBy, v => H(v === 'len' ? 'tc.live.byLen' : 'tc.live.byEnd'))}
-          ${d.limitBy === 'end'
-    ? `<label class="q-min"><input type="time" data-qnum="end" value="${esc(d.limitEnd)}" aria-label="${esc(T('tc.live.byEnd'))}"></label><span class="muted small">${draftLimit(d) === null ? (d.limitEnd ? H('tc.quick.endPast') : '') : '≈ ' + esc(minText(Math.max(1, Math.round(draftLimit(d) / 60))))}</span>`
-    : `${seg('limit', QUICK_LIMITS, d.limitSec % 60 ? -1 : d.limitSec / 60, v => (v ? H('tc.timerMin', { n: v }) : H('tc.quick.noLimit')))}
-            <label class="q-min"><input type="number" min="0" max="180" inputmode="numeric" data-qnum="min" value="${Math.floor(d.limitSec / 60) || ''}" placeholder="0" aria-label="${esc(T('tc.live.minUnit'))}"><span>${H('tc.live.minUnit')}</span></label>
-            <label class="q-min"><input type="number" min="0" max="59" step="5" inputmode="numeric" data-qnum="sec" value="${d.limitSec % 60 || ''}" placeholder="0" aria-label="${esc(T('tc.quick.secUnit'))}"><span>${H('tc.quick.secUnit')}</span></label>`}</div></div>
-      </div>
-      ${d.lessons.length && !d.fixed && n < wanted ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : ''}
+${passLimit}      ${d.lessons.length && !d.fixed && n < wanted ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : ''}
       ${preview}
       <p class="muted small">${H('tc.quick.note')}</p>
     </section>
@@ -347,7 +388,7 @@ function quickHTML(c) {
 /* ---------- results: each problem (how many got it, the common wrong answers) and each student ---------- */
 function quickPerQHTML(q, st, probs) {
   return `<div class="q-perq">${probs.map((p, i) => { const x = st.perQ[i] || { rate: 0, solved: 0, wrong: [] }, pct = Math.round(x.rate * 100);
-    return `<details class="q-pq"><summary><b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span><span class="muted small">Lesson ${LESSON_BY_KEY[p.lesson].no}</span>
+    return `<details class="q-pq"><summary><b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span><span class="muted small">${p.basic && BASIC_BY_KEY[p.basic] ? `🧱 ${shapeNameH(p.basic)}` : `Lesson ${LESSON_BY_KEY[p.lesson].no}`}</span>
         <span class="q-bar ${st.started && pct < 50 ? 'low' : ''}"><i style="width:${st.started ? pct : 0}%"></i></span><b class="q-pct">${st.started ? pct + '%' : '—'}</b><span class="muted small">${x.solved} / ${st.started}</span></summary>
       <p class="prob-text">${problemHTML(p, L())}</p><pre class="sql">${highlightSQL(p.sql)}</pre>
       ${x.wrong.length ? `<div class="q-wrong"><b class="small">${H('tc.quick.wrongTop')}</b>${x.wrong.map(w => `<div class="q-w"><span class="q-wn" title="${esc(T('tc.quick.wrongN', { n: w.n }))}">${w.n}</span><pre class="sql wrong">${highlightSQL(w.sql)}</pre></div>`).join('')}</div>` : ''}</details>`; }).join('')}</div>`;
@@ -540,7 +581,38 @@ function assignHTML(c) {
         const l = LESSON_BY_KEY[k];
         return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code, c.format).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span> ${problemHTML(p, L())}${answerHTML(p)}</div>`).join('')}</details>`;
       }).join('') || `<p class="muted">${H('tc.noLessons')}</p>`}</div></div>
-  </form>`;
+  </form>
+  ${taskHTML(c)}`;
+}
+/* ---------- the shape mix as an assignment (型ミックスの課題): in the class row, tasks.mix ----------
+ * tasks = { mix: { id, shapes, kind, n, seed, at } } — every student gets the same problems
+ * (shapeSlots with the seed); answers come in as problem_id task:<id>:<n>. */
+const TDRAFT = 'sqln.taskDraft';
+const redrawTask = () => { const el = document.querySelector('.task-card'); if (el && S.klass) el.outerHTML = taskHTML(S.klass); };
+const isTaskRow = a => /^task:/.test(a.problem_id || '');
+const tasksInDb = c => Object.prototype.hasOwnProperty.call(c, 'tasks');
+function taskDraft() { const d = Store.get(TDRAFT, null) || {}; return { shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), kind: SHAPE_KINDS.includes(d.kind) ? d.kind : 'mix', n: SHAPE_COUNTS.includes(d.n) ? d.n : 10 }; }
+/** each student's result: { m, ok (problems solved), tried, last } */
+function taskRows(t) {
+  const pre = `task:${t.id}:`, rows = (S.tAtt || []).filter(a => a.problem_id.startsWith(pre));
+  return S.members.map(m => { const mine = rows.filter(a => a.user_id === m.user_id), ok = new Set(mine.filter(a => a.ok).map(a => a.problem_id)), tried = new Set(mine.map(a => a.problem_id));
+    return { m, ok: ok.size, tried: tried.size, last: mine.length ? mine[mine.length - 1].created_at : null }; }).sort((a, b) => b.ok - a.ok || b.tried - a.tried);
+}
+function taskHTML(c) {
+  const t = c.tasks && c.tasks.mix, d = taskDraft();
+  const seg = (k, vals, cur, label) => `<div class="seg">${vals.map(v => `<button type="button" class="seg-b ${cur === v ? 'on' : ''}" data-act="taskSet" data-k="${k}" data-v="${v}" aria-pressed="${cur === v}">${label(v)}</button>`).join('')}</div>`;
+  const now = t ? `<div class="task-now"><div class="task-now-h"><b>📌 ${H('tc.task.now')}</b><span class="muted small">${fmtTime(t.at)} · ${H('tc.task.what', { n: t.n })} · ${shapeKindH(t.kind)}</span>
+      <button type="button" class="btn btn-ghost btn-xs" data-act="taskClear">${H('tc.task.clear')}</button></div>
+      <div class="q-chips">${t.shapes.filter(k => BASIC_BY_KEY[k]).map(k => `<span class="q-chip">${shapeNameH(k)}</span>`).join('')}</div>
+      <div class="q-table-wrap"><table class="q-table task-tbl"><thead><tr><th>${H('class.nickname')}</th><th>${H('tc.task.solved')}</th><th>${H('tc.task.tried')}</th><th>${H('tc.task.last')}</th></tr></thead>
+      <tbody>${taskRows(t).map(r => `<tr class="${r.ok >= t.n ? 'done' : ''}"><th>${esc(r.m.nickname)}</th><td><span class="task-bar"><i style="width:${Math.round(r.ok / t.n * 100)}%"></i></span> <b>${r.ok}</b> / ${t.n}${r.ok >= t.n ? ' ✓' : ''}</td><td>${r.tried}</td><td class="muted">${r.last ? fmtTime(r.last) : '—'}</td></tr>`).join('') || `<tr><td colspan="4" class="muted">${H('tc.task.noMembers')}</td></tr>`}</tbody></table></div></div>` : '';
+  return `<section class="card task-card"><h2>🧱 ${H('tc.task.title')}</h2><p class="muted">${H('tc.task.sub')}</p>
+    ${now}
+    ${shapePickHTML(d.shapes, 'taskShape')}
+    <div class="q-row"><div class="fld"><span>${H('tc.quick.count')}</span>${seg('n', SHAPE_COUNTS, d.n, v => v)}</div>
+      <div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', SHAPE_KINDS, d.kind, shapeKindH)}</div></div>
+    <div class="actions"><button type="button" class="btn btn-primary" data-act="taskSave" ${d.shapes.length ? '' : 'disabled'}>📌 ${H(t ? 'tc.task.replace' : 'tc.task.give')}</button><span class="muted small">${H('tc.task.note')}</span></div>
+  </section>`;
 }
 /* ---------- the class's problem format: how many problems of each kind per lesson ---------- */
 const FORMAT_PRESETS = {
@@ -1018,7 +1090,7 @@ async function load() {
 async function reloadClassData() {
   const c = S.klass;
   const [m, a, p] = await Promise.all([backend.members(c.id), backend.attempts(c.id), backend.pinStatus(c.id).catch(() => [])]);
-  S.members = m; S.attempts = a.filter(x => x.stage !== 'quick' && !isLevelRow(x)); S.qAtt = a.filter(x => x.stage === 'quick'); S.lvAtt = a.filter(isLevelRow); S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
+  S.members = m; S.attempts = a.filter(x => x.stage !== 'quick' && !isLevelRow(x) && !isTaskRow(x)); S.qAtt = a.filter(x => x.stage === 'quick'); S.tAtt = a.filter(isTaskRow); S.lvAtt = a.filter(isLevelRow); S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
 }
 /* live connection: shown in the class header; when it drops, it reconnects by itself and
  * reloads the answers so nothing sent in the meantime is missed */
@@ -1032,7 +1104,8 @@ function connHTML() {
   const k = S.conn === 'ok' ? 'ok' : S.conn === 'lost' ? 'lost' : 'connecting';
   return `<span id="conn" class="conn ${k}" title="${esc(T('tc.conn.' + k))}"><i></i>${H('tc.conn.' + k)}${k === 'lost' ? ` <button class="btn btn-ghost btn-xs" data-act="reconnect">${H('tc.conn.retry')}</button>` : ''}</span>`;
 }
-const soonRefresh = (() => { let pending = null; return () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view === 'class' && ['live', 'quick', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab(); }, 300); }; })();
+const soonRefresh = (() => { let pending = null; return () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view !== 'class') return; if (['live', 'quick', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab();
+    else if (S.route.tab === 'assign') { const el = document.querySelector('.task-card'); if (el && S.klass) el.outerHTML = taskHTML(S.klass); } }, 300); }; })();
 async function startWatch() {
   stopWatch();
   clearTimeout(retryTimer);
@@ -1040,7 +1113,7 @@ async function startWatch() {
   const id = S.klass.id, gen = ++watchGen;
   let wasLost = S.conn === 'lost';
   setConn('connecting');
-  S.unwatch = await backend.watchDashboard(id, row => { const list = row.stage === 'quick' ? (S.qAtt = S.qAtt || []) : isLevelRow(row) ? (S.lvAtt = S.lvAtt || []) : S.attempts; if (!list.some(a => a.id === row.id)) list.push(row); soonRefresh(); },
+  S.unwatch = await backend.watchDashboard(id, row => { const list = row.stage === 'quick' ? (S.qAtt = S.qAtt || []) : isTaskRow(row) ? (S.tAtt = S.tAtt || []) : isLevelRow(row) ? (S.lvAtt = S.lvAtt || []) : S.attempts; if (!list.some(a => a.id === row.id)) list.push(row); soonRefresh(); },
     async () => { try { await reloadClassData(); } catch (e) { S.members = await backend.members(id); } soonRefresh(); },   // a student who came back on another device brings their answers along
     async status => {
       if (gen !== watchGen) return;   // an old connection
@@ -1101,6 +1174,8 @@ const actions = {
   quickSet(el) {
     const d = quickDraft(S.klass), k = el.dataset.k, v = el.dataset.v;
     if (k === 'n') d.n = +v;
+    else if (k === 'sn') { d.sn = +v; d.swaps = {}; }
+    else if (k === 'sk') { d.sk = v; d.swaps = {}; }
     else if (k === 'kind') { d.kind = v; d.swaps = {}; }
     else if (k === 'mode') { d.mode = v; d.swaps = {}; }
     else if (k === 'goal') { d.goal = v; d.swaps = {}; }
@@ -1110,6 +1185,22 @@ const actions = {
     if (k === 'n' || k === 'mode') d.swaps = {};
     saveQDraft(d, k === 'pass' || k === 'limit' || k === 'limitBy'); refreshTab();
   },
+  taskShape(el) { const d = taskDraft(); d.shapes = shapeToggle(d.shapes, el.dataset.v); Store.set(TDRAFT, d); redrawTask(); },
+  taskSet(el) { const d = taskDraft(); d[el.dataset.k] = el.dataset.k === 'n' ? +el.dataset.v : el.dataset.v; Store.set(TDRAFT, d); redrawTask(); },
+  async taskSave(el) {
+    const c = S.klass, d = taskDraft(); if (!d.shapes.length) return;
+    if (c.tasks && c.tasks.mix && !confirm(T('tc.task.replaceConfirm'))) return;
+    el.disabled = true;
+    const mix = { id: randomCode(5), shapes: d.shapes, kind: d.kind, n: d.n, seed: randomCode(4), at: new Date(nowMs()).toISOString() };
+    try { S.klass = await backend.updateClass(c.id, { tasks: Object.assign({}, c.tasks || {}, { mix }) }); redrawTask(); toast(T('tc.task.given')); }
+    catch (e) { console.error(e); el.disabled = false; toast(T(tasksInDb(c) ? 'class.netError' : 'tc.task.schema')); }
+  },
+  async taskClear() {
+    const c = S.klass; if (!c.tasks || !c.tasks.mix || !confirm(T('tc.task.clearConfirm'))) return;
+    try { const tasks = Object.assign({}, c.tasks); delete tasks.mix; S.klass = await backend.updateClass(c.id, { tasks: Object.keys(tasks).length ? tasks : null }); redrawTask(); }
+    catch (e) { console.error(e); toast(T('class.netError')); }
+  },
+  quickShape(el) { const d = quickDraft(S.klass); d.shapes = shapeToggle(d.shapes, el.dataset.v); d.swaps = {}; saveQDraft(d); refreshTab(); },
   quickLv(el) {   // the chapters of a level test
     const d = quickDraft(S.klass), v = el.dataset.v;
     if (v === 'all') d.lv = d.lv.length === LV_MAX ? [] : LV_CHAPTERS.map((c, i) => i);
@@ -1152,7 +1243,7 @@ const actions = {
     const sec = draftLimit(d);
     if (sec === null) { el.disabled = false; toast(T('tc.quick.endPast')); refreshTab(); return; }
     const lvT = d.goal === 'level';
-    const q = newQuick({ seed: d.seed, tb: d.tb, slots, lv: lvT ? (d.fixed && d.fixed.lv ? d.fixed.lv : d.lv) : null, pass: !lvT && d.pass && d.pass < slots.length ? d.pass : null, limitSec: sec }, nowMs());
+    const q = newQuick({ seed: d.seed, tb: d.goal === 'shape' ? '' : d.tb, slots, lv: lvT ? (d.fixed && d.fixed.lv ? d.fixed.lv : d.lv) : null, pass: !lvT && d.pass && d.pass < slots.length ? d.pass : null, limitSec: sec }, nowMs());
     try {
       await saveQuick(q, logPut(quickLog(S.klass), q));
       d.seed = randomCode(4); d.swaps = {}; saveQDraft(d);   // the next quick test gets new problems
@@ -1185,6 +1276,14 @@ const actions = {
   },
   quickAgain(el) {   // the same shape with new problems, or the very same problems
     const q = quickLog(S.klass).find(x => x.id === el.dataset.id); if (!q || !Array.isArray(q.slots)) return;
+    if (q.slots.some(x => x.b)) {   // a shape mix: the same shapes, kinds and number
+      const d = quickDraft(S.klass), same = !!el.dataset.same, sts = [...new Set(q.slots.map(x => x.st))];
+      Object.assign(d, { goal: 'shape', shapes: BASIC_STEPS.map(st => st.key).filter(k => q.slots.some(x => x.b === k)), sn: SHAPE_COUNTS.includes(q.slots.length) ? q.slots.length : d.sn, sk: sts.length === 1 ? sts[0] : 'mix',
+        swaps: {}, pass: q.pass < q.n ? q.pass : null, limitSec: Math.min(QUICK_MAX_SEC, limitSecOf(q)), limitBy: 'len', seed: same ? q.seed : randomCode(4), fixed: same ? { seed: q.seed, slots: q.slots, at: q.at } : null });
+      saveQDraft(d, true); refreshTab(); toast(T(same ? 'tc.quick.readySame' : 'tc.quick.readyNew'));
+      const top = document.querySelector('.quick-setup'); if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     const d = quickDraft(S.klass), slots = q.slots.filter(x => LESSON_BY_KEY[x.k]), shape = slotsShape(slots), same = !!el.dataset.same;
     const order = checkLessons().map(l => l.key);
     Object.assign(d, { mode: 'detail', lessons: order.filter(k => shape.lessons.includes(k)), per: shape.per, swaps: {}, pass: q.pass < q.n ? q.pass : null,
@@ -1287,7 +1386,7 @@ const actions = {
   },
   async clearAttempts() {
     if (!confirm(T('tc.clearConfirm'))) return;
-    try { await backend.clearAttempts(S.klass.id); S.attempts = []; S.qAtt = []; S.lvAtt = []; refreshTab(); toast(T('tc.cleared')); } catch (e) { toast(T('class.netError')); }
+    try { await backend.clearAttempts(S.klass.id); S.attempts = []; S.qAtt = []; S.lvAtt = []; S.tAtt = []; refreshTab(); toast(T('tc.cleared')); } catch (e) { toast(T('class.netError')); }
   },
   async deleteClass() {
     if (prompt(T('tc.deleteConfirm', { n: S.klass.name })) !== S.klass.name) return;

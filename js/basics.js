@@ -108,3 +108,36 @@ export function stepForMistake(prob, sql, dx) {
   if (keys.has('clauseOrder')) return /\bLIMIT\b/i.test(prob.sql) ? 'limit' : /\bORDER\s+BY\b/i.test(prob.sql) ? 'order' : 'wnum';
   return null;
 }
+
+/* ---------- in the chapters: the shapes at the start of each chapter ---------- */
+export const CHAPTER_SHAPES = { basics: ['cols'], filter: ['wnum', 'wtext'], sort: ['order', 'limit'], change: ['insert', 'update', 'delete'], agg: ['groupby', 'having'], join: ['inner', 'left'] };
+
+/* ---------- the shape mix (型ミックス): only shapes, mixed up ---------- */
+export const MIX_RANGES = ['core', 'learned', 'all'];
+export const MIX_FORMATS = ['auto', 'fill', 'order1', 'write'];
+export const MIX_COUNTS = [5, 10, 20];
+/** the steps of a range; learned(step) says whether the student has learned / started it */
+export function mixSteps(range, learned) {
+  if (range === 'core') return BASIC_CORE.map(s => s.key);
+  if (range === 'all') return BASIC_STEPS.map(s => s.key);
+  const got = BASIC_STEPS.filter(s => learned(s)).map(s => s.key);
+  return got.length ? got : [BASIC_CORE[0].key];
+}
+/** the format index of a step for a mix problem: its own level (auto), or the chosen format (the nearest one the step has) */
+export function mixFormat(step, fmt, own) {
+  if (fmt === 'auto') return Math.min(own || 0, step.formats.length - 1);
+  const i = step.formats.indexOf(fmt);
+  return i >= 0 ? i : fmt === 'fill' ? 0 : step.formats.length - 1;
+}
+/** n problems from the steps, each step in turn (shuffled), never the same step twice in a row when there are several */
+export function mixProblems(engine, steps, fmt, n, levelOf, seed) {
+  const R = makeRng(`bsmix|${seed}`), out = [];
+  let bag = [];
+  for (let i = 0; out.length < n && i < n * 3; i++) {
+    if (!bag.length) { bag = R.shuffle(steps); if (out.length && bag.length > 1 && bag[0] === out[out.length - 1].basic) bag.push(bag.shift()); }
+    const key = bag.shift(), step = BASIC_BY_KEY[key];
+    const p = basicProblem(engine, key, mixFormat(step, fmt, levelOf(key)), `${seed}|${i}`);
+    if (p) out.push(Object.assign(p, { id: `bsmix:${seed}:${i}:${p.id}` }));
+  }
+  return out;
+}

@@ -1157,3 +1157,27 @@ body.pj-open { overflow: hidden; }
 .cq-fb pre.sql { margin: 4px 0 12px; }
 .cq-miss { padding: 14px 16px; margin-bottom: 10px; } .cq-miss p { margin: 4px 0; }
 .cq-ans { color: var(--ok); font-weight: 700; }
+
+/* ---------- the shapes and the quiz inside the chapters, the shape mix ---------- */
+.ch-extra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; margin: 6px 0; border-radius: 10px; background: color-mix(in srgb, var(--cc, var(--accent)) 8%, transparent); }
+.ch-x-h { font-size: .78rem; font-weight: 700; color: var(--ink-2); margin-right: 4px; }
+.ch-x { font-size: .82rem; padding: 4px 10px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
+.ch-x:hover { border-color: var(--cc, var(--accent)); }
+.ch-x.done { border-color: var(--ok); color: var(--ok); }
+.ch-x code { font-size: .78rem; }
+.bs-mixcard { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; margin: 12px 0; flex-wrap: wrap; }
+.bs-mixcard p { margin: 4px 0 0; }
+.bs-mixset { padding: 18px; display: grid; gap: 12px; }
+.mx-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mx-row .lbl { min-width: 5em; font-weight: 700; font-size: .9rem; }
+.mx-row .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.mx-row .seg button { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: .88rem; cursor: pointer; }
+.mx-row .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mx-chip { font-size: .78rem; padding: 3px 9px; border-radius: 99px; background: var(--surface-2); }
+.mx-res { list-style: none; padding: 0; display: grid; gap: 8px; }
+.mx-res li { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+.mx-res li b { flex: 1; } .mx-res li.ok { border-left: 4px solid var(--ok); } .mx-res li.ng { border-left: 4px solid var(--bad); }
+.mx-ok { color: var(--ok); font-weight: 800; }
+.bs-introtip { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; font-size: .85rem; }
+.taskcard { border-left: 4px solid var(--accent); } .taskcard.done { border-left-color: var(--ok); }

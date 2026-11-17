@@ -27,10 +27,10 @@ import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
 import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N, tableSets, tableCourse } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog, levelOf } from './level.js';
-import { BASIC_STEPS, BASIC_CORE, BASIC_DETAIL, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, nextStep, basicProblem, stepForMistake } from './basics.js';
+import { BASIC_STEPS, BASIC_CORE, BASIC_DETAIL, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, nextStep, basicProblem, stepForMistake, CHAPTER_SHAPES, MIX_RANGES, MIX_FORMATS, MIX_COUNTS, mixSteps, mixProblems } from './basics.js';
 import { levelProfile } from './quick.js';
-import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, cqQuiz, cqRecord } from './clauses.js';
-import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
+import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, cqQuiz, cqRecord } from './clauses.js';
+import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, slotProblems } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
@@ -127,6 +127,7 @@ function parseRoute() {
   if (h[0] === 'review' || h[0] === 'mix') return { view: 'session', kind: h[0] };
   if (h[0] === 'drill') return { view: 'session', kind: 'drill', key: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'level') return { view: 'session', kind: 'level', sub: h[1] === 'test' || h[1] === 'go' ? h[1] : null };
+  if (h[0] === 'basics' && h[1] === 'mix') return { view: 'session', kind: 'bsmix', go: h[2] === 'go' || h[2] === 'task', task: h[2] === 'task' };
   if (h[0] === 'basics') return { view: 'session', kind: 'basics', step: BASIC_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'table') return { view: 'session', kind: 'table', ds: h[1] || null };
   if (h[0] === 'words') return { view: 'words' };
@@ -248,6 +249,10 @@ function homeHTML() {
         const l = LESSON_BY_KEY[k], st = stateOf(l);
         return `<a class="assign-item ${st.done ? 'done' : ''}" href="#/l/${k}/0"><span class="lesson-num">${st.done ? '✓' : l.no}</span><span>${lessonTitleHTML(l, L())}</span><span class="muted">${st.count}/${st.solved.length}</span></a>`;
       }).join('')}</div></section>` : '';
+  const tk = taskOf(), tkOk = tk ? taskSolved(tk) : 0;
+  const taskCard = tk ? `<section class="card mixcard drillcard taskcard ${tkOk >= tk.n ? 'done' : ''}">
+      <div><span class="drill-ic">📌</span><div><small class="muted">${H('class.today')}</small><b>${H('task.title')} <span class="tag">${tkOk} / ${tk.n}</span></b><p class="muted">${H('task.sub', { n: tk.n })}</p></div></div>
+      <a class="btn ${tkOk >= tk.n ? 'btn-ghost' : 'btn-primary'}" href="#/basics/mix/task">${H(tkOk >= tk.n ? 'task.again' : tkOk ? 'task.continue' : 'task.start')}${I.next}</a></section>` : '';
 
   const classBox = !backend.enabled ? '' : S.klass ? '' : `<div class="joinbox">
       <b>${I.users} ${H('class.joinTitle')}</b>
@@ -277,7 +282,7 @@ function homeHTML() {
         ${S.klass ? `<div class="joinbox in"><b>${I.users} ${esc(S.klass.name)}</b><p class="muted">${H('class.you', { n: S.klass.nickname })} · ${H('set.code')} <span class="mono">${esc(S.klass.set_code)}</span></p><button class="btn btn-ghost btn-sm" data-act="classInfo">${I.gear}${H('set.title')}</button></div>` : setBoxHTML()}
       </div>
     </section>
-    ${assign}
+    ${assign}${taskCard}
     <section class="chapters">
       ${CHAPTERS.map((ch, ci) => {
         const ls = LESSONS.filter(l => l.ch === ch.key);
@@ -285,6 +290,7 @@ function homeHTML() {
           <div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div>
             <small>${H('home.chapter', { n: ci + 1 })}</small>
             <h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2><p>${rubyHTML(raw('ch.' + ch.key + '.desc', L()))}</p></div></div>
+          ${chShapesHTML(ch.key)}
           <ul class="lesson-list">${ls.map(l => {
             const st = stateOf(l);
             return `<li><a class="lesson-link ${st.done ? 'done' : ''}" href="#/l/${l.key}/0">
@@ -292,12 +298,12 @@ function homeHTML() {
               <span class="lesson-name">${lessonTitleHTML(l, L())}</span>
               <span class="dots" aria-label="${st.count}/${st.solved.length}">${problemsOf(l).map((p, i) => `<i class="${p.stage === 'demo' ? 'demo ' : ''}${st.solved[i] ? 'on' : ''}"></i>`).join('')}</span>
             </a></li>`;
-          }).join('')}</ul></article>`;
+          }).join('')}</ul>${chQuizHTML(ch.key)}</article>`;
       }).join('')}
     </section>
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_CORE.filter(x => bsState(x.key).clear).length} / ${BASIC_CORE.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/basics">${H('bs.open')}</a>
+      <span class="row-btns"><a class="btn btn-ghost" href="#/basics/mix">🔀 ${H('bs.mix.title')}</a><a class="btn btn-ghost" href="#/basics">${H('bs.open')}</a></span>
     </section>
     <section class="card mixcard drillcard cqcard">
       <div><span class="drill-ic">🧩</span><div><b>${H('cq.title')} <span class="tag">${CQ_SETS.filter(k => cqRec(k).best === CQ_N).length} / ${CQ_SETS.length}</span></b><p class="muted">${H('cq.homeSub')}</p></div></div>
@@ -420,6 +426,7 @@ function sessionHTML() {
   if (kind === 'table') return oneTableHTML();
   if (kind === 'level') return levelHTML();
   if (kind === 'basics') return basicsHTML();
+  if (kind === 'bsmix') return bsMixHTML();
   if (!S.session || S.session.kind !== kind || (kind === 'drill' && S.session.key !== S.route.key)) startSession(kind);
   const ses = S.session;
   document.title = `${T(kind === 'review' ? 'nav.review' : kind === 'drill' ? 'drill.title' : 'mix.title')} · SQL Practice`;
@@ -545,6 +552,7 @@ const bsNeed = (st, step) => (st.clear ? H('bs.cleared') : st.f < step.formats.l
 function basicsHubHTML() {
   const next = nextStep(S.progress.basics), done = BASIC_CORE.filter(s => bsState(s.key).clear).length;
   return `<main class="wrap narrow bs-hub"><h1 class="page-title">🧱 ${H('bs.title')}</h1><p class="muted">${H('bs.sub')}</p>
+    <div class="card bs-mixcard"><div><b>🔀 ${H('bs.mix.title')}</b><p class="muted small">${H('bs.mix.sub')}</p></div><a class="btn btn-primary" href="#/basics/mix">${H('bs.mix.open')}${I.next}</a></div>
     <p class="cq-link"><a class="btn btn-ghost btn-sm" href="#/clauses">🧩 ${H('cq.title')}${I.next}</a></p>
     <div class="card bs-top"><b>${done} / ${BASIC_CORE.length}</b><span class="muted small">${H('bs.mastered')}</span><div class="bar"><i style="width:${Math.round(done / BASIC_CORE.length * 100)}%"></i></div>
       <a class="btn btn-primary" href="#/basics/${next}">${H('bs.go')}${I.next}</a></div>
@@ -565,29 +573,113 @@ function basicsHTML() {
   document.title = `${T('bs.title')} · SQL Practice`;
   const key = S.route.step;
   if (!key) { if (S.session && S.session.kind === 'basics') S.session = null; return basicsHubHTML(); }
-  if (!S.session || S.session.kind !== 'basics' || S.session.step !== key) S.session = { kind: 'basics', step: key, items: [], i: 0, done: {}, seed: randomCode(5) };
+  if (!S.session || S.session.kind !== 'basics' || S.session.step !== key) {
+    S.session = { kind: 'basics', step: key, items: [], i: 0, done: {}, seed: randomCode(5), intro: 0 };
+    const l = LESSON_BY_KEY[BASIC_BY_KEY[key].lesson];
+    if (!bsState(key).n && l.demo) {   // never practised: the lesson's example first (見本), then the drill
+      const d = S.engine.demoProblem(l); if (d) { S.session.items.push(Object.assign({}, d, { id: `bsintro:${key}`, bsIntro: true })); S.session.intro = 1; }
+    }
+  }
   const ses = S.session, step = BASIC_BY_KEY[key];
-  if (ses.i >= ses.items.length && ses.items.length < BASIC_ROUND) {   // the next problem, in the format the step has reached now
+  if (ses.i >= ses.items.length && ses.items.length < BASIC_ROUND + ses.intro) {   // the next problem, in the format the step has reached now
     const p = basicProblem(S.engine, key, bsState(key).f, `${ses.seed}|${ses.items.length}`); if (p) ses.items.push(p);
   }
   if (ses.i >= ses.items.length) {
-    const ok = Object.values(ses.done).filter(Boolean).length, x = bsState(key), nk = nextStep(S.progress.basics);
+    const ok = ses.items.filter(p => !p.bsIntro && ses.done[p.id]).length, x = bsState(key), nk = nextStep(S.progress.basics);
     return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${x.clear ? '🎉' : '🧱'}</div><h1>${H(x.clear ? 'bs.cleared' : 'review.finished')}</h1>
-      <p class="muted">${bsName(key)}</p><p class="big-score">${ok} / ${ses.items.length}</p>${bsLadderHTML(x, step)}<p class="muted small">${bsNeed(x, step)}</p>
+      <p class="muted">${bsName(key)}</p><p class="big-score">${ok} / ${ses.items.length - ses.intro}</p>${bsLadderHTML(x, step)}<p class="muted small">${bsNeed(x, step)}</p>
       <div class="row-btns"><button class="btn ${x.clear && nk !== key ? 'btn-ghost' : 'btn-primary'}" data-act="bsMore">${I.repeat}${H('rv.more', { n: BASIC_ROUND })}</button>
         ${x.clear && nk !== key ? `<a class="btn btn-primary" href="#/basics/${nk}">${H('bs.nextStep')}${I.next}</a>` : ''}<a class="btn btn-ghost" href="#/basics">${H('bs.title')}</a></div></section></main>`;
   }
   const prob = ses.items[ses.i], x = bsState(key);
   return `<main class="wrap">
     <div class="session-head"><h1>🧱 ${bsName(key)}</h1>
-      <div class="session-progress"><span>${ses.i + 1} / ${BASIC_ROUND}</span><div class="bar"><i style="width:${Math.round(ses.i / BASIC_ROUND * 100)}%"></i></div></div></div>
+      <div class="session-progress"><span>${prob.bsIntro ? H('bs.intro') : `${ses.i + 1 - ses.intro} / ${BASIC_ROUND}`}</span><div class="bar"><i style="width:${Math.round(Math.max(0, ses.i - ses.intro) / BASIC_ROUND * 100)}%"></i></div></div></div>
     <div class="session-layout">
       <aside class="card side-card bs-side"><div class="chap">${H('bs.title')}</div><h2>${H('bs.shape')}</h2>${shapeHTML(step.shape)}
+        ${prob.bsIntro ? `<p class="bs-introtip">${H('bs.introSub')}</p><p class="small">${bi(`L.${step.lesson}.point`)}</p>` : ''}
         ${bsLadderHTML(x, step)}<p class="muted small">${bsNeed(x, step)}</p><a class="btn btn-ghost btn-xs" href="#/basics">${H('bs.allSteps')}</a></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
 }
+/* ---------- in each chapter: the shapes first, the clause quiz last ---------- */
+function chShapesHTML(ch) {
+  const ks = (CHAPTER_SHAPES[ch] || []).filter(k => BASIC_BY_KEY[k]); if (!ks.length) return '';
+  return `<div class="ch-extra ch-first"><span class="ch-x-h">🧱 ${H('bs.chFirst')}</span>${ks.map(k => { const x = bsState(k);
+    return `<a class="ch-x ${x.clear ? 'done' : ''}" href="#/basics/${k}">${x.clear ? '✓ ' : ''}${bsName(k)}</a>`; }).join('')}</div>`;
+}
+function chQuizHTML(ch) {
+  const ks = CHAPTER_QUIZ[ch] || []; if (!ks.length) return '';
+  return `<div class="ch-extra ch-last"><span class="ch-x-h">🧩 ${H('cq.chLast')}</span>${ks.map(k => { const x = cqRec(k);
+    return `<a class="ch-x ${x.best === CQ_N ? 'done' : ''}" href="#/clauses/${k}">${x.best === CQ_N ? '✓ ' : ''}${cqName(k)}${x.n ? ` <small class="muted">${x.best}/${CQ_N}</small>` : ''}</a>`; }).join('')}</div>`;
+}
+
+/* ---------- the shape mix (型ミックス): #/basics/mix = settings, #/basics/mix/go = solving ---------- */
+const MIX_KEY = 'sqln.bsMix';
+function mixConfig() { const c = Store.get(MIX_KEY, null) || {}; return { range: MIX_RANGES.includes(c.range) ? c.range : 'learned', fmt: MIX_FORMATS.includes(c.fmt) ? c.fmt : 'auto', n: MIX_COUNTS.includes(c.n) ? c.n : 10 }; }
+const mixLearned = st => bsState(st.key).n > 0 || stateOf(LESSON_BY_KEY[st.lesson]).done;
+const mixFmtName = f => H(f === 'auto' ? 'bs.mix.f.auto' : f === 'fill' ? 'stage.fill' : f === 'order1' ? 'stage.order' : 'rv.write');
+function bsMixSetupHTML() {
+  const c = mixConfig(), seg = (k, vals, name) => `<div class="seg">${vals.map(v => `<button class="${c[k] === v ? 'on' : ''}" data-act="mixSet" data-k="${k}" data-v="${v}">${name(v)}</button>`).join('')}</div>`;
+  const steps = mixSteps(c.range, mixLearned);
+  return `<main class="wrap narrow bs-hub"><h1 class="page-title">🔀 ${H('bs.mix.title')}</h1><p class="muted">${H('bs.mix.sub')}</p>
+    <section class="card bs-mixset">
+      <div class="mx-row"><span class="lbl">${H('bs.mix.range')}</span>${seg('range', MIX_RANGES, v => H('bs.mix.r.' + v))}</div>
+      <div class="mx-row"><span class="lbl">${H('bs.mix.fmt')}</span>${seg('fmt', MIX_FORMATS, mixFmtName)}</div>
+      <div class="mx-row"><span class="lbl">${H('bs.mix.count')}</span>${seg('n', MIX_COUNTS, v => H('bs.mix.n', { n: v }))}</div>
+      <p class="muted small">${H('bs.mix.steps', { n: steps.length })}</p>
+      <div class="mx-chips">${steps.map(k => `<span class="mx-chip">${bsName(k)}</span>`).join('')}</div>
+      ${c.range === 'learned' && !BASIC_STEPS.some(mixLearned) ? `<p class="muted small">${H('bs.mix.none')}</p>` : ''}
+      <p class="muted small">${H('bs.mix.counts')}</p>
+      <div class="row-btns"><a class="btn btn-primary" href="#/basics/mix/go">${H('bs.mix.start')}${I.next}</a><a class="btn btn-ghost" href="#/basics">${H('bs.title')}</a></div>
+    </section></main>`;
+}
+/* the teacher's assignment of the shape mix (課題): tasks.mix on the class row; everyone gets the same problems */
+const taskOf = () => (S.klass && S.klass.tasks && S.klass.tasks.mix && Array.isArray(S.klass.tasks.mix.shapes) ? S.klass.tasks.mix : null);
+const taskSolved = t => ((S.progress.tasks || {})[t.id] || []).length;
+function taskMark(id, n) { S.progress.tasks = S.progress.tasks || {}; const l = S.progress.tasks[id] = S.progress.tasks[id] || []; if (!l.includes(n)) l.push(n); }
+function taskProblems(t) {
+  return slotProblems(S.engine, t.seed, shapeSlots(S.engine, t.shapes, t.n, t.kind, t.seed), '')
+    .map((p, i) => Object.assign({}, p, { id: `task:${t.id}:${i}`, test: false, quick: undefined, tn: i }));
+}
+function bsMixHTML() {
+  document.title = `${T(S.route.task ? 'task.title' : 'bs.mix.title')} · SQL Practice`;
+  if (!S.route.go) { if (S.session && S.session.kind === 'bsmix') S.session = null; return bsMixSetupHTML(); }
+  const tk = S.route.task ? taskOf() : null;
+  if (S.route.task && !tk) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">📌</div><h1>${H('task.none')}</h1><a class="btn btn-primary" href="#/">${H('nav.home')}</a></section></main>`;
+  if (!S.session || S.session.kind !== 'bsmix' || (S.session.task || null) !== (tk ? tk.id : null)) {
+    if (tk) {   // the assignment: the problems not solved yet first, then the solved ones
+      const done = new Set((S.progress.tasks || {})[tk.id] || []), all = taskProblems(tk);
+      S.session = { kind: 'bsmix', task: tk.id, items: [...all.filter(p => !done.has(p.tn)), ...all.filter(p => done.has(p.tn))], i: 0, done: {} };
+    } else {
+      const c = mixConfig(), seed = randomCode(6);
+      S.session = { kind: 'bsmix', items: mixProblems(S.engine, mixSteps(c.range, mixLearned), c.fmt, c.n, k => bsState(k).f, seed), i: 0, done: {} };
+    }
+  }
+  const ses = S.session, n = ses.items.length;
+  if (ses.i >= n) {
+    const ok = ses.items.filter(p => ses.done[p.id]).length, by = {};
+    ses.items.forEach(p => { const b = by[p.basic] = by[p.basic] || { n: 0, ok: 0 }; b.n++; if (ses.done[p.id]) b.ok++; });
+    const weak = Object.keys(by).filter(k => by[k].ok < by[k].n);
+    return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${ok === n ? '🎉' : '🔀'}</div><h1>${H('review.finished')}</h1>
+      <p class="muted">${H(ses.task ? 'task.title' : 'bs.mix.title')}</p><p class="big-score">${ok} / ${n}</p>${ses.task && tk ? `<p class="muted small">${H('task.total', { n: taskSolved(tk), m: tk.n })}</p>` : ''}
+      <div class="row-btns"><button class="btn btn-primary" data-act="mixAgain">${I.repeat}${H('cq.again')}</button>${ses.task ? `<a class="btn btn-ghost" href="#/">${H('nav.home')}</a>` : `<a class="btn btn-ghost" href="#/basics/mix">${H('bs.mix.settings')}</a>`}<a class="btn btn-ghost" href="#/basics">${H('bs.title')}</a></div></section>
+      <h2 class="bs-h2">${H('bs.mix.result')}</h2>
+      <ul class="mx-res">${Object.keys(by).map(k => `<li class="card ${by[k].ok === by[k].n ? 'ok' : 'ng'}"><b>${bsName(k)}</b><span>${by[k].ok} / ${by[k].n}</span>${by[k].ok < by[k].n ? `<a class="btn btn-ghost btn-sm" href="#/basics/${k}">${H('cq.toBasics')}${I.next}</a>` : '<span class="mx-ok">✓</span>'}</li>`).join('')}</ul>
+      ${weak.length ? '' : `<p class="muted small center">${H('cq.perfect')}</p>`}</main>`;
+  }
+  const prob = ses.items[ses.i], step = BASIC_BY_KEY[prob.basic];
+  return `<main class="wrap">
+    <div class="session-head"><h1>${ses.task ? `📌 ${H('task.title')}` : `🔀 ${H('bs.mix.title')}`}</h1>
+      <div class="session-progress"><span>${ses.i + 1} / ${n}</span><div class="bar"><i style="width:${Math.round(ses.i / n * 100)}%"></i></div></div></div>
+    <div class="session-layout">
+      <aside class="card side-card bs-side"><div class="chap">${bsName(prob.basic)}</div><h2>${H('bs.shape')}</h2>${shapeHTML(step.shape)}${ses.task ? '' : `<a class="btn btn-ghost btn-xs" href="#/basics/mix">${H('bs.mix.settings')}</a>`}</aside>
+      <div class="main" id="ws">${workspaceHTML(prob)}</div>
+    </div>
+  </main>`;
+}
+
 /* ---------- the clause quiz (句ごとの基礎クイズ): #/clauses = the list, #/clauses/<clause|all> = a quiz ---------- */
 const cqRec = k => Object.assign({ n: 0, best: 0, last: 0 }, (S.progress.cq || {})[k]);
 const CQ_LABEL = ['A', 'B', 'C', 'D'];
@@ -1577,8 +1669,10 @@ function record(prob, ok, run, sql) {
       }
       bumpStreak(S.progress);
     } else S.progress.wrong[prob.id] = (S.progress.wrong[prob.id] || 0) + 1;
+    if (ok && /^task:/.test(prob.id) && Number.isInteger(prob.tn)) taskMark(prob.id.split(':')[1], prob.tn);   // the assignment: solved (also on a second try)
     if (S.route.view === 'session' && S.session && S.session.done[prob.id] === undefined) {
       S.session.done[prob.id] = ok;
+      if (S.session.kind === 'bsmix' && prob.basic && prob.bf === Math.min(bsState(prob.basic).f, BASIC_BY_KEY[prob.basic].formats.length - 1)) { S.progress.basics = S.progress.basics || {}; S.progress.basics[prob.basic] = basicResult(S.progress.basics[prob.basic], ok, BASIC_BY_KEY[prob.basic].formats.length - 1); }
       if (S.session.kind === 'basics' && prob.basic) { S.progress.basics = S.progress.basics || {}; S.progress.basics[prob.basic] = basicResult(S.progress.basics[prob.basic], ok, BASIC_BY_KEY[prob.basic].formats.length - 1); }
       if (S.session.kind === 'review' && prob.pat) {   // only this pattern moves: up a step (or a longer gap), or down a step
         S.progress.pat = S.progress.pat || {};
@@ -1733,6 +1827,8 @@ const actions = {
   },
   cqNext() { if (S.cq) { S.cq.i++; render(); window.scrollTo(0, 0); } },
   cqAgain() { S.cq = null; render(); window.scrollTo(0, 0); },
+  mixSet(el) { const c = mixConfig(), k = el.dataset.k; c[k] = k === 'n' ? +el.dataset.v : el.dataset.v; Store.set(MIX_KEY, c); render(); },
+  mixAgain() { S.session = null; render(); window.scrollTo(0, 0); },
   levelMore() { S.session = null; render(); window.scrollTo(0, 0); },
   sessionNext() {
     const ses = S.session;
@@ -1941,7 +2037,7 @@ async function doJoin(f) {
       c = await backend.resumeMember(code, nick, pin); resumed = true; S.pinNeeded = false;   // the same student on another device
     }
     Store.set('sqln.nick', nick);
-    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null, live_until: c.live_until || null, quick: c.quick || null };
+    S.klass = { id: c.id, code: c.code, name: c.name, nickname: nick, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, format: c.format || null, live_until: c.live_until || null, quick: c.quick || null, tasks: c.tasks || null };
     Store.set(KEYS.klass, S.klass);
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
     closeModal(); await restoreFromServer(); watchKlass(); render(); toast(resumed ? T('pin.resumed', { n: c.name }) : T('class.joined', { n: c.name }));
@@ -1976,6 +2072,8 @@ async function restoreFromServer() {
   let changed = false;
   const q = S.klass.quick, qpre = q && q.id ? `quick:${q.id}:` : null;
   rows.filter(a => a.ok && qpre && a.problem_id.startsWith(qpre)).forEach(a => { if (qMark(+a.problem_id.slice(qpre.length))) changed = true; });
+  const tk = taskOf(), tpre = tk ? `task:${tk.id}:` : null;   // the shape-mix assignment solved on another device
+  rows.filter(a => a.ok && tpre && a.problem_id.startsWith(tpre)).forEach(a => { const n = +a.problem_id.slice(tpre.length), had = taskSolved(tk); taskMark(tk.id, n); if (taskSolved(tk) !== had) changed = true; });
   const mine = new Set(assignedSeq().map(p => p.id));   // this class's problems now: solved in this class counts for the assignment
   if (!lvState()) {   // the level from another device (the latest row the student's pages wrote)
     const x = [...levelsFromLog(rows).values()][0];
@@ -2041,7 +2139,9 @@ async function pulseClass() {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) pulseClass(); });
 setInterval(pulseClass, 5000);   // every 5 seconds while the page is in front: a start is never missed for long
 function applyClassRow(c, live) {
-  const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format);
+  const taskId = k => (k && k.tasks && k.tasks.mix ? k.tasks.mix.id : null), hasTasks = Object.prototype.hasOwnProperty.call(c, 'tasks');
+  const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format) || (hasTasks && taskId(c) !== taskId(S.klass));
+  if (hasTasks) S.klass.tasks = c.tasks || null;   // the teacher's assignment of the shape mix (an older database has no such column)
   Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null, live_until: c.live_until || null, quick: c.quick || null });
   quickChanged(live);
   tickTimer();

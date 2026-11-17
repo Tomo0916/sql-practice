@@ -11,6 +11,8 @@ const { SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES } = await
 /** keys every language must have now include the data-analysis course (kept so check.mjs can list them separately) */
 export const ANALYSIS_KEY = /^(L\.an_|ch\.analysis|ph\.(width|mean|sd)$|step\.(sub|case|month|window|mean|dev|coalesce|clean)$|an\.)/;
 export const ANALYSIS_LANGS = ['en', 'ja', 'easy', 'fr', 'id', 'vi', 'zh', 'ne', 'bn', 'my', 'si'];
+// the shape mix: names of ranges and formats
+const MIX_KEYS = ['bs.mix.r.core', 'bs.mix.r.learned', 'bs.mix.r.all', 'bs.mix.f.auto', 'task.again', 'task.continue', 'task.start', 'tc.task.replace', 'tc.task.give', 'tc.task.schema', 'class.netError'];
 export function usedKeys() {
   const keys = new Set();
   for (const f of fs.readdirSync(path.join(root, 'js'))) {
@@ -32,6 +34,7 @@ export function usedKeys() {
   // the clause quiz (clauses.js): roles, tips, questions and the texts of the choices
   ['select', 'from', 'where', 'order', 'limit', 'group', 'having'].forEach(k => { keys.add('cq.role.' + k); keys.add('cq.tip.' + k); });
   keys.add('cq.tip.seq');
+  MIX_KEYS.forEach(k => keys.add(k));
   ['role', 'which', 'blank', 'right', 'cols', 'table', 'rows', 'sort', 'get', 'groups', 'seq'].forEach(k => keys.add('cq.ask.' + k));
   ['all', 'desc', 'asc', 'top', 'bottom', 'nth', 'skip', 'countBy', 'countAll', 'sumBy', 'sumAll', 'hge', 'hgt', 'hle', 'hlt', 'rows'].forEach(k => keys.add('cq.r.' + k));
   ['stat', 'excel', 'python', 'csv', 'toolsTip', 'mean', 'median', 'k.id', 'k.quant', 'k.qual', 'k.date', 'g.copy', 'g.notebook', 'g.answer', 'g.sqlNote', 'beyond'].forEach(k => keys.add('an.' + k));
