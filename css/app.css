@@ -1125,3 +1125,35 @@ body.pj-open { overflow: hidden; }
 .bs-ch[open] > summary { border-bottom: 1px solid var(--line); margin-bottom: 10px; }
 .bs-ch .bs-steps { margin-bottom: 12px; }
 .bs-slot.cond { color: #1f8f6a; } .bs-slot.expr { color: #b0457a; }
+
+/* ---------- the clause quiz (句ごとの基礎クイズ) ---------- */
+.cq-link { margin: 6px 0 14px; }
+.cq-list { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 10px; }
+.cq-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+.cq-item.ok .bs-no { background: var(--ok); color: #fff; }
+.cq-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cq-ex { font-size: .8rem; white-space: pre-wrap; word-break: break-word; color: var(--ink-2); }
+.cq-go { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; text-align: right; }
+.cq-kw { font-weight: 800; letter-spacing: .02em; color: var(--accent); font-variant-ligatures: none; }
+.cq-q { padding: 20px; }
+.cq-tag { margin-bottom: 6px; font-size: .85rem; }
+.cq-ask { font-size: 1.15rem; margin: 0 0 12px; line-height: 1.5; }
+.cq-shown { font-size: 1.05rem; padding: 10px 14px; border-left: 4px solid var(--accent); background: var(--surface-2); border-radius: 8px; margin: 0 0 12px; }
+.cq-code { font-size: 1rem; margin: 0 0 14px; white-space: pre-wrap; word-break: break-word; }
+.cq-blank { display: inline-block; min-width: 3.2em; text-align: center; border-bottom: 3px solid var(--accent); color: var(--accent); font-weight: 800; margin: 0 2px; }
+.cq-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 10px; }
+.cq-choices.wide { grid-template-columns: 1fr; }
+.cq-choice { display: flex; align-items: center; gap: 10px; text-align: left; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; min-height: 52px; }
+.cq-choice:hover:not([disabled]) { border-color: var(--accent); }
+.cq-choice code { font-variant-ligatures: none; white-space: pre-wrap; word-break: break-word; }
+.cq-choice .cq-l { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-size: .8rem; }
+.cq-choice.ok { border-color: var(--ok); background: var(--ok-soft); } .cq-choice.ok .cq-l { background: var(--ok); color: #fff; }
+.cq-choice.bad { border-color: var(--bad); background: var(--bad-soft); } .cq-choice.bad .cq-l { background: var(--bad); color: #fff; }
+.cq-choice.dim { opacity: .55; } .cq-choice[disabled] { cursor: default; }
+.cq-fb { margin-top: 14px; padding: 14px 16px; border-radius: 12px; }
+.cq-fb.ok { background: var(--ok-soft); } .cq-fb.ok > b { color: var(--ok); }
+.cq-fb.bad { background: var(--bad-soft); } .cq-fb.bad > b { color: var(--bad); }
+.cq-fb > b { font-size: 1.1rem; } .cq-fb p { margin: 6px 0 10px; line-height: 1.6; }
+.cq-fb pre.sql { margin: 4px 0 12px; }
+.cq-miss { padding: 14px 16px; margin-bottom: 10px; } .cq-miss p { margin: 4px 0; }
+.cq-ans { color: var(--ok); font-weight: 700; }

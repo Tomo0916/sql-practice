@@ -29,6 +29,7 @@ import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonL
 import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog, levelOf } from './level.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_DETAIL, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, nextStep, basicProblem, stepForMistake } from './basics.js';
 import { levelProfile } from './quick.js';
+import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, cqQuiz, cqRecord } from './clauses.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
@@ -131,6 +132,7 @@ function parseRoute() {
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
   if (h[0] === 'mastery') return { view: 'mastery' };
+  if (h[0] === 'clauses') return { view: 'clauses', set: CQ_SETS.includes(h[1]) ? h[1] : null };
   if (h[0] === 'tables') return { view: 'tables' };
   if (h[0] === 'check') return { view: 'session', kind: 'check', code: h.slice(1).join('/') || null };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
@@ -199,6 +201,7 @@ function render() {
   else if (r.view === 'quick') body = quickViewHTML();
   else if (r.view === 'solved') body = solvedHTML();
   else if (r.view === 'mastery') body = masteryHTML();
+  else if (r.view === 'clauses') body = clausesHTML();
   else if (r.view === 'lecture') body = lectureHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
@@ -295,6 +298,10 @@ function homeHTML() {
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_CORE.filter(x => bsState(x.key).clear).length} / ${BASIC_CORE.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/basics">${H('bs.open')}</a>
+    </section>
+    <section class="card mixcard drillcard cqcard">
+      <div><span class="drill-ic">🧩</span><div><b>${H('cq.title')} <span class="tag">${CQ_SETS.filter(k => cqRec(k).best === CQ_N).length} / ${CQ_SETS.length}</span></b><p class="muted">${H('cq.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/clauses">${H('cq.open')}</a>
     </section>
     <section class="card mixcard drillcard lvcard">
       <div><span class="drill-ic">🎯</span><div><b>${H('lv.title')}${lvState() ? ` <span class="tag">Lv.${lvState().lv}</span>` : ''}</b><p class="muted">${H('lv.homeSub')}</p></div></div>
@@ -538,6 +545,7 @@ const bsNeed = (st, step) => (st.clear ? H('bs.cleared') : st.f < step.formats.l
 function basicsHubHTML() {
   const next = nextStep(S.progress.basics), done = BASIC_CORE.filter(s => bsState(s.key).clear).length;
   return `<main class="wrap narrow bs-hub"><h1 class="page-title">🧱 ${H('bs.title')}</h1><p class="muted">${H('bs.sub')}</p>
+    <p class="cq-link"><a class="btn btn-ghost btn-sm" href="#/clauses">🧩 ${H('cq.title')}${I.next}</a></p>
     <div class="card bs-top"><b>${done} / ${BASIC_CORE.length}</b><span class="muted small">${H('bs.mastered')}</span><div class="bar"><i style="width:${Math.round(done / BASIC_CORE.length * 100)}%"></i></div>
       <a class="btn btn-primary" href="#/basics/${next}">${H('bs.go')}${I.next}</a></div>
     <ol class="bs-steps">${BASIC_CORE.map((st, i) => { const x = bsState(st.key), head = i === 0 ? 'bs.groupSelect' : st.key === 'insert' ? 'bs.groupChange' : null;
@@ -579,6 +587,58 @@ function basicsHTML() {
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
+}
+/* ---------- the clause quiz (句ごとの基礎クイズ): #/clauses = the list, #/clauses/<clause|all> = a quiz ---------- */
+const cqRec = k => Object.assign({ n: 0, best: 0, last: 0 }, (S.progress.cq || {})[k]);
+const CQ_LABEL = ['A', 'B', 'C', 'D'];
+/** a choice / a text of a question in the current language (values as code) */
+function cqText(c) {
+  if (c.kw) return `<code class="cq-kw">${esc(c.kw)}</code>`;
+  if (c.sql) return `<code class="cq-sql">${highlightSQL(c.sql)}</code>`;
+  if (c.code) return `<code>${esc(c.code)}</code>`;
+  const inner = th(c.tx, L(), c.v && Object.fromEntries(Object.entries(c.v).map(([a, b]) => [a, `<code>${esc(b)}</code>`])));
+  return `<span class="tx">${c.wrap ? th(c.wrap, L(), { cond: inner }) : inner}</span>`;
+}
+const cqSqlHTML = sql => `<pre class="sql cq-code">${sql.split(BLANK).map(highlightSQL).join('<span class="cq-blank">?</span>')}</pre>`;
+const cqName = k => (k === 'all' ? H('cq.all') : `<code class="cq-kw">${KW[k]}</code>`);
+function clausesHubHTML() {
+  return `<main class="wrap narrow cq-hub"><h1 class="page-title">🧩 ${H('cq.title')}</h1><p class="muted">${H('cq.sub', { n: CQ_N })}</p>
+    <ol class="cq-list">${CQ_SETS.map((k, i) => { const x = cqRec(k), full = x.best === CQ_N;
+      return `<li class="card cq-item ${full ? 'ok' : ''}"><div class="bs-no">${full ? '✓' : i + 1}</div>
+        <div class="cq-body"><b>${cqName(k)}</b><span class="muted small">${k === 'all' ? H('cq.allSub') : H('cq.role.' + k)}</span>${k === 'all' ? '' : `<code class="cq-ex">${highlightSQL(CQ_EXAMPLE[k])}</code>`}</div>
+        <div class="cq-go"><span class="muted small">${x.n ? H('cq.best', { n: x.best, m: CQ_N }) : H('cq.notYet')}</span><a class="btn ${x.n ? 'btn-ghost' : 'btn-primary'} btn-sm" href="#/clauses/${k}">${H(x.n ? 'cq.again' : 'cq.start')}</a></div></li>`; }).join('')}</ol>
+    <p class="muted small">${H('bs.homeSub')} <a href="#/basics">${H('bs.open')}</a></p></main>`;
+}
+function clausesHTML() {
+  document.title = `${T('cq.title')} · SQL Practice`;
+  const set = S.route.set;
+  if (!set) { S.cq = null; return clausesHubHTML(); }
+  if (!S.cq || S.cq.set !== set) S.cq = { set, items: cqQuiz(set, `${Date.now()}|${Math.random()}`), i: 0, picks: [] };
+  const q = S.cq, n = q.items.length;
+  if (q.i >= n) {   // the result
+    const ok = q.items.filter((x, i) => q.picks[i] === x.answer).length, missed = q.items.filter((x, i) => q.picks[i] !== x.answer);
+    const idx = CQ_SETS.indexOf(set), next = CQ_SETS[idx + 1];
+    return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${ok === n ? '🎉' : '🧩'}</div><h1>${H(ok === n ? 'cq.perfect' : 'cq.done')}</h1>
+      <p class="muted">${cqName(set)}</p><p class="big-score">${ok} / ${n}</p>
+      <div class="row-btns"><button class="btn ${ok === n && next ? 'btn-ghost' : 'btn-primary'}" data-act="cqAgain">${I.repeat}${H('cq.again')}</button>
+        ${next ? `<a class="btn ${ok === n ? 'btn-primary' : 'btn-ghost'}" href="#/clauses/${next}">${cqName(next)}${I.next}</a>` : ''}<a class="btn btn-ghost" href="#/clauses">${H('cq.list')}</a></div>
+      <p><a class="btn btn-ghost btn-sm" href="#/basics/${CQ_BASIC[set]}">🧱 ${H('cq.toBasics')}</a></p></section>
+      ${missed.length ? `<h2 class="bs-h2">${H('cq.missed')}</h2>${missed.map(x => `<div class="card cq-miss"><p><b>${H(x.ask, x.askV)}</b></p>${x.shown ? `<p class="cq-shown">${cqText(x.shown)}</p>` : ''}${x.sql ? cqSqlHTML(x.sql) : ''}
+        <p class="cq-ans">✓ ${cqText(x.choices[x.answer])}</p><p class="muted small">${H('cq.tip.' + (x.clause === 'seq' ? 'seq' : x.clause))}</p></div>`).join('')}` : ''}</main>`;
+  }
+  const x = q.items[q.i], picked = q.picks[q.i], shown = picked !== undefined, right = picked === x.answer;
+  return `<main class="wrap narrow cq-page">
+    <div class="session-head"><h1>🧩 ${cqName(set)}</h1>
+      <div class="session-progress"><span>${q.i + 1} / ${n}</span><div class="bar"><i style="width:${Math.round(q.i / n * 100)}%"></i></div></div></div>
+    <section class="card cq-q">
+      <div class="cq-tag">${x.clause === 'seq' ? H('cq.all') : `<code class="cq-kw">${KW[x.clause]}</code>`}</div>
+      <h2 class="cq-ask">${H(x.ask, x.askV)}</h2>
+      ${x.shown ? `<p class="cq-shown">${cqText(x.shown)}</p>` : ''}${x.sql ? cqSqlHTML(x.sql) : ''}
+      <div class="cq-choices ${x.choices.some(c => c.sql) ? 'wide' : ''}" role="group" aria-label="${esc(T('cq.label'))}">${x.choices.map((c, i) => `<button class="choice cq-choice ${shown ? (i === x.answer ? 'ok' : i === picked ? 'bad' : 'dim') : ''}" data-act="cqPick" data-v="${i}" ${shown ? 'disabled' : ''}><b class="cq-l">${CQ_LABEL[i]}</b>${cqText(c)}</button>`).join('')}</div>
+      ${shown ? `<div class="cq-fb ${right ? 'ok' : 'bad'}"><b>${right ? H('cq.right') : H('cq.wrong', { n: CQ_LABEL[x.answer] })}</b>
+        <p>${H('cq.tip.' + (x.clause === 'seq' ? 'seq' : x.clause))}</p>${x.full && x.kind !== 'read' ? `<div class="muted small">${H('cq.good')}</div><pre class="sql">${highlightSQL(x.full)}</pre>` : ''}
+        <button class="btn btn-primary" data-act="cqNext">${H(q.i + 1 < n ? 'cq.next' : 'cq.finish')}${I.next}</button></div>` : ''}
+    </section></main>`;
 }
 /* ---------- one table, many queries (同じテーブルで練習): #/table = choose, #/table/<name> = practise ---------- */
 const TP_KEY = 'sqln.oneTable', TP_PER = [1, 2, 3, 5];   // problems per lesson (a lesson with fewer different queries on the table gives fewer)
@@ -1662,6 +1722,17 @@ const actions = {
   quickMore() { S.qMore = true; const f = qItems().find(p => !qDone(p)); location.hash = f ? `#/quick/${f.qn}` : '#/quick'; },
   levelRetest() { if (confirm(T('lv.retestConfirm'))) { S.session = null; location.hash = '#/level/test'; } },
   bsMore() { S.session = null; render(); window.scrollTo(0, 0); },
+  cqPick(el) {
+    const q = S.cq; if (!q || q.picks[q.i] !== undefined) return;
+    q.picks[q.i] = +el.dataset.v;
+    if (q.i === q.items.length - 1) {   // the last answer: keep the score
+      const ok = q.items.filter((x, i) => q.picks[i] === x.answer).length;
+      S.progress.cq = S.progress.cq || {}; S.progress.cq[q.set] = cqRecord(S.progress.cq[q.set], ok); save();
+    }
+    render(); const fb = document.querySelector('.cq-fb'); if (fb) fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  },
+  cqNext() { if (S.cq) { S.cq.i++; render(); window.scrollTo(0, 0); } },
+  cqAgain() { S.cq = null; render(); window.scrollTo(0, 0); },
   levelMore() { S.session = null; render(); window.scrollTo(0, 0); },
   sessionNext() {
     const ses = S.session;

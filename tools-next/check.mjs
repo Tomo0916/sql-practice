@@ -18,6 +18,7 @@ import { lessonState } from '../js/store.js';
 import { SqlEngine, LESSON_BY_KEY, stagesOf, grade, todayCode, splitClauses } from '../js/engine.js';
 import { diagnose, findFix } from '../js/diagnose.js';
 import { LESSONS } from '../js/lessons.js';
+import { cqQuiz, CQ_SETS, BLANK } from '../js/clauses.js';
 import { usedKeys, ANALYSIS_KEY, ANALYSIS_LANGS } from './build-i18n.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -569,5 +570,21 @@ console.log('11. Check tests (確認テスト)');
   }
   console.log(`   ${n} scripts parse`);
 }
+/* ---------- 12. the clause quiz ---------- */
+console.log('12. Clause quiz (句ごとの基礎クイズ)');
+{
+  const runQ = sql => { try { return JSON.stringify(eng.runUser(sql).values); } catch (e) { return null; } };
+  let made = 0;
+  for (let i = 0; i < 60; i++) for (const set of CQ_SETS) for (const q of cqQuiz(set, 'chk' + i)) {
+    made++;
+    if (new Set(q.choices.map(c => JSON.stringify(c))).size !== 4 || !(q.answer >= 0)) err(`clause quiz ${q.id}: needs 4 different choices and an answer`);
+    if (q.full && runQ(q.full) === null) err(`clause quiz ${q.id}: the right SQL fails: ${q.full}`);
+    if (q.kind === 'right') q.choices.forEach((c, j) => { if (j !== q.answer && runQ(c.sql) !== null) err(`clause quiz ${q.id}: a wrong choice runs: ${c.sql}`); });
+    if (q.kind === 'blank') { const good = runQ(q.full); q.choices.forEach((c, j) => { if (j !== q.answer && runQ(q.sql.replace(BLANK, c.kw)) === good) err(`clause quiz ${q.id}: ${c.kw} also fits: ${q.sql}`); }); }
+    for (const c of [...q.choices, q.shown || {}]) if (c.tx && !(c.tx in en)) err(`clause quiz: missing text ${c.tx}`);
+  }
+  console.log(`   ${made} questions made`);
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);
