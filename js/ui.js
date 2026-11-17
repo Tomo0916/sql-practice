@@ -3,7 +3,7 @@
  * ========================================================= */
 import { LANGS, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { LESSON_BY_KEY } from './engine.js';
-import { joinView } from './lessons.js';
+import { joinView, MORE_AGG } from './lessons.js';
 
 /* ---------- icons ---------- */
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -129,7 +129,10 @@ export function problemHTML(prob, lang) {
   ['f', 'f1', 'f2'].forEach(k => { if (p[k]) vars[k] = `<b class="agg">${rubyHTML(raw('agg.' + p[k], lang))}</b>`; });
   // phrases that are themselves translated, e.g. cond = "price is 4800 or more"
   if (lesson.phrases) Object.entries(lesson.phrases(p)).forEach(([k, [key, v]]) => { vars[k] = th(key, lang, Object.fromEntries(Object.entries(v).map(([a, b]) => [a, `<code>${esc(b)}</code>`]))); });
-  return th(lesson.descKey ? lesson.descKey(p) : `L.${prob.lesson}.desc`, lang, vars);
+  const text = th(lesson.descKey ? lesson.descKey(p) : `L.${prob.lesson}.desc`, lang, vars);
+  if (!(p.more && p.more.length)) return text;   // a harder level: more columns to get
+  const cols = p.more.map(c => `<code>${esc(c)}</code>`);
+  return `${text} ${th(MORE_AGG.has(prob.lesson) ? 'L.moreAgg' : 'L.more', lang, { cols: cols.length === 1 ? cols[0] : th('list.two', lang, { a: cols[0], b: cols[1] }) })}`;
 }
 /** the text of a choice (a key like 'median' → its words; raw choices are data values) */
 export function choiceHTML(prob, key, lang) {

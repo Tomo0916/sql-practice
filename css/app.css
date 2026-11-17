@@ -1112,7 +1112,7 @@ body.pj-open { overflow: hidden; }
 .bs-step.cur .bs-no { background: var(--accent); color: #fff; }
 .bs-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .bs-shape { display: block; padding: 8px 12px; border-radius: 8px; background: var(--code-bg); color: var(--code-ink); font-size: .92rem; line-height: 1.9; white-space: normal; }
-.bs-slot { display: inline-block; padding: 0 8px; margin: 0 1px; border-radius: 6px; font-family: var(--sans); font-size: .78rem; font-weight: 700; line-height: 1.6; border: 1.5px dashed currentColor; }
+.bs-slot { display: inline-block; padding: 0 7px; margin: 0 1px; border-radius: 6px; font-family: var(--sans); font-size: .8em; font-weight: 700; line-height: 1.55; border: 0; background: color-mix(in srgb, currentColor 13%, transparent); }
 .bs-slot.col { color: #2b7bd6; } .bs-slot.table { color: #8a5cd1; } .bs-slot.val { color: #c46a1b; }
 .bs-side .bs-shape { margin: 8px 0; font-size: .86rem; }
 .bs-back { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); }
@@ -1245,3 +1245,24 @@ body.pj-open { overflow: hidden; }
 .lt-row.take { background: var(--accent-soft); box-shadow: inset 4px 0 var(--accent); }
 .lt-row.take .lt-idx { color: var(--accent); }
 .lt-row.skip .lt-mark, .lt-row.cut .lt-mark { color: var(--ink-3); }
+
+/* ---------- practice by difficulty (and the lesson pills, shared with the teacher's page) ---------- */
+.qs-chs { display: grid; gap: 8px; }
+.qs-ch { display: grid; grid-template-columns: minmax(130px, 200px) 1fr; gap: 8px; align-items: start; padding: 8px; border-radius: 10px; border-left: 4px solid var(--cc); background: color-mix(in srgb, var(--cc) 5%, transparent); }
+.qs-chn { font-size: .85rem; font-weight: 700; padding: 4px 2px; }
+.qs-ls { display: flex; flex-wrap: wrap; gap: 6px; }
+.qs-l { font: inherit; font-size: .8rem; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.qs-l b { color: var(--ink-3); font-size: .72rem; }
+.qs-l.on { background: color-mix(in srgb, var(--cc) 16%, var(--surface)); border-color: var(--cc); color: var(--ink); font-weight: 700; } .qs-l.on b { color: var(--cc); }
+.qs-row { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-start; }
+.pr-set { padding: 18px; display: grid; gap: 14px; }
+.pr-set .fld { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; }
+.pr-set .fld > span { font-weight: 700; font-size: .9rem; }
+.pr-set .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.pr-set .seg button { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: .88rem; cursor: pointer; }
+.pr-set .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pr-ex { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; } .pr-ex p { margin: 4px 0 8px; } .pr-ex pre { margin: 0; }
+.tag.pr-lv { font-size: .8rem; vertical-align: middle; }
+.btn.disabled { opacity: .5; pointer-events: none; }
+@media (max-width: 700px) { .qs-ch { grid-template-columns: 1fr; } }
+.pr-set { text-align: left; } .pr-set .fld { justify-content: flex-start; }

@@ -4,7 +4,7 @@
  * Pure logic: no DOM, no language. Runs in the browser and in Node (tools-next/check.mjs).
  * ========================================================= */
 import { ALL_TABLES, SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES, datasetSQL } from './datasets.js';
-import { LESSONS, BLANK } from './lessons.js';
+import { LESSONS, BLANK, levelSpec, variantOf, MORE_AGG } from './lessons.js';
 
 export const LESSON_BY_KEY = {};
 LESSONS.forEach((l, i) => { l.index = i; LESSON_BY_KEY[l.key] = l; });
@@ -362,6 +362,30 @@ export class SqlEngine {
     for (let attempt = 0; attempt < 40; attempt++) {
       const p = lesson.gen(ds, R, ctx);
       if (p && this.validate(lesson, p)) return p;
+    }
+    return null;
+  }
+  /** a problem of a lesson at a difficulty level (lessons.js levelSpec): the variant it asks for, and more columns; null when it cannot be made */
+  genLevel(lesson, ds, seed, L) {
+    const spec = levelSpec(lesson.key, L); if (!spec) return null;
+    for (let k = 0; k < 40; k++) {
+      const p = this.genOne(lesson, ds, `${seed}|lv${L}|${k}`);
+      if (!p || variantOf(lesson.key, lesson.sql(p)) !== spec.v) continue;
+      if (spec.more) {
+        const used = lesson.sql(p);
+        let cand;
+        if (lesson.kind === 'join') {   // table.column of either table (not the keys)
+          const sides = (lesson.key === 'antijoin' ? [ds.left] : [ds.left, ds.right]).filter(Boolean);   // no partner row: only the left table has values
+          cand = sides.flatMap(t => t.columns.map(c => [t, c[0]])).filter(([t, c]) => c !== 'id' && c !== (t.roles || {}).key).map(([t, c]) => `${t.table}.${c}`).filter(x => !used.includes(x));
+        } else if (MORE_AGG.has(lesson.key)) {   // another aggregate of a number column
+          const nums = (ds.columns || []).filter(c => c[0] !== 'id' && !/year|_id$/.test(c[0]) && /INT|REAL|NUM/i.test(c[1])).map(c => c[0]);
+          cand = ['AVG', 'MAX', 'MIN', 'SUM'].flatMap(f => nums.map(c => `${f}(${c})`)).filter(x => !used.includes(x));
+        } else cand = (ds.columns || []).map(c => c[0]).filter(c => c !== 'id' && !new RegExp(`\\b${c}\\b`).test(used));
+        if (cand.length < spec.more) continue;
+        p.more = makeRng(`${seed}|more|${k}`).shuffle(cand).slice(0, spec.more);
+        if (!this.validate(lesson, p)) continue;
+      }
+      return Object.assign(p, { lv: L });
     }
     return null;
   }

@@ -905,7 +905,51 @@ export const LESSONS = [
   }
 ];
 
-
+/* =========================================================
+ * Difficulty (難易度) of the lessons outside data analysis: Lv 1 基本 · 2 標準 · 3 発展.
+ * Two things make a problem harder:
+ *   the variant of the lesson's own SQL (variantOf: = / > / <>, AND / OR / NOT, one key / two keys to sort …)
+ *   more columns to get (MORE_COLS lessons): Lv 2 one more, Lv 3 two more (p.more, added to the SELECT list,
+ *   and to the problem text as "also get …")
+ * Lv L asks for the variant min(L, its highest) and L − 1 more columns; a lesson with neither has only Lv 1.
+ * ========================================================= */
+export const LEVELS = [1, 2, 3];
+export const MORE_COLS = new Set(['select', 'alias', 'where', 'andor', 'like', 'orderby', 'limit',   // (Lesson 8's tables have no column to spare)
+  'aggfn', 'groupby', 'having', 'wherehaving',            // more aggregates: AVG(…), MAX(…) …
+  'innercols', 'innerwhere', 'antijoin', 'leftorder']);   // more columns of the joined tables: table.column
+export const MORE_AGG = new Set(['aggfn', 'groupby', 'having', 'wherehaving']);
+const strip = sql => String(sql).replace(/'(?:[^']|'')*'/g, "''");
+const VARIANT = {
+  where: sql => (/<>/.test(strip(sql)) ? 3 : /WHERE \S+ (>=|<=|>|<) /.test(strip(sql)) ? 2 : 1),
+  andor: sql => (/\bNOT\b/.test(strip(sql)) ? 3 : /\bOR\b/.test(strip(sql)) ? 2 : 1),
+  between: sql => (/\bIN \(/.test(strip(sql)) ? 2 : 1),
+  null: sql => (/IS NOT NULL/.test(sql) ? 2 : 1),
+  orderby: sql => (/ORDER BY [^;]*,/.test(sql) ? 3 : /\bDESC\b/.test(sql) ? 2 : 1),
+  distinct: sql => (/\bDESC\b/.test(sql) ? 2 : 1),
+  limit: sql => (/\bOFFSET\b/.test(sql) ? 2 : 1),
+  insert: sql => ((/\(([^)]*)\) VALUES/.exec(sql) || ['', ''])[1].split(',').length > 4 ? 2 : 1),
+  update: sql => (/SET \w+ = \w+ [-+*\/]/.test(strip(sql)) ? 2 : 1),
+  delete: sql => (/WHERE \S+ (>=|<=|>|<) /.test(strip(sql)) ? 2 : 1),
+  alias: sql => (/SELECT \w+, [a-z_]+ [-+*\/] [a-z_]+ AS/.test(strip(sql)) ? 2 : 1)
+};
+const MAX_VARIANT = { where: 3, andor: 3, orderby: 3, between: 2, null: 2, distinct: 2, limit: 2, insert: 2, update: 2, delete: 2, alias: 2 };
+export const variantOf = (key, sql) => (VARIANT[key] ? VARIANT[key](sql) : 1);
+/** the levels a lesson has */
+export function levelsOf(key) {
+  const l = LESSONS.find(x => x.key === key);
+  if (!l || l.ch === 'analysis' || l.kind === 'quiz' || l.fixed) return [];
+  return LEVELS.slice(0, Math.max(MAX_VARIANT[key] || 1, MORE_COLS.has(key) ? 1 + (MAX_MORE[key] || 2) : 1));
+}
+/** at most this many more columns (the tables of these lessons have few to spare) */
+const MAX_MORE = { antijoin: 1, innerwhere: 1 };
+/** what Lv L asks of a lesson: { v: the variant, more: columns to add }, or null */
+export function levelSpec(key, L) {
+  if (!levelsOf(key).includes(L)) return null;
+  return { v: Math.min(L, MAX_VARIANT[key] || 1), more: MORE_COLS.has(key) ? Math.min(L - 1, MAX_MORE[key] || 2) : 0 };
+}
+/** the SQL with more columns at the end of the SELECT list */
+export const addCols = (sql, more) => String(sql).replace(/^(\s*SELECT\s+(?:DISTINCT\s+)?)([\s\S]*?)(\s+FROM\s)/i, (m, a, list, b) => `${a}${list}, ${more.join(', ')}${b}`);
+LESSONS.filter(l => MORE_COLS.has(l.key)).forEach(l => { const own = l.sql; l.sql = p => (p.more && p.more.length ? addCols(own(p), p.more) : own(p)); });
 
 /** themes where Lesson 6 asks for IN (…) instead of BETWEEN */
 const IN_THEMES = new Set(['menu', 'hotels', 'courses']);
