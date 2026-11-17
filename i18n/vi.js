@@ -1356,5 +1356,20 @@ export default {
   "task.continue": "Tiếp tục",
   "task.start": "Bắt đầu",
   "task.none": "Hiện chưa có bài tập.",
-  "task.total": "Bài tập đã đúng: {n} / {m}"
+  "task.total": "Bài tập đã đúng: {n} / {m}",
+  "lv.part.A": "Bài cơ bản",
+  "lv.part.A2": "Bài cơ bản (thêm một bài)",
+  "lv.part.B": "Bài nâng cao",
+  "lv.part.C": "Bài tiêu chuẩn",
+  "lv.part.P": "Kiểm tra (sắp xếp)",
+  "lv.part.R": "Xem lại chương trước",
+  "lv.sc.0": "Chưa",
+  "lv.sc.1": "Gần đạt",
+  "lv.sc.2": "Đạt",
+  "lv.sc.3": "Giỏi",
+  "lv.testNoteA": "Bài tiếp theo dễ hơn hoặc khó hơn tùy câu trả lời. Mỗi chương 2–3 bài, tổng cộng khoảng 12–20 bài.",
+  "lv.adapt": "Bài tiếp theo phụ thuộc vào câu trả lời của bạn. Nếu không biết, cứ bỏ qua.",
+  "lv.how": "Được xác định từ {n} câu trả lời.",
+  "lv.review": "Các bài đã làm",
+  "lv.yours": "Câu trả lời của bạn"
 };

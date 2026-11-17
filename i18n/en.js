@@ -1357,5 +1357,20 @@ export default {
   "task.continue": "Continue",
   "task.start": "Start",
   "task.none": "There is no assignment right now.",
-  "task.total": "Assignment solved: {n} / {m}"
+  "task.total": "Assignment solved: {n} / {m}",
+  "lv.part.A": "Basic problem",
+  "lv.part.A2": "Basic problem (one more)",
+  "lv.part.B": "Advanced problem",
+  "lv.part.C": "Standard problem",
+  "lv.part.P": "Check (ordering)",
+  "lv.part.R": "A second look at an earlier chapter",
+  "lv.sc.0": "Not yet",
+  "lv.sc.1": "Almost",
+  "lv.sc.2": "Passed",
+  "lv.sc.3": "Strong",
+  "lv.testNoteA": "The next problem gets easier or harder depending on your answers. 2–3 problems per chapter, about 12–20 in all.",
+  "lv.adapt": "The next problem depends on your answers. If you don't know, it's fine to skip.",
+  "lv.how": "Decided from {n} answers.",
+  "lv.review": "Problems you solved",
+  "lv.yours": "Your answer"
 };

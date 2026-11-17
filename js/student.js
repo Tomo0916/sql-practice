@@ -26,7 +26,7 @@ import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
 import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N, tableSets, tableCourse } from './mastery.js';
-import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog, levelOf } from './level.js';
+import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, adaptiveStart, adaptiveNext, adaptiveAnswer, adaptiveProblem, adaptiveResult, mistakeKind, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog, levelOf } from './level.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_DETAIL, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, nextStep, basicProblem, stepForMistake, CHAPTER_SHAPES, MIX_RANGES, MIX_FORMATS, MIX_COUNTS, mixSteps, mixProblems } from './basics.js';
 import { levelProfile } from './quick.js';
 import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, cqQuiz, cqRecord } from './clauses.js';
@@ -473,12 +473,12 @@ function levelSet(st) { S.progress.level = st; save(); levelSend(); }
 const fmtLadderHTML = at => `<div class="rv-ladder">${LV_FORMATS.map((f, i) => `<span class="${i < at ? 'done' : i === at ? 'cur' : ''}">${H(f === 'fill' ? 'stage.fill' : f === 'order2' ? 'stage.order' : 'rv.write')}</span>`).join('<i>→</i>')}</div>`;
 function levelStepsHTML(st) {
   return `<ol class="lv-steps">${LV_CHAPTERS.map((k, i) => { const ok = st && (i < st.lv || passed(st.prof[i])), cur = st && i === st.lv;
-    return `<li class="${ok ? 'ok' : cur ? 'cur' : ''}" style="--cc:var(--c-${k})"><b>${ok ? '✓' : i + 1}</b><span>${chName(k)}</span>${st && st.prof[i] !== null && st.prof[i] !== undefined && st.at ? `<small class="muted">${H('lv.testScore', { a: Math.min(LV_PER, st.prof[i]), b: LV_PER })}</small>` : ''}</li>`; }).join('')}</ol>`;
+    return `<li class="${ok ? 'ok' : cur ? 'cur' : ''}" style="--cc:var(--c-${k})"><b>${ok ? '✓' : i + 1}</b><span>${chName(k)}</span>${st && st.prof[i] !== null && st.prof[i] !== undefined && st.at ? `<small class="lv-sc sc${Math.min(3, st.prof[i])}">${H('lv.sc.' + Math.min(3, st.prof[i]))}</small>` : ''}</li>`; }).join('')}</ol>`;
 }
 function levelHubHTML() {
   const st = lvState();
   if (!st) return `<main class="wrap narrow"><section class="card empty lv-hero"><div class="empty-icon">🎯</div><h1>${H('lv.title')}</h1><p class="muted">${H('lv.intro')}</p>
-      ${levelStepsHTML(null)}<p class="muted small">${H('lv.testNote', { n: LV_MAX * LV_PER })}</p>
+      ${levelStepsHTML(null)}<p class="muted small">${H('lv.testNoteA')}</p>
       <div class="row-btns"><a class="btn btn-primary btn-lg" href="#/level/test">${H('lv.startTest')}${I.next}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
   const ch = targetChapter(st), first = ch ? chapterLessons(ch)[0] : null;
   return `<main class="wrap narrow lv-hub"><section class="card lv-card">
@@ -495,7 +495,7 @@ function levelHTML() {
   if (!sub || (sub === 'go' && !lvState())) { if (S.session && S.session.kind === 'level') S.session = null; return levelHubHTML(); }
   if (!S.session || S.session.kind !== 'level' || S.session.sub !== sub) {
     const seed = randomCode(5);
-    S.session = sub === 'test' ? { kind: 'level', sub, items: buildTest(S.engine, seed), i: 0, done: {}, ans: {} } : { kind: 'level', sub, items: buildRound(S.engine, lvState(), seed), i: 0, done: {}, before: lvState() };
+    S.session = sub === 'test' ? lvTestStart(seed) : { kind: 'level', sub, items: buildRound(S.engine, lvState(), seed), i: 0, done: {}, before: lvState() };
   }
   const ses = S.session;
   if (ses.end || ses.i >= ses.items.length) return sub === 'test' ? levelTestDoneHTML(ses) : levelRoundDoneHTML(ses);
@@ -505,11 +505,11 @@ function levelHTML() {
     <div class="session-head">
       <h1>🎯 ${H(sub === 'test' ? 'lv.testTitle' : 'lv.practice')}</h1>
       ${sub === 'test' ? '' : `<b class="qk-need">Lv.${st.lv}</b>`}
-      <div class="session-progress"><span>${ses.i + 1} / ${n}</span><div class="bar"><i style="width:${Math.round(ses.i / n * 100)}%"></i></div></div>
+      ${sub === 'test' ? lvTestMapHTML(ses) : `<div class="session-progress"><span>${ses.i + 1} / ${n}</span><div class="bar"><i style="width:${Math.round(ses.i / n * 100)}%"></i></div></div>`}
     </div>
     <div class="session-layout">
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${chName(lesson.ch)}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
-        ${sub === 'test' ? `<p class="muted small">${H('lv.testRule')}</p><button class="btn btn-ghost btn-sm" data-act="sessionNext">${H('lv.dontKnow')}</button>`
+        ${sub === 'test' ? `${prob.lvStep ? `<p class="lv-part p-${prob.lvStep.part}">${H('lv.part.' + prob.lvStep.part)}</p>` : ''}<p class="muted small">${H('lv.testRule')}</p><p class="muted small">${H('lv.adapt')}</p><button class="btn btn-ghost btn-sm" data-act="sessionNext">${H('lv.dontKnow')}</button>`
     : `${prob.target ? `<div class="rv-pat"><small class="muted">${H('lv.learning')}</small>${fmtLadderHTML(st.fmt || 0)}</div>` : `<p class="muted small">${H('lv.keep')}</p>`}
         <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details>`}</aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
@@ -517,13 +517,42 @@ function levelHTML() {
   </main>`;
 }
 function levelTestDoneHTML(ses) {
-  if (!ses.saved) { ses.saved = true; levelSet(afterTest(ses.items, ses.done, Date.now())); }
-  const st = lvState(), ch = targetChapter(st);
+  if (!ses.saved) { ses.saved = true; levelSet(ses.T ? adaptiveResult(ses.T, Date.now()) : afterTest(ses.items, ses.done, Date.now())); }
+  const st = lvState(), ch = targetChapter(st), asked = ses.items.filter(p => ses.done[p.id] !== undefined);
   return `<main class="wrap narrow lv-hub"><section class="card empty lv-hero"><div class="empty-icon">🎯</div><h1>${H('lv.result')}</h1>
       <p class="lv-big">Lv.${st.lv}<small> / ${LV_MAX}</small></p>
       <p class="muted">${ch ? H('lv.resultNext', { c: T('ch.' + ch).replace(/\{([^|}]+)\|[^}]+\}/g, '$1') }) : H('lv.allDone')}</p>
-      ${levelStepsHTML(st)}
-      <div class="row-btns"><a class="btn btn-primary btn-lg" href="#/level/go">${I.repeat}${H('lv.practice')}</a><a class="btn btn-ghost" href="#/level">${H('lv.title')}</a></div></section></main>`;
+      ${levelStepsHTML(st)}${ses.T ? `<p class="muted small">${H('lv.how', { n: asked.length })}</p>` : ''}
+      <div class="row-btns"><a class="btn btn-primary btn-lg" href="#/level/go">${I.repeat}${H('lv.practice')}</a><a class="btn btn-ghost" href="#/level">${H('lv.title')}</a></div></section>
+    ${ses.T ? `<h2 class="bs-h2">${H('lv.review')}</h2>${asked.map((p, i) => { const ok = !!ses.done[p.id], l = LESSON_BY_KEY[p.lesson], a = (S.runs[p.id] || {}).sql;
+      return `<details class="card lv-rv ${ok ? 'ok' : 'ng'}"><summary><b>${ok ? '○' : '×'} Q${i + 1}</b><span style="--cc:var(--c-${l.ch})">${chName(l.ch)}</span><span class="muted small">${p.lvStep ? H('lv.part.' + p.lvStep.part) : ''}</span></summary>
+        <p class="prob-text">${problemHTML(p, L())}</p>${a ? `<div class="muted small">${H('lv.yours')}</div><pre class="sql">${highlightSQL(a)}</pre>` : ''}<div class="muted small">${H('cq.good')}</div><pre class="sql">${highlightSQL(p.sql)}</pre></details>`; }).join('')}` : ''}</main>`;
+}
+/* the adaptive placement test (level.js): the next problem is made when the last one is answered */
+function lvTestStart(seed) {
+  const T = adaptiveStart(seed), it = adaptiveNext(T), p = it && adaptiveProblem(S.engine, T, it, 0, []);
+  return { kind: 'level', sub: 'test', T, items: p ? [p] : [], i: 0, done: {}, ans: {} };
+}
+/** after a problem of the test (answered or skipped): what kind of mistake, then the next problem or the end */
+function lvTestStep(ses) {
+  const p = ses.items[ses.i]; if (!p || !p.lvStep || ses.end) return;
+  const ok = ses.done[p.id] === true, run = S.runs[p.id];
+  let why = null;
+  if (!ok) {
+    const keys = run && run.dx ? run.dx.map(d => d.key) : [];
+    const shape = run && run.sql ? stepForMistake(Object.assign({}, p, { test: false }), run.sql, run.dx) : null;
+    why = run && run.sql ? mistakeKind(p.lvStep.c, keys, shape) : 'concept';
+  }
+  ses.T = adaptiveAnswer(ses.T, p.lvStep, ok, why);
+  const it = adaptiveNext(ses.T);
+  const q = it && adaptiveProblem(S.engine, ses.T, it, ses.items.length, ses.items.map(x => x.sql));
+  if (q) ses.items.push(q); else ses.end = true;
+}
+/** the chapters of the test: decided (with the score), the one now, the ones to come */
+function lvTestMapHTML(ses) {
+  const A = ses.T, cur = ses.items[ses.i] && ses.items[ses.i].lvStep;
+  return `<div class="lv-map"><span class="lv-qn">Q${ses.i + 1}</span>${A.chs.map(c => { const sc = A.score[c], now = cur && cur.c === c;
+    return `<span class="lv-mc ${sc !== undefined ? 'sc' + sc : ''} ${now ? 'now' : ''}" style="--cc:var(--c-${LV_CHAPTERS[c]})" title="${esc(T('ch.' + LV_CHAPTERS[c]))}">${c + 1}${sc !== undefined ? `<small>${esc(T('lv.sc.' + sc))}</small>` : ''}</span>`; }).join('')}</div>`;
 }
 function levelRoundDoneHTML(ses) {
   if (!ses.res) { ses.res = afterRound(ses.before, ses.items, ses.done, Date.now()); levelSet(ses.res.st); }
@@ -1832,9 +1861,10 @@ const actions = {
   levelMore() { S.session = null; render(); window.scrollTo(0, 0); },
   sessionNext() {
     const ses = S.session;
-    if (ses && ses.kind === 'level' && ses.sub === 'test' && ses.i < ses.items.length) {   // the placement test: no answer = wrong; it may end early
+    if (ses && ses.kind === 'level' && ses.sub === 'test' && ses.i < ses.items.length) {   // the placement test: no answer = wrong; the next problem fits the answers so far
       const p = ses.items[ses.i]; if (ses.done[p.id] === undefined) ses.done[p.id] = false;
-      if (testEnds(ses.items, ses.done, ses.i)) ses.end = true;
+      if (ses.T) lvTestStep(ses); else if (testEnds(ses.items, ses.done, ses.i)) ses.end = true;
+      if (ses.end) { ses.i = ses.items.length - 1; saveDraft(); render(); window.scrollTo(0, 0); return; }
     }
     return actions.sessionNext2();
   },
