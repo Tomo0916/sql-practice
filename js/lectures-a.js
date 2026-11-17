@@ -8,7 +8,7 @@
  * summary → to the example.
  * Tables are computed from the data (products, contacts), never typed.
  * ========================================================= */
-import { T3, state, checked } from './lecture-kit.js';
+import { T3, state, checked, windowed } from './lecture-kit.js';
 
 const ALL = 'SELECT id, name, category, price FROM products;';
 const FULL = 'SELECT * FROM products;';
@@ -16,6 +16,8 @@ const FULL = 'SELECT * FROM products;';
 const W = (cond, cols) => e => checked(e, ALL, cond, cols);
 /** the result of a query; the first column is the row's key (hide it with hide: ['id']) */
 const R = (sql, opts) => e => state(e, sql, opts);
+/** LIMIT n OFFSET k shown on the whole sorted table: the skipped rows stay, faded */
+const LW = (sql, n, k, opts) => e => windowed(e, sql, n, k, opts);
 const pickRows = (ids, opts = {}) => e => state(e, FULL, Object.assign({ cls: v => (ids.includes(v[0]) ? 'pick' : '') }, opts));
 const one = (e, sql) => e.exec(sql).values[0][0];
 const CON = 'SELECT id, name, email, phone FROM contacts;';
@@ -456,15 +458,15 @@ export const LECT_A = {
       { type: 'anim', title: T3('What LIMIT and OFFSET do', 'LIMIT と OFFSET がすること', 'LIMIT と OFFSET が すること'), frames: [
         { cap: T3('The products, in the order they are stored.', '商品。保存されている順。', 'しょうひん。ほぞん されて いる じゅん。'), sql: 'SELECT name, price\nFROM products;', mark: 'FROM products', table: R('SELECT id, name, price FROM products;', { hide: ['id'] }) },
         { cap: T3('First sort: most expensive first.', 'まず並べる：値段の高い順。', 'まず ならべる：ねだんの {高|たか}い じゅん。'), sql: 'SELECT name, price\nFROM products\nORDER BY price DESC;', mark: 'ORDER BY price DESC', table: R('SELECT id, name, price FROM products ORDER BY price DESC;', { hide: ['id'], hl: ['price'] }) },
-        { cap: T3('LIMIT 3: only the first 3 rows stay.', 'LIMIT 3：上から 3 行だけが残る。', 'LIMIT 3：{上|うえ}から 3{行|ぎょう}だけが のこる。'), sql: 'SELECT name, price\nFROM products\nORDER BY price DESC\nLIMIT 3;', mark: 'LIMIT 3', table: R('SELECT id, name, price FROM products ORDER BY price DESC LIMIT 3;', { hide: ['id'], hl: ['price'] }) },
-        { cap: T3('OFFSET 2: skip 2 rows, then take 3 (the 3rd to the 5th).', 'OFFSET 2：2 行飛ばして、そこから 3 行（3 番目〜5 番目）。', 'OFFSET 2：2{行|ぎょう} とばして、そこから 3{行|ぎょう}（3ばんめ〜5ばんめ）。'), sql: 'SELECT name, price\nFROM products\nORDER BY price DESC\nLIMIT 3 OFFSET 2;', mark: 'LIMIT 3 OFFSET 2', table: R('SELECT id, name, price FROM products ORDER BY price DESC LIMIT 3 OFFSET 2;', { hide: ['id'], hl: ['price'] }) }
+        { cap: T3('LIMIT 3: only the first 3 rows stay.', 'LIMIT 3：上から 3 行だけが残る。', 'LIMIT 3：{上|うえ}から 3{行|ぎょう}だけが のこる。'), sql: 'SELECT name, price\nFROM products\nORDER BY price DESC\nLIMIT 3;', mark: 'LIMIT 3', table: LW('SELECT id, name, price FROM products ORDER BY price DESC;', 3, 0, { hide: ['id'], hl: ['price'] }) },
+        { cap: T3('OFFSET 2: skip 2 rows, then take 3 (the 3rd to the 5th).', 'OFFSET 2：2 行飛ばして、そこから 3 行（3 番目〜5 番目）。', 'OFFSET 2：2{行|ぎょう} とばして、そこから 3{行|ぎょう}（3ばんめ〜5ばんめ）。'), sql: 'SELECT name, price\nFROM products\nORDER BY price DESC\nLIMIT 3 OFFSET 2;', mark: 'LIMIT 3 OFFSET 2', table: LW('SELECT id, name, price FROM products ORDER BY price DESC;', 3, 2, { hide: ['id'], hl: ['price'] }) }
       ] },
       { type: 'anim', cases: true, frames: [
-        { label: T3('Top 3', '大きい順のトップ 3', '{大|おお}きい じゅんの トップ 3'), covers: ['limit', 'desc'], cap: T3('The 3 largest stocks.', 'stock の大きい順に 3 行。', 'stock の {大|おお}きい じゅんに 3{行|ぎょう}。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock DESC\nLIMIT 3;', mark: 'DESC\nLIMIT 3', table: R('SELECT id, name, stock FROM products ORDER BY stock DESC LIMIT 3;', { hide: ['id'], hl: ['stock'] }) },
-        { label: T3('Bottom 3', '小さい順のトップ 3', '{小|ちい}さい じゅんの トップ 3'), covers: ['limit', 'asc'], cap: T3('ASC: the 3 smallest stocks.', 'ASC にすると、stock の小さい順に 3 行。', 'ASC に すると、stock の {小|ちい}さい じゅんに 3{行|ぎょう}。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock ASC\nLIMIT 3;', mark: 'ASC\nLIMIT 3', table: R('SELECT id, name, stock FROM products ORDER BY stock ASC LIMIT 3;', { hide: ['id'], hl: ['stock'] }) },
-        { label: T3('OFFSET', 'OFFSET（飛ばす）', 'OFFSET（とばす）'), covers: ['offset', 'limit', 'desc'], cap: T3('Skip 3 rows, then take 2: the 4th and the 5th.', '3 行飛ばして 2 行：4 番目と 5 番目。', '3{行|ぎょう} とばして 2{行|ぎょう}：4ばんめと 5ばんめ。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock DESC\nLIMIT 2 OFFSET 3;', mark: 'LIMIT 2 OFFSET 3', table: R('SELECT id, name, stock FROM products ORDER BY stock DESC LIMIT 2 OFFSET 3;', { hide: ['id'], hl: ['stock'] }) },
-        { label: T3('OFFSET with ASC', 'OFFSET と ASC', 'OFFSET と ASC'), covers: ['offset', 'limit', 'asc'], cap: T3('From the smallest: skip 2, then take 3 (the 3rd to the 5th).', '小さい順で、2 行飛ばして 3 行（3 番目〜5 番目）。', '{小|ちい}さい じゅんで、2{行|ぎょう} とばして 3{行|ぎょう}（3ばんめ〜5ばんめ）。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock ASC\nLIMIT 3 OFFSET 2;', mark: 'LIMIT 3 OFFSET 2', table: R('SELECT id, name, stock FROM products ORDER BY stock ASC LIMIT 3 OFFSET 2;', { hide: ['id'], hl: ['stock'] }) },
-        { label: T3('Only the 4th', '4 番目だけ', '4ばんめだけ'), cap: T3('LIMIT 1 OFFSET 3: skip 3 and take one row, the 4th.', 'LIMIT 1 OFFSET 3：3 行飛ばして 1 行。4 番目の行だけ。', 'LIMIT 1 OFFSET 3：3{行|ぎょう} とばして 1{行|ぎょう}。4ばんめの {行|ぎょう}だけ。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock DESC\nLIMIT 1 OFFSET 3;', mark: 'LIMIT 1 OFFSET 3', table: R('SELECT id, name, stock FROM products ORDER BY stock DESC LIMIT 1 OFFSET 3;', { hide: ['id'], hl: ['stock'] }) }
+        { label: T3('Top 3', '大きい順のトップ 3', '{大|おお}きい じゅんの トップ 3'), covers: ['limit', 'desc'], cap: T3('The 3 largest stocks.', 'stock の大きい順に 3 行。', 'stock の {大|おお}きい じゅんに 3{行|ぎょう}。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock DESC\nLIMIT 3;', mark: 'DESC\nLIMIT 3', table: LW('SELECT id, name, stock FROM products ORDER BY stock DESC;', 3, 0, { hide: ['id'], hl: ['stock'] }) },
+        { label: T3('Bottom 3', '小さい順のトップ 3', '{小|ちい}さい じゅんの トップ 3'), covers: ['limit', 'asc'], cap: T3('ASC: the 3 smallest stocks.', 'ASC にすると、stock の小さい順に 3 行。', 'ASC に すると、stock の {小|ちい}さい じゅんに 3{行|ぎょう}。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock ASC\nLIMIT 3;', mark: 'ASC\nLIMIT 3', table: LW('SELECT id, name, stock FROM products ORDER BY stock ASC;', 3, 0, { hide: ['id'], hl: ['stock'] }) },
+        { label: T3('OFFSET', 'OFFSET（飛ばす）', 'OFFSET（とばす）'), covers: ['offset', 'limit', 'desc'], cap: T3('Skip 3 rows, then take 2: the 4th and the 5th.', '3 行飛ばして 2 行：4 番目と 5 番目。', '3{行|ぎょう} とばして 2{行|ぎょう}：4ばんめと 5ばんめ。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock DESC\nLIMIT 2 OFFSET 3;', mark: 'LIMIT 2 OFFSET 3', table: LW('SELECT id, name, stock FROM products ORDER BY stock DESC;', 2, 3, { hide: ['id'], hl: ['stock'] }) },
+        { label: T3('OFFSET with ASC', 'OFFSET と ASC', 'OFFSET と ASC'), covers: ['offset', 'limit', 'asc'], cap: T3('From the smallest: skip 2, then take 3 (the 3rd to the 5th).', '小さい順で、2 行飛ばして 3 行（3 番目〜5 番目）。', '{小|ちい}さい じゅんで、2{行|ぎょう} とばして 3{行|ぎょう}（3ばんめ〜5ばんめ）。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock ASC\nLIMIT 3 OFFSET 2;', mark: 'LIMIT 3 OFFSET 2', table: LW('SELECT id, name, stock FROM products ORDER BY stock ASC;', 3, 2, { hide: ['id'], hl: ['stock'] }) },
+        { label: T3('Only the 4th', '4 番目だけ', '4ばんめだけ'), cap: T3('LIMIT 1 OFFSET 3: skip 3 and take one row, the 4th.', 'LIMIT 1 OFFSET 3：3 行飛ばして 1 行。4 番目の行だけ。', 'LIMIT 1 OFFSET 3：3{行|ぎょう} とばして 1{行|ぎょう}。4ばんめの {行|ぎょう}だけ。'), sql: 'SELECT name, stock\nFROM products\nORDER BY stock DESC\nLIMIT 1 OFFSET 3;', mark: 'LIMIT 1 OFFSET 3', table: LW('SELECT id, name, stock FROM products ORDER BY stock DESC;', 1, 3, { hide: ['id'], hl: ['stock'] }) }
       ] },
       { type: 'mistake', title: T3('LIMIT before ORDER BY', 'LIMIT を ORDER BY の前に書く', 'LIMIT を ORDER BY の {前|まえ}に {書|か}く'), wrong: 'SELECT name, price\nFROM products\nLIMIT 3\nORDER BY price DESC;', right: 'SELECT name, price\nFROM products\nORDER BY price DESC\nLIMIT 3;',
         why: T3('LIMIT is written last, after ORDER BY.', 'LIMIT は最後に書く。ORDER BY のあと。', 'LIMIT は さいごに {書|か}く。ORDER BY の あと。') },

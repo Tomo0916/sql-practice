@@ -1237,3 +1237,11 @@ body.pj-open { overflow: hidden; }
 .abs-hint { margin-left: auto; font-size: .85rem; } .abs-hint .abs-line { margin: 6px 0 0; font-size: .9rem; padding: 8px 10px; }
 .abs-dots { color: var(--ink-3); font-style: normal; }
 .abs-card:not(.editor-card) { padding: 16px 18px; }
+/* LIMIT / OFFSET in the lectures: the skipped and the cut rows stay, faded; every row keeps its place number */
+.lt-idx { position: absolute; left: 4px; top: 50%; transform: translateY(-50%); width: 20px; text-align: right; font-size: .72rem; color: var(--ink-3); font-weight: 700; }
+.lt:has(.lt-idx) .lt-row, .lt:has(.lt-idx) .lt-head { padding-left: 30px; }
+.lt-row.skip { opacity: .38; background: repeating-linear-gradient(-45deg, transparent 0 6px, color-mix(in srgb, var(--ink-3) 14%, transparent) 6px 8px); }
+.lt-row.cut { opacity: .3; }
+.lt-row.take { background: var(--accent-soft); box-shadow: inset 4px 0 var(--accent); }
+.lt-row.take .lt-idx { color: var(--accent); }
+.lt-row.skip .lt-mark, .lt-row.cut .lt-mark { color: var(--ink-3); }
