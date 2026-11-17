@@ -509,6 +509,14 @@ console.log('11. Check tests (確認テスト)');
     const B = await import('../js/basics.js');
     for (const st of B.BASIC_STEPS) for (let f = 0; f < st.formats.length; f++) for (const seed of ['a', 'b', 'c']) {
       const p = B.basicProblem(eng, st.key, f, seed), tok = st.formats[f];
+      if (tok === 'abs') {   // the shape in words: the shape itself (with the words) is right, a real query is not
+        const W = { col: ['列', 'column'], table: ['テーブル', 'table'], val: ['値', 'value'], cond: ['条件', 'condition'], expr: ['式', 'expression'], alias: ['別名', 'alias'] };
+        const words = B.absShape(st.key).replace(/\{(col|group|num|key)\}/g, '列').replace(/\{table\}/g, 'テーブル').replace(/\{cond\}/g, '条件').replace(/\{expr\}/g, 'expression').replace(/\{alias\}/g, '別名').replace(/\{[a-z]+\}/g, 'value');
+        if (!p || p.stage !== 'abs' || !B.absCheck(st.key, words, W).ok || !B.absCheck(st.key, words.toLowerCase().replace(/;$/, ''), W).ok) err(`basic shapes: ${st.key} in words is not accepted: ${words}`);
+        if (B.absCheck(st.key, B.basicProblem(eng, st.key, f + 1, seed).sql, W).ok) err(`basic shapes: ${st.key} in words accepts a real query`);
+        const ch = B.absChips(st.key, seed); if (!ch.kw.length || !ch.slots.includes('col')) err(`basic shapes: ${st.key} has no chips`);
+        continue;
+      }
       if (!p || p.stage !== (tok.startsWith('order') ? 'order' : tok) || !eng.exec(p.sql)) { err(`basic shapes: ${st.key} cannot be asked as ${tok}`); continue; }
       const sql = p.sql;
       if (!st.core) { if (p.lesson !== st.lesson) err(`basic shapes: ${st.key} gave a problem of another lesson`); continue; }
@@ -516,8 +524,9 @@ console.log('11. Check tests (確認テスト)');
         insert: /^INSERT INTO \w+ \(.+\) VALUES \(.+\);$/.test(sql), update: /^UPDATE \w+ SET .+ WHERE .+;$/.test(sql), delete: /^DELETE FROM \w+ WHERE .+;$/.test(sql) }[st.key];
       if (!okShape) err(`basic shapes: ${st.key} gave another shape: ${sql}`);
     }
-    let x = null; for (const ok of [true, true, true, false, true, true, true, true, true, true, true]) x = B.basicResult(x, ok);   // fill ×2 → order: 1 right, 1 wrong → fill ×2 → order ×2 → write ×3
-    if (x.f !== 2 || !x.clear || x.n !== 11 || x.ok !== 10) err(`basic shapes: the ladder is wrong (${JSON.stringify(x)})`);
+    let x = null; for (const ok of [true, true, true, false, true, true, true, true, true, true, true, true, true]) x = B.basicResult(x, ok);   // words ×2 → fill: 1 right, 1 wrong → words ×2 → fill ×2 → order ×2 → write ×3
+    if (B.basicNorm({ f: 1, n: 4, run: 0 }).f !== 2 || B.basicNorm({ f: 1, n: 4, v: 2 }).f !== 1 || B.basicNorm(null).f !== 0) err('basic shapes: a state from before the shape in words does not stay where it was');
+    if (x.f !== 3 || !x.clear || x.n !== 13 || x.ok !== 12) err(`basic shapes: the ladder is wrong (${JSON.stringify(x)})`);
     if (B.basicResult({ f: 2, run: 2 }, false).f !== 1 || B.basicResult({ f: 0, run: 0 }, false).f !== 0) err('basic shapes: a wrong answer does not go one format back');
     if (B.BASIC_DETAIL.length < 15 || ['like', 'between', 'null', 'groupby', 'having', 'inner', 'left'].some(k => !B.BASIC_BY_KEY[k])) err('basic shapes: an item of the course has no shape');
     if (B.nextStep({ cols: { clear: true }, wnum: { clear: true } }) !== 'wtext') err('basic shapes: the next step is wrong');

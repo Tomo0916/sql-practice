@@ -73,7 +73,10 @@ export function createEditor(parent, o) {
     set(text) { view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, selection: { anchor: text.length } }); },
     /** insert at the cursor; `back` moves the cursor left afterwards (e.g. inside quotes) */
     insert(text, back) {
-      const { from, to } = view.state.selection.main;
+      let { from, to } = view.state.selection.main;
+      if (!view.hasFocus && from === 0 && to === 0 && view.state.doc.length) {   // never clicked into: add at the end (before the last ;)
+        const doc = view.state.doc.toString(), end = doc.replace(/\s*;?\s*$/, '').length; from = to = end;
+      }
       const before = view.state.doc.sliceString(Math.max(0, from - 1), from);
       const pad = before && !/\s|\(/.test(before) && !/^[,.)]/.test(text) ? ' ' : '';
       const ins = pad + text;
