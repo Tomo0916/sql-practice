@@ -180,3 +180,15 @@ export function modal(html, opts) {
 }
 export function closeModal() { const m = document.getElementById('modal'); if (m) m.remove(); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ---------- choosing how many problems (the same everywhere: practice, quick test, assignment) ----------
+ * the usual numbers as big buttons, − / + for any other number in [min, max], and how long it takes
+ * opts: { act, k (data-k), value, presets, min, max, secEach (seconds a problem, for the estimate), lang } */
+export function countPickHTML(o) {
+  const v = o.value, btn = n => `<button type="button" class="cp-n ${n === v ? 'on' : ''}" data-act="${o.act}" data-k="${o.k}" data-v="${n}" aria-pressed="${n === v}"><b>${n}</b></button>`;
+  const off = !o.presets.includes(v), min = Math.round((o.secEach || 60) * v / 60);
+  return `<div class="cpick" role="group">
+    <div class="cp-row">${o.presets.map(btn).join('')}
+      <span class="cp-step ${off ? 'on' : ''}"><button type="button" data-act="${o.act}" data-k="${o.k}" data-v="${Math.max(o.min, v - 1)}" aria-label="−" ${v <= o.min ? 'disabled' : ''}>−</button><b>${v}</b><button type="button" data-act="${o.act}" data-k="${o.k}" data-v="${Math.min(o.max, v + 1)}" aria-label="+" ${v >= o.max ? 'disabled' : ''}>+</button></span></div>
+    <small class="cp-est">${th('cnt.sum', o.lang, { n: v, m: Math.max(1, min) })}</small></div>`;
+}

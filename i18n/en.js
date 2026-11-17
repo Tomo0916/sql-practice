@@ -1474,5 +1474,6 @@ export default {
   "dif.base": "basic form",
   "dif.fineNote": "This lesson has {n} levels. The higher the number, the harder the SQL form or the more columns to get.",
   "dif.bandNote": "(each lesson gives one of its own levels)",
-  "pr.upNext": "All correct! Try the next level."
+  "pr.upNext": "All correct! Try the next level.",
+  "cnt.sum": "{n} problems · about {m} min"
 };

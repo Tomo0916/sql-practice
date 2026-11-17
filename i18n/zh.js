@@ -1473,5 +1473,6 @@ export default {
   "dif.base": "基本形式",
   "dif.fineNote": "本课共有 {n} 个等级。数字越大，SQL 形式越难，或要取出的列越多。",
   "dif.bandNote": "（每门课程会使用其自身的某个等级）",
-  "pr.upNext": "全部正确！挑战下一个等级吧。"
+  "pr.upNext": "全部正确！挑战下一个等级吧。",
+  "cnt.sum": "{n} 题 · 约 {m} 分钟"
 };

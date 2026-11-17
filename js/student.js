@@ -15,7 +15,7 @@ import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
-import { choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
+import { countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
@@ -903,12 +903,12 @@ function oneTableHTML() {
 /* ---------- practice by difficulty (難易度を選んで練習): #/practice = choose, #/practice/<lesson> = with that lesson, #/practice/go = solve ----------
  * one lesson: any of its own levels (Lv1 … Lvn, each a variant of its SQL and how many more columns);
  * several lessons: a band (基本 · 標準 · 発展) = the first, the middle or the last level of each */
-const PR_KEY = 'sqln.prac', PR_N = [5, 10], PR_FMT = ['fill', 'order1', 'write'];
+const PR_KEY = 'sqln.prac', PR_N = [3, 5, 10, 15], PR_FMT = ['fill', 'order1', 'write'];
 const prLessons = () => LESSONS.filter(l => levelsOf(l.key).length);
 function prConfig() {
   const c = Store.get(PR_KEY, null) || {}, ok = new Set(prLessons().map(l => l.key)), lessons = (Array.isArray(c.lessons) ? c.lessons : []).filter(k => ok.has(k));
   const n = lessons.length === 1 ? levelsOf(lessons[0]).length : 0;
-  return { lessons, lv: [1, 2, 3].includes(c.lv) ? c.lv : 1, fine: n ? Math.max(1, Math.min(n, +c.fine || 1)) : 0, fmt: PR_FMT.includes(c.fmt) ? c.fmt : 'write', n: PR_N.includes(c.n) ? c.n : 5 };
+  return { lessons, lv: [1, 2, 3].includes(c.lv) ? c.lv : 1, fine: n ? Math.max(1, Math.min(n, +c.fine || 1)) : 0, fmt: PR_FMT.includes(c.fmt) ? c.fmt : 'write', n: Number.isInteger(c.n) && c.n >= 1 && c.n <= 20 ? c.n : 5 };
 }
 const prFmtName = f => H(f === 'fill' ? 'stage.fill' : f === 'order1' ? 'stage.order' : 'rv.write');
 /** what a level of a lesson asks, as chips: its SQL, and + columns */
@@ -940,7 +940,7 @@ function pracSetupHTML() {
         return `<div class="qs-ch" style="--cc:var(--c-${ch.key})"><span class="qs-chn">${rubyHTML(raw('ch.' + ch.key, L()))}</span><div class="qs-ls">${ls.map(l => `<button class="qs-l ${on.has(l.key) ? 'on' : ''}" data-act="prLesson" data-v="${l.key}"><b>${l.no}</b>${lessonTitleHTML(l, L())} <small class="muted">Lv1–${levelsOf(l.key).length}</small></button>`).join('')}</div></div>`; }).join('')}</div>
       ${lvPick}
       ${ex ? `<div class="pr-ex"><small class="muted">${H('pr.example', { name: lessonTitle(LESSON_BY_KEY[ex.lesson], L()) })} · Lv${ex.lv}</small><p class="small">${problemHTML(ex, L())}</p><pre class="sql">${highlightSQL(ex.sql)}</pre></div>` : ''}
-      <div class="qs-row"><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('fmt', PR_FMT, prFmtName)}</div><div class="fld"><span>${H('tc.quick.count')}</span>${seg('n', PR_N, v => v)}</div></div>
+      <div class="qs-row"><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('fmt', PR_FMT, prFmtName)}</div><div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'prSet', k: 'n', value: c.n, presets: PR_N, min: 1, max: 20, secEach: c.fmt === 'write' ? 90 : 50, lang: L() })}</div></div>
       <div class="row-btns"><a class="btn btn-primary btn-lg ${c.lessons.length ? '' : 'disabled'}" href="${c.lessons.length ? '#/practice/go' : '#/practice'}">${H('pr.start')}${I.next}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div>
       ${c.lessons.length ? '' : `<p class="muted small">${H('pr.pick')}</p>`}
     </section></main>`;
