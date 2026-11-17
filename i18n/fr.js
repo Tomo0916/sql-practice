@@ -1356,5 +1356,20 @@ export default {
   "task.continue": "Continuer",
   "task.start": "Commencer",
   "task.none": "Pas de devoir pour le moment.",
-  "task.total": "Devoir résolu : {n} / {m}"
+  "task.total": "Devoir résolu : {n} / {m}",
+  "lv.part.A": "Problème de base",
+  "lv.part.A2": "Problème de base (un de plus)",
+  "lv.part.B": "Problème avancé",
+  "lv.part.C": "Problème standard",
+  "lv.part.P": "Vérification (ordre)",
+  "lv.part.R": "Deuxième regard sur un chapitre précédent",
+  "lv.sc.0": "Pas encore",
+  "lv.sc.1": "Presque",
+  "lv.sc.2": "Réussi",
+  "lv.sc.3": "Point fort",
+  "lv.testNoteA": "Le problème suivant devient plus facile ou plus difficile selon vos réponses. 2 à 3 problèmes par chapitre, environ 12 à 20 au total.",
+  "lv.adapt": "Le problème suivant dépend de vos réponses. Si vous ne savez pas, vous pouvez passer.",
+  "lv.how": "Décidé à partir de {n} réponses.",
+  "lv.review": "Problèmes résolus",
+  "lv.yours": "Votre réponse"
 };

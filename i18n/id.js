@@ -1356,5 +1356,20 @@ export default {
   "task.continue": "Lanjutkan",
   "task.start": "Mulai",
   "task.none": "Saat ini tidak ada tugas.",
-  "task.total": "Tugas benar: {n} / {m}"
+  "task.total": "Tugas benar: {n} / {m}",
+  "lv.part.A": "Soal dasar",
+  "lv.part.A2": "Soal dasar (satu lagi)",
+  "lv.part.B": "Soal lanjutan",
+  "lv.part.C": "Soal standar",
+  "lv.part.P": "Pengecekan (urutan)",
+  "lv.part.R": "Melihat lagi bab sebelumnya",
+  "lv.sc.0": "Belum",
+  "lv.sc.1": "Hampir",
+  "lv.sc.2": "Lulus",
+  "lv.sc.3": "Kuat",
+  "lv.testNoteA": "Soal berikutnya menjadi lebih mudah atau sulit sesuai jawabanmu. 2–3 soal per bab, sekitar 12–20 soal seluruhnya.",
+  "lv.adapt": "Soal berikutnya bergantung pada jawabanmu. Kalau tidak tahu, boleh dilewati.",
+  "lv.how": "Ditentukan dari {n} jawaban.",
+  "lv.review": "Soal yang dikerjakan",
+  "lv.yours": "Jawabanmu"
 };

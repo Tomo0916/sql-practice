@@ -7,9 +7,12 @@
  *   4 INSERT / UPDATE / DELETE · 5 GROUP BY · 6 JOIN
  * Lv n = the first n chapters are passed.
  *
- * The test: 3 writing problems from each chapter (its first, middle and
- * last lesson), only the first answer counts, no hints. 2 of 3 right
- * passes a chapter. It stops early after two chapters in a row are failed.
+ * The test a student takes alone is adaptive (adaptiveStart … below): the next
+ * problem depends on the answers and the kind of mistake; a chapter gets a
+ * score 0 まだ · 1 あと少し · 2 合格 · 3 得意. The test sent to the whole class
+ * (quick.js levelSlots) is the fixed one: 3 writing problems from each chapter
+ * (its first, middle and last lesson), the score = right answers.
+ * Either way only the first answer counts, no hints, and 2 or more passes a chapter.
  *
  * Practice at a level (a round of 5): 3 problems from the chapter being
  * learned (the first one not passed) and 2 from chapters already passed.
@@ -78,6 +81,108 @@ export function testEnds(items, done, i) {
 export function afterTest(items, done, now) {
   const prof = testProfile(items, done);
   return { lv: levelOf(prof), prof, fmt: 0, streak: 0, ptr: 0, at: now, upd: now, rounds: 0 };
+}
+
+/* ---------- the adaptive placement test (適応型レベルテスト) ----------
+ * The next problem depends on the answers so far, and on the kind of mistake.
+ * In each chapter (2 or 3 problems):
+ *   A  basic (the chapter's first lesson, its first pattern), to write
+ *      right → B  advanced (the last lesson, a harder pattern): right → 3 得意 (done)
+ *                                                         wrong → C  standard (the middle lesson): right → 2 合格 · wrong → 1 あと少し
+ *      wrong, a slip (a typo, full-width or curly quotes, a misspelt column)
+ *            → A2 another basic one to write: right → C (2 合格 / 1 あと少し) · wrong → P
+ *      wrong otherwise → P  the basic one again as ordering (読めるか): right → 1 あと少し · wrong → 0 まだ
+ * A mistake that shows the shape of an earlier chapter is not there yet (no FROM, a missing comma,
+ * quotes …) puts that chapter back on the list: one more basic problem of it (再確認);
+ * wrong → it is not passed after all (at most 1).
+ * Chapters go in order; the test ends after a chapter with 0, or two chapters in a row below 2.
+ * Score 2 or more passes a chapter (as LV_PASS), so the level and the teacher's view read it as before.
+ *
+ * state = { seed, chs: [chapter numbers to test], c (index in chs), steps: [{ c, part, lesson, fmt, ok, why }],
+ *           score: { chapter: n }, recheck: [chapter], checked: [chapter], end }
+ * ========================================================= */
+export const LV_SLIPS = new Set(['fullwidth', 'smartQuote', 'doubleQuote', 'column', 'columnUnknown', 'values']);
+const SHAPE_CH = { cols: 0, wnum: 1, wtext: 1, order: 2, limit: 2, insert: 3, update: 3, delete: 3, alias: 0, like: 1, null: 1, having: 4, innercols: 5 };
+/** a wrong answer → 'slip' | { shape: an earlier chapter } | 'concept'  (shapeStep: the basic shape the mistake points to, from basics.js) */
+export function mistakeKind(c, dxKeys, shapeStep) {
+  const sc = shapeStep && SHAPE_CH[shapeStep] !== undefined ? SHAPE_CH[shapeStep] : null;
+  if (sc !== null && sc < c) return { shape: sc };
+  if ((dxKeys || []).length && dxKeys.every(k => LV_SLIPS.has(k))) return 'slip';
+  return 'concept';
+}
+export function adaptiveStart(seed, chapters) {
+  const chs = (Array.isArray(chapters) && chapters.length ? chapters.slice().sort((a, b) => a - b) : LV_CHAPTERS.map((x, i) => i));
+  return { seed, chs, c: 0, steps: [], score: {}, recheck: [], checked: [], end: false };
+}
+/** the part of a chapter to ask next (null = the chapter is decided), from its steps so far */
+function nextPart(steps) {
+  const by = Object.fromEntries(steps.map(x => [x.part, x]));
+  if (!by.A) return 'A';
+  if (by.A.ok) return !by.B ? 'B' : by.B.ok ? null : !by.C ? 'C' : null;
+  if (by.A.why === 'slip' && !by.A2) return 'A2';
+  if (by.A2 && by.A2.ok) return !by.C ? 'C' : null;
+  return !by.P ? 'P' : null;
+}
+/** the score of a decided chapter */
+function scoreOf(steps) {
+  const by = Object.fromEntries(steps.map(x => [x.part, x]));
+  if (by.B && by.B.ok) return 3;
+  if (by.C) return by.C.ok ? 2 : 1;
+  if (by.P) return by.P.ok ? 1 : 0;
+  return 0;
+}
+/** where the next problem comes from: { c: chapter, part, lesson, fmt, tier } or null (the test is over) */
+export function adaptiveNext(T) {
+  if (T.end) return null;
+  if (T.recheck.length) { const k = T.recheck[0]; const ls = chapterLessons(LV_CHAPTERS[k]); return { c: k, part: 'R', lesson: ls[0], fmt: 'write', tier: 0 }; }
+  const c = T.chs[T.c]; if (c === undefined) return null;
+  const part = nextPart(T.steps.filter(x => x.c === c && x.part !== 'R'));
+  if (!part) return null;
+  const ls = chapterLessons(LV_CHAPTERS[c]);
+  const lesson = part === 'B' ? ls[ls.length - 1] : part === 'C' ? ls[Math.floor((ls.length - 1) / 2)] || ls[0] : ls[0];
+  return { c, part, lesson, fmt: part === 'P' ? 'order2' : 'write', tier: part === 'B' ? 2 : part === 'C' ? 1 : 0 };
+}
+/** the state after an answer to `it` (the result of adaptiveNext): ok, and for a wrong answer its kind (mistakeKind) */
+export function adaptiveAnswer(T, it, ok, why) {
+  const o = Object.assign({}, T, { steps: [...T.steps, { c: it.c, part: it.part, lesson: it.lesson, fmt: it.fmt, ok: !!ok, why: ok ? null : typeof why === 'object' && why ? 'shape' : why || 'concept' }], score: Object.assign({}, T.score), recheck: T.recheck.slice(), checked: T.checked.slice() });
+  if (it.part === 'R') {   // the second look at an earlier chapter
+    o.recheck.shift(); o.checked.push(it.c);
+    if (!ok) o.score[it.c] = Math.min(1, o.score[it.c]);
+  } else if (!ok && why && typeof why === 'object' && why.shape !== undefined) {
+    const k = why.shape;
+    if (o.score[k] >= LV_PASS && !o.checked.includes(k) && !o.recheck.includes(k)) o.recheck.push(k);
+  }
+  if (it.part !== 'R') {
+    const c = it.c, steps = o.steps.filter(x => x.c === c && x.part !== 'R');
+    if (!nextPart(steps)) {   // the chapter is decided
+      o.score[c] = scoreOf(steps); o.c++;
+      const done = o.chs.slice(0, o.c), last = done[done.length - 1], prev = done[done.length - 2];
+      if (o.score[last] === 0 || (prev !== undefined && o.score[last] < LV_PASS && o.score[prev] < LV_PASS)) o.stop = true;
+    }
+  }
+  if ((o.stop || o.c >= o.chs.length) && !o.recheck.length) o.end = true;
+  return o;
+}
+/** the profile (score per chapter, null = not reached) and the level; chapters not in the test keep `prev` */
+export function adaptiveProfile(T, prev) {
+  const prof = LV_CHAPTERS.map((x, i) => (prev && prev[i] !== undefined && !T.chs.includes(i) ? prev[i] : null));
+  Object.entries(T.score).forEach(([c, n]) => { prof[+c] = n; });
+  return prof;
+}
+export function adaptiveResult(T, now, prev) {
+  const prof = adaptiveProfile(T, prev);
+  return { lv: levelOf(prof), prof, fmt: 0, streak: 0, ptr: 0, at: now, upd: now, rounds: 0 };
+}
+/** the problem for a step of the test (patterns: basic = the lesson's first, advanced = its later ones) */
+export function adaptiveProblem(engine, T, it, n, used) {
+  const pats = patternsOf(it.lesson, engine).list, R = makeRng(`${T.seed}|${n}|pat`);
+  const topic = it.tier === 0 ? pats[0] : it.tier === 2 ? pats[Math.max(0, pats.length - 1 - R.int(0, Math.min(1, pats.length - 1)))] : R.pick(pats);
+  const lesson = LESSON_BY_KEY[it.lesson], ladder = ladderOf(lesson);
+  const f = it.fmt === 'write' ? ladder.length - 1 : Math.max(0, ladder.indexOf('order2') >= 0 ? ladder.indexOf('order2') : ladder.length - 1);
+  const seen = new Set(used || []);
+  let p = null;
+  for (let k = 0; k < 6; k++) { p = patProblem(engine, it.lesson, topic, { f }, `lvA|${T.seed}|${n}|${k}`); if (p && !seen.has(p.sql)) break; }
+  return p && Object.assign({}, p, { id: `level:${T.seed}:${n}`, kind: 'practice', test: true, ch: it.c, src: p.id, lvStep: it });
 }
 
 /* ---------- practice at the level ---------- */

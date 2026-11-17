@@ -1356,5 +1356,20 @@ export default {
   "task.continue": "继续",
   "task.start": "开始",
   "task.none": "目前没有作业。",
-  "task.total": "作业答对：{n} / {m}"
+  "task.total": "作业答对：{n} / {m}",
+  "lv.part.A": "基础题",
+  "lv.part.A2": "基础题（再一题）",
+  "lv.part.B": "进阶题",
+  "lv.part.C": "标准题",
+  "lv.part.P": "确认（排序）",
+  "lv.part.R": "再次确认前面的章节",
+  "lv.sc.0": "未达到",
+  "lv.sc.1": "差一点",
+  "lv.sc.2": "合格",
+  "lv.sc.3": "擅长",
+  "lv.testNoteA": "下一题会根据你的回答变难或变易。每章 2～3 题，总共约 12～20 题。",
+  "lv.adapt": "下一题会根据你的回答而变化。不会的话可以跳过。",
+  "lv.how": "根据 {n} 个回答判定。",
+  "lv.review": "做过的题",
+  "lv.yours": "你的答案"
 };

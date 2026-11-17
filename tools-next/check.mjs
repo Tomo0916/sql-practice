@@ -608,5 +608,40 @@ console.log('13. Shape mix (型ミックス)');
   console.log(`   ${made} problems made`);
 }
 
+/* ---------- 14. the adaptive level test ---------- */
+console.log('14. Adaptive level test (適応型レベルテスト)');
+{
+  const V = await import('../js/level.js');
+  /** answer(it, n) → true | 'slip' | { shape } | 'concept' ; returns { T, items } */
+  const sim = (answer, seed = 'S', make = false) => {
+    let T = V.adaptiveStart(seed); const items = [];
+    for (let n = 0; n < 40; n++) {
+      const it = V.adaptiveNext(T); if (!it) break;
+      if (make) { const p = V.adaptiveProblem(eng, T, it, n, items.map(x => x.sql)); if (!p) { err(`adaptive test: no problem for ${it.lesson} ${it.part}`); break; } items.push(p);
+        if (LESSON_BY_KEY[p.lesson].ch !== V.LV_CHAPTERS[it.c]) err(`adaptive test: ${p.lesson} is not in chapter ${it.c}`);
+        if (it.fmt === 'write' && p.stage !== 'write') err(`adaptive test: ${it.part} of ${it.lesson} is not a writing problem`);
+        try { eng.exec(p.sql); } catch (e) { err(`adaptive test: the answer fails: ${p.sql}`); } }
+      const a = answer(it, n); T = V.adaptiveAnswer(T, it, a === true, a === true ? null : a);
+    }
+    return { T, items, lv: V.adaptiveResult(T, 1).lv, prof: V.adaptiveResult(T, 1).prof };
+  };
+  const knows = L => it => it.c < L;   // knows the chapters before L, nothing after
+  let r = sim(() => true, 'S', true);
+  if (r.lv !== 6 || r.T.steps.length !== 12 || r.prof.join() !== '3,3,3,3,3,3') err(`adaptive test: all right should be Lv 6 in 12 problems (${r.lv}, ${r.T.steps.length})`);
+  r = sim(knows(3), 'S2', true);
+  if (r.lv !== 3 || r.prof.join() !== '3,3,3,0,,' || r.T.steps.length !== 8) err(`adaptive test: knows 3 chapters → Lv 3 after 8 problems (${r.lv}, ${r.prof.join()}, ${r.T.steps.length})`);
+  r = sim(it => (it.c === 0 && it.part === 'A' ? 'slip' : it.c === 0 ? true : 'concept'));
+  if (r.prof[0] !== 2 || r.T.steps.filter(x => x.c === 0).map(x => x.part).join() !== 'A,A2,C') err(`adaptive test: a slip should give another basic problem (${r.T.steps.map(x => x.part).join()})`);
+  r = sim(it => (it.part === 'R' ? 'concept' : it.c === 0 ? it.part !== 'B' : it.c === 1 && it.part === 'A' ? { shape: 0 } : 'concept'));
+  if (!r.T.steps.some(x => x.part === 'R') || r.prof[0] !== 1 || r.lv !== 0) err(`adaptive test: a shape mistake should check the earlier chapter again (${r.T.steps.map(x => x.c + x.part).join()}, ${r.prof.join()})`);
+  r = sim(it => (it.part === 'A' ? true : it.part === 'C' ? it.c < 1 : it.c < 1));
+  if (r.prof.join() !== '3,1,1,,,' || r.lv !== 1) err(`adaptive test: two chapters in a row below the pass should end it (${r.prof.join()})`);
+  r = sim(it => it.part === 'P');   // reads but cannot write: 1 everywhere → stops after two
+  if (r.prof.join() !== '1,1,,,,' || r.lv !== 0) err(`adaptive test: ordering only should be 'almost' (${r.prof.join()})`);
+  if (V.mistakeKind(2, ['missingComma'], 'cols').shape !== 0 || V.mistakeKind(2, ['fullwidth'], null) !== 'slip' || V.mistakeKind(0, ['missingComma'], 'cols') !== 'concept') err('adaptive test: mistakeKind');
+  for (let i = 0; i < 6; i++) sim((it, n) => ((n * 7 + i) % 3 !== 0), 'R' + i, true);
+  console.log('   profiles, slips, second looks and stops as planned');
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);
