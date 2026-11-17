@@ -913,39 +913,62 @@ export const LESSONS = [
  *   and to the problem text as "also get …")
  * Lv L asks for the variant min(L, its highest) and L − 1 more columns; a lesson with neither has only Lv 1.
  * ========================================================= */
-export const LEVELS = [1, 2, 3];
+export const BANDS = [1, 2, 3];   // 基本 · 標準 · 発展: a part of each lesson's levels (for a test of many lessons)
 export const MORE_COLS = new Set(['select', 'alias', 'where', 'andor', 'like', 'orderby', 'limit',   // (Lesson 8's tables have no column to spare)
   'aggfn', 'groupby', 'having', 'wherehaving',            // more aggregates: AVG(…), MAX(…) …
   'innercols', 'innerwhere', 'antijoin', 'leftorder']);   // more columns of the joined tables: table.column
 export const MORE_AGG = new Set(['aggfn', 'groupby', 'having', 'wherehaving']);
 const strip = sql => String(sql).replace(/'(?:[^']|'')*'/g, "''");
-const VARIANT = {
-  where: sql => (/<>/.test(strip(sql)) ? 3 : /WHERE \S+ (>=|<=|>|<) /.test(strip(sql)) ? 2 : 1),
-  andor: sql => (/\bNOT\b/.test(strip(sql)) ? 3 : /\bOR\b/.test(strip(sql)) ? 2 : 1),
-  between: sql => (/\bIN \(/.test(strip(sql)) ? 2 : 1),
-  null: sql => (/IS NOT NULL/.test(sql) ? 2 : 1),
-  orderby: sql => (/ORDER BY [^;]*,/.test(sql) ? 3 : /\bDESC\b/.test(sql) ? 2 : 1),
-  distinct: sql => (/\bDESC\b/.test(sql) ? 2 : 1),
-  limit: sql => (/\bOFFSET\b/.test(sql) ? 2 : 1),
-  insert: sql => ((/\(([^)]*)\) VALUES/.exec(sql) || ['', ''])[1].split(',').length > 4 ? 2 : 1),
-  update: sql => (/SET \w+ = \w+ [-+*\/]/.test(strip(sql)) ? 2 : 1),
-  delete: sql => (/WHERE \S+ (>=|<=|>|<) /.test(strip(sql)) ? 2 : 1),
-  alias: sql => (/SELECT \w+, [a-z_]+ [-+*\/] [a-z_]+ AS/.test(strip(sql)) ? 2 : 1)
+const CMP = /WHERE \S+ (>=|<=|>|<) /;
+/** the variants of a lesson's own SQL, easiest first: a test of the SQL, and a short label (SQL, the same in every language) */
+const VARIANTS = {
+  where: [['= 100', s => / = \d/.test(s) && !/<>/.test(strip(s))], ["= 'abc'", s => / = '/.test(s)], ['> < >= <=', s => CMP.test(strip(s))], ['<>', s => /<>/.test(strip(s))]],
+  andor: [['AND', s => /\bAND\b/.test(strip(s)) && !/\b(OR|NOT)\b/.test(strip(s))], ['OR', s => /\bOR\b/.test(strip(s)) && !/\bNOT\b/.test(strip(s))], ['NOT', s => /\bNOT\b/.test(strip(s))]],
+  between: [['BETWEEN', s => /BETWEEN/.test(s)], ['IN (…)', s => /\bIN \(/.test(strip(s))]],
+  null: [['IS NULL', s => !/IS NOT NULL/.test(s)], ['IS NOT NULL', s => /IS NOT NULL/.test(s)]],
+  orderby: [['ASC', s => !/ORDER BY [^;]*,/.test(s) && !/\bDESC\b/.test(s)], ['DESC', s => !/ORDER BY [^;]*,/.test(s) && /\bDESC\b/.test(s)], ['ORDER BY a, b', s => /ORDER BY [^;]*,/.test(s)]],
+  distinct: [['ASC', s => !/\bDESC\b/.test(s)], ['DESC', s => /\bDESC\b/.test(s)]],
+  limit: [['LIMIT n', s => !/\bOFFSET\b/.test(s)], ['LIMIT n OFFSET k', s => /\bOFFSET\b/.test(s)]],
+  insert: [['(a, b, c, d)', s => (/\(([^)]*)\) VALUES/.exec(s) || ['', ''])[1].split(',').length <= 4], ['(a, b, c, d, e, f)', s => (/\(([^)]*)\) VALUES/.exec(s) || ['', ''])[1].split(',').length > 4]],
+  update: [['SET a = 1', s => !/SET \w+ = \w+ [-+*\/]/.test(strip(s))], ['SET a = a + 1', s => /SET \w+ = \w+ [-+*\/]/.test(strip(s))]],
+  delete: [['WHERE a = 100', s => / = \d/.test(s)], ["WHERE a = 'abc'", s => / = '/.test(s)], ['WHERE a > 100', s => CMP.test(strip(s))]],
+  alias: [['a * 10 AS x', s => !/SELECT \w+, [a-z_]+ [-+*\/] [a-z_]+ AS/.test(strip(s))], ['a * b AS x', s => /SELECT \w+, [a-z_]+ [-+*\/] [a-z_]+ AS/.test(strip(s))]]
 };
-const MAX_VARIANT = { where: 3, andor: 3, orderby: 3, between: 2, null: 2, distinct: 2, limit: 2, insert: 2, update: 2, delete: 2, alias: 2 };
-export const variantOf = (key, sql) => (VARIANT[key] ? VARIANT[key](sql) : 1);
-/** the levels a lesson has */
-export function levelsOf(key) {
-  const l = LESSONS.find(x => x.key === key);
-  if (!l || l.ch === 'analysis' || l.kind === 'quiz' || l.fixed) return [];
-  return LEVELS.slice(0, Math.max(MAX_VARIANT[key] || 1, MORE_COLS.has(key) ? 1 + (MAX_MORE[key] || 2) : 1));
+/** the variant of a problem's SQL (1 = the easiest; 1 for a lesson without variants) */
+export const variantOf = (key, sql) => { const vs = VARIANTS[key]; if (!vs) return 1; const i = vs.findIndex(([, test]) => test(sql)); return i < 0 ? 0 : i + 1; };
+/** at most this many more columns (the tables of these lessons have few, or more to spare) */
+const MAX_MORE = { antijoin: 1, innerwhere: 1, select: 3 };
+const maxMore = key => (MORE_COLS.has(key) ? (MAX_MORE[key] !== undefined ? MAX_MORE[key] : 2) : 0);
+/**
+ * The levels of a lesson, easiest first: every pair (variant, more columns), ordered by
+ * how far each is from the easiest (variant − 1 + more), then the harder SQL before more columns.
+ * e.g. WHERE: = 100 · = 100 +1 · = 'abc' · = 100 +2 · = 'abc' +1 · > < … · …  · <> +2 (12 levels)
+ */
+const LEVEL_CACHE = new Map();
+function levelList(key) {
+  if (LEVEL_CACHE.has(key)) return LEVEL_CACHE.get(key);
+  const l = LESSONS.find(x => x.key === key), out = [];
+  if (l && l.ch !== 'analysis' && l.kind !== 'quiz' && !l.fixed) {
+    const V = (VARIANTS[key] || [null]).length, M = maxMore(key);
+    for (let v = 1; v <= V; v++) for (let m = 0; m <= M; m++) out.push({ v, more: m });
+    out.sort((a, b) => (a.v + a.more) - (b.v + b.more) || a.more - b.more);
+  }
+  LEVEL_CACHE.set(key, out);
+  return out;
 }
-/** at most this many more columns (the tables of these lessons have few to spare) */
-const MAX_MORE = { antijoin: 1, innerwhere: 1 };
+/** the levels a lesson has: [1, 2, … n] */
+export const levelsOf = key => levelList(key).map((x, i) => i + 1);
 /** what Lv L asks of a lesson: { v: the variant, more: columns to add }, or null */
-export function levelSpec(key, L) {
-  if (!levelsOf(key).includes(L)) return null;
-  return { v: Math.min(L, MAX_VARIANT[key] || 1), more: MORE_COLS.has(key) ? Math.min(L - 1, MAX_MORE[key] || 2) : 0 };
+export const levelSpec = (key, L) => levelList(key)[L - 1] || null;
+/** what a level means, for the eyes: { sql: the variant's label or null, more: columns added, agg: they are aggregates } */
+export function levelInfo(key, L) {
+  const x = levelSpec(key, L); if (!x) return null;
+  return { sql: VARIANTS[key] ? VARIANTS[key][x.v - 1][0] : null, more: x.more, agg: MORE_AGG.has(key) };
+}
+/** a band (基本 1 · 標準 2 · 発展 3) as one of the lesson's levels: the first, the middle, the last */
+export function bandLevel(key, band) {
+  const n = levelList(key).length; if (!n || !band) return 0;
+  return band === 1 ? 1 : band === 2 ? Math.ceil((n + 1) / 2) : n;
 }
 /** the SQL with more columns at the end of the SELECT list */
 export const addCols = (sql, more) => String(sql).replace(/^(\s*SELECT\s+(?:DISTINCT\s+)?)([\s\S]*?)(\s+FROM\s)/i, (m, a, list, b) => `${a}${list}, ${more.join(', ')}${b}`);

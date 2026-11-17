@@ -10,7 +10,7 @@
  * ========================================================= */
 import { LANGS, LANG_CODES, loadLang, hasLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, formatKey, grade, checkAnswer, todayCode, randomCode, normCode, makeRng } from './engine.js';
-import { LESSONS, CHAPTERS, levelsOf } from './lessons.js';
+import { LESSONS, CHAPTERS, levelsOf, levelInfo } from './lessons.js';
 import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
@@ -900,17 +900,25 @@ function oneTableHTML() {
     </div>
   </main>`;
 }
-/* ---------- practice by difficulty (難易度を選んで練習): #/practice = choose, #/practice/<lesson> = with that lesson, #/practice/go = solve ---------- */
+/* ---------- practice by difficulty (難易度を選んで練習): #/practice = choose, #/practice/<lesson> = with that lesson, #/practice/go = solve ----------
+ * one lesson: any of its own levels (Lv1 … Lvn, each a variant of its SQL and how many more columns);
+ * several lessons: a band (基本 · 標準 · 発展) = the first, the middle or the last level of each */
 const PR_KEY = 'sqln.prac', PR_N = [5, 10], PR_FMT = ['fill', 'order1', 'write'];
 const prLessons = () => LESSONS.filter(l => levelsOf(l.key).length);
 function prConfig() {
-  const c = Store.get(PR_KEY, null) || {}, ok = new Set(prLessons().map(l => l.key));
-  return { lessons: (Array.isArray(c.lessons) ? c.lessons : []).filter(k => ok.has(k)), lv: [1, 2, 3].includes(c.lv) ? c.lv : 1, fmt: PR_FMT.includes(c.fmt) ? c.fmt : 'write', n: PR_N.includes(c.n) ? c.n : 5 };
+  const c = Store.get(PR_KEY, null) || {}, ok = new Set(prLessons().map(l => l.key)), lessons = (Array.isArray(c.lessons) ? c.lessons : []).filter(k => ok.has(k));
+  const n = lessons.length === 1 ? levelsOf(lessons[0]).length : 0;
+  return { lessons, lv: [1, 2, 3].includes(c.lv) ? c.lv : 1, fine: n ? Math.max(1, Math.min(n, +c.fine || 1)) : 0, fmt: PR_FMT.includes(c.fmt) ? c.fmt : 'write', n: PR_N.includes(c.n) ? c.n : 5 };
 }
 const prFmtName = f => H(f === 'fill' ? 'stage.fill' : f === 'order1' ? 'stage.order' : 'rv.write');
-/** one problem of a lesson at a level, in a format (the nearest one the lesson has) */
-function prProblem(key, lv, fmt, seed) {
-  const lesson = LESSON_BY_KEY[key], L = levelFor(key, lv) || 1, sets = S.engine.themesFor(lesson), R = makeRng(`pr|${seed}`);
+/** what a level of a lesson asks, as chips: its SQL, and + columns */
+function lvInfoHTML(key, L) {
+  const x = levelInfo(key, L); if (!x) return '';
+  return `${x.sql ? `<code class="lv-sql">${esc(x.sql)}</code>` : ''}${x.more ? `<span class="lv-more">${H(x.agg ? 'dif.moreAgg' : 'dif.more', { n: x.more })}</span>` : ''}${!x.sql && !x.more ? `<span class="lv-more">${H('dif.base')}</span>` : ''}`;
+}
+/** one problem of a lesson at its level L, in a format (the nearest one the lesson has) */
+function prProblem(key, L, fmt, seed) {
+  const lesson = LESSON_BY_KEY[key], sets = S.engine.themesFor(lesson), R = makeRng(`pr|${seed}`);
   for (const ds of R.shuffle(sets)) {
     const p = S.engine.genLevel(lesson, ds, `${seed}|${ds.table || ds.key}`, L); if (!p) continue;
     const tok = kindsOf(key).includes(fmt) ? fmt : 'write', pr = makeProblem(S.engine, lesson, p, ds.table || ds.key, tok) || makeProblem(S.engine, lesson, p, ds.table || ds.key, 'write');
@@ -918,17 +926,20 @@ function prProblem(key, lv, fmt, seed) {
   }
   return null;
 }
+const prLevelOf = (c, key) => (c.fine && c.lessons.length === 1 ? c.fine : levelFor(key, c.lv) || 1);
 function pracSetupHTML() {
   const c = prConfig(), on = new Set(c.lessons), seg = (k, vals, label) => `<div class="seg">${vals.map(v => `<button class="${c[k] === v ? 'on' : ''}" data-act="prSet" data-k="${k}" data-v="${v}">${label(v)}</button>`).join('')}</div>`;
-  const ex = c.lessons.length ? prProblem(c.lessons[0], c.lv, 'write', `ex|${c.lessons[0]}|${c.lv}`) : null;
+  const one = c.lessons.length === 1 ? c.lessons[0] : null, ex = c.lessons.length ? prProblem(c.lessons[0], prLevelOf(c, c.lessons[0]), 'write', `ex|${c.lessons[0]}|${prLevelOf(c, c.lessons[0])}`) : null;
+  const lvPick = one ? `<div class="fld"><span>${H('dif.title')}</span><span class="muted small">${H('dif.fineNote', { n: levelsOf(one).length })}</span></div>
+      <div class="lv-grid">${levelsOf(one).map(L => `<button class="lv-b ${c.fine === L ? 'on' : ''}" data-act="prSet" data-k="fine" data-v="${L}"><b>Lv${L}</b><span>${lvInfoHTML(one, L)}</span></button>`).join('')}</div>`
+    : `<div class="fld"><span>${H('dif.title')}</span>${seg('lv', [1, 2, 3], v => `${H('dif.' + v)}`)}</div><p class="muted small">${H('dif.about.' + c.lv)} ${c.lessons.length > 1 ? H('dif.bandNote') : ''}</p>`;
   return `<main class="wrap narrow pr-hub"><h1 class="page-title">🎚 ${H('pr.title')}</h1><p class="muted">${H('pr.sub')}</p>
     <section class="card pr-set">
       <div class="fld"><span>${H('pr.lessons')}</span>${on.size ? `<button class="btn btn-ghost btn-xs" data-act="prLesson" data-v="">${H('tc.quick.none')}</button>` : ''}</div>
       <div class="qs-chs">${CHAPTERS.map(ch => { const ls = prLessons().filter(l => l.ch === ch.key); if (!ls.length) return '';
-        return `<div class="qs-ch" style="--cc:var(--c-${ch.key})"><span class="qs-chn">${rubyHTML(raw('ch.' + ch.key, L()))}</span><div class="qs-ls">${ls.map(l => `<button class="qs-l ${on.has(l.key) ? 'on' : ''}" data-act="prLesson" data-v="${l.key}"><b>${l.no}</b>${lessonTitleHTML(l, L())}${levelsOf(l.key).length > 1 ? '' : ` <small class="muted">Lv1</small>`}</button>`).join('')}</div></div>`; }).join('')}</div>
-      <div class="fld"><span>${H('dif.title')}</span>${seg('lv', [1, 2, 3], v => `Lv${v} ${H('dif.' + v)}`)}</div>
-      <p class="muted small">${H('dif.about.' + c.lv)}</p>
-      ${ex ? `<div class="pr-ex"><small class="muted">${H('pr.example', { name: lessonTitle(LESSON_BY_KEY[ex.lesson], L()) })}</small><p class="small">${problemHTML(ex, L())}</p><pre class="sql">${highlightSQL(ex.sql)}</pre></div>` : ''}
+        return `<div class="qs-ch" style="--cc:var(--c-${ch.key})"><span class="qs-chn">${rubyHTML(raw('ch.' + ch.key, L()))}</span><div class="qs-ls">${ls.map(l => `<button class="qs-l ${on.has(l.key) ? 'on' : ''}" data-act="prLesson" data-v="${l.key}"><b>${l.no}</b>${lessonTitleHTML(l, L())} <small class="muted">Lv1–${levelsOf(l.key).length}</small></button>`).join('')}</div></div>`; }).join('')}</div>
+      ${lvPick}
+      ${ex ? `<div class="pr-ex"><small class="muted">${H('pr.example', { name: lessonTitle(LESSON_BY_KEY[ex.lesson], L()) })} · Lv${ex.lv}</small><p class="small">${problemHTML(ex, L())}</p><pre class="sql">${highlightSQL(ex.sql)}</pre></div>` : ''}
       <div class="qs-row"><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('fmt', PR_FMT, prFmtName)}</div><div class="fld"><span>${H('tc.quick.count')}</span>${seg('n', PR_N, v => v)}</div></div>
       <div class="row-btns"><a class="btn btn-primary btn-lg ${c.lessons.length ? '' : 'disabled'}" href="${c.lessons.length ? '#/practice/go' : '#/practice'}">${H('pr.start')}${I.next}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div>
       ${c.lessons.length ? '' : `<p class="muted small">${H('pr.pick')}</p>`}
@@ -936,29 +947,30 @@ function pracSetupHTML() {
 }
 function pracHTML() {
   document.title = `${T('pr.title')} · SQL Practice`;
-  if (S.route.pre) { const c = prConfig(); Store.set(PR_KEY, Object.assign(c, { lessons: [S.route.pre] })); history.replaceState(null, '', '#/practice'); S.route.pre = null; }
+  if (S.route.pre) { const c = prConfig(); Store.set(PR_KEY, Object.assign(c, { lessons: [S.route.pre], fine: 1 })); history.replaceState(null, '', '#/practice'); S.route.pre = null; }
   if (!S.route.go) { if (S.session && S.session.kind === 'prac') S.session = null; return pracSetupHTML(); }
   const c = prConfig();
   if (!c.lessons.length) return pracSetupHTML();
   if (!S.session || S.session.kind !== 'prac') {
     const seed = randomCode(6), R = makeRng(seed), order = R.shuffle(c.lessons), items = [];
-    for (let i = 0; items.length < c.n && i < c.n * 3; i++) { const p = prProblem(order[i % order.length], c.lv, c.fmt, `${seed}|${i}`); if (p && !items.some(x => x.sql === p.sql)) items.push(Object.assign(p, { id: `prac:${seed}:${i}` })); }
-    S.session = { kind: 'prac', items, i: 0, done: {}, lv: c.lv };
+    for (let i = 0; items.length < c.n && i < c.n * 3; i++) { const k = order[i % order.length], p = prProblem(k, prLevelOf(c, k), c.fmt, `${seed}|${i}`); if (p && !items.some(x => x.sql === p.sql)) items.push(Object.assign(p, { id: `prac:${seed}:${i}` })); }
+    S.session = { kind: 'prac', items, i: 0, done: {}, one: c.lessons.length === 1 ? c.lessons[0] : null, fine: c.fine, band: c.lv };
   }
-  const ses = S.session, n = ses.items.length;
+  const ses = S.session, n = ses.items.length, top = ses.one ? levelsOf(ses.one).length : 3, at = ses.one ? ses.fine : ses.band;
+  const what = ses.one ? `Lv${ses.fine} / ${top}` : H('dif.' + ses.band);
   if (ses.i >= n) {
-    const ok = ses.items.filter(p => ses.done[p.id]).length;
-    return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">🎚</div><h1>${H('review.finished')}</h1><p class="muted">Lv${ses.lv} ${H('dif.' + ses.lv)}</p><p class="big-score">${ok} / ${n}</p>
-      ${ok === n && ses.lv < 3 ? `<p class="qk-break">${H('pr.up', { n: ses.lv + 1 })}</p>` : ''}
-      <div class="row-btns"><button class="btn btn-primary" data-act="prAgain">${I.repeat}${H('cq.again')}</button>${ok === n && ses.lv < 3 ? `<button class="btn btn-primary" data-act="prUp">Lv${ses.lv + 1} ${H('dif.' + (ses.lv + 1))}${I.next}</button>` : ''}<a class="btn btn-ghost" href="#/practice">${H('bs.mix.settings')}</a></div></section></main>`;
+    const ok = ses.items.filter(p => ses.done[p.id]).length, up = ok === n && at < top;
+    return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">🎚</div><h1>${H('review.finished')}</h1><p class="muted">${what}</p><p class="big-score">${ok} / ${n}</p>
+      ${up ? `<p class="qk-break">${H('pr.upNext')}</p>` : ''}
+      <div class="row-btns"><button class="btn btn-primary" data-act="prAgain">${I.repeat}${H('cq.again')}</button>${up ? `<button class="btn btn-primary" data-act="prUp">${ses.one ? `Lv${at + 1}` : H('dif.' + (at + 1))}${I.next}</button>` : ''}<a class="btn btn-ghost" href="#/practice">${H('bs.mix.settings')}</a></div></section></main>`;
   }
   const prob = ses.items[ses.i], lesson = LESSON_BY_KEY[prob.lesson];
   return `<main class="wrap">
-    <div class="session-head"><h1>🎚 ${H('pr.title')} <span class="tag pr-lv">Lv${prob.lv} ${H('dif.' + prob.lv)}</span></h1>
+    <div class="session-head"><h1>🎚 ${H('pr.title')} <span class="tag pr-lv">${ses.one ? what : `${H('dif.' + ses.band)} · Lv${prob.lv}`}</span></h1>
       <div class="session-progress"><span>${ses.i + 1} / ${n}</span><div class="bar"><i style="width:${Math.round(ses.i / n * 100)}%"></i></div></div></div>
     <div class="session-layout">
       <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
-        <p class="muted small">${H('dif.about.' + prob.lv)}</p>
+        <div class="lv-now"><b>Lv${prob.lv}</b> ${lvInfoHTML(prob.lesson, prob.lv)}</div>
         <details class="point-d"><summary>${H('lesson.point')}</summary><div class="point">${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div></details>
         <a class="btn btn-ghost btn-xs" href="#/practice">${H('bs.mix.settings')}</a></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
@@ -1997,9 +2009,9 @@ const actions = {
   },
   tpAgain() { S.session = null; render(); window.scrollTo(0, 0); },
   prSet(el) { const c = prConfig(), k = el.dataset.k; c[k] = k === 'fmt' ? el.dataset.v : +el.dataset.v; Store.set(PR_KEY, c); render(); },
-  prLesson(el) { const c = prConfig(), v = el.dataset.v, order = prLessons().map(l => l.key); c.lessons = !v ? [] : c.lessons.includes(v) ? c.lessons.filter(x => x !== v) : order.filter(x => x === v || c.lessons.includes(x)); Store.set(PR_KEY, c); render(); },
+  prLesson(el) { const c = prConfig(), v = el.dataset.v, order = prLessons().map(l => l.key); c.lessons = !v ? [] : c.lessons.includes(v) ? c.lessons.filter(x => x !== v) : order.filter(x => x === v || c.lessons.includes(x)); c.fine = 1; Store.set(PR_KEY, c); render(); },
   prAgain() { S.session = null; render(); window.scrollTo(0, 0); },
-  prUp() { const c = prConfig(); c.lv = Math.min(3, c.lv + 1); Store.set(PR_KEY, c); S.session = null; render(); window.scrollTo(0, 0); },
+  prUp() { const c = prConfig(); if (c.fine) c.fine++; else c.lv = Math.min(3, c.lv + 1); Store.set(PR_KEY, c); S.session = null; render(); window.scrollTo(0, 0); },
   reviewMore() { S.session = null; render(); window.scrollTo(0, 0); },
   quickMore() { S.qMore = true; const f = qItems().find(p => !qDone(p)); location.hash = f ? `#/quick/${f.qn}` : '#/quick'; },
   levelRetest() { if (confirm(T('lv.retestConfirm'))) { S.session = null; location.hash = '#/level/test'; } },

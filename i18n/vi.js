@@ -1467,5 +1467,11 @@ export default {
   "pr.example": "Ví dụ ({name})",
   "pr.start": "Bắt đầu luyện tập",
   "pr.pick": "Hãy chọn ít nhất một bài học.",
-  "pr.up": "Đúng hết! Thử Lv{n} nhé."
+  "pr.up": "Đúng hết! Thử Lv{n} nhé.",
+  "dif.more": "+{n} cột",
+  "dif.moreAgg": "+{n} hàm tổng hợp",
+  "dif.base": "dạng cơ bản",
+  "dif.fineNote": "Bài học này có {n} mức. Số càng lớn thì dạng SQL càng khó hoặc càng nhiều cột cần lấy.",
+  "dif.bandNote": "(mỗi bài học dùng một mức của riêng nó)",
+  "pr.upNext": "Đúng hết! Thử mức tiếp theo nhé."
 };

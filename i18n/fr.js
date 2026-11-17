@@ -1467,5 +1467,11 @@ export default {
   "pr.example": "Exemple ({name})",
   "pr.start": "Commencer",
   "pr.pick": "Choisissez au moins une leçon.",
-  "pr.up": "Tout est juste ! Essayez le Lv{n}."
+  "pr.up": "Tout est juste ! Essayez le Lv{n}.",
+  "dif.more": "+{n} colonne(s)",
+  "dif.moreAgg": "+{n} agrégat(s)",
+  "dif.base": "forme de base",
+  "dif.fineNote": "Cette leçon a {n} niveaux. Plus le nombre est grand, plus la forme du SQL est difficile ou plus il y a de colonnes.",
+  "dif.bandNote": "(chaque leçon donne un de ses propres niveaux)",
+  "pr.upNext": "Tout est juste ! Essayez le niveau suivant."
 };

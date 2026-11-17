@@ -1266,3 +1266,13 @@ body.pj-open { overflow: hidden; }
 .btn.disabled { opacity: .5; pointer-events: none; }
 @media (max-width: 700px) { .qs-ch { grid-template-columns: 1fr; } }
 .pr-set { text-align: left; } .pr-set .fld { justify-content: flex-start; }
+/* the levels of one lesson: every one with what it asks */
+.lv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.lv-b { display: grid; gap: 4px; justify-items: start; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.lv-b:hover { border-color: var(--accent); }
+.lv-b.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.lv-b b { font-size: .9rem; } .lv-b span { display: flex; flex-wrap: wrap; gap: 4px; }
+.lv-sql { font-family: var(--mono); font-size: .75rem; padding: 1px 6px; border-radius: 5px; background: var(--surface-2); font-variant-ligatures: none; }
+.lv-more { font-size: .72rem; padding: 1px 6px; border-radius: 5px; background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); font-weight: 700; }
+.lv-now { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
+.pr-set .fld { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; text-align: left; }

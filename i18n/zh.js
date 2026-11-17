@@ -1467,5 +1467,11 @@ export default {
   "pr.example": "示例（{name}）",
   "pr.start": "开始练习",
   "pr.pick": "请至少选择一门课程。",
-  "pr.up": "全部正确！试试 Lv{n} 吧。"
+  "pr.up": "全部正确！试试 Lv{n} 吧。",
+  "dif.more": "列 +{n}",
+  "dif.moreAgg": "聚合 +{n}",
+  "dif.base": "基本形式",
+  "dif.fineNote": "本课共有 {n} 个等级。数字越大，SQL 形式越难，或要取出的列越多。",
+  "dif.bandNote": "（每门课程会使用其自身的某个等级）",
+  "pr.upNext": "全部正确！挑战下一个等级吧。"
 };
