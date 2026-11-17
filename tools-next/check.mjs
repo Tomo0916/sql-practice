@@ -696,5 +696,33 @@ console.log('15. Difficulty levels (難易度)');
 }
 function makeProbe(l, p) { try { return eng.buildProblem(l, p, 'write', 0, 'chk'); } catch (e) { return null; } }
 
+/* ---------- 16. the Python course (pandas) ---------- */
+console.log('16. Python course (pandas)');
+{
+  const P = await import('../js/pandas.js'), { execFileSync } = await import('node:child_process');
+  const probs = [];
+  for (const l of P.PD_LESSONS) for (const seed of ['a', 'b', 'c', 'd']) {
+    const set = P.pdSet(l.key, seed);
+    if (set.items.length < P.PD_N) err(`python: ${l.key} has only ${set.items.length} practice problems`);
+    [set.demo, ...set.items].forEach(p => probs.push({ id: p.id + '|' + seed, code: p.code, need: Object.keys(P.pdTables(p)), lesson: l.key }));
+  }
+  let res = null;
+  try { res = JSON.parse(execFileSync('python3', [new URL('./pd-check.py', import.meta.url).pathname], { input: JSON.stringify({ tables: P.pdAllTables(), problems: probs }), maxBuffer: 64 << 20 }).toString()); }
+  catch (e) { warn('python: CPython with pandas is not here, the reference answers were not run'); }
+  if (res) {
+    probs.forEach(p => { const r = res[p.id];
+      if (!r || r.error) err(`python: ${p.code} fails: ${r && r.error}`);
+      else if (r.kind === 'table' && !r.rows.length) err(`python: ${p.code} gives no rows`);
+      else if (r.kind === 'none') err(`python: ${p.code} gives nothing`); });
+    // the same answer written another way is right too
+    const alt = [['books.loc[books["price"] >= 1500, ["title", "price"]]', 'books[books["price"] >= 1500][["title", "price"]]', false],
+      ['books["genre"].value_counts()', 'books.groupby("genre").size()', false], ['books.sort_values("price", ascending=False).head(3)', 'books.nlargest(3, "price")', true]];
+    const r2 = JSON.parse(execFileSync('python3', [new URL('./pd-check.py', import.meta.url).pathname], { input: JSON.stringify({ tables: P.pdAllTables(), problems: alt.flatMap(([a, b], i) => [{ id: 'a' + i, code: a, need: ['books'] }, { id: 'b' + i, code: b, need: ['books'] }]) }) }).toString());
+    alt.forEach(([a, b, ord], i) => { if (!P.pdSame(r2['a' + i], r2['b' + i], ord)) err(`python: "${b}" should count as "${a}"`); });
+    if (P.pdSame(r2.a0, r2.a1, false)) err('python: different results count as the same');
+  }
+  console.log(`   ${probs.length} reference answers run`);
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

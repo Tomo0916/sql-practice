@@ -32,6 +32,8 @@ import { levelProfile } from './quick.js';
 import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, cqQuiz, cqRecord } from './clauses.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, slotProblems, kindsOf, levelFor } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
+import { installPy, pyRoute, pyHTML, pyMount, pyActions } from './py-ui.js';
+import { PD_LESSONS } from './pandas.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
 const S = {
@@ -131,6 +133,7 @@ function parseRoute() {
   if (h[0] === 'basics') return { view: 'session', kind: 'basics', step: BASIC_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'table') return { view: 'session', kind: 'table', ds: h[1] || null };
   if (h[0] === 'practice') return { view: 'session', kind: 'prac', go: h[1] === 'go', pre: LESSON_BY_KEY[h[1]] ? h[1] : null };
+  if (h[0] === 'py') return pyRoute(h);
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
   if (h[0] === 'mastery') return { view: 'mastery' };
@@ -205,10 +208,12 @@ function render() {
   else if (r.view === 'mastery') body = masteryHTML();
   else if (r.view === 'clauses') body = clausesHTML();
   else if (r.view === 'lecture') body = lectureHTML();
+  else if (r.view === 'py') body = pyHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
   app.innerHTML = head + quickBannerHTML() + liveBannerHTML() + body + footerHTML();
   mountWorkspace();
+  pyMount();
   drawJoinLines(app);
 }
 
@@ -305,6 +310,10 @@ function homeHTML() {
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_CORE.filter(x => bsState(x.key).clear).length} / ${BASIC_CORE.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/basics">${H('bs.open')}</a>
+    </section>
+    <section class="card mixcard drillcard pycard">
+      <div><span class="drill-ic py-ic">pd</span><div><b>${H('pd.title')} <span class="tag">${PD_LESSONS.filter(l => ((S.progress.py || {})[l.key] || {}).clear).length} / ${PD_LESSONS.length}</span></b><p class="muted">${H('pd.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/py">${H('pd.open')}</a>
     </section>
     <section class="card mixcard drillcard cqcard">
       <div><span class="drill-ic">🧩</span><div><b>${H('cq.title')} <span class="tag">${CQ_SETS.filter(k => cqRec(k).best === CQ_N).length} / ${CQ_SETS.length}</span></b><p class="muted">${H('cq.homeSub')}</p></div></div>
@@ -1948,6 +1957,7 @@ function checkOrder() {
  * EVENTS
  * ========================================================= */
 const actions = {
+  ...pyActions,
   lang: null,
   settings() { openSettings(); },
   classInfo() { openClassInfo(); },
@@ -2421,12 +2431,13 @@ setInterval(tickTimer, 250);
 window.addEventListener('storage', e => {
   if (e.key !== KEYS.progress || !e.newValue) return;
   S.progress = mergeProgress(loadProgress(), S.progress);
-  if (!S.editor || !document.activeElement || !document.activeElement.closest('.cm-editor')) render();
+  if (!document.activeElement || !document.activeElement.closest('.cm-editor')) render();
 });
 
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
+  installPy({ S, L, save, render });
   installCheckUI({ mode: 'student', lang: L, engine: () => S.engine, assigned: () => (S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k] && LESSON_BY_KEY[k].kind !== 'quiz') : []),
     onStart(cfg) { const code = encodeCheck(cfg); startCheck(code, cfg); if (location.hash === '#/check/' + code) render(); else location.hash = '#/check/' + code; } });
   S.route = parseRoute();

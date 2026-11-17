@@ -53,6 +53,10 @@ export function mergeProgress(stored, mine) {
   out.streak = (stored.streak || {}).day > (mine.streak || {}).day || ((stored.streak || {}).day === (mine.streak || {}).day && (stored.streak || {}).n > (mine.streak || {}).n) ? stored.streak : mine.streak;
   out.klass = {};   // the class assignment's rounds: solved in that class (the earliest time wins)
   new Set([...Object.keys(stored.klass || {}), ...Object.keys(mine.klass || {})]).forEach(k => { out.klass[k] = earliest((stored.klass || {})[k] || {}, (mine.klass || {})[k] || {}); });
+  out.py = {};   // the Python course: this tab's set (seed) wins; solved problems of that set from either side, the larger count, cleared on either side
+  new Set([...Object.keys(stored.py || {}), ...Object.keys(mine.py || {})]).forEach(k => { const a = (stored.py || {})[k], b = (mine.py || {})[k];
+    if (!a || !b) { out.py[k] = a || b; return; }
+    out.py[k] = { seed: b.seed, ok: b.seed === a.seed ? [...new Set([...(a.ok || []), ...(b.ok || [])])] : b.ok || [], n: Math.max(a.n || 0, b.n || 0), clear: !!(a.clear || b.clear) }; });
   out.drafts = mine.drafts || {};   // drafts belong to the tab (a removed draft must not come back)
   return out;
 }

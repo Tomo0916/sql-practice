@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "node check.mjs",
-    "vendor": "esbuild vendor-cm.js --bundle --format=esm --minify --outfile=../next/vendor/codemirror.js && esbuild vendor-sb.js --bundle --format=esm --minify --outfile=../next/vendor/supabase.js && esbuild vendor-qr.js --bundle --format=esm --minify --outfile=../next/vendor/qrcode.js"
+    "vendor": "esbuild vendor-cm.js --bundle --format=esm --minify --outfile=../vendor/codemirror.js && esbuild vendor-sb.js --bundle --format=esm --minify --outfile=../vendor/supabase.js && esbuild vendor-qr.js --bundle --format=esm --minify --outfile=../vendor/qrcode.js"
   },
   "devDependencies": {
     "@codemirror/autocomplete": "^6.18.0",
@@ -18,5 +18,8 @@
     "esbuild": "^0.23.0",
     "qrcode-generator": "^1.4.4",
     "sql.js": "1.8.0"
+  },
+  "dependencies": {
+    "@codemirror/lang-python": "^6.2.1"
   }
 }

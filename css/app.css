@@ -1291,3 +1291,50 @@ body.pj-open { overflow: hidden; }
 .cp-step b { min-width: 34px; text-align: center; font-size: 1.05rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .cp-step.on b { color: var(--accent); font-size: 1.2rem; }
 .cp-est { color: var(--ink-3); font-size: .8rem; }
+
+/* ---------- the Python course (pandas) ---------- */
+.py-ic { font: 800 .9rem/1 var(--mono); background: #ffd43b; color: #1e3a5f; border-radius: 10px; }
+.py-page { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.py-page > * { min-width: 0; }
+.py-hero { display: flex; gap: 16px; align-items: flex-start; padding: 20px; }
+.py-hero h1 { margin: 0 0 6px; font-size: 1.35rem; }
+.py-hero .bar { margin-top: 10px; }
+.py-logo { flex: none; width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font: 800 1.2rem/1 var(--mono); background: linear-gradient(135deg, #306998, #4b8bbe); color: #ffd43b; }
+.py-list { padding: 8px; margin: 0; }
+.py-crumb a { color: var(--ink-3); text-decoration: none; font-weight: 700; font-size: .9rem; }
+.py-head { padding: 18px 20px; }
+.py-head h1 { margin: 2px 0 8px; font-size: 1.3rem; }
+.py-point { margin: 0; color: var(--ink-2); line-height: 1.75; }
+.py-point code, .py-desc code { font-family: var(--mono); background: var(--code-bg); color: var(--code-ink); border-radius: 6px; padding: 1px 6px; font-size: .88em; overflow-wrap: anywhere; }
+.py-status { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--ink-2); font-size: .9rem; }
+.py-status.bad { background: var(--bad-soft); color: var(--bad); }
+.py-status .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--accent); animation: spin .8s linear infinite; flex: none; }
+.py-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.py-pill { min-width: 38px; height: 34px; padding: 0 10px; display: inline-grid; place-items: center; border-radius: 99px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font-weight: 700; text-decoration: none; font-size: .9rem; }
+.py-pill.demo { color: #b07800; border-color: color-mix(in srgb, #e0a100 50%, transparent); }
+.py-pill.on { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.py-pill.cur { outline: 2px solid var(--accent); outline-offset: 1px; }
+.py-sep { margin: 0 4px 0 10px; color: var(--ink-3); font-size: .82rem; font-weight: 700; }
+.py-new { margin-left: auto; }
+.py-q { padding: 18px 20px; }
+.py-q.is-demo { border-color: color-mix(in srgb, #e0a100 45%, transparent); }
+.py-tag { display: inline-block; font-size: .78rem; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
+.py-q.is-demo .py-tag { color: #b07800; }
+.py-desc { font-size: 1.12rem; line-height: 1.8; margin: 4px 0 12px; font-weight: 700; }
+.py-tables summary { cursor: pointer; color: var(--ink-2); font-weight: 700; font-size: .9rem; }
+.py-tables .data-box { max-height: 260px; overflow: auto; margin: 6px 0 10px; }
+.py-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+.py-actions .btn-ghost { margin-left: auto; }
+.py-code, .py-out, .py-err { font-family: var(--mono); background: var(--code-bg); color: var(--code-ink); border-radius: 10px; padding: 10px 12px; white-space: pre-wrap; overflow-x: auto; margin: 8px 0; font-size: .9rem; }
+.py-err { background: var(--bad-soft); color: var(--bad); }
+.py-res { padding: 16px 18px; display: grid; gap: 10px; }
+.py-verdict { font-weight: 800; padding: 10px 14px; border-radius: 10px; }
+.py-verdict.ok { background: var(--ok-soft); color: var(--ok); }
+.py-verdict.bad { background: var(--bad-soft); color: var(--bad); }
+.py-verdict pre { font-weight: 400; }
+.py-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
+.py-two > div { min-width: 0; }
+.py-two .data-box { max-height: 320px; overflow: auto; }
+.py-value { font: 700 1.4rem/1.2 var(--mono); padding: 12px 14px; background: var(--surface-2); border-radius: 10px; }
+.py-done { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--ok-soft); border-color: transparent; }
+.py-done b { color: var(--ok); }

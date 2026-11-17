@@ -5,3 +5,4 @@ export { sql, SQLite, SQLDialect } from '@codemirror/lang-sql';
 export { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 export { syntaxHighlighting, HighlightStyle, bracketMatching } from '@codemirror/language';
 export { tags } from '@lezer/highlight';
+export { python } from '@codemirror/lang-python';

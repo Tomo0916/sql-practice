@@ -6,7 +6,7 @@
 import {
   EditorView, keymap, placeholder as cmPlaceholder, Decoration, EditorState, StateEffect, StateField,
   defaultKeymap, history, historyKeymap, indentWithTab, sql, SQLite, SQLDialect, autocompletion, completionKeymap,
-  closeBrackets, closeBracketsKeymap, syntaxHighlighting, HighlightStyle, bracketMatching, tags
+  closeBrackets, closeBracketsKeymap, syntaxHighlighting, HighlightStyle, bracketMatching, tags, python
 } from '../vendor/codemirror.js';
 
 const style = HighlightStyle.define([
@@ -37,10 +37,11 @@ const markField = StateField.define({
   provide: f => EditorView.decorations.from(f)
 });
 const errMark = Decoration.mark({ class: 'cm-err' });
+const indentUnit4 = EditorState.tabSize.of(4);
 
 /**
  * @param {HTMLElement} parent
- * @param {{doc:string, schema:Object<string,string[]>, placeholder:string, label:string, onChange:Function, onRun:Function}} o
+ * @param {{lang?:'python', doc:string, schema:Object<string,string[]>, placeholder:string, label:string, onChange:Function, onRun:Function}} o
  */
 export function createEditor(parent, o) {
   const view = new EditorView({
@@ -51,8 +52,7 @@ export function createEditor(parent, o) {
         history(),
         closeBrackets(),
         bracketMatching(),
-        sql({ dialect: Dialect, schema: o.schema || {}, upperCaseKeywords: true }),
-        autocompletion({ activateOnTyping: true, icons: false }),
+        ...(o.lang === 'python' ? [python(), indentUnit4] : [sql({ dialect: Dialect, schema: o.schema || {}, upperCaseKeywords: true }), autocompletion({ activateOnTyping: true, icons: false })]),
         syntaxHighlighting(style),
         markField,
         cmPlaceholder(o.placeholder || ''),
@@ -78,7 +78,7 @@ export function createEditor(parent, o) {
         const doc = view.state.doc.toString(), end = doc.replace(/\s*;?\s*$/, '').length; from = to = end;
       }
       const before = view.state.doc.sliceString(Math.max(0, from - 1), from);
-      const pad = before && !/\s|\(/.test(before) && !/^[,.)]/.test(text) ? ' ' : '';
+      const pad = o.lang !== 'python' && before && !/\s|\(/.test(before) && !/^[,.)]/.test(text) ? ' ' : '';   // Python: exactly as given (df[ "a" ] …)
       const ins = pad + text;
       view.dispatch({ changes: { from, to, insert: ins }, selection: { anchor: from + ins.length - (back || 0) } });
       view.focus();
