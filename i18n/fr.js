@@ -1473,5 +1473,6 @@ export default {
   "dif.base": "forme de base",
   "dif.fineNote": "Cette leçon a {n} niveaux. Plus le nombre est grand, plus la forme du SQL est difficile ou plus il y a de colonnes.",
   "dif.bandNote": "(chaque leçon donne un de ses propres niveaux)",
-  "pr.upNext": "Tout est juste ! Essayez le niveau suivant."
+  "pr.upNext": "Tout est juste ! Essayez le niveau suivant.",
+  "cnt.sum": "{n} problèmes · environ {m} min"
 };

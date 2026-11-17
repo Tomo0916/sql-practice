@@ -512,3 +512,4 @@ details.rank .rk-head { justify-content: flex-end; }
 @media (max-width: 980px) { .qs-wrap { grid-template-columns: minmax(0, 1fr); } .qs-goal small { white-space: normal; } }
 .qs-main > * { min-width: 0; }
 .qs-row .fld, .q-limit { min-width: 0; flex-wrap: wrap; }
+.qs-step .seg-b { white-space: nowrap; }

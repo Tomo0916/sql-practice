@@ -1276,3 +1276,18 @@ body.pj-open { overflow: hidden; }
 .lv-more { font-size: .72rem; padding: 1px 6px; border-radius: 5px; background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); font-weight: 700; }
 .lv-now { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0; }
 .pr-set .fld { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; text-align: left; }
+
+/* ---------- choosing how many problems ---------- */
+.cpick { display: grid; gap: 6px; }
+.cp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cp-n { min-width: 46px; height: 46px; padding: 0 10px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; display: grid; place-items: center; transition: transform .12s, border-color .12s, background .12s; }
+.cp-n b { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.cp-n:hover { border-color: var(--accent); transform: translateY(-1px); }
+.cp-n.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent); }
+.cp-step { display: inline-flex; align-items: center; height: 46px; margin-left: 6px; padding-left: 10px; border-left: 1px solid var(--line); gap: 2px; }
+.cp-step button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; font-size: 1.1rem; cursor: pointer; display: grid; place-items: center; }
+.cp-step button:hover:not([disabled]) { border-color: var(--accent); color: var(--accent); }
+.cp-step button[disabled] { opacity: .35; cursor: default; }
+.cp-step b { min-width: 34px; text-align: center; font-size: 1.05rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.cp-step.on b { color: var(--accent); font-size: 1.2rem; }
+.cp-est { color: var(--ink-3); font-size: .8rem; }

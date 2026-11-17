@@ -35,7 +35,7 @@ export function usedKeys() {
   ['select', 'from', 'where', 'order', 'limit', 'group', 'having'].forEach(k => { keys.add('cq.role.' + k); keys.add('cq.tip.' + k); });
   keys.add('cq.tip.seq');
   MIX_KEYS.forEach(k => keys.add(k));
-  ['L.more', 'L.moreAgg', 'list.two', 'dif.any', 'dif.1', 'dif.2', 'dif.3', 'dif.about.1', 'dif.about.2', 'dif.about.3', 'bs.all.title', 'dif.more', 'dif.moreAgg'].forEach(k => keys.add(k));
+  ['L.more', 'L.moreAgg', 'list.two', 'dif.any', 'dif.1', 'dif.2', 'dif.3', 'dif.about.1', 'dif.about.2', 'dif.about.3', 'bs.all.title', 'dif.more', 'dif.moreAgg', 'cnt.sum'].forEach(k => keys.add(k));
   ['goalQuick', 'goalLevel', 'goalShape'].forEach(k => keys.add('tc.qs.' + k));
   ['A', 'A2', 'B', 'C', 'P', 'R'].forEach(k => keys.add('lv.part.' + k)); [0, 1, 2, 3].forEach(k => keys.add('lv.sc.' + k));
   ['col', 'table', 'val', 'cond', 'expr', 'alias'].forEach(k => keys.add('bs.w.' + k)); ['cols', 'wnum', 'wtext', 'order', 'limit', 'insert', 'update', 'delete'].forEach(k => keys.add('bs.d.' + k)); ['bs.abs.real', 'bs.abs.ng', 'bs.f.abs', 'bs.abs.startPractice', 'bs.abs.introInst'].forEach(k => keys.add(k));

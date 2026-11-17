@@ -1473,5 +1473,6 @@ export default {
   "dif.base": "dạng cơ bản",
   "dif.fineNote": "Bài học này có {n} mức. Số càng lớn thì dạng SQL càng khó hoặc càng nhiều cột cần lấy.",
   "dif.bandNote": "(mỗi bài học dùng một mức của riêng nó)",
-  "pr.upNext": "Đúng hết! Thử mức tiếp theo nhé."
+  "pr.upNext": "Đúng hết! Thử mức tiếp theo nhé.",
+  "cnt.sum": "{n} câu · khoảng {m} phút"
 };

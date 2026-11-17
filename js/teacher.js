@@ -25,7 +25,7 @@ import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
 import * as backend from './backend.js';
-import { answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
+import { countPickHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -220,11 +220,11 @@ function quickDraft(c) {
   const tb = d.tb && S.engine && tableSets(S.engine).some(x => x.key === d.tb) ? d.tb : '';
   const per = {};
   lessons.forEach(k => { const o = (d.per || {})[k] || { write: 1 }; per[k] = {}; KINDS.forEach(st => { per[k][st] = kindsOf(k).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +o[st] || 0)) : 0; }); });
-  return { mode: d.mode === 'detail' ? 'detail' : 'simple', lessons, n: QUICK_COUNTS.includes(d.n) ? d.n : 3, kind: QUICK_PRESETS.includes(d.kind) ? d.kind : 'write', per,
+  return { mode: d.mode === 'detail' ? 'detail' : 'simple', lessons, n: Number.isInteger(d.n) && d.n >= 1 && d.n <= 10 ? d.n : 3, kind: QUICK_PRESETS.includes(d.kind) ? d.kind : 'write', per,
     pass: Number.isInteger(d.pass) && d.pass >= 1 ? d.pass : null, limitSec: Number.isInteger(d.limitSec) && d.limitSec >= 0 && d.limitSec <= QUICK_MAX_SEC ? d.limitSec : Number.isInteger(d.limit) && d.limit >= 0 && d.limit <= 120 ? d.limit * 60 : 300,
     goal: d.goal === 'level' || d.goal === 'shape' ? d.goal : 'quick',   // 'level' = a level test: chosen chapters, first answer only; 'shape' = the shape mix (型ミックス)
     dif: [0, 1, 2, 3].includes(d.dif) ? d.dif : 0,   // difficulty: 0 = any (the lessons' own mix), 1 基本 · 2 標準 · 3 発展
-    shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), sk: SHAPE_KINDS.includes(d.sk) ? d.sk : 'mix', sn: SHAPE_COUNTS.includes(d.sn) ? d.sn : 5,
+    shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), sk: SHAPE_KINDS.includes(d.sk) ? d.sk : 'mix', sn: Number.isInteger(d.sn) && d.sn >= 1 && d.sn <= 20 ? d.sn : 5,
     lv: Array.isArray(d.lv) ? d.lv.filter(i => Number.isInteger(i) && i >= 0 && i < LV_MAX) : [0, 1, 2],
     tb,   // one table for every problem ('' = the usual mix of tables)
     limitBy: d.limitBy === 'end' ? 'end' : 'len', limitEnd: /^\d{1,2}:\d{2}$/.test(d.limitEnd || '') ? d.limitEnd : '', seed: d.seed, swaps: d.swaps || {},
@@ -326,8 +326,8 @@ function quickHTML(c) {
         : `<td class="muted center" title="${esc(T('tc.quick.noKind'))}">—</td>`).join('')}<td class="n"><b>${slots.filter(x => x.k === k).length}</b></td></tr>`; }).join('')}</tbody></table></div>
       <div class="row-btns left"><span class="muted small">${H('tc.quick.allTo')}</span>${KINDS.map(st => `<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="${st}">${H(KIND_LABEL[st])} ×1</button>`).join('')}<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="">${H('tc.quick.clear')}</button></div>`;
   const s3 = lvMode ? `<p class="muted small">${H('tc.qs.levelFixed', { n })}</p>`
-    : shMode ? `<div class="qs-row"><div class="fld"><span>${H('tc.quick.count')}</span>${seg('sn', SHAPE_COUNTS, d.sn, v => v)}</div><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('sk', SHAPE_KINDS, d.sk, shapeKindH)}</div></div>`
-    : `<div class="qs-row">${d.mode === 'detail' ? '' : `<div class="fld"><span>${H('tc.quick.count')}</span>${seg('n', QUICK_COUNTS, d.n, v => v)}</div><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', QUICK_PRESETS, d.kind, v => H('tc.quick.k.' + v))}</div>`}
+    : shMode ? `<div class="qs-row"><div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'quickSet', k: 'sn', value: d.sn, presets: SHAPE_COUNTS, min: 1, max: 20, secEach: 40, lang: L() })}</div><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('sk', SHAPE_KINDS, d.sk, shapeKindH)}</div></div>`
+    : `<div class="qs-row">${d.mode === 'detail' ? '' : `<div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'quickSet', k: 'n', value: d.n, presets: QUICK_COUNTS, min: 1, max: 10, secEach: d.kind === 'write' ? 120 : 80, lang: L() })}</div><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', QUICK_PRESETS, d.kind, v => H('tc.quick.k.' + v))}</div>`}
         <div class="fld"><span>${H('dif.title')}</span>${seg('dif', [0, 1, 2, 3], d.dif, v => H('dif.' + (v || 'any')))}</div></div>
       ${d.dif ? `<p class="muted small">${H('dif.note')}</p>` : ''}
       <details class="qs-more" ${d.mode === 'detail' ? 'open' : ''}><summary data-act="quickSet" data-k="mode" data-v="${d.mode === 'detail' ? 'simple' : 'detail'}">${H('tc.quick.perLesson')}</summary>${d.mode === 'detail' ? per : ''}</details>`;
@@ -575,7 +575,7 @@ const TDRAFT = 'sqln.taskDraft';
 const redrawTask = () => { const el = document.querySelector('.task-card'); if (el && S.klass) el.outerHTML = taskHTML(S.klass); };
 const isTaskRow = a => /^task:/.test(a.problem_id || '');
 const tasksInDb = c => Object.prototype.hasOwnProperty.call(c, 'tasks');
-function taskDraft() { const d = Store.get(TDRAFT, null) || {}; return { shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), kind: SHAPE_KINDS.includes(d.kind) ? d.kind : 'mix', n: SHAPE_COUNTS.includes(d.n) ? d.n : 10 }; }
+function taskDraft() { const d = Store.get(TDRAFT, null) || {}; return { shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), kind: SHAPE_KINDS.includes(d.kind) ? d.kind : 'mix', n: Number.isInteger(d.n) && d.n >= 1 && d.n <= 30 ? d.n : 10 }; }
 /** each student's result: { m, ok (problems solved), tried, last } */
 function taskRows(t) {
   const pre = `task:${t.id}:`, rows = (S.tAtt || []).filter(a => a.problem_id.startsWith(pre));
@@ -593,7 +593,7 @@ function taskHTML(c) {
   return `<section class="card task-card"><h2>🧱 ${H('tc.task.title')}</h2><p class="muted">${H('tc.task.sub')}</p>
     ${now}
     ${shapePickHTML(d.shapes, 'taskShape')}
-    <div class="q-row"><div class="fld"><span>${H('tc.quick.count')}</span>${seg('n', SHAPE_COUNTS, d.n, v => v)}</div>
+    <div class="q-row"><div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'taskSet', k: 'n', value: d.n, presets: SHAPE_COUNTS, min: 1, max: 30, secEach: 40, lang: L() })}</div>
       <div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', SHAPE_KINDS, d.kind, shapeKindH)}</div></div>
     <div class="actions"><button type="button" class="btn btn-primary" data-act="taskSave" ${d.shapes.length ? '' : 'disabled'}>📌 ${H(t ? 'tc.task.replace' : 'tc.task.give')}</button><span class="muted small">${H('tc.task.note')}</span></div>
   </section>`;
@@ -1267,7 +1267,7 @@ const actions = {
     const q = quickLog(S.klass).find(x => x.id === el.dataset.id); if (!q || !Array.isArray(q.slots)) return;
     if (q.slots.some(x => x.b)) {   // a shape mix: the same shapes, kinds and number
       const d = quickDraft(S.klass), same = !!el.dataset.same, sts = [...new Set(q.slots.map(x => x.st))];
-      Object.assign(d, { goal: 'shape', shapes: BASIC_STEPS.map(st => st.key).filter(k => q.slots.some(x => x.b === k)), sn: SHAPE_COUNTS.includes(q.slots.length) ? q.slots.length : d.sn, sk: sts.length === 1 ? sts[0] : 'mix',
+      Object.assign(d, { goal: 'shape', shapes: BASIC_STEPS.map(st => st.key).filter(k => q.slots.some(x => x.b === k)), sn: q.slots.length >= 1 && q.slots.length <= 20 ? q.slots.length : d.sn, sk: sts.length === 1 ? sts[0] : 'mix',
         swaps: {}, pass: q.pass < q.n ? q.pass : null, limitSec: Math.min(QUICK_MAX_SEC, limitSecOf(q)), limitBy: 'len', seed: same ? q.seed : randomCode(4), fixed: same ? { seed: q.seed, slots: q.slots, at: q.at } : null });
       saveQDraft(d, true); refreshTab(); toast(T(same ? 'tc.quick.readySame' : 'tc.quick.readyNew'));
       const top = document.querySelector('.quick-setup'); if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });

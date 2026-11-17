@@ -1473,5 +1473,6 @@ export default {
   "dif.base": "bentuk dasar",
   "dif.fineNote": "Pelajaran ini punya {n} tingkat. Makin besar angkanya, makin sulit bentuk SQL-nya atau makin banyak kolom yang diambil.",
   "dif.bandNote": "(tiap pelajaran memakai salah satu tingkatnya sendiri)",
-  "pr.upNext": "Semua benar! Coba tingkat berikutnya."
+  "pr.upNext": "Semua benar! Coba tingkat berikutnya.",
+  "cnt.sum": "{n} soal · sekitar {m} menit"
 };
