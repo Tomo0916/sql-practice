@@ -1428,5 +1428,19 @@ export default {
   "bs.abs.realEx": "Dalam SQL sungguhan, misalnya",
   "bs.abs.gapNg": "Belum tepat. Ini bentuknya",
   "bs.abs.tapHere": "Susun bagian-bagian di sini",
-  "bs.abs.hint": "Petunjuk: urutan klausa"
+  "bs.abs.hint": "Petunjuk: urutan klausa",
+  "tc.qs.goalQuick": "Beberapa soal dari pelajaran, untuk mengecek pemahaman di kelas",
+  "tc.qs.goalLevel": "Mengukur tiap bab (satu jawaban per siswa)",
+  "tc.qs.goalShape": "Bentuk dasar, dalam kata",
+  "tc.qs.s1": "Apa yang diberikan?",
+  "tc.qs.s2": "Cakupan",
+  "tc.qs.s3": "Jumlah dan jenis soal",
+  "tc.qs.s4": "Batas lulus dan waktu",
+  "tc.qs.picked": "{n} pelajaran dipilih",
+  "tc.qs.pickHint": "Tekan nama bab untuk memilih semuanya, atau satu pelajaran untuk memilih satu",
+  "tc.qs.levelFixed": "{n} soal dari bab yang dipilih (3 soal tulis per bab). Satu jawaban per siswa.",
+  "tc.qs.more": "Pengaturan lain",
+  "tc.qs.problems": "soal",
+  "tc.qs.none": "Pilih cakupan, lalu soal muncul di sini.",
+  "tc.qs.pvTip": "Tekan baris untuk melihat soal dan jawabannya. 🔁 menggantinya dengan soal lain sejenis."
 };

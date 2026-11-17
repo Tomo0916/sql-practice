@@ -1428,5 +1428,19 @@ export default {
   "bs.abs.realEx": "在真实的 SQL 中，例如",
   "bs.abs.gapNg": "不对。正确的句型是这样",
   "bs.abs.tapHere": "把部件排在这里",
-  "bs.abs.hint": "提示：子句的顺序"
+  "bs.abs.hint": "提示：子句的顺序",
+  "tc.qs.goalQuick": "课程中的少量题目，用于课堂确认",
+  "tc.qs.goalLevel": "测量各章的能力（每人只答一次）",
+  "tc.qs.goalShape": "用词语练基础句型",
+  "tc.qs.s1": "出什么？",
+  "tc.qs.s2": "范围",
+  "tc.qs.s3": "题数与题型",
+  "tc.qs.s4": "合格线与时间",
+  "tc.qs.picked": "已选 {n} 课",
+  "tc.qs.pickHint": "点章节名可整章选择，点课程可逐个选择",
+  "tc.qs.levelFixed": "从所选章节出 {n} 题（每章 3 道书写题）。每人只答一次。",
+  "tc.qs.more": "其他设置",
+  "tc.qs.problems": "题",
+  "tc.qs.none": "选择范围后，题目会显示在这里。",
+  "tc.qs.pvTip": "点击一行可查看题目和答案。🔁 可换成同类型的其他题目。"
 };

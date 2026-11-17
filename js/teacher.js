@@ -296,99 +296,74 @@ function shapeToggle(list, v) {
   ks.forEach(k => (all ? set.delete(k) : set.add(k)));
   return order.filter(k => set.has(k));
 }
+/* the set-up of a test, in four steps on the left (what · range · problems · pass line and time) and
+ * the test as it will be on the right (always in view): its numbers, the start button, the problems to look at and swap */
 function quickHTML(c) {
   if (quickOn(c)) return quickRunHTML(c, c.quick, true);
   const d = quickDraft(c), chosen = new Set(d.lessons), assigned = new Set(c.lessons || []);
-  const slots = draftSlots(d), probs = slotProblems(S.engine, d.seed, slots, d.tb), n = probs.length;
-  const pass = d.pass && d.pass < n ? d.pass : null;
-  const lessonBtn = l => `<label class="chk"><input type="checkbox" data-qlesson="${l.key}" ${chosen.has(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`;
-  const asg = checkLessons().filter(l => assigned.has(l.key)), asgOn = asg.length > 0 && asg.length === chosen.size && asg.every(l => chosen.has(l.key));
+  const slots = draftSlots(d), probs = slotProblems(S.engine, d.seed, slots, d.goal === 'shape' ? '' : d.tb), n = probs.length;
+  const pass = d.pass && d.pass < n ? d.pass : null, lvMode = d.goal === 'level', shMode = d.goal === 'shape';
   const seg = (k, vals, cur, label) => `<div class="seg">${vals.map(v => `<button class="seg-b ${cur === v ? 'on' : ''}" data-act="quickSet" data-k="${k}" data-v="${v === null ? '' : v}" aria-pressed="${cur === v}">${label(v)}</button>`).join('')}</div>`;
-  const passLabel = v => (v === null ? H('tc.quick.passAll') : H('tc.quick.passN', { n: v }));
-  const passBox = n <= 6
-    ? seg('pass', n > 1 ? [...Array.from({ length: n - 1 }, (_, i) => i + 1), null] : [null], pass, passLabel)
-    : `<select data-qsel="pass" aria-label="${esc(T('tc.quick.pass'))}">${[null, ...Array.from({ length: n - 1 }, (_, i) => n - 1 - i)].map(v => `<option value="${v === null ? '' : v}" ${pass === v ? 'selected' : ''}>${esc(v === null ? T('tc.quick.passAll') : T('tc.quick.passN', { n: v }))}</option>`).join('')}</select>`;
-  const simple = `<div class="q-row">
-      <div class="fld"><span>${H('tc.quick.count')}</span>${seg('n', QUICK_COUNTS, d.n, v => v)}</div>
-      <div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', QUICK_PRESETS, d.kind, v => H('tc.quick.k.' + v))}</div></div>`;
-  const detail = !d.lessons.length ? '' : `<div class="fld"><span>${H('tc.quick.perLesson')}</span>
-      <div class="q-table-wrap"><table class="q-table"><thead><tr><th>${H('tc.quick.lessonCol')}</th>${KINDS.map(st => `<th>${H(KIND_LABEL[st])}</th>`).join('')}<th class="n">${H('tc.quick.sum')}</th></tr></thead>
+  const step = (no, title, body, extra) => `<section class="card qs-step"><h3><i>${no}</i>${title}${extra || ''}</h3>${body}</section>`;
+  // 1. what to give
+  const goals = [['quick', '⚡', 'tc.quick.title', 'tc.qs.goalQuick'], ['level', '🎯', 'lv.testTitle', 'tc.qs.goalLevel'], ['shape', '🧱', 'bs.mix.title', 'tc.qs.goalShape']];
+  const s1 = `<div class="qs-goals">${goals.map(([k, ic, t, sub]) => `<button class="qs-goal ${d.goal === k ? 'on' : ''}" data-act="quickSet" data-k="goal" data-v="${k}" aria-pressed="${d.goal === k}"><span class="qs-ic">${ic}</span><b>${H(t)}</b><small>${H(sub)}</small></button>`).join('')}</div>`;
+  // 2. the range: every lesson in view, a chapter at a time
+  const asg = checkLessons().filter(l => assigned.has(l.key)), asgOn = asg.length > 0 && asg.length === chosen.size && asg.every(l => chosen.has(l.key));
+  const lessonsPick = `<div class="qs-quickbtns">${asg.length ? `<button class="btn btn-ghost btn-xs q-ch ${asgOn ? 'on' : ''}" data-act="quickChapter" data-v="@assign">${I.book}${H('tc.quick.fromAssign')} <span class="muted">${asg.length}</span></button>` : ''}
+      ${chosen.size ? `<button class="btn btn-ghost btn-xs" data-act="quickChapter" data-v="">${H('tc.quick.none')}</button><span class="muted small">${H('tc.qs.picked', { n: chosen.size })}</span>` : `<span class="muted small">${H('tc.qs.pickHint')}</span>`}</div>
+    <div class="qs-chs">${CHAPTERS.map(ch => { const ls = checkLessons().filter(l => l.ch === ch.key); if (!ls.length) return ''; const got = ls.filter(l => chosen.has(l.key)).length;
+      return `<div class="qs-ch" style="--cc:var(--c-${ch.key})"><button class="qs-chb ${got === ls.length ? 'on' : got ? 'some' : ''}" data-act="quickChapter" data-v="${ch.key}" title="${esc(T('ck.chapterTip'))}">${rubyHTML(raw('ch.' + ch.key, L()))} <span>${got}/${ls.length}</span></button>
+        <div class="qs-ls">${ls.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}"><b>${l.no}</b>${lessonTitleHTML(l, L())}</button>`).join('')}</div></div>`; }).join('')}</div>`;
+  const lvPick = `<div class="qs-quickbtns"><button class="btn btn-ghost btn-xs" data-act="quickLv" data-v="all">${H('tc.quick.lvAll')}</button><span class="muted small">${H('tc.quick.lvNote')}</span></div>
+    <div class="qs-chs">${LV_CHAPTERS.map((k, i) => { const on = d.lv.includes(i); return `<button class="qs-chb wide ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="quickLv" data-v="${i}" aria-pressed="${on}">${i + 1}. ${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}</div>`;
+  const s2 = lvMode ? lvPick : shMode ? shapePickHTML(d.shapes, 'quickShape') : lessonsPick;
+  // 3. how many problems, and of which kind
+  const per = !d.lessons.length ? '' : `<div class="q-table-wrap"><table class="q-table"><thead><tr><th>${H('tc.quick.lessonCol')}</th>${KINDS.map(st => `<th>${H(KIND_LABEL[st])}</th>`).join('')}<th class="n">${H('tc.quick.sum')}</th></tr></thead>
       <tbody>${d.lessons.map(k => { const l = LESSON_BY_KEY[k], kinds = kindsOf(k, S.engine, d.tb), row = d.per[k]; return `<tr><th>${l.no}. ${lessonTitleHTML(l, L())}</th>${KINDS.map(st => kinds.includes(st)
         ? `<td><span class="stepper"><button class="btn btn-ghost btn-xs" data-act="quickPer" data-l="${k}" data-st="${st}" data-d="-1" aria-label="−" ${row[st] <= 0 ? 'disabled' : ''}>−</button><b class="ck-num">${row[st]}</b><button class="btn btn-ghost btn-xs" data-act="quickPer" data-l="${k}" data-st="${st}" data-d="1" aria-label="+" ${row[st] >= FORMAT_MAX ? 'disabled' : ''}>+</button></span></td>`
-        : `<td class="muted center" title="${esc(T('tc.quick.noKind'))}">—</td>`).join('')}<td class="n"><b>${slots.filter(x => x.k === k).length}</b></td></tr>`; }).join('')}</tbody>
-      <tfoot><tr><th>${H('tc.quick.sum')}</th>${KINDS.map(st => `<td class="center"><b>${slots.filter(x => x.st === st).length}</b></td>`).join('')}<td class="n"><b>${n}</b></td></tr></tfoot></table></div>
-      <div class="row-btns left"><span class="muted small">${H('tc.quick.allTo')}</span>${KINDS.map(st => `<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="${st}">${H(KIND_LABEL[st])} ×1</button>`).join('')}<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="">${H('tc.quick.clear')}</button></div></div>`;
-  const wanted = d.mode === 'detail' ? d.lessons.reduce((a, k) => a + KINDS.reduce((b, st) => b + d.per[k][st], 0), 0) : d.n;
-  const preview = !n ? '' : `<div class="q-preview"><div class="q-preview-h"><b>${H('tc.quick.preview')} (${n})</b><button class="btn btn-ghost btn-xs" data-act="quickReshuffle">${I.shuffle}${H('tc.quick.reshuffle')}</button></div>
-      ${probs.map((p, j) => `<div class="pv-item q-pv"><div class="q-pv-h"><b>Q${j + 1}</b> <span class="tag st-${p.stage}">${stageNameH(p)}</span> <span class="muted small">${p.basic ? `🧱 ${shapeNameH(p.basic)}` : `Lesson ${LESSON_BY_KEY[p.lesson].no}`} · ${esc(themeName(p, L()))}</span>
-        <button class="btn btn-ghost btn-xs" data-act="quickSwap" data-k="${j}" ${nextFree(S.engine, slots, j, d.seed, d.tb) === null ? 'disabled' : ''} title="${esc(T('tc.quick.swapTip'))}">${I.repeat}${H('tc.quick.swap')}</button></div>
-        <p class="prob-text">${probTextH(p)}</p><details><summary class="muted small">${H('hint.answer')}</summary>${probAnsH(p)}</details></div>`).join('')}</div>`;
-  const passLimit = `      <div class="q-row">
-        <div class="fld"><span>${H('tc.quick.pass')}</span>${passBox}</div>
-        <div class="fld"><span>${H('tc.quick.limit')}</span>
-          <div class="q-limit">${seg('limitBy', ['len', 'end'], d.limitBy, v => H(v === 'len' ? 'tc.live.byLen' : 'tc.live.byEnd'))}
-          ${d.limitBy === 'end'
+        : `<td class="muted center" title="${esc(T('tc.quick.noKind'))}">—</td>`).join('')}<td class="n"><b>${slots.filter(x => x.k === k).length}</b></td></tr>`; }).join('')}</tbody></table></div>
+      <div class="row-btns left"><span class="muted small">${H('tc.quick.allTo')}</span>${KINDS.map(st => `<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="${st}">${H(KIND_LABEL[st])} ×1</button>`).join('')}<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="">${H('tc.quick.clear')}</button></div>`;
+  const s3 = lvMode ? `<p class="muted small">${H('tc.qs.levelFixed', { n })}</p>`
+    : shMode ? `<div class="qs-row"><div class="fld"><span>${H('tc.quick.count')}</span>${seg('sn', SHAPE_COUNTS, d.sn, v => v)}</div><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('sk', SHAPE_KINDS, d.sk, shapeKindH)}</div></div>`
+    : `<div class="qs-row">${d.mode === 'detail' ? '' : `<div class="fld"><span>${H('tc.quick.count')}</span>${seg('n', QUICK_COUNTS, d.n, v => v)}</div><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', QUICK_PRESETS, d.kind, v => H('tc.quick.k.' + v))}</div>`}</div>
+      <details class="qs-more" ${d.mode === 'detail' ? 'open' : ''}><summary data-act="quickSet" data-k="mode" data-v="${d.mode === 'detail' ? 'simple' : 'detail'}">${H('tc.quick.perLesson')}</summary>${d.mode === 'detail' ? per : ''}</details>`;
+  // 4. pass line and time
+  const passSel = `<select class="select" data-qsel="pass" aria-label="${esc(T('tc.quick.pass'))}">${[null, ...Array.from({ length: Math.max(0, n - 1) }, (_, i) => n - 1 - i)].map(v => `<option value="${v === null ? '' : v}" ${pass === v ? 'selected' : ''}>${esc(v === null ? T('tc.quick.passAll') : T('tc.quick.passN', { n: v }))}</option>`).join('')}</select>`;
+  const time = `<div class="q-limit">${seg('limitBy', ['len', 'end'], d.limitBy, v => H(v === 'len' ? 'tc.live.byLen' : 'tc.live.byEnd'))}
+      ${d.limitBy === 'end'
     ? `<label class="q-min"><input type="time" data-qnum="end" value="${esc(d.limitEnd)}" aria-label="${esc(T('tc.live.byEnd'))}"></label><span class="muted small">${draftLimit(d) === null ? (d.limitEnd ? H('tc.quick.endPast') : '') : '≈ ' + esc(minText(Math.max(1, Math.round(draftLimit(d) / 60))))}</span>`
     : `${seg('limit', QUICK_LIMITS, d.limitSec % 60 ? -1 : d.limitSec / 60, v => (v ? H('tc.timerMin', { n: v }) : H('tc.quick.noLimit')))}
-            <label class="q-min"><input type="number" min="0" max="180" inputmode="numeric" data-qnum="min" value="${Math.floor(d.limitSec / 60) || ''}" placeholder="0" aria-label="${esc(T('tc.live.minUnit'))}"><span>${H('tc.live.minUnit')}</span></label>
-            <label class="q-min"><input type="number" min="0" max="59" step="5" inputmode="numeric" data-qnum="sec" value="${d.limitSec % 60 || ''}" placeholder="0" aria-label="${esc(T('tc.quick.secUnit'))}"><span>${H('tc.quick.secUnit')}</span></label>`}</div></div>
-      </div>
-`;
-  const lvMode = d.goal === 'level';
-  const goalSeg = `<div class="fld"><span>${H('tc.quick.goal')}</span>${seg('goal', ['quick', 'level', 'shape'], d.goal, v => (v === 'level' ? '🎯 ' + H('lv.testTitle') : v === 'shape' ? '🧱 ' + H('bs.mix.title') : '⚡ ' + H('tc.quick.title')))}</div>`;
-  const lvPick = `<div class="fld"><span>${H('tc.quick.lvChapters')}</span><div class="q-chapters">${LV_CHAPTERS.map((k, i) => { const on = d.lv.includes(i);
-      return `<button class="btn btn-ghost btn-xs q-ch ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="quickLv" data-v="${i}" aria-pressed="${on}">${i + 1}. ${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}
-      <button class="btn btn-ghost btn-xs" data-act="quickLv" data-v="all">${H('tc.quick.lvAll')}</button></div>
-      <p class="muted small">${H('tc.quick.lvNote')}</p></div>`;
-  if (d.goal === 'shape') return `<section class="card quick-setup">
-      <h2>🧱 ${H('bs.mix.title')}</h2><p class="muted">${H('tc.shape.sub')}</p>
-      <div class="q-startbar"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n && draftLimit(d) !== null ? '' : 'disabled'}>🧱 ${H('tc.quick.start')}</button>
-        <span class="q-sum">${n ? H('tc.quick.summary', { n, pass: pass || n, t: limitText(d) }) : H('tc.shape.pick')}${d.fixed ? ` · <b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b>` : ''}</span></div>
-      ${goalSeg}
-      ${shapePickHTML(d.shapes, 'quickShape')}
-      <div class="q-row"><div class="fld"><span>${H('tc.quick.count')}</span>${seg('sn', SHAPE_COUNTS, d.sn, v => v)}</div>
-        <div class="fld"><span>${H('tc.quick.kind')}</span>${seg('sk', SHAPE_KINDS, d.sk, shapeKindH)}</div></div>
-      ${passLimit}
-      ${preview}
-      <p class="muted small">${H('tc.quick.note')}</p>
-    </section>
-    ${quickHistoryHTML(c)}`;
-  if (lvMode) return `<section class="card quick-setup">
-      <h2>🎯 ${H('lv.testTitle')}</h2><p class="muted">${H('tc.quick.lvSub')}</p>
-      <div class="q-startbar"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n && draftLimit(d) !== null ? '' : 'disabled'}>🎯 ${H('tc.quick.lvStart')}</button>
-        <span class="q-sum">${n ? `${H('tc.quick.lvSum', { n, c: d.lv.length })} · ${esc(limitText(d))}` : H('tc.quick.lvPick')}${d.fixed ? ` · <b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b>` : ''}</span></div>
-      ${goalSeg}${lvPick}
-      <div class="q-row"><div class="fld"><span>${H('tc.quick.limit')}</span>
-          <div class="q-limit">${seg('limit', QUICK_LIMITS, d.limitSec % 60 ? -1 : d.limitSec / 60, v => (v ? H('tc.timerMin', { n: v }) : H('tc.quick.noLimit')))}
-            <label class="q-min"><input type="number" min="0" max="180" inputmode="numeric" data-qnum="min" value="${Math.floor(d.limitSec / 60) || ''}" placeholder="0" aria-label="${esc(T('tc.live.minUnit'))}"><span>${H('tc.live.minUnit')}</span></label>
-            <label class="q-min"><input type="number" min="0" max="59" step="5" inputmode="numeric" data-qnum="sec" value="${d.limitSec % 60 || ''}" placeholder="0" aria-label="${esc(T('tc.quick.secUnit'))}"><span>${H('tc.quick.secUnit')}</span></label></div></div></div>
-      ${preview}
-      <p class="muted small">${H('tc.quick.lvAfter')}</p>
-    </section>
-    ${quickHistoryHTML(c)}`;
-  return `<section class="card quick-setup">
-      <h2>⚡ ${H('tc.quick.title')}</h2><p class="muted">${H('tc.quick.sub')}</p>
-      <div class="q-startbar"><button class="btn btn-primary btn-lg" data-act="quickStart" ${n && draftLimit(d) !== null ? '' : 'disabled'}>⚡ ${H('tc.quick.start')}</button>
-        <span class="q-sum">${n ? H('tc.quick.summary', { n, pass: pass || n, t: limitText(d) }) : H('ck.pickLesson')}${d.tb ? ` · <span class="mono">${esc(tableSets(S.engine).find(x => x.key === d.tb).tables.join(' + '))}</span>` : ''}${d.fixed ? ` · <b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b>` : ''}</span></div>
-      ${goalSeg}
-      <div class="fld"><span>${H('tc.quick.lessons')}</span>
-        <div class="q-chapters">${asg.length ? `<button class="btn btn-ghost btn-xs q-ch ${asgOn ? 'on' : ''}" data-act="quickChapter" data-v="@assign" aria-pressed="${asgOn}">${I.book}${H('tc.quick.fromAssign')} <span class="muted">${asg.length}</span></button>` : ''}
-          ${CHAPTERS.map(ch => { const ks = checkLessons().filter(l => l.ch === ch.key).map(l => l.key); if (!ks.length) return ''; const on = ks.every(k => chosen.has(k)), some = !on && ks.some(k => chosen.has(k));
-          return `<button class="btn btn-ghost btn-xs q-ch ${on ? 'on' : some ? 'some' : ''}" style="--cc:var(--c-${ch.key})" data-act="quickChapter" data-v="${ch.key}" aria-pressed="${on}" title="${esc(T('ck.chapterTip'))}">${rubyHTML(raw('ch.' + ch.key, L()))} <span class="muted">${ks.filter(k => chosen.has(k)).length}/${ks.length}</span></button>`; }).join('')}
-          ${chosen.size ? `<button class="btn btn-ghost btn-xs" data-act="quickChapter" data-v="">${H('tc.quick.none')}</button>` : ''}</div>
-        ${chosen.size ? `<div class="q-chips">${d.lessons.map(k => { const l = LESSON_BY_KEY[k]; return `<button class="q-chip" style="--cc:var(--c-${l.ch})" data-act="quickDrop" data-l="${k}" title="${esc(T('tc.remove'))}">${l.no}. ${lessonTitleHTML(l, L())}<i>×</i></button>`; }).join('')}</div>` : ''}
-        <details class="q-more" data-qpick ${S.qPick || !chosen.size ? 'open' : ''}><summary>${H('tc.quick.pickOne')}</summary>${CHAPTERS.map(ch => { const ls = checkLessons().filter(l => l.ch === ch.key); return ls.length ? `<div class="q-lessons"><small class="muted">${rubyHTML(raw('ch.' + ch.key, L()))}</small>${ls.map(lessonBtn).join('')}</div>` : ''; }).join('')}</details></div>
-      <div class="fld"><span>${H('tc.quick.table')}</span><div class="q-limit"><select class="select" data-qsel="tb" aria-label="${esc(T('tc.quick.table'))}">
-          <option value="">${esc(T('tc.quick.tableAny'))}</option>
-          <optgroup label="${esc(T('tp.single'))}">${tableSets(S.engine).filter(x => !x.join).map(x => `<option value="${x.key}" ${d.tb === x.key ? 'selected' : ''}>${esc(x.tables.join(' + '))}</option>`).join('')}</optgroup>
-          <optgroup label="${esc(T('tp.join'))}">${tableSets(S.engine).filter(x => x.join).map(x => `<option value="${x.key}" ${d.tb === x.key ? 'selected' : ''}>${esc(x.tables.join(' + '))}</option>`).join('')}</optgroup></select>
-        ${d.tb && d.lessons.some(k => !tableLessons(S.engine, d.tb).includes(k)) ? `<span class="muted small">${H('tc.quick.tableSkip', { l: d.lessons.filter(k => !tableLessons(S.engine, d.tb).includes(k)).map(k => LESSON_BY_KEY[k].no).join(', ') })}</span>` : ''}</div></div>
-      <div class="fld"><span>${H('tc.quick.how')}</span>${seg('mode', ['simple', 'detail'], d.mode, v => H('tc.quick.mode.' + v))}</div>
-      ${d.mode === 'detail' ? detail : simple}
-${passLimit}      ${d.lessons.length && !d.fixed && n < wanted ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : ''}
-      ${preview}
-      <p class="muted small">${H('tc.quick.note')}</p>
-    </section>
+        <label class="q-min"><input type="number" min="0" max="180" inputmode="numeric" data-qnum="min" value="${Math.floor(d.limitSec / 60) || ''}" placeholder="0" aria-label="${esc(T('tc.live.minUnit'))}"><span>${H('tc.live.minUnit')}</span></label>
+        <label class="q-min"><input type="number" min="0" max="59" step="5" inputmode="numeric" data-qnum="sec" value="${d.limitSec % 60 || ''}" placeholder="0" aria-label="${esc(T('tc.quick.secUnit'))}"><span>${H('tc.quick.secUnit')}</span></label>`}</div>`;
+  const tableSel = d.goal !== 'quick' ? '' : `<div class="fld"><span>${H('tc.quick.table')}</span><select class="select" data-qsel="tb" aria-label="${esc(T('tc.quick.table'))}">
+      <option value="">${esc(T('tc.quick.tableAny'))}</option>
+      <optgroup label="${esc(T('tp.single'))}">${tableSets(S.engine).filter(x => !x.join).map(x => `<option value="${x.key}" ${d.tb === x.key ? 'selected' : ''}>${esc(x.tables.join(' + '))}</option>`).join('')}</optgroup>
+      <optgroup label="${esc(T('tp.join'))}">${tableSets(S.engine).filter(x => x.join).map(x => `<option value="${x.key}" ${d.tb === x.key ? 'selected' : ''}>${esc(x.tables.join(' + '))}</option>`).join('')}</optgroup></select>
+      ${d.tb && d.lessons.some(k => !tableLessons(S.engine, d.tb).includes(k)) ? `<span class="muted small">${H('tc.quick.tableSkip', { l: d.lessons.filter(k => !tableLessons(S.engine, d.tb).includes(k)).map(k => LESSON_BY_KEY[k].no).join(', ') })}</span>` : ''}</div>`;
+  const s4 = `<div class="qs-row">${lvMode ? '' : `<div class="fld"><span>${H('tc.quick.pass')}</span>${passSel}</div>`}<div class="fld"><span>${H('tc.quick.limit')}</span>${time}</div></div>
+    ${tableSel ? `<details class="qs-more" ${d.tb ? 'open' : ''}><summary>${H('tc.qs.more')}</summary>${tableSel}</details>` : ''}`;
+  // the test as it will be
+  const wanted = d.goal === 'quick' && d.mode === 'detail' ? d.lessons.reduce((a, k) => a + KINDS.reduce((b, st) => b + d.per[k][st], 0), 0) : d.goal === 'quick' ? d.n : shMode ? d.sn : n;
+  const short = h => { const t = String(h).replace(/<rt>[^<]*<\/rt>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); return esc(t.length > 54 ? t.slice(0, 52) + '…' : t); };
+  const pv = probs.map((p, j) => `<details class="qs-pv"><summary><b>Q${j + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span><span class="qs-pv-t"><small class="muted">${p.basic ? '🧱' : `L${LESSON_BY_KEY[p.lesson].no}`}</small> ${short(probTextH(p))}</span>
+      <button class="btn btn-ghost btn-xs" data-act="quickSwap" data-k="${j}" ${nextFree(S.engine, slots, j, d.seed, d.goal === 'shape' ? '' : d.tb) === null ? 'disabled' : ''} title="${esc(T('tc.quick.swapTip'))}">${I.repeat}</button></summary>
+      <div class="qs-pv-b"><p class="prob-text">${probTextH(p)}</p><div class="muted small">${H('hint.answer')}</div>${probAnsH(p)}</div></details>`).join('');
+  const ready = n && draftLimit(d) !== null;
+  const side = `<aside class="card qs-side">
+      <div class="qs-nums"><div><b>${n}</b><small>${H('tc.qs.problems')}</small></div>${lvMode ? '' : `<div><b>${pass || n}</b><small>${H('tc.quick.pass')}</small></div>`}<div><b>${esc(limitText(d))}</b><small>${H('tc.quick.limit')}</small></div></div>
+      <button class="btn btn-primary btn-lg qs-start" data-act="quickStart" ${ready ? '' : 'disabled'}>${lvMode ? '🎯' : shMode ? '🧱' : '⚡'} ${H(lvMode ? 'tc.quick.lvStart' : 'tc.quick.start')}</button>
+      ${d.fixed ? `<p class="small"><b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b></p>` : ''}
+      ${!n ? `<p class="muted small">${H('tc.qs.none')}</p>` : ''}${n && n < wanted && !d.fixed ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : ''}${d.limitBy === 'end' && draftLimit(d) === null && d.limitEnd ? `<p class="err small">${H('tc.quick.endPast')}</p>` : ''}
+      ${n ? `<div class="qs-pv-h"><b>${H('tc.quick.preview')}</b><button class="btn btn-ghost btn-xs" data-act="quickReshuffle">${I.shuffle}${H('tc.quick.reshuffle')}</button></div><div class="qs-pvs">${pv}</div><p class="muted small">${H('tc.qs.pvTip')}</p>` : ''}
+      <p class="muted small">${H(lvMode ? 'tc.quick.lvAfter' : 'tc.quick.note')}</p>
+    </aside>`;
+  return `<div class="qs-wrap"><div class="qs-main">
+      ${step(1, H('tc.qs.s1'), s1)}
+      ${step(2, H('tc.qs.s2'), s2)}
+      ${step(3, H('tc.qs.s3'), s3)}
+      ${step(4, H('tc.qs.s4'), s4)}
+    </div>${side}</div>
     ${quickHistoryHTML(c)}`;
 }
 /* ---------- results: each problem (how many got it, the common wrong answers) and each student ---------- */
@@ -1223,6 +1198,10 @@ const actions = {
       const order = checkLessons().map(l => l.key); d.lessons = order.filter(k => d.lessons.includes(k));
     }
     d.swaps = {}; saveQDraft(d); refreshTab();
+  },
+  quickLesson(el) {   // one lesson on / off
+    const d = quickDraft(S.klass), k = el.dataset.l, order = checkLessons().map(l => l.key);
+    d.lessons = d.lessons.includes(k) ? d.lessons.filter(x => x !== k) : order.filter(x => x === k || d.lessons.includes(x)); d.swaps = {}; saveQDraft(d); refreshTab();
   },
   quickDrop(el) { const d = quickDraft(S.klass); d.lessons = d.lessons.filter(k => k !== el.dataset.l); d.swaps = {}; saveQDraft(d); refreshTab(); },
   quickPer(el) {

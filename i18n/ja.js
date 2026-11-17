@@ -1429,5 +1429,19 @@ export default {
   "bs.abs.realEx": "実際の SQL では、たとえば",
   "bs.abs.gapNg": "ちがいます。正しい型はこうです",
   "bs.abs.tapHere": "ここに部品を並べます",
-  "bs.abs.hint": "ヒント：句の順番"
+  "bs.abs.hint": "ヒント：句の順番",
+  "tc.qs.goalQuick": "レッスンの問題を少しだけ。授業の確認に",
+  "tc.qs.goalLevel": "章ごとの力をはかる（1 人 1 回だけ答える）",
+  "tc.qs.goalShape": "基礎の型を、ことばで",
+  "tc.qs.s1": "何を出しますか？",
+  "tc.qs.s2": "範囲",
+  "tc.qs.s3": "問題の数と形式",
+  "tc.qs.s4": "合格ラインと時間",
+  "tc.qs.picked": "{n} レッスンを選んでいます",
+  "tc.qs.pickHint": "章の名前を押すと章ごと、レッスンを押すと 1 つずつ選べます",
+  "tc.qs.levelFixed": "選んだ章から {n} 問（各章 3 問・書く）。1 人 1 回だけ答えます。",
+  "tc.qs.more": "そのほかの設定",
+  "tc.qs.problems": "問題",
+  "tc.qs.none": "範囲を選ぶと、ここに問題が出ます。",
+  "tc.qs.pvTip": "行を押すと問題文と答えが見られます。🔁 で同じ種類の別の問題に入れ替えられます。"
 };

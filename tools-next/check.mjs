@@ -290,8 +290,9 @@ console.log('8. Lectures');
         const st = table(`slide ${i + 1} frame ${j + 1}`, f.table);
         // a case shows what its SQL returns: the kept rows (✓), or the whole table when no row is marked
         if (st && sl.cases && f.sql && !f.sql.includes(';\n')) {
-          const res = eng.exec(f.sql) || { values: [] }, marked = st.rows.some(r => r.cls === 'pass' || r.cls === 'fail');
-          const shown = marked ? st.rows.filter(r => r.cls === 'pass').length : st.rows.length;
+          const res = eng.exec(f.sql) || { values: [] }, marked = st.rows.some(r => ['pass', 'fail', 'take', 'skip', 'cut'].includes(r.cls));
+          const shown = marked ? st.rows.filter(r => r.cls === 'pass' || r.cls === 'take').length : st.rows.length;
+          if (st.rows.some(r => r.cls === 'take') && JSON.stringify(st.rows.filter(r => r.cls === 'take').map(r => r.cells.join())) !== JSON.stringify(res.values.map(v => v.filter((x, i) => res.columns[i] !== 'id').join()))) err(`lecture ${key} slide ${i + 1} case ${j + 1}: the rows taken are not the ones the SQL returns`);
           if (shown !== res.values.length) err(`lecture ${key} slide ${i + 1} case ${j + 1}: the table shows ${shown} rows, the SQL returns ${res.values.length}`);
         }
       });

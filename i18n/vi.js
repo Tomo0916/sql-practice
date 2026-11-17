@@ -1428,5 +1428,19 @@ export default {
   "bs.abs.realEx": "Trong SQL thật, ví dụ",
   "bs.abs.gapNg": "Chưa đúng. Dạng đúng là thế này",
   "bs.abs.tapHere": "Đặt các phần vào đây",
-  "bs.abs.hint": "Gợi ý: thứ tự các mệnh đề"
+  "bs.abs.hint": "Gợi ý: thứ tự các mệnh đề",
+  "tc.qs.goalQuick": "Vài bài từ các bài học, để kiểm tra trong giờ học",
+  "tc.qs.goalLevel": "Đo từng chương (mỗi học sinh trả lời một lần)",
+  "tc.qs.goalShape": "Các dạng cơ bản, bằng từ",
+  "tc.qs.s1": "Giao gì?",
+  "tc.qs.s2": "Phạm vi",
+  "tc.qs.s3": "Số câu và loại câu",
+  "tc.qs.s4": "Mức đạt và thời gian",
+  "tc.qs.picked": "Đã chọn {n} bài học",
+  "tc.qs.pickHint": "Nhấn tên chương để chọn cả chương, hoặc nhấn bài học để chọn từng bài",
+  "tc.qs.levelFixed": "{n} câu từ các chương đã chọn (mỗi chương 3 câu viết). Mỗi học sinh trả lời một lần.",
+  "tc.qs.more": "Cài đặt khác",
+  "tc.qs.problems": "câu",
+  "tc.qs.none": "Chọn phạm vi, các câu sẽ hiện ở đây.",
+  "tc.qs.pvTip": "Nhấn vào dòng để xem đề và đáp án. 🔁 đổi sang câu khác cùng loại."
 };

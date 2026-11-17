@@ -1428,5 +1428,19 @@ export default {
   "bs.abs.realEx": "En SQL réel, par exemple",
   "bs.abs.gapNg": "Pas tout à fait. Voici la forme",
   "bs.abs.tapHere": "Placez les parties ici",
-  "bs.abs.hint": "Indice : l'ordre des clauses"
+  "bs.abs.hint": "Indice : l'ordre des clauses",
+  "tc.qs.goalQuick": "Quelques problèmes des leçons, pour vérifier en classe",
+  "tc.qs.goalLevel": "Mesurer chaque chapitre (une réponse par élève)",
+  "tc.qs.goalShape": "Les formes de base, en mots",
+  "tc.qs.s1": "Que donner ?",
+  "tc.qs.s2": "Portée",
+  "tc.qs.s3": "Nombre et type de problèmes",
+  "tc.qs.s4": "Seuil de réussite et durée",
+  "tc.qs.picked": "{n} leçons choisies",
+  "tc.qs.pickHint": "Touchez le nom d'un chapitre pour tout choisir, ou une leçon pour en choisir une",
+  "tc.qs.levelFixed": "{n} problèmes des chapitres choisis (3 à écrire par chapitre). Une réponse par élève.",
+  "tc.qs.more": "Autres réglages",
+  "tc.qs.problems": "problèmes",
+  "tc.qs.none": "Choisissez une portée et les problèmes apparaissent ici.",
+  "tc.qs.pvTip": "Touchez une ligne pour voir le problème et sa réponse. 🔁 le remplace par un autre du même type."
 };

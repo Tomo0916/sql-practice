@@ -1429,5 +1429,19 @@ export default {
   "bs.abs.realEx": "In real SQL, for example",
   "bs.abs.gapNg": "Not quite. This is the shape",
   "bs.abs.tapHere": "Put the parts here",
-  "bs.abs.hint": "Hint: the order of the clauses"
+  "bs.abs.hint": "Hint: the order of the clauses",
+  "tc.qs.goalQuick": "A few problems from the lessons, to check understanding in class",
+  "tc.qs.goalLevel": "Measure each chapter (one answer per student)",
+  "tc.qs.goalShape": "The basic shapes, in words",
+  "tc.qs.s1": "What to give?",
+  "tc.qs.s2": "Range",
+  "tc.qs.s3": "Number and kind of problems",
+  "tc.qs.s4": "Pass line and time",
+  "tc.qs.picked": "{n} lessons chosen",
+  "tc.qs.pickHint": "Press a chapter's name to choose it all, or a lesson to choose one",
+  "tc.qs.levelFixed": "{n} problems from the chosen chapters (3 to write per chapter). One answer per student.",
+  "tc.qs.more": "More settings",
+  "tc.qs.problems": "problems",
+  "tc.qs.none": "Choose a range and the problems appear here.",
+  "tc.qs.pvTip": "Press a row to see the problem and its answer. 🔁 swaps it for another of the same kind."
 };

@@ -34,8 +34,8 @@ export function tableHTML(st) {
   const ccls = c => (hl.has(c) ? 'hl' : st.dim && hl.size ? 'dim' : '');
   return `<div class="lt ${st.nohead ? 'lt-nohead' : ''}" style="--cols:${tmpl}">
     ${st.title ? `<div class="lt-title">${esc(st.title)}</div>` : ''}<div class="lt-head">${st.cols.map(c => `<span class="${ccls(c)}">${esc(c)}</span>`).join('')}</div>
-    <div class="lt-body">${st.rows.map(r => `<div class="lt-row ${r.cls || ''}" data-k="${esc(r.k)}">${r.cells.map((v, i) => `<span class="${ccls(st.cols[i])} ${typeof v === 'number' ? 'num' : ''}">${fmtCell(v)}</span>`).join('')}${r.cls === 'pass' ? '<i class="lt-mark">✓</i>' : r.cls === 'fail' ? '<i class="lt-mark">✕</i>' : ''}</div>`).join('')}</div>
-    <div class="lt-foot">${st.rows.length} rows</div></div>`;
+    <div class="lt-body">${st.rows.map(r => `<div class="lt-row ${r.cls || ''}" data-k="${esc(r.k)}">${r.idx ? `<b class="lt-idx">${r.idx}</b>` : ''}${r.cells.map((v, i) => `<span class="${ccls(st.cols[i])} ${typeof v === 'number' ? 'num' : ''}">${fmtCell(v)}</span>`).join('')}${r.cls === 'skip' ? '<i class="lt-mark">↷</i>' : r.cls === 'cut' ? '<i class="lt-mark">✂</i>' : r.cls === 'pass' ? '<i class="lt-mark">✓</i>' : r.cls === 'fail' ? '<i class="lt-mark">✕</i>' : ''}</div>`).join('')}</div>
+    <div class="lt-foot">${st.rows.filter(r => r.cls !== 'skip' && r.cls !== 'cut').length} rows</div></div>`;
 }
 
 /** the tables a query reads (two tables of a JOIN), shown side by side above the result */

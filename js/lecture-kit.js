@@ -24,6 +24,16 @@ export function state(engine, sql, opts = {}) {
   };
 }
 export const col = (cols, name) => cols.indexOf(name);
+/**
+ * LIMIT n OFFSET k on a sorted SELECT, every row kept: the k skipped rows are 'skip' (faded), the n taken
+ * 'take', the rest 'cut' (faded); each row has its place in the order (1, 2, 3 …) so "the 3rd to the 5th" can be seen.
+ */
+export function windowed(engine, sql, n, k, opts = {}) {
+  const st = state(engine, sql, opts);
+  st.rows.forEach((r, i) => { r.cls = i < k ? 'skip' : i < k + n ? 'take' : 'cut'; r.idx = i + 1; });
+  st.nums = true;
+  return st;
+}
 
 /**
  * A table where every row is checked against a condition (✓ kept / ✕ removed):
