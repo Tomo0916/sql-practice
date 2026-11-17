@@ -78,7 +78,8 @@ export function shapePool(engine, b, st, seed) {
     const f = step.formats.includes(st) ? step.formats.indexOf(st) : step.formats.length - 1;
     for (let i = 0; i < SHAPE_POOL * 3 && out.length < SHAPE_POOL; i++) {
       const p = basicProblem(engine, b, f, `QS${seed}|${i}`);
-      if (p && !seen.has(p.sql)) { seen.add(p.sql); out.push(Object.assign(p, { id: `shape:${seed}:${b}:${i}`, kind: 'practice', test: true, src: p.id })); }
+      const key = p && (p.af === 'awrite' ? p.shape : `${p.shape}|${p.af}|${p.gap ? p.gap.at : i}`);   // writing: each variant once; a gap or an order: each one once
+      if (p && !seen.has(key)) { seen.add(key); out.push(Object.assign(p, { id: `shape:${seed}:${b}:${i}`, test: true, src: p.id, dedupe: key })); }
     }
   }
   if (poolCache.size > 400) poolCache.clear();
@@ -86,17 +87,18 @@ export function shapePool(engine, b, st, seed) {
   return out;
 }
 /** the kind a shape gives for a wanted kind (a shape without ordering → write) */
-export const shapeKind = (b, st) => { const step = BASIC_BY_KEY[b]; return !step ? 'write' : step.formats.includes(st) ? st : st === 'order2' && step.formats.includes('order1') ? 'order1' : 'write'; };
+export const shapeKind = (b, st) => { const step = BASIC_BY_KEY[b]; return step && step.formats.includes(st) ? st : 'awrite'; };   // the shapes are all in words
 /** the pool a slot points into */
 const poolOf = (engine, x, seed, tb) => (x.b ? shapePool(engine, x.b, x.st, seed) : kindPool(engine, x.k, x.st, seed, tb));
 const SIMPLE_KINDS = { write: ['write'], mix: ['fill', 'order1', 'write'], order: ['order1', 'order2'] };
 /** the first position of a lesson's pool of this kind that is free: not used, and not the same query as another slot (a fill-in and a write of one query would give it away) */
 function freeIndex(engine, x, seed, slots, from = 0, skip = -1, tb) {
   const pool = poolOf(engine, x, seed, tb);
-  const sqls = new Set(slots.filter((y, m) => m !== skip).map(y => (poolOf(engine, y, seed, tb)[y.i] || {}).sql));
+  const keyOf = p => (p && (p.dedupe || p.sql));
+  const sqls = new Set(slots.filter((y, m) => m !== skip).map(y => keyOf(poolOf(engine, y, seed, tb)[y.i])));
   for (let step = 0; step < pool.length; step++) {
     const i = (from + step) % pool.length;
-    if (!sqls.has(pool[i].sql) && !slots.some((y, m) => m !== skip && (y.b || '') === (x.b || '') && y.k === x.k && y.st === x.st && y.i === i)) return i;
+    if (!sqls.has(keyOf(pool[i])) && !slots.some((y, m) => m !== skip && (y.b || '') === (x.b || '') && y.k === x.k && y.st === x.st && y.i === i)) return i;
   }
   return null;
 }
@@ -113,12 +115,12 @@ export function simpleSlots(engine, lessons, n, kind, seed, tb) {
   return out;
 }
 /** a shape-mix test: n problems over the shapes, each shape in turn; kind 'mix' = fill-in → ordering → write in turn */
-export const SHAPE_KINDS = ['mix', 'fill', 'order1', 'write'];
+export const SHAPE_KINDS = ['mix', 'afill', 'aorder', 'awrite'];
 export const SHAPE_COUNTS = [3, 5, 8, 10, 15];
 export function shapeSlots(engine, shapes, n, kind, seed) {
   shapes = makeRng(`shapes|${seed}`).shuffle(shapes.filter(b => BASIC_BY_KEY[b])); const out = [];   // a different order of shapes each time: with few problems, every shape can come up
   if (!shapes.length) return out;
-  const cyc = kind === 'mix' ? ['fill', 'order1', 'write'] : [kind];
+  const cyc = kind === 'mix' ? ['afill', 'aorder', 'awrite'] : [kind];
   for (let r = 0; r < SHAPE_POOL * 3 && out.length < n; r++) for (let j = 0; j < shapes.length && out.length < n; j++) {
     const b = shapes[j], st = shapeKind(b, cyc[(r + j) % cyc.length]), x = { b, k: BASIC_BY_KEY[b].lesson, st };
     const i = freeIndex(engine, x, seed, out, 0, -1, '');

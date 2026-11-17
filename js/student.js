@@ -27,7 +27,7 @@ import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
 import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N, tableSets, tableCourse } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, adaptiveStart, adaptiveNext, adaptiveAnswer, adaptiveProblem, adaptiveResult, mistakeKind, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog, levelOf } from './level.js';
-import { BASIC_STEPS, BASIC_CORE, BASIC_DETAIL, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, basicNorm, nextStep, basicProblem, stepForMistake, absCheck, absChips, absShape, ABS_SLOTS, CHAPTER_SHAPES, MIX_RANGES, MIX_FORMATS, MIX_COUNTS, mixSteps, mixProblems } from './basics.js';
+import { BASIC_STEPS, BASIC_CORE, BASIC_DETAIL, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, basicNorm, nextStep, basicProblem, stepForMistake, absCheck, absChips, absShape, absVariant, absPieces, absClauses, ABS_SLOTS, CHAPTER_SHAPES, MIX_RANGES, MIX_FORMATS, MIX_COUNTS, mixSteps, mixProblems } from './basics.js';
 import { levelProfile } from './quick.js';
 import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, cqQuiz, cqRecord } from './clauses.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, slotProblems } from './quick.js';
@@ -571,9 +571,10 @@ const slotName = k => H(k === 'cond' ? 'bs.slot.cond' : k === 'expr' ? 'bs.slot.
 const bsName = key => (BASIC_BY_KEY[key].core ? H('bs.s.' + key) : `${LESSON_BY_KEY[BASIC_BY_KEY[key].lesson].no}. ${lessonTitleHTML(LESSON_BY_KEY[BASIC_BY_KEY[key].lesson], L())}`);
 /** a shape with its slots: SELECT [列], [列] FROM [テーブル]; */
 function shapeHTML(shape) {
-  return `<code class="bs-shape">${shape.split(/(\{[a-z]+\})/).map(part => { const m = /^\{([a-z]+)\}$/.exec(part); const k = SLOT[m && m[1]] || 'val'; return m ? `<span class="bs-slot ${k}">${slotName(k)}</span>` : highlightSQL(part); }).join('')}</code>`;
+  return `<code class="bs-shape">${String(shape).replace(/SELECT \.\.\. FROM/, 'SELECT {col} FROM').replace(/, \.\.\./g, '').split(/(\{[a-z]+\})/).map(part => { const m = /^\{([a-z]+)\}$/.exec(part); return m ? absWordH(slotWord(m[1])) : highlightSQL(part); }).join('')}</code>`;
 }
-const fmtName = tok => H(tok === 'abs' ? 'bs.f.abs' : tok === 'fill' ? 'stage.fill' : tok === 'write' ? 'rv.write' : 'stage.order');
+const slotWord = slot => (['cond', 'expr', 'alias'].includes(slot) ? slot : SLOT[slot] === 'table' ? 'table' : SLOT[slot] === 'col' ? 'col' : 'val');
+const fmtName = tok => H(tok === 'afill' ? 'stage.fill' : tok === 'awrite' ? 'rv.write' : 'stage.order');
 function bsLadderHTML(st, step) {
   return `<div class="rv-ladder">${step.formats.map((f, i) => `<span class="${st.clear || i < st.f ? 'done' : i === st.f ? 'cur' : ''}">${fmtName(f)}</span>`).join('<i>→</i>')}</div>`;
 }
@@ -604,9 +605,8 @@ function basicsHTML() {
   if (!key) { if (S.session && S.session.kind === 'basics') S.session = null; return basicsHubHTML(); }
   if (!S.session || S.session.kind !== 'basics' || S.session.step !== key) {
     S.session = { kind: 'basics', step: key, items: [], i: 0, done: {}, seed: randomCode(5), intro: 0 };
-    const l = LESSON_BY_KEY[BASIC_BY_KEY[key].lesson];
-    if (!bsState(key).n && l.demo) {   // never practised: the lesson's example first (見本), then the drill
-      const d = S.engine.demoProblem(l); if (d) { S.session.items.push(Object.assign({}, d, { id: `bsintro:${key}`, bsIntro: true })); S.session.intro = 1; }
+    if (!bsState(key).n) {   // never practised: first the shape in words, what each clause does, and a real example (見本)
+      S.session.items.push({ id: `bsintro:${key}`, bsIntro: true, abs: true, af: 'intro', basic: key, lesson: BASIC_BY_KEY[key].lesson, stage: 'abs', kind: 'drill', tables: [], p: {}, theme: 'demo', shape: absShape(key), sql: '' }); S.session.intro = 1;
     }
   }
   const ses = S.session, step = BASIC_BY_KEY[key];
@@ -622,69 +622,97 @@ function basicsHTML() {
   }
   const prob = ses.items[ses.i], x = bsState(key);
   return `<main class="wrap">
-    <div class="session-head"><h1>🧱 ${prob.abs && !S.runs[prob.id] ? H('bs.title') : bsName(key)}</h1>
+    <div class="session-head"><h1>🧱 ${prob.bsIntro || absOpen(prob) ? bsName(key) : H('bs.title')}</h1>
       <div class="session-progress"><span>${prob.bsIntro ? H('bs.intro') : `${ses.i + 1 - ses.intro} / ${BASIC_ROUND}`}</span><div class="bar"><i style="width:${Math.round(Math.max(0, ses.i - ses.intro) / BASIC_ROUND * 100)}%"></i></div></div></div>
     <div class="session-layout">
-      <aside class="card side-card bs-side"><div class="chap">${H('bs.title')}</div><h2>${H('bs.shape')}</h2>${prob.abs && !(S.runs[prob.id] && (S.runs[prob.id].ok || (S.progress.wrong[prob.id] || 0) >= 2)) ? `<p class="muted small">${H('bs.abs.hidden')}</p>` : shapeHTML(step.shape)}
-        ${prob.bsIntro ? `<p class="bs-introtip">${H('bs.introSub')}</p><p class="small">${bi(`L.${step.lesson}.point`)}</p>` : ''}
+      <aside class="card side-card bs-side"><div class="chap">${H('bs.title')}</div><h2>${H('bs.shape')}</h2>${absSideHTML(prob)}
         ${bsLadderHTML(x, step)}<p class="muted small">${bsNeed(x, step)}</p><a class="btn btn-ghost btn-xs" href="#/basics">${H('bs.allSteps')}</a></aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
 }
-/* ---------- the shape in words (型をことばで): SELECT 列, 列 FROM テーブル; with no real names ---------- */
+/* ---------- the shape in words (型をことばで): SELECT 列, 列 FROM テーブル; with no real names ----------
+ * three formats (basics.js): afill = choose the missing word · aorder = put the parts in order · awrite = write it;
+ * the first time a shape is opened: the shape, what each clause does, and one real example (見本) */
 /** the words for the parts: this language's, and English (both are understood) */
 const absWords = () => Object.fromEntries(ABS_SLOTS.map(k => [k, [...new Set([T('bs.w.' + k), t('bs.w.' + k, 'en')])]]));
 const absWordH = k => `<span class="bs-slot ${k === 'table' ? 'table' : k === 'col' ? 'col' : k === 'cond' ? 'cond' : k === 'expr' ? 'expr' : 'val'}">${H('bs.w.' + k)}</span>`;
-/** the goal of a shape, without the shape itself */
-const absGoalH = key => (BASIC_BY_KEY[key].core ? H('bs.d.' + key) : H('bs.abs.goal', { name: lessonTitle(LESSON_BY_KEY[BASIC_BY_KEY[key].lesson], L()) }));
-/** a shape in words for the eyes: SELECT [列], [列] FROM [テーブル]; */
-const absShapeHTML = key => `<code class="bs-shape">${absShape(key).split(/(\{[a-z]+\})/).map(part => { const m = /^\{([a-z]+)\}$/.exec(part); const k = SLOT[m && m[1]] || 'val';
-  return m ? absWordH(k === 'val' && ['cond', 'expr', 'alias'].includes(m[1]) ? m[1] : k === 'val' ? 'val' : k) : highlightSQL(part); }).join('')}</code>`;
+const absWordT = k => T('bs.w.' + k);
+/** a token / a part: a word for a slot, or SQL */
+const absTokH = x => (x[0] === '§' ? absWordH(x.slice(1)) : x[0] === '?' ? esc(x.slice(1)) : `<span class="abs-sql">${highlightSQL(x)}</span>`);
+const absPieceH = toks => toks.map(absTokH).join(toks.length > 1 && toks[0] !== "'" && toks[1] !== '.' && toks[1] !== '(' ? ' ' : '');
+const absPieceT = toks => toks.map(x => (x[0] === '§' ? absWordT(x.slice(1)) : x)).join(' ');
+/** the goal of a problem, without the shape itself */
+function absGoalH(prob) {
+  const [k, v] = prob.goal || ['bs.abs.goal', { lesson: prob.lesson }];
+  return k === 'bs.abs.goal' ? H(k, { name: lessonTitle(LESSON_BY_KEY[v.lesson], L()) }) : H(k, v);
+}
+/** each clause of the shape and what it does */
+const absClausesHTML = shape => `<div class="abs-cls">${absClauses(shape).map(c => `<div class="abs-cl"><code>${absPieceH(c.toks)}</code>${c.key ? `<span>${H(c.key)}</span>` : ''}</div>`).join('')}</div>`;
+/** may the shape be seen (answered right, shown after mistakes, or the example) */
+const absOpen = prob => !!prob && (prob.bsIntro || (S.runs[prob.id] && (S.runs[prob.id].ok || (!prob.test && (S.runs[prob.id].shown || (S.progress.wrong[prob.id] || 0) >= 2)))));
+const absSideHTML = prob => (absOpen(prob) ? shapeHTML(prob.shape || BASIC_BY_KEY[prob.basic].shape) : `<p class="muted small">${H('bs.abs.hidden')}</p>`);
 function absHTML(prob) {
-  const key = prob.basic, run = S.runs[prob.id], val = S.progress.drafts['a:' + prob.id] || '', wrong = S.progress.wrong[prob.id] || 0;
-  const ch = absChips(key, prob.id), shown = run && (run.ok || wrong >= 2);
-  const chip = (text, cls, label) => `<button type="button" class="kw-chip ${cls || ''}" data-act="absPut" data-text="${esc(text)}">${label || esc(text)}</button>`;
-  let fb = '';
-  if (run) {
-    if (run.ok) fb = `<div class="fb ok"><div class="fb-icon">✓</div><div class="fb-body"><h3>${H('bs.abs.ok')}</h3>${absShapeHTML(key)}</div></div>`;
-    else {
-      const toks = run.got.map((x, i) => `<span class="abs-t ${i === run.at ? 'bad' : i > run.at ? 'after' : ''}">${x[0] === '§' ? H('bs.w.' + x.slice(1)) : esc(x[0] === '?' ? x.slice(1) : x)}</span>`).join('');
-      fb = `<div class="fb bad"><div class="fb-icon">?</div><div class="fb-body"><h3>${H(run.got.some(x => x[0] === '?') ? 'bs.abs.real' : 'bs.abs.ng')}</h3>
-        <div class="abs-toks">${toks}${run.at >= run.got.length ? '<span class="abs-t bad">…</span>' : ''}</div>
-        ${shown ? `<div class="muted small">${H('bs.abs.answer')}</div>${absShapeHTML(key)}` : `<p class="muted small">${H('hint.locked', { n: Math.max(0, 2 - wrong) })}</p>`}</div></div>`;
-    }
+  const run = S.runs[prob.id], open = absOpen(prob);
+  const head = `<section class="card prob abs-prob">
+      <div class="prob-top"><span class="tag st-abs">${H('bs.f.abs')}</span>${prob.af !== 'intro' ? `<span class="tag">${fmtName(prob.af)}</span>` : ''}${isSolved(prob.id) ? `<span class="tag ok">✓ ${H('fb.correct')}</span>` : ''}</div>
+      <p class="inst">${H(prob.af === 'intro' ? 'bs.abs.introInst' : 'bs.abs.inst.' + prob.af)}</p>
+      <p class="prob-text">${prob.af === 'intro' ? bsName(prob.basic) : absGoalH(prob)}</p>
+    </section>`;
+  const next = (run && open) || prob.af === 'intro' ? (S.route.view === 'session' ? `<div class="row-btns left"><button class="btn btn-ok fb-next" data-act="sessionNext">${H(prob.af === 'intro' ? 'bs.abs.startPractice' : 'btn.next')}${I.next}</button></div>` : '') : '';
+  const good = `<div class="abs-good">${shapeHTML(prob.shape)}${absClausesHTML(prob.shape)}</div>`;
+  if (prob.af === 'intro') {   // the example: the shape, its clauses, and a real query of this shape
+    const l = LESSON_BY_KEY[prob.lesson], d = l.demo ? S.engine.demoProblem(l) : null;
+    return `${head}<section class="card abs-card"><h3 class="abs-h">${H('bs.abs.thisShape')}</h3>${good}
+      ${d ? `<h3 class="abs-h">${H('bs.abs.realEx')}</h3><p class="muted small">${problemHTML(d, L())}</p><pre class="sql">${highlightSQL(d.sql)}</pre>` : ''}
+      <p class="muted small">${bi(`L.${l.key}.point`)}</p>${next}</section>`;
   }
-  return `<section class="card prob abs-prob">
-      <div class="prob-top"><span class="tag st-abs">${H('bs.f.abs')}</span>${isSolved(prob.id) ? `<span class="tag ok">✓ ${H('fb.correct')}</span>` : ''}</div>
-      <p class="inst">${H('bs.abs.inst')}</p>
-      <p class="prob-text">${absGoalH(key)}</p>
-    </section>
-    <section class="card editor-card abs-card">
-      <div class="kwbar"><span>${H('order.g.kw')}</span>${ch.kw.map(k => chip(k)).join('')}</div>
-      <div class="kwbar"><span>${H('bs.abs.parts')}</span>${ch.slots.map(k => chip(T('bs.w.' + k), 'part p-' + k, absWordH(k))).join('')}</div>
+  let body = '', fb = '';
+  if (prob.af === 'afill') {   // choose the missing word
+    const g = prob.gap, picked = run ? run.picks || [] : [], done = run && run.ok, reveal = done || (!prob.test && picked.length);
+    const pieces = absPieces(prob.shape);
+    body = `<div class="abs-line">${pieces.map((p, i) => (i === g.at ? `<span class="abs-gap ${reveal ? (done ? 'ok' : 'bad') : ''}">${reveal ? absPieceH(p) : '?'}</span>` : `<span class="abs-pc">${absPieceH(p)}</span>`)).join('')}</div>
+      <div class="abs-choices">${g.order.map(i => { const c = g.choices[i], was = picked.includes(c);
+        return `<button class="choice cq-choice ${was ? (i === 0 ? 'ok' : 'bad') : reveal && i === 0 ? 'ok' : reveal ? 'dim' : ''}" data-act="absPick" data-v="${esc(c)}" ${done || (reveal && !prob.test) || was ? 'disabled' : ''}><code class="cq-kw">${esc(c)}</code></button>`; }).join('')}</div>`;
+    if (run) fb = run.ok ? `<div class="fb ok"><div class="fb-icon">✓</div><div class="fb-body"><h3>${H('bs.abs.ok')}</h3>${good}</div></div>` : `<div class="fb bad"><div class="fb-icon">?</div><div class="fb-body"><h3>${H('bs.abs.gapNg')}</h3>${prob.test ? '' : good}</div></div>`;
+  } else if (prob.af === 'aorder') {   // put the parts in order
+    const placed = S.progress.drafts['ao:' + prob.id] || [], done = run && run.ok;
+    body = `<div class="abs-ans ${placed.length ? '' : 'empty'}">${placed.length ? placed.map((k, j) => `<button class="abs-piece in" data-act="absOut" data-v="${j}" ${done ? 'disabled' : ''}>${absPieceH(prob.pool[k].toks)}</button>`).join('') : `<span class="muted small">${H('bs.abs.tapHere')}</span>`}</div>
+      <div class="abs-pool">${prob.pool.map((x, k) => (placed.includes(k) ? `<span class="abs-piece ghost">${absPieceH(x.toks)}</span>` : `<button class="abs-piece" data-act="absIn" data-v="${k}" ${done ? 'disabled' : ''}>${absPieceH(x.toks)}</button>`)).join('')}</div>
+      <div class="actions"><button class="btn btn-primary btn-run" data-act="absRun" ${placed.length && !done ? '' : 'disabled'}>${I.check}${H('fill.check')}</button><button class="btn btn-ghost" data-act="absOrderClear" ${done ? 'disabled' : ''}>${I.reset}${H('bs.abs.clear')}</button></div>`;
+  } else {   // write it
+    const val = S.progress.drafts['a:' + prob.id] || '', ch = absChips(prob.shape, prob.id);
+    const chip = (text, cls, label) => `<button type="button" class="kw-chip ${cls || ''}" data-act="absPut" data-text="${esc(text)}">${label || esc(text)}</button>`;
+    const order = absClauses(prob.shape).filter(c => c.key).map(c => absPieceH([c.toks[0] === 'INSERT' ? 'INSERT INTO' : c.toks[0] === 'DELETE' ? 'DELETE FROM' : c.toks.slice(0, ['ORDER', 'GROUP', 'INNER', 'LEFT'].includes(c.toks[0]) ? 2 : 1).join(' ')]));
+    body = `<div class="kwbar"><span>${H('order.g.kw')}</span>${ch.kw.map(k => chip(k)).join('')}</div>
+      <div class="kwbar"><span>${H('bs.abs.parts')}</span>${ch.slots.map(k => chip(absWordT(k), 'part p-' + k, absWordH(k))).join('')}</div>
       <div class="kwbar"><span>${H('order.g.op')}</span>${ch.syms.map(k => chip(k, 'sym')).join('')}</div>
-      <textarea id="abs-in" class="abs-in" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="${esc(T('ed.yourSql'))}">${esc(val)}</textarea>
+      <textarea id="abs-in" class="abs-in" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="${esc(T('ed.yourSql'))}" ${run && run.ok ? 'readonly' : ''}>${esc(val)}</textarea>
       <div class="actions">
-        <button class="btn btn-primary btn-run" data-act="absRun">${I.check}${H('fill.check')}</button>
+        <button class="btn btn-primary btn-run" data-act="absRun" ${run && run.ok ? 'disabled' : ''}>${I.check}${H('fill.check')}</button>
         <button class="btn btn-ghost" data-act="absBack">⌫ ${H('bs.abs.back')}</button>
         <button class="btn btn-ghost" data-act="absClear">${I.reset}${H('bs.abs.clear')}</button>
-      </div>
-      ${fb}
-      ${run && (run.ok || shown) && S.route.view === 'session' ? `<div class="row-btns left"><button class="btn btn-ok fb-next" data-act="sessionNext">${H('btn.next')}${I.next}</button></div>` : ''}
-    </section>`;
-}
-/** the first answer moves the shape's ladder (as any drill problem) */
-function absRecord(prob, ok) {
-  const ses = S.session;
-  if (ok) { if (!S.progress.solved[prob.id]) S.progress.solved[prob.id] = Date.now(); bumpStreak(S.progress); }
-  else S.progress.wrong[prob.id] = (S.progress.wrong[prob.id] || 0) + 1;
-  if (ses && ses.done[prob.id] === undefined && (ses.kind === 'basics' || ses.kind === 'bsmix')) {
-    ses.done[prob.id] = ok;
-    const top = BASIC_BY_KEY[prob.basic].formats.length - 1;
-    if (ses.kind === 'basics' || prob.bf === Math.min(bsState(prob.basic).f, top)) { S.progress.basics = S.progress.basics || {}; S.progress.basics[prob.basic] = basicResult(S.progress.basics[prob.basic], ok, top); }
+        ${prob.test ? '' : `<details class="abs-hint"><summary>${H('bs.abs.hint')}</summary><div class="abs-line">${order.join('<i class="abs-dots">…</i>')}<i class="abs-dots">…</i></div></details>`}
+      </div>`;
   }
-  save();
+  if (run && prob.af !== 'afill') {
+    if (run.ok) fb = `<div class="fb ok"><div class="fb-icon">✓</div><div class="fb-body"><h3>${H('bs.abs.ok')}</h3>${good}</div></div>`;
+    else {
+      const wrong = S.progress.wrong[prob.id] || 0, toks = run.got.map((x, i) => `<span class="abs-t ${i === run.at ? 'bad' : i > run.at ? 'after' : ''}">${x[0] === '§' ? H('bs.w.' + x.slice(1)) : esc(x[0] === '?' ? x.slice(1) : x)}</span>`).join('');
+      fb = `<div class="fb bad"><div class="fb-icon">?</div><div class="fb-body"><h3>${H(run.got.some(x => x[0] === '?') ? 'bs.abs.real' : 'bs.abs.ng')}</h3>
+        <div class="abs-toks">${toks}${run.at >= run.got.length ? '<span class="abs-t bad">…</span>' : ''}</div>
+        ${open ? `<div class="muted small">${H('bs.abs.answer')}</div>${good}` : prob.test ? '' : `<p class="muted small">${H('hint.locked', { n: Math.max(0, 2 - wrong) })}</p>`}</div></div>`;
+    }
+  }
+  return `${head}<section class="card editor-card abs-card">${body}${fb}${next}</section>`;
+}
+/** the answer goes the same way as any other (record): the ladder of the shape, a quick test, an assignment, the class log */
+function absAnswer(prob, r, text) {
+  const run = Object.assign({}, S.runs[prob.id] || {}, r, { grade: { ok: r.ok, reason: r.ok ? null : 'shape' }, dx: [], sql: text });
+  record(prob, r.ok, run, text);
+  S.runs[prob.id] = run;
+  if (!r.ok && !prob.test && (S.progress.wrong[prob.id] || 0) >= 2) run.shown = true;
+  render();
 }
 const absInput = () => document.getElementById('abs-in');
 function absKeep() { const c = current(), el = absInput(); if (c && el) S.progress.drafts['a:' + c.prob.id] = el.value; }
@@ -705,7 +733,7 @@ function chQuizHTML(ch) {
 const MIX_KEY = 'sqln.bsMix';
 function mixConfig() { const c = Store.get(MIX_KEY, null) || {}; return { range: MIX_RANGES.includes(c.range) ? c.range : 'learned', fmt: MIX_FORMATS.includes(c.fmt) ? c.fmt : 'auto', n: MIX_COUNTS.includes(c.n) ? c.n : 10 }; }
 const mixLearned = st => bsState(st.key).n > 0 || stateOf(LESSON_BY_KEY[st.lesson]).done;
-const mixFmtName = f => H(f === 'auto' ? 'bs.mix.f.auto' : f === 'abs' ? 'bs.f.abs' : f === 'fill' ? 'stage.fill' : f === 'order1' ? 'stage.order' : 'rv.write');
+const mixFmtName = f => (f === 'auto' ? H('bs.mix.f.auto') : fmtName(f));
 function bsMixSetupHTML() {
   const c = mixConfig(), seg = (k, vals, name) => `<div class="seg">${vals.map(v => `<button class="${c[k] === v ? 'on' : ''}" data-act="mixSet" data-k="${k}" data-v="${v}">${name(v)}</button>`).join('')}</div>`;
   const steps = mixSteps(c.range, mixLearned);
@@ -760,7 +788,7 @@ function bsMixHTML() {
     <div class="session-head"><h1>${ses.task ? `📌 ${H('task.title')}` : `🔀 ${H('bs.mix.title')}`}</h1>
       <div class="session-progress"><span>${ses.i + 1} / ${n}</span><div class="bar"><i style="width:${Math.round(ses.i / n * 100)}%"></i></div></div></div>
     <div class="session-layout">
-      <aside class="card side-card bs-side"><div class="chap">${prob.abs ? H('bs.f.abs') : bsName(prob.basic)}</div><h2>${H('bs.shape')}</h2>${prob.abs && !(S.runs[prob.id] && (S.runs[prob.id].ok || (S.progress.wrong[prob.id] || 0) >= 2)) ? `<p class="muted small">${H('bs.abs.hidden')}</p>` : shapeHTML(step.shape)}${ses.task ? '' : `<a class="btn btn-ghost btn-xs" href="#/basics/mix">${H('bs.mix.settings')}</a>`}</aside>
+      <aside class="card side-card bs-side"><div class="chap">${absOpen(prob) ? bsName(prob.basic) : H('bs.f.abs')}</div><h2>${H('bs.shape')}</h2>${absSideHTML(prob)}${ses.task ? '' : `<a class="btn btn-ghost btn-xs" href="#/basics/mix">${H('bs.mix.settings')}</a>`}</aside>
       <div class="main" id="ws">${workspaceHTML(prob)}</div>
     </div>
   </main>`;
@@ -1785,7 +1813,7 @@ function record(prob, ok, run, sql) {
       }
     }
     if (S.klass && backend.enabled) {
-      backend.logAttempt({ class_id: S.klass.id, problem_id: prob.id.slice(0, 80), lesson: prob.lesson, stage: prob.kind === 'review' ? 'review' : prob.stage, ok, reason: ok ? null : (run.grade ? run.grade.reason : 'error'), sql: String(sql).slice(0, 2000) });
+      backend.logAttempt({ class_id: S.klass.id, problem_id: prob.id.slice(0, 80), lesson: prob.lesson, stage: prob.abs ? 'quiz' : prob.kind === 'review' ? 'review' : prob.stage, ok, reason: ok ? null : (run.grade ? run.grade.reason : 'error'), sql: String(sql).slice(0, 2000) });
     }
   }
   S.runs[prob.id] = run;
@@ -1915,21 +1943,32 @@ const actions = {
   quickMore() { S.qMore = true; const f = qItems().find(p => !qDone(p)); location.hash = f ? `#/quick/${f.qn}` : '#/quick'; },
   levelRetest() { if (confirm(T('lv.retestConfirm'))) { S.session = null; location.hash = '#/level/test'; } },
   bsMore() { S.session = null; render(); window.scrollTo(0, 0); },
-  absPut(el) {   // a chip: the word goes at the end (or where the cursor is)
-    const ta = absInput(); if (!ta) return;
+  absPut(el) {   // a chip: the word goes where the cursor is (at the end at first)
+    const ta = absInput(); if (!ta || ta.readOnly) return;
     const k = el.dataset.text, at = ta.selectionStart ?? ta.value.length, before = ta.value.slice(0, at), after = ta.value.slice(at);
-    const glue = [',', ')', ';', '.'].includes(k) || (k === "'" && /'\S*$/.test(before) && (before.match(/'/g) || []).length % 2 === 1) || /[.(]$/.test(before) || (/'$/.test(before) && (before.match(/'/g) || []).length % 2 === 1);
+    const glue = [',', ')', ';', '.'].includes(k) || /[.(]$/.test(before) || (/'$/.test(before) && (before.match(/'/g) || []).length % 2 === 1);
     const piece = (glue || !before || /\s$/.test(before) ? '' : ' ') + k + (['.', '(', "'"].includes(k) ? '' : ' ');
-    ta.value = before.replace(glue ? /\s+$/ : /$/, '') + piece + after; ta.focus(); const pos = (before.replace(glue ? /\s+$/ : /$/, '') + piece).length; ta.setSelectionRange(pos, pos); absKeep(); save();
+    const head = before.replace(glue ? /\s+$/ : /$/, '');
+    ta.value = head + piece + after; ta.focus(); ta.setSelectionRange((head + piece).length, (head + piece).length); absKeep(); save();
   },
-  absBack() { const ta = absInput(); if (!ta) return; ta.value = ta.value.replace(/\s*(>=|<=|<>|[(),.;=<>*'%]|[^\s(),.;=<>*'%]+)\s*$/, ' ').replace(/^\s+$/, ''); ta.focus(); absKeep(); save(); },
-  absClear() { const ta = absInput(); if (!ta) return; ta.value = ''; ta.focus(); absKeep(); save(); },
+  absBack() { const ta = absInput(); if (!ta || ta.readOnly) return; ta.value = ta.value.replace(/\s*(>=|<=|<>|[(),.;=<>*'%]|[^\s(),.;=<>*'%]+)\s*$/, ' ').replace(/^\s+$/, ''); ta.focus(); absKeep(); save(); },
+  absClear() { const ta = absInput(); if (!ta || ta.readOnly) return; ta.value = ''; ta.focus(); absKeep(); save(); },
+  absIn(el) { const c = current(); if (!c) return; const k = 'ao:' + c.prob.id, l = S.progress.drafts[k] || []; if (!l.includes(+el.dataset.v)) S.progress.drafts[k] = [...l, +el.dataset.v]; save(); render(); },
+  absOut(el) { const c = current(); if (!c) return; const k = 'ao:' + c.prob.id, l = (S.progress.drafts[k] || []).slice(); l.splice(+el.dataset.v, 1); S.progress.drafts[k] = l; save(); render(); },
+  absOrderClear() { const c = current(); if (!c) return; S.progress.drafts['ao:' + c.prob.id] = []; save(); render(); },
+  absPick(el) {   // the missing word
+    const c = current(); if (!c || !c.prob.gap) return;
+    const prob = c.prob, v = el.dataset.v, run = S.runs[prob.id] || {}, picks = [...(run.picks || []), v], ok = v === prob.gap.choices[0];
+    absAnswer(prob, { ok, picks, got: [], at: 0 }, v);
+  },
   absRun() {
-    const c = current(), ta = absInput(); if (!c || !ta || !c.prob.abs) return;
-    absKeep();
-    if (!ta.value.trim()) return;
-    const r = absCheck(c.prob.basic, ta.value, absWords());
-    S.runs[c.prob.id] = r; absRecord(c.prob, r.ok); render();
+    const c = current(); if (!c || !c.prob.abs) return;
+    const prob = c.prob;
+    let text = '';
+    if (prob.af === 'aorder') text = (S.progress.drafts['ao:' + prob.id] || []).map(k => absPieceT(prob.pool[k].toks)).join(' ');
+    else { const ta = absInput(); if (!ta) return; absKeep(); text = ta.value; }
+    if (!text.trim()) return;
+    absAnswer(prob, absCheck(prob.shape, text, absWords()), text);
   },
   cqPick(el) {
     const q = S.cq; if (!q || q.picks[q.i] !== undefined) return;

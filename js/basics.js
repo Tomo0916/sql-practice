@@ -29,7 +29,7 @@ import { LESSONS } from './lessons.js';
 import { topicsOf } from './lecture-topics.js';
 import { makeProblem } from './mastery.js';
 
-export const BASIC_FORMATS = ['abs', 'fill', 'order1', 'write'];   // abs = the shape in words (SELECT 列 FROM テーブル), before any real table
+export const BASIC_FORMATS = ['afill', 'aorder', 'awrite'];   // all in words (SELECT 列 FROM テーブル): fill a gap → put the parts in order → write it
 export const BASIC_ROUND = 5;
 export const BASIC_UP = 2;       // right in a row that move up a format
 export const BASIC_CLEAR = 3;    // right in a row in writing that master the step
@@ -49,18 +49,18 @@ const COVERED = new Set(BASIC_STEPS.map(s => s.lesson));
 LESSONS.filter(l => ['basics', 'filter', 'sort', 'change', 'agg', 'join'].includes(l.ch) && l.kind !== 'quiz' && !l.fixed && !COVERED.has(l.key) && l.syntax)
   .forEach(l => BASIC_STEPS.push({ key: l.key, core: false, lesson: l.key, ch: l.ch, shape: l.syntax.replace(/\s*--.*$/, ''), fits: () => true }));
 // the formats of a step: the ones its lesson has (a lesson without ordering goes fill-in → write)
-BASIC_STEPS.forEach(s => { const own = stagesOf(LESSON_BY_KEY[s.lesson]); s.formats = BASIC_FORMATS.filter(f => f === 'write' || f === 'abs' || (f === 'fill' ? own.includes('fill') : own.includes('order'))); });
+BASIC_STEPS.forEach(s => { const own = stagesOf(LESSON_BY_KEY[s.lesson]); s.formats = BASIC_FORMATS.slice(); });
 export const BASIC_CORE = BASIC_STEPS.filter(s => s.core);
 export const BASIC_DETAIL = BASIC_STEPS.filter(s => !s.core);
 export const BASIC_BY_KEY = Object.fromEntries(BASIC_STEPS.map(s => [s.key, s]));
 
 /* ---------- state ---------- */
-export const basicStart = () => ({ f: 0, run: 0, n: 0, ok: 0, clear: false, v: 2 });
-/** a stored state; one from before the shape-in-words format (v < 2) moves one format up, so it stays where it was */
+export const basicStart = () => ({ f: 0, run: 0, n: 0, ok: 0, clear: false, v: 3 });
+/** a stored state; one from before the shapes were all in words (v < 3) keeps "mastered", and the format as far as it goes */
 export function basicNorm(st) {
   if (!st) return basicStart();
-  const o = Object.assign(basicStart(), st, { v: 2 });
-  if (st.v !== 2 && st.n) o.f = (st.f || 0) + 1;
+  const o = Object.assign(basicStart(), st, { v: 3 });
+  if (st.v !== 3) { o.f = st.clear ? BASIC_FORMATS.length - 1 : Math.min(BASIC_FORMATS.length - 1, Math.max(0, (st.f || 0) - (st.v === 2 ? 1 : 0))); o.run = 0; }
   return o;
 }
 /** after the first answer to a drill problem → the new state (does not change `st`) */
@@ -76,18 +76,10 @@ export function basicResult(st, ok, top = BASIC_FORMATS.length - 1) {
 /** the step to practise next: the first not mastered (the last one when all are) */
 export const nextStep = basics => (BASIC_CORE.find(s => !basicNorm((basics || {})[s.key]).clear) || BASIC_CORE[BASIC_CORE.length - 1]).key;
 
-/* ---------- a problem of a step, in a format ---------- */
+/* ---------- a problem of a step, in a format (always in words) ---------- */
 export function basicProblem(engine, stepKey, f, seed) {
-  const step = BASIC_BY_KEY[stepKey], lesson = LESSON_BY_KEY[step.lesson], token = step.formats[Math.max(0, Math.min(step.formats.length - 1, f))];
-  if (token === 'abs') return absProblem(stepKey, seed);
-  for (let round = 0; round < 30; round++) {
-    const R = makeRng(`basic|${seed}|${round}`), ds = R.pick(engine.themesFor(lesson));
-    const p = engine.genOne(lesson, ds, `basic|${seed}|${round}`);
-    if (!p || !step.fits(p, topicsOf(step.lesson, p))) continue;
-    const pr = makeProblem(engine, lesson, p, ds.table || ds.key, token) || makeProblem(engine, lesson, p, ds.table || ds.key, 'write');
-    if (pr) return Object.assign(pr, { id: `basic:${stepKey}:${seed}:${pr.id}`, basic: stepKey, bf: step.formats.indexOf(token) });
-  }
-  return null;
+  const step = BASIC_BY_KEY[stepKey]; if (!step) return null;
+  return absProblem(stepKey, step.formats[Math.max(0, Math.min(step.formats.length - 1, f))], seed);
 }
 
 /* ---------- a wrong answer that shows the shape is not there yet ---------- */
@@ -122,7 +114,7 @@ export const CHAPTER_SHAPES = { basics: ['cols'], filter: ['wnum', 'wtext'], sor
 
 /* ---------- the shape mix (型ミックス): only shapes, mixed up ---------- */
 export const MIX_RANGES = ['core', 'learned', 'all'];
-export const MIX_FORMATS = ['auto', 'abs', 'fill', 'order1', 'write'];
+export const MIX_FORMATS = ['auto', 'afill', 'aorder', 'awrite'];
 export const MIX_COUNTS = [5, 10, 20];
 /** the steps of a range; learned(step) says whether the student has learned / started it */
 export function mixSteps(range, learned) {
@@ -151,19 +143,43 @@ export function mixProblems(engine, steps, fmt, n, levelOf, seed) {
 }
 
 /* ---------- the shape in words (型をことばで): SELECT 列, 列 FROM テーブル; ----------
- * No table, no data: the student writes the shape itself with words for the parts
- * (列 / テーブル / 値 / 条件 / 式 / 別名 in the student's language) and the SQL words and symbols.
- * The answer is compared token by token (SQL words in any case, spaces free, the last ; may be left out). */
+ * No table, no data: the shape itself, with words for the parts (列 / テーブル / 値 / 条件 / 式 / 別名
+ * in the student's language) and the SQL words. Three formats, all in words:
+ *   afill   one word of the shape is missing: choose it
+ *   aorder  the parts of the shape (and two that do not belong): put them in order
+ *   awrite  write it (chips or keyboard)
+ * The core shapes come in variants (how many columns, which comparison, which direction …),
+ * each with its own goal sentence, so the shape is understood, not learnt by heart.
+ * Answers are compared token by token (SQL words in any case, spaces free, the last ; and ASC may be left out). */
 export const ABS_SLOTS = ['col', 'table', 'val', 'cond', 'expr', 'alias'];
 const SLOT_KIND = { col: 'col', group: 'col', num: 'col', key: 'col', table: 'table', value: 'val', text: 'val', number: 'val', n: 'val', min: 'val', max: 'val', skip: 'val', cond: 'cond', expr: 'expr', alias: 'alias' };
+const OPS = { ge: '>=', gt: '>', le: '<=', lt: '<', eq: '=', ne: '<>' };
+const cols = n => Array.from({ length: n }, () => '{col}').join(', ');
+/** the variants of the core shapes: R → { shape, goal: [key, vars] } */
+const VARIANTS = {
+  cols: R => { const n = R.int(0, 3); return n === 0 ? { shape: 'SELECT * FROM {table};', goal: ['bs.g.colsAll'] } : { shape: `SELECT ${cols(n)} FROM {table};`, goal: ['bs.g.cols', { n }] }; },
+  wnum: R => { const n = R.int(1, 2), op = R.pick(['ge', 'gt', 'le', 'lt', 'eq']); return { shape: `SELECT ${cols(n)} FROM {table} WHERE {col} ${OPS[op]} {value};`, goal: ['bs.g.wnum.' + op, { n }] }; },
+  wtext: R => { const n = R.int(1, 2), op = R.pick(['eq', 'eq', 'ne']); return { shape: `SELECT ${cols(n)} FROM {table} WHERE {col} ${OPS[op]} '{text}';`, goal: ['bs.g.wtext.' + op, { n }] }; },
+  order: R => { const n = R.int(1, 2), d = R.pick(['desc', 'asc']); return { shape: `SELECT ${cols(n)} FROM {table} ORDER BY {col} ${d.toUpperCase()};`, goal: ['bs.g.order.' + d, { n }] }; },
+  limit: R => { const n = R.int(1, 2), d = R.pick(['desc', 'asc']); return { shape: `SELECT ${cols(n)} FROM {table} ORDER BY {col} ${d.toUpperCase()} LIMIT {n};`, goal: ['bs.g.limit.' + d, { n }] }; },
+  insert: R => { const n = R.int(1, 3); return { shape: `INSERT INTO {table} (${cols(n)}) VALUES (${Array.from({ length: n }, () => '{value}').join(', ')});`, goal: ['bs.g.insert', { n }] }; },
+  update: R => { const n = R.int(1, 2); return { shape: `UPDATE {table} SET ${Array.from({ length: n }, () => '{col} = {value}').join(', ')} WHERE {col} = {value};`, goal: ['bs.g.update', { n }] }; },
+  delete: () => ({ shape: 'DELETE FROM {table} WHERE {col} = {value};', goal: ['bs.d.delete'] })
+};
 /** the shape of a step with only whole parts (the "..." of a few JOIN shapes become one column) */
 export function absShape(stepKey) {
   return BASIC_BY_KEY[stepKey].shape.replace(/SELECT \.\.\. FROM/, 'SELECT {col} FROM').replace(/, \.\.\./g, '');
 }
+/** a shape for a problem: a variant of a core shape, or the step's own shape */
+export function absVariant(stepKey, seed) {
+  const v = VARIANTS[stepKey];
+  if (v) return v(makeRng(`absv|${stepKey}|${seed}`));
+  return { shape: absShape(stepKey), goal: ['bs.abs.goal', { lesson: BASIC_BY_KEY[stepKey].lesson }] };
+}
 const SYM = /^(>=|<=|<>|!=|[(),.;=<>*'%+\-])/;
 /** text → tokens; words: { col: ['列', 'column'], … } the words that stand for each part */
 export function absTokens(text, words) {
-  let t = String(text || '').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/\u3000/g, ' ');
+  const t = String(text || '').replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/　/g, ' ').replace(/，/g, ',').replace(/；/g, ';').replace(/（/g, '(').replace(/）/g, ')');
   const list = [];
   Object.entries(words || {}).forEach(([k, ws]) => ws.forEach(w => { if (w) list.push([w, k]); }));
   list.sort((a, b) => b[0].length - a[0].length);   // longer words first (テーブル名 before テーブル)
@@ -174,7 +190,7 @@ export function absTokens(text, words) {
     const hit = list.find(([w]) => t.slice(i, i + w.length).toLowerCase() === w.toLowerCase() && !(/\w$/.test(w) && /\w/.test(t[i + w.length] || '')));   // VALUES is not the word value + S
     if (hit) { out.push('§' + hit[1]); i += hit[0].length; continue; }
     const m = SYM.exec(t.slice(i));
-    if (m) { out.push(m[1]); i += m[1].length; continue; }
+    if (m) { out.push(m[1] === '!=' ? '<>' : m[1]); i += m[1].length; continue; }
     const w = /^[A-Za-z_][A-Za-z0-9_]*/.exec(t.slice(i));
     if (w) { out.push(w[0].toUpperCase()); i += w[0].length; continue; }
     const other = /^[^\s(),.;=<>*'%+\-]+/.exec(t.slice(i));   // something else (a real name, a number …)
@@ -183,10 +199,10 @@ export function absTokens(text, words) {
   while (out.length && out[out.length - 1] === ';') out.pop();
   return out;
 }
-/** the tokens the shape expects */
-export function absExpected(stepKey) {
+/** the tokens a shape expects */
+export function absExpected(shape) {
   const out = [];
-  absShape(stepKey).split(/(\{[a-z]+\})/).forEach(part => {
+  String(shape).split(/(\{[a-z]+\})/).forEach(part => {
     const m = /^\{([a-z]+)\}$/.exec(part);
     if (m) out.push('§' + (SLOT_KIND[m[1]] || 'val'));
     else out.push(...absTokens(part, {}));
@@ -194,27 +210,70 @@ export function absExpected(stepKey) {
   while (out.length && out[out.length - 1] === ';') out.pop();
   return out;
 }
+const noAsc = a => a.filter(x => x !== 'ASC');   // ORDER BY 列 means ORDER BY 列 ASC
 /** check a written shape → { ok, at: the first token that differs (or -1), got, want } */
-export function absCheck(stepKey, text, words) {
-  const got = absTokens(text, words), want = absExpected(stepKey);
+export function absCheck(shape, text, words) {
+  const got = noAsc(absTokens(text, words)), want = noAsc(absExpected(shape));
   let at = 0;
   while (at < got.length && at < want.length && got[at] === want[at]) at++;
   const ok = at === got.length && at === want.length;
   return { ok, at: ok ? -1 : at, got, want };
 }
-/** the SQL words of a shape, and a few more that do not belong (so the order has to be known) */
-const ALL_KW = ['SELECT', 'FROM', 'WHERE', 'ORDER BY', 'GROUP BY', 'HAVING', 'LIMIT', 'DESC', 'ASC', 'AND', 'OR', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'LIKE', 'BETWEEN', 'IS NULL', 'DISTINCT', 'AS', 'COUNT', 'SUM', 'AVG', 'INNER JOIN', 'LEFT JOIN', 'ON'];
-export function absChips(stepKey, seed) {
-  const shape = absShape(stepKey).replace(/\{[a-z]+\}/g, ' ');
-  const has = ALL_KW.filter(k => new RegExp(`\\b${k.replace(' ', '\\s+')}\\b`).test(shape));
-  const own = has.filter(k => !has.some(o => o !== k && o.includes(k) && new RegExp(`\\b${o.replace(' ', '\\s+')}\\b`).test(shape) && !new RegExp(`\\b${k}\\b`).test(shape.replace(new RegExp(o.replace(' ', '\\s+'), 'g'), ''))));
-  const R = makeRng(`abs|${stepKey}|${seed}`), extra = R.shuffle(ALL_KW.filter(k => !own.includes(k) && !own.some(o => o.includes(k) || k.includes(o)))).slice(0, 2);
-  const syms = [',', '(', ')', '.', '=', '>=', "'", '%', '*', ';'].filter(x => x === ';' || x === ',' || shape.includes(x));
-  const slots = [...new Set(absExpected(stepKey).filter(x => x[0] === '§').map(x => x.slice(1)))];
-  return { kw: R.shuffle([...own, ...extra]), slots: ABS_SLOTS.filter(k => ['col', 'table', 'val'].includes(k) || slots.includes(k)), syms };
+/** the parts of a shape for ordering: words that belong together stay together (ORDER BY, COUNT(*), '値', テーブル.列) */
+const PAIRS = [['ORDER', 'BY'], ['GROUP', 'BY'], ['INSERT', 'INTO'], ['DELETE', 'FROM'], ['INNER', 'JOIN'], ['LEFT', 'JOIN'], ['IS', 'NULL']];
+export function absPieces(shape) {
+  const t = absExpected(shape), out = [];
+  for (let i = 0; i < t.length; i++) {
+    const pair = PAIRS.find(([a, b]) => t[i] === a && t[i + 1] === b);
+    if (pair) { out.push([t[i], t[i + 1]]); i++; continue; }
+    if (['COUNT', 'SUM', 'AVG', 'MAX', 'MIN'].includes(t[i]) && t[i + 1] === '(') { const j = t.indexOf(')', i); out.push(t.slice(i, j + 1)); i = j; continue; }
+    if (t[i] === "'") { const j = t.indexOf("'", i + 1); out.push(t.slice(i, j + 1)); i = j; continue; }
+    if (t[i] === '§table' && t[i + 1] === '.') { out.push(t.slice(i, i + 3)); i += 2; continue; }
+    out.push([t[i]]);
+  }
+  return out;
 }
-/** a problem of the shape in words (it has no SQL to run) */
-export function absProblem(stepKey, seed) {
-  const step = BASIC_BY_KEY[stepKey];
-  return { id: `basic:${stepKey}:abs:${seed}`, basic: stepKey, bf: 0, stage: 'abs', abs: true, lesson: step.lesson, kind: 'practice', tables: [], sql: absShape(stepKey), p: {}, theme: 'demo' };
+/** clause words, and the ones that can stand in for each other in a gap */
+const CLAUSE_KW = ['SELECT', 'FROM', 'WHERE', 'ORDER BY', 'GROUP BY', 'HAVING', 'LIMIT', 'INSERT INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE FROM', 'INNER JOIN', 'LEFT JOIN', 'ON', 'AS', 'AND', 'LIKE', 'BETWEEN', 'IS NULL', 'DISTINCT'];
+const ALL_KW = [...CLAUSE_KW, 'DESC', 'ASC', 'COUNT', 'SUM', 'AVG'];
+const GAP_SETS = [['DESC', 'ASC'], Object.values(OPS)];
+/** a gap: which part is missing and the choices (the right one first) */
+function absGap(pieces, R) {
+  const text = p => p.join(' ');
+  const can = pieces.map((p, i) => i).filter(i => { const x = text(pieces[i]); return CLAUSE_KW.includes(x) || GAP_SETS.some(g => g.includes(x)); });
+  const at = R.pick(can), right = text(pieces[at]), set = GAP_SETS.find(g => g.includes(right));
+  const main = ['SELECT', 'FROM', 'WHERE', 'ORDER BY', 'GROUP BY', 'HAVING', 'LIMIT', 'SET', 'VALUES', 'ON', 'INSERT INTO', 'UPDATE', 'DELETE FROM'];
+  const others = set ? set.filter(x => x !== right) : (main.includes(right) ? main : CLAUSE_KW).filter(x => x !== right);   // the other clause words, also ones of this shape (where does each go?)
+  return { at, choices: [right, ...R.shuffle(others).slice(0, 3)] };
+}
+/** the SQL words for the writing chips: the shape's own and two that do not belong, shuffled */
+export function absChips(shape, seed) {
+  const R = makeRng(`abs|${shape}|${seed}`), pieces = absPieces(shape).map(p => p.join(' '));
+  const own = [...new Set(pieces.filter(x => ALL_KW.includes(x) || /^(COUNT|SUM|AVG|MAX|MIN)$/.test(x.split(' ')[0])).map(x => x.split(' (')[0]))];
+  const extra = R.shuffle(ALL_KW.filter(k => !own.includes(k))).slice(0, 2);
+  if (own.includes('DESC') && !extra.includes('ASC')) extra.push('ASC'); else if (own.includes('ASC') && !extra.includes('DESC')) extra.push('DESC');
+  const toks = absExpected(shape), cmp = toks.some(x => Object.values(OPS).includes(x));
+  const syms = [',', '(', ')', '.', "'", '%', '*', ...(cmp ? Object.values(OPS) : []), ';'].filter(x => x === ';' || x === ',' || toks.includes(x) || (cmp && Object.values(OPS).includes(x)));
+  const slots = [...new Set(toks.filter(x => x[0] === '§').map(x => x.slice(1)))];
+  return { kw: R.shuffle([...new Set([...own, ...extra])]), slots: ABS_SLOTS.filter(k => ['col', 'table', 'val'].includes(k) || slots.includes(k)), syms };
+}
+/** the clauses of a shape, each with what it does: [{ key: role key, toks }] */
+const CLAUSE_ROLE = [['SELECT', 'cq.role.select'], ['FROM', 'cq.role.from'], ['WHERE', 'cq.role.where'], ['GROUP BY', 'cq.role.group'], ['HAVING', 'cq.role.having'], ['ORDER BY', 'cq.role.order'], ['LIMIT', 'cq.role.limit'],
+  ['INSERT INTO', 'bs.r.insert'], ['VALUES', 'bs.r.values'], ['UPDATE', 'bs.r.update'], ['SET', 'bs.r.set'], ['DELETE FROM', 'bs.r.delete'], ['INNER JOIN', 'bs.r.join'], ['LEFT JOIN', 'bs.r.join'], ['ON', 'bs.r.on']];
+export function absClauses(shape) {
+  const out = [];
+  absPieces(shape).forEach(p => { const r = CLAUSE_ROLE.find(([k]) => k === p.join(' ')); if (r || !out.length) out.push({ key: r ? r[1] : null, toks: [...p] }); else out[out.length - 1].toks.push(...p); });
+  return out;
+}
+/** a problem in words (no SQL to run): { shape, goal, af, pieces, gap / pool } */
+export function absProblem(stepKey, af, seed) {
+  const step = BASIC_BY_KEY[stepKey], v = absVariant(stepKey, seed), R = makeRng(`absp|${stepKey}|${af}|${seed}`), pieces = absPieces(v.shape);
+  const p = { id: `basic:${stepKey}:${af}:${seed}`, basic: stepKey, bf: step.formats.indexOf(af), stage: 'abs', abs: true, af, kind: 'drill', lesson: step.lesson, tables: [], sql: v.shape, shape: v.shape, goal: v.goal, p: {}, theme: 'demo' };
+  if (af === 'afill') p.gap = absGap(pieces, R), p.gap.order = R.shuffle(p.gap.choices.map((x, i) => i));
+  if (af === 'aorder') {   // the parts and two that do not belong, shuffled
+    const extra = R.shuffle(CLAUSE_KW.filter(k => !pieces.some(x => x.join(' ') === k))).slice(0, 2).map(k => k.split(' '));
+    p.pool = R.shuffle([...pieces, ...extra].map((toks, i) => ({ i, toks })));
+    p.need = pieces.length;
+  }
+  return p;
 }
