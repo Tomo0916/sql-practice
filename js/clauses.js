@@ -27,6 +27,8 @@ export const CQ_N = 8;
 export const BLANK = '＿＿＿';
 /** the step of the root drill (基礎の型) that practises writing the clause */
 export const CQ_BASIC = { select: 'cols', from: 'cols', where: 'wnum', order: 'order', limit: 'limit', group: 'groupby', having: 'having', all: 'cols' };
+/** in the chapters: the quiz at the end of each chapter */
+export const CHAPTER_QUIZ = { basics: ['select', 'from'], filter: ['where'], sort: ['order', 'limit'], agg: ['group', 'having', 'all'] };
 /** a short example of each clause, for the list */
 export const CQ_EXAMPLE = {
   select: 'SELECT name, price FROM products;',
