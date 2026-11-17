@@ -1199,3 +1199,18 @@ body.pj-open { overflow: hidden; }
 .lv-rv { padding: 10px 14px; margin-bottom: 8px; } .lv-rv summary { display: flex; gap: 10px; align-items: center; cursor: pointer; }
 .lv-rv.ok summary b { color: var(--ok); } .lv-rv.ng summary b { color: var(--bad); }
 .lv-rv summary span[style] { color: var(--cc); font-size: .85rem; font-weight: 700; }
+
+/* quick input of the problem's names, and the shape in words */
+.kwbar.names { margin-top: -4px; }
+.kw-chip.nm { font-weight: 600; color: var(--ink); background: var(--surface-2); }
+.kw-chip.nm.tb { color: #7c3aed; border-color: color-mix(in srgb, #7c3aed 35%, transparent); }
+.kw-chip.nm.cl { color: #0e7490; border-color: color-mix(in srgb, #0e7490 35%, transparent); }
+.kw-chip.nm.vl { color: #b45309; border-color: color-mix(in srgb, #b45309 35%, transparent); }
+.abs-card .kw-chip.part { padding: 2px 6px; background: transparent; border: 0; }
+.abs-card .kw-chip.sym { color: var(--ink); min-width: 34px; }
+.abs-in { width: 100%; box-sizing: border-box; font-family: var(--mono); font-size: 1.05rem; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink); resize: vertical; margin: 4px 0 10px; line-height: 1.6; }
+.abs-in:focus { outline: 2px solid var(--accent); }
+.abs-toks { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; font-family: var(--mono); }
+.abs-t { padding: 1px 6px; border-radius: 6px; background: var(--ok-soft); }
+.abs-t.bad { background: var(--bad); color: #fff; } .abs-t.after { background: var(--surface-2); color: var(--ink-3); }
+.tag.st-abs { background: color-mix(in srgb, #0e7490 14%, transparent); color: #0e7490; }
