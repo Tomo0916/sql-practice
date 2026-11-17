@@ -24,7 +24,7 @@ import { normCheck, decodeCheck, buildCheck } from './check.js';
 import { randomCode, stagesOf, LESSON_BY_KEY, FORMAT_KEYS, FORMAT_MAX, makeRng } from './engine.js';
 import { tableSets, makeProblem } from './mastery.js';
 import { BASIC_BY_KEY, basicProblem } from './basics.js';
-import { levelsOf } from './lessons.js';
+import { bandLevel } from './lessons.js';
 
 export const QUICK_COUNTS = [1, 2, 3, 4, 5];
 export const QUICK_LIMITS = [0, 3, 5, 10, 15];   // minutes; 0 = no limit
@@ -50,10 +50,9 @@ export function kindsOf(key, engine, tb) {
 }
 const poolCache = new Map();
 /** all the problems of one lesson and kind, shuffled by the seed (up to FORMAT_MAX); tb = only on that table */
-/** the level a lesson can give for a wanted level (its highest when it has fewer) */
-export const levelFor = (key, lv) => { const ls = levelsOf(key); return lv && ls.length ? Math.min(lv, ls[ls.length - 1]) : 0; };
-export function kindPool(engine, key, st, seed, tb, lv) {
-  lv = levelFor(key, lv);
+/** the level of a lesson for a band of the whole test */
+export const levelFor = (key, band) => bandLevel(key, band);   // 基本 · 標準 · 発展 → the lesson's own level
+export function kindPool(engine, key, st, seed, tb, lv) {   // lv: the lesson's own level (0 = any)
   const id = `${key}|${st}|${seed}|${tb || ''}|${lv || ''}`;
   if (poolCache.has(id)) return poolCache.get(id);
   const f = { fill: 0, order1: 0, order2: 0, write: 0 }; f[st] = FORMAT_MAX;
@@ -115,7 +114,7 @@ export function simpleSlots(engine, lessons, n, kind, seed, tb, lv) {
   if (!lessons.length) return out;
   for (let r = 0; r < FORMAT_MAX * kinds.length && out.length < n; r++) for (let j = 0; j < lessons.length && out.length < n; j++) {
     const k = lessons[j], st0 = kinds[(j + r) % kinds.length], st = kindsOf(k, engine, tb).includes(st0) ? st0 : 'write';
-    const x = lv ? { k, st, lv: levelFor(k, lv) } : { k, st }, i = freeIndex(engine, x, seed, out, 0, -1, tb);
+    const x = lv ? { k, st, lv: levelFor(k, lv), bd: lv } : { k, st }, i = freeIndex(engine, x, seed, out, 0, -1, tb);
     if (i !== null) out.push(Object.assign(x, { i }));
   }
   return out;
@@ -141,7 +140,7 @@ export function detailSlots(engine, per, order, seed, tb, lv) {
     const c = per[k] || {};
     for (const st of KINDS) {
       const want = kindsOf(k, engine, tb).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +c[st] || 0)) : 0;
-      for (let w = 0; w < want; w++) { const x = lv ? { k, st, lv: levelFor(k, lv) } : { k, st }, i = freeIndex(engine, x, seed, out, 0, -1, tb); if (i === null) break; out.push(Object.assign(x, { i })); }
+      for (let w = 0; w < want; w++) { const x = lv ? { k, st, lv: levelFor(k, lv), bd: lv } : { k, st }, i = freeIndex(engine, x, seed, out, 0, -1, tb); if (i === null) break; out.push(Object.assign(x, { i })); }
     }
   }
   return out;
@@ -177,7 +176,7 @@ export const limitSecOf = q => (q && q.end ? Math.max(1, Math.round((new Date(q.
 export function newQuick(d, nowMs) {
   const at = (nowMs || Date.now()) + QUICK_COUNTDOWN * 1000, n = d.slots.length;
   const sec = Math.min(QUICK_MAX_SEC, Math.max(0, Math.round(d.limitSec !== undefined ? +d.limitSec || 0 : (+d.limit || 0) * 60)));
-  return { id: randomCode(5), seed: d.seed, ...(Array.isArray(d.lv) && d.lv.length ? { lv: d.lv.slice(), once: true } : {}), ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => (x.b ? { b: x.b, k: x.k, st: x.st, i: x.i } : x.lv ? { k: x.k, st: x.st, i: x.i, lv: x.lv } : { k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
+  return { id: randomCode(5), seed: d.seed, ...(Array.isArray(d.lv) && d.lv.length ? { lv: d.lv.slice(), once: true } : {}), ...(d.tb ? { tb: d.tb } : {}), slots: d.slots.map(x => (x.b ? { b: x.b, k: x.k, st: x.st, i: x.i } : x.lv ? { k: x.k, st: x.st, i: x.i, lv: x.lv, bd: x.bd } : { k: x.k, st: x.st, i: x.i })), at: new Date(at).toISOString(), n,
     pass: Math.max(1, Math.min(n, +d.pass || n)), end: sec ? new Date(at + sec * 1000).toISOString() : null };
 }
 /** the problems of a quick test, with their quick ids (answers hidden until it is over) */

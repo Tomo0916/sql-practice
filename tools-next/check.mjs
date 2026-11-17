@@ -683,11 +683,15 @@ console.log('15. Difficulty levels (難易度)');
       if (!got) err(`levels: ${l.key} Lv${L} cannot be made`);
       sizes.push(cols);
     }
-    if (Ls.MORE_COLS.has(l.key) && sizes.some((c, i) => i && c !== null && sizes[i - 1] !== null && c < sizes[i - 1])) err(`levels: ${l.key} gets fewer columns at a higher level`);
+    // a level is never easier than the one before: neither a simpler variant with no more columns, nor the same pair twice
+    const specs = lvs.map(L => Ls.levelSpec(l.key, L)), keys = specs.map(x => `${x.v}|${x.more}`);
+    if (new Set(keys).size !== keys.length || specs.some((x, i) => i && x.v + x.more < specs[i - 1].v + specs[i - 1].more)) err(`levels: ${l.key} levels are not in order (${keys.join(' ')})`);
+    if (['where', 'orderby', 'andor', 'select'].includes(l.key) && lvs.length < 4) err(`levels: ${l.key} has only ${lvs.length} levels`);
+    if (!Ls.levelInfo(l.key, lvs[lvs.length - 1])) err(`levels: ${l.key} has no description of its levels`);
   }
   // a quick test at a level: every problem is of that level (or the lesson's highest)
   const slots = Q.simpleSlots(eng, ['select', 'orderby', 'groupby', 'inner'], 8, 'write', 'LVQ', '', 3), ps = Q.slotProblems(eng, 'LVQ', slots, '');
-  if (ps.length < 4 || ps.some(p => p.lv !== Q.levelFor(p.lesson, 3))) err(`levels: a quick test at Lv3 has problems of another level (${ps.map(p => p.lesson + p.lv).join()})`);
+  if (ps.length < 4 || ps.some(p => p.lv !== Q.levelFor(p.lesson, 3) || p.lv !== Ls.levelsOf(p.lesson).length)) err(`levels: a quick test at Lv3 has problems of another level (${ps.map(p => p.lesson + p.lv).join()})`);
   console.log(`   ${made} problems made at their levels`);
 }
 function makeProbe(l, p) { try { return eng.buildProblem(l, p, 'write', 0, 'chk'); } catch (e) { return null; } }

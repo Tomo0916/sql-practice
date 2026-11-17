@@ -1467,5 +1467,11 @@ export default {
   "pr.example": "Contoh ({name})",
   "pr.start": "Mulai berlatih",
   "pr.pick": "Pilih minimal satu pelajaran.",
-  "pr.up": "Semua benar! Coba Lv{n}."
+  "pr.up": "Semua benar! Coba Lv{n}.",
+  "dif.more": "+{n} kolom",
+  "dif.moreAgg": "+{n} agregat",
+  "dif.base": "bentuk dasar",
+  "dif.fineNote": "Pelajaran ini punya {n} tingkat. Makin besar angkanya, makin sulit bentuk SQL-nya atau makin banyak kolom yang diambil.",
+  "dif.bandNote": "(tiap pelajaran memakai salah satu tingkatnya sendiri)",
+  "pr.upNext": "Semua benar! Coba tingkat berikutnya."
 };

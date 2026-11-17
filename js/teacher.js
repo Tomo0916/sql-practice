@@ -1277,7 +1277,7 @@ const actions = {
     const order = checkLessons().map(l => l.key);
     Object.assign(d, { mode: 'detail', lessons: order.filter(k => shape.lessons.includes(k)), per: shape.per, swaps: {}, pass: q.pass < q.n ? q.pass : null,
       limitSec: Math.min(QUICK_MAX_SEC, limitSecOf(q)), limitBy: 'len',
-      seed: same ? q.seed : randomCode(4), tb: q.tb || '', goal: q.once ? 'level' : 'quick', dif: Math.max(0, ...slots.map(x => x.lv || 0)), lv: q.lv || d.lv, fixed: same ? { seed: q.seed, slots, at: q.at, lv: q.lv } : null });
+      seed: same ? q.seed : randomCode(4), tb: q.tb || '', goal: q.once ? 'level' : 'quick', dif: Math.max(0, ...slots.map(x => x.bd || 0)), lv: q.lv || d.lv, fixed: same ? { seed: q.seed, slots, at: q.at, lv: q.lv } : null });
     saveQDraft(d, true); refreshTab(); toast(T(same ? 'tc.quick.readySame' : 'tc.quick.readyNew'));
     const top = document.querySelector('.quick-setup'); if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },

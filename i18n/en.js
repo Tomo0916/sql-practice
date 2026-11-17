@@ -1468,5 +1468,11 @@ export default {
   "pr.example": "Example ({name})",
   "pr.start": "Start practising",
   "pr.pick": "Choose at least one lesson.",
-  "pr.up": "All correct! Try Lv{n}."
+  "pr.up": "All correct! Try Lv{n}.",
+  "dif.more": "+{n} column(s)",
+  "dif.moreAgg": "+{n} aggregate(s)",
+  "dif.base": "basic form",
+  "dif.fineNote": "This lesson has {n} levels. The higher the number, the harder the SQL form or the more columns to get.",
+  "dif.bandNote": "(each lesson gives one of its own levels)",
+  "pr.upNext": "All correct! Try the next level."
 };
