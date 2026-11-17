@@ -29,6 +29,11 @@ export function usedKeys() {
   for (const [l, ks] of [['an_missing', ['null', 'dup']], ['an_center', ['mid', 'mode']], ['an_spread', ['sd', 'range']], ['an_hist', ['bin', 'freq']], ['an_zscore', ['top', 'count']]]) ks.forEach(k => keys.add(`L.${l}.desc_${k}`));
   ['beginner', 'intermediate', 'advanced'].forEach(k => keys.add('book.lv.' + k));
   keys.add('dx.quizWrong');
+  // the clause quiz (clauses.js): roles, tips, questions and the texts of the choices
+  ['select', 'from', 'where', 'order', 'limit', 'group', 'having'].forEach(k => { keys.add('cq.role.' + k); keys.add('cq.tip.' + k); });
+  keys.add('cq.tip.seq');
+  ['role', 'which', 'blank', 'right', 'cols', 'table', 'rows', 'sort', 'get', 'groups', 'seq'].forEach(k => keys.add('cq.ask.' + k));
+  ['all', 'desc', 'asc', 'top', 'bottom', 'nth', 'skip', 'countBy', 'countAll', 'sumBy', 'sumAll', 'hge', 'hgt', 'hle', 'hlt', 'rows'].forEach(k => keys.add('cq.r.' + k));
   ['stat', 'excel', 'python', 'csv', 'toolsTip', 'mean', 'median', 'k.id', 'k.quant', 'k.qual', 'k.date', 'g.copy', 'g.notebook', 'g.answer', 'g.sqlNote', 'beyond'].forEach(k => keys.add('an.' + k));
   ANALYSIS_THEMES.forEach(d => keys.add('ds.' + d.table));
   LESSONS.forEach(l => {
