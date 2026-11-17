@@ -36,7 +36,9 @@ export function usedKeys() {
   keys.add('cq.tip.seq');
   MIX_KEYS.forEach(k => keys.add(k));
   ['A', 'A2', 'B', 'C', 'P', 'R'].forEach(k => keys.add('lv.part.' + k)); [0, 1, 2, 3].forEach(k => keys.add('lv.sc.' + k));
-  ['col', 'table', 'val', 'cond', 'expr', 'alias'].forEach(k => keys.add('bs.w.' + k)); ['cols', 'wnum', 'wtext', 'order', 'limit', 'insert', 'update', 'delete'].forEach(k => keys.add('bs.d.' + k)); ['bs.abs.real', 'bs.abs.ng', 'bs.f.abs'].forEach(k => keys.add(k));
+  ['col', 'table', 'val', 'cond', 'expr', 'alias'].forEach(k => keys.add('bs.w.' + k)); ['cols', 'wnum', 'wtext', 'order', 'limit', 'insert', 'update', 'delete'].forEach(k => keys.add('bs.d.' + k)); ['bs.abs.real', 'bs.abs.ng', 'bs.f.abs', 'bs.abs.startPractice', 'bs.abs.introInst'].forEach(k => keys.add(k));
+  ['afill', 'aorder', 'awrite'].forEach(k => keys.add('bs.abs.inst.' + k)); ['insert', 'values', 'update', 'set', 'delete', 'join', 'on'].forEach(k => keys.add('bs.r.' + k));
+  ['bs.g.cols', 'bs.g.colsAll', 'bs.g.insert', 'bs.g.update', ...['ge', 'gt', 'le', 'lt', 'eq'].map(k => 'bs.g.wnum.' + k), 'bs.g.wtext.eq', 'bs.g.wtext.ne', ...['order', 'limit'].flatMap(k => [`bs.g.${k}.desc`, `bs.g.${k}.asc`])].forEach(k => keys.add(k));
   ['role', 'which', 'blank', 'right', 'cols', 'table', 'rows', 'sort', 'get', 'groups', 'seq'].forEach(k => keys.add('cq.ask.' + k));
   ['all', 'desc', 'asc', 'top', 'bottom', 'nth', 'skip', 'countBy', 'countAll', 'sumBy', 'sumAll', 'hge', 'hgt', 'hle', 'hlt', 'rows'].forEach(k => keys.add('cq.r.' + k));
   ['stat', 'excel', 'python', 'csv', 'toolsTip', 'mean', 'median', 'k.id', 'k.quant', 'k.qual', 'k.date', 'g.copy', 'g.notebook', 'g.answer', 'g.sqlNote', 'beyond'].forEach(k => keys.add('an.' + k));

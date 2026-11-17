@@ -268,7 +268,13 @@ function draftSlots(d) {
 }
 /* ---------- the basic shapes (基礎の型): names and a picker, for the shape-mix quick test and assignment ---------- */
 const shapeNameH = k => { const st = BASIC_BY_KEY[k]; return st.core ? H('bs.s.' + k) : `${LESSON_BY_KEY[st.lesson].no}. ${lessonTitleHTML(LESSON_BY_KEY[st.lesson], L())}`; };
-const shapeKindH = v => H(v === 'mix' ? 'tc.shape.k.mix' : KIND_LABEL[v]);
+const shapeKindH = v => H(v === 'mix' ? 'tc.shape.k.mix' : v === 'afill' ? 'stage.fill' : v === 'aorder' ? 'stage.order' : 'rv.write');
+/* a problem of a shape in words (basics.js absProblem): its goal and the shape with words for the parts */
+const ABS_W = { col: 'col', group: 'col', num: 'col', key: 'col', table: 'table', cond: 'cond', expr: 'expr', alias: 'alias' };
+const absShapeTH = shape => `<code class="bs-shape">${String(shape).split(/(\{[a-z]+\})/).map(part => { const m = /^\{([a-z]+)\}$/.exec(part); return m ? `<span class="bs-slot ${ABS_W[m[1]] || 'val'}">${H('bs.w.' + (ABS_W[m[1]] || 'val'))}</span>` : highlightSQL(part); }).join('')}</code>`;
+const absGoalTH = p => { const [k, v] = p.goal || []; return k === 'bs.abs.goal' ? H(k, { name: lessonTitle(LESSON_BY_KEY[v.lesson], L()) }) : H(k, v); };
+const probTextH = p => (p.abs ? absGoalTH(p) : problemHTML(p, L()));
+const probAnsH = p => (p.abs ? absShapeTH(p.shape) : `<pre class="sql">${highlightSQL(p.sql)}</pre>`);
 const shapeCh = st => (st.core ? (st.lesson === 'select' ? 'basics' : LESSON_BY_KEY[st.lesson].ch) : st.ch);
 /** chosen shapes as chips, quick buttons (the 8 basic ones, a chapter, none) and every shape to tick; act = the action of the clicks */
 function shapePickHTML(chosen, act) {
@@ -316,7 +322,7 @@ function quickHTML(c) {
   const preview = !n ? '' : `<div class="q-preview"><div class="q-preview-h"><b>${H('tc.quick.preview')} (${n})</b><button class="btn btn-ghost btn-xs" data-act="quickReshuffle">${I.shuffle}${H('tc.quick.reshuffle')}</button></div>
       ${probs.map((p, j) => `<div class="pv-item q-pv"><div class="q-pv-h"><b>Q${j + 1}</b> <span class="tag st-${p.stage}">${stageNameH(p)}</span> <span class="muted small">${p.basic ? `🧱 ${shapeNameH(p.basic)}` : `Lesson ${LESSON_BY_KEY[p.lesson].no}`} · ${esc(themeName(p, L()))}</span>
         <button class="btn btn-ghost btn-xs" data-act="quickSwap" data-k="${j}" ${nextFree(S.engine, slots, j, d.seed, d.tb) === null ? 'disabled' : ''} title="${esc(T('tc.quick.swapTip'))}">${I.repeat}${H('tc.quick.swap')}</button></div>
-        <p class="prob-text">${problemHTML(p, L())}</p><details><summary class="muted small">${H('hint.answer')}</summary><pre class="sql">${highlightSQL(p.sql)}</pre></details></div>`).join('')}</div>`;
+        <p class="prob-text">${probTextH(p)}</p><details><summary class="muted small">${H('hint.answer')}</summary>${probAnsH(p)}</details></div>`).join('')}</div>`;
   const passLimit = `      <div class="q-row">
         <div class="fld"><span>${H('tc.quick.pass')}</span>${passBox}</div>
         <div class="fld"><span>${H('tc.quick.limit')}</span>
@@ -390,7 +396,7 @@ function quickPerQHTML(q, st, probs) {
   return `<div class="q-perq">${probs.map((p, i) => { const x = st.perQ[i] || { rate: 0, solved: 0, wrong: [] }, pct = Math.round(x.rate * 100);
     return `<details class="q-pq"><summary><b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span><span class="muted small">${p.basic && BASIC_BY_KEY[p.basic] ? `🧱 ${shapeNameH(p.basic)}` : `Lesson ${LESSON_BY_KEY[p.lesson].no}`}</span>
         <span class="q-bar ${st.started && pct < 50 ? 'low' : ''}"><i style="width:${st.started ? pct : 0}%"></i></span><b class="q-pct">${st.started ? pct + '%' : '—'}</b><span class="muted small">${x.solved} / ${st.started}</span></summary>
-      <p class="prob-text">${problemHTML(p, L())}</p><pre class="sql">${highlightSQL(p.sql)}</pre>
+      <p class="prob-text">${probTextH(p)}</p>${probAnsH(p)}
       ${x.wrong.length ? `<div class="q-wrong"><b class="small">${H('tc.quick.wrongTop')}</b>${x.wrong.map(w => `<div class="q-w"><span class="q-wn" title="${esc(T('tc.quick.wrongN', { n: w.n }))}">${w.n}</span><pre class="sql wrong">${highlightSQL(w.sql)}</pre></div>`).join('')}</div>` : ''}</details>`; }).join('')}</div>`;
 }
 function quickTableHTML(q, st) {
@@ -657,7 +663,7 @@ function updateFormatSummary() {
 }
 
 function stageName(p) { return (p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? T('stage.orderN', { n: p.wn }) : T('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + T('drill.lv2') : ''); }
-function stageNameH(p) { return (p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + H('drill.lv2') : ''); }
+function stageNameH(p) { if (p.abs) return `${H('bs.f.abs')}・${shapeKindH(p.af)}`; return (p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + H('drill.lv2') : ''); }
 const isQuiz = p => p.answer !== undefined || LESSON_BY_KEY[p.lesson].kind === 'quiz';
 /** the answer of a problem: SQL, or the value for Lesson 0 */
 const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${answerTextHTML(p, L())}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>${altsHTML(p)}`);

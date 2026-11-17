@@ -507,26 +507,32 @@ console.log('11. Check tests (確認テスト)');
   // the root drill (basic shapes): every step makes problems of its shape in every format; the ladder; the way back from a mistake
   {
     const B = await import('../js/basics.js');
-    for (const st of B.BASIC_STEPS) for (let f = 0; f < st.formats.length; f++) for (const seed of ['a', 'b', 'c']) {
+    const W = { col: ['列', 'column'], table: ['テーブル', 'table'], val: ['値', 'value'], cond: ['条件', 'condition'], expr: ['式', 'expression'], alias: ['別名', 'alias'] };
+    const inWords = shape => shape.replace(/\{(col|group|num|key)\}/g, '列').replace(/\{table\}/g, 'テーブル').replace(/\{cond\}/g, '条件').replace(/\{expr\}/g, 'expression').replace(/\{alias\}/g, '別名').replace(/\{[a-z]+\}/g, 'value');
+    const real = shape => shape.replace(/\{table\}/g, 'products').replace(/\{[a-z]+\}/g, 'price');
+    const variants = {};
+    for (const st of B.BASIC_STEPS) for (let f = 0; f < st.formats.length; f++) for (const seed of ['a', 'b', 'c', 'd', 'e', 'f']) {
       const p = B.basicProblem(eng, st.key, f, seed), tok = st.formats[f];
-      if (tok === 'abs') {   // the shape in words: the shape itself (with the words) is right, a real query is not
-        const W = { col: ['列', 'column'], table: ['テーブル', 'table'], val: ['値', 'value'], cond: ['条件', 'condition'], expr: ['式', 'expression'], alias: ['別名', 'alias'] };
-        const words = B.absShape(st.key).replace(/\{(col|group|num|key)\}/g, '列').replace(/\{table\}/g, 'テーブル').replace(/\{cond\}/g, '条件').replace(/\{expr\}/g, 'expression').replace(/\{alias\}/g, '別名').replace(/\{[a-z]+\}/g, 'value');
-        if (!p || p.stage !== 'abs' || !B.absCheck(st.key, words, W).ok || !B.absCheck(st.key, words.toLowerCase().replace(/;$/, ''), W).ok) err(`basic shapes: ${st.key} in words is not accepted: ${words}`);
-        if (B.absCheck(st.key, B.basicProblem(eng, st.key, f + 1, seed).sql, W).ok) err(`basic shapes: ${st.key} in words accepts a real query`);
-        const ch = B.absChips(st.key, seed); if (!ch.kw.length || !ch.slots.includes('col')) err(`basic shapes: ${st.key} has no chips`);
-        continue;
+      if (!p || p.stage !== 'abs' || p.af !== tok || !p.goal) { err(`basic shapes: ${st.key} cannot be asked as ${tok}`); continue; }
+      (variants[st.key] = variants[st.key] || new Set()).add(p.shape);
+      const words = inWords(p.shape);
+      if (!B.absCheck(p.shape, words, W).ok || !B.absCheck(p.shape, words.toLowerCase().replace(/;$/, ''), W).ok) err(`basic shapes: ${st.key} in words is not accepted: ${words}`);
+      if (B.absCheck(p.shape, real(p.shape), W).ok) err(`basic shapes: ${st.key} in words accepts real names`);
+      if (tok === 'afill') { const g = p.gap; if (!g || new Set(g.choices).size !== g.choices.length || g.choices.length < 2 || B.absPieces(p.shape)[g.at].join(' ') !== g.choices[0]) err(`basic shapes: ${st.key} has a wrong gap`); }
+      if (tok === 'aorder') {   // the parts in the right order make the shape; the pool has two more
+        const parts = B.absPieces(p.shape).map(x => x.join(' ')), pool = p.pool.map(x => x.toks.join(' '));
+        if (pool.length !== parts.length + 2 || parts.some(x => !pool.includes(x))) err(`basic shapes: ${st.key} ordering pool is wrong`);
+        const text = B.absPieces(p.shape).map(x => x.map(y => (y[0] === '§' ? W[y.slice(1)][0] : y)).join(' ')).join(' ');
+        if (!B.absCheck(p.shape, text, W).ok) err(`basic shapes: ${st.key} ordering in the right order is not accepted: ${text}`);
       }
-      if (!p || p.stage !== (tok.startsWith('order') ? 'order' : tok) || !eng.exec(p.sql)) { err(`basic shapes: ${st.key} cannot be asked as ${tok}`); continue; }
-      const sql = p.sql;
-      if (!st.core) { if (p.lesson !== st.lesson) err(`basic shapes: ${st.key} gave a problem of another lesson`); continue; }
-      const okShape = { cols: !/WHERE|ORDER/.test(sql), wnum: /WHERE \w+ (=|<>|>=|<=|>|<) \d/.test(sql), wtext: /WHERE \w+ (=|<>) '/.test(sql), order: /ORDER BY \w+ (ASC|DESC);$/.test(sql), limit: /LIMIT \d+;$/.test(sql),
-        insert: /^INSERT INTO \w+ \(.+\) VALUES \(.+\);$/.test(sql), update: /^UPDATE \w+ SET .+ WHERE .+;$/.test(sql), delete: /^DELETE FROM \w+ WHERE .+;$/.test(sql) }[st.key];
-      if (!okShape) err(`basic shapes: ${st.key} gave another shape: ${sql}`);
+      if (tok === 'awrite') { const ch = B.absChips(p.shape, seed); if (!ch.kw.length || !ch.slots.includes('col')) err(`basic shapes: ${st.key} has no chips`); }
+      if (!B.absClauses(p.shape).length || !B.absClauses(p.shape)[0].key) err(`basic shapes: ${st.key} has no clauses to explain`);
     }
-    let x = null; for (const ok of [true, true, true, false, true, true, true, true, true, true, true, true, true]) x = B.basicResult(x, ok);   // words ×2 → fill: 1 right, 1 wrong → words ×2 → fill ×2 → order ×2 → write ×3
-    if (B.basicNorm({ f: 1, n: 4, run: 0 }).f !== 2 || B.basicNorm({ f: 1, n: 4, v: 2 }).f !== 1 || B.basicNorm(null).f !== 0) err('basic shapes: a state from before the shape in words does not stay where it was');
-    if (x.f !== 3 || !x.clear || x.n !== 13 || x.ok !== 12) err(`basic shapes: the ladder is wrong (${JSON.stringify(x)})`);
+    ['cols', 'wnum', 'wtext', 'order', 'limit', 'insert', 'update'].forEach(k => { if ((variants[k] || new Set()).size < 2) err(`basic shapes: ${k} has only one variant`); });
+    if (!B.absCheck('SELECT {col} FROM {table} ORDER BY {col} ASC;', 'SELECT 列 FROM テーブル ORDER BY 列', W).ok) err('basic shapes: ASC should be optional');
+    let x = null; for (const ok of [true, true, true, false, true, true, true, true, true, true, true]) x = B.basicResult(x, ok);   // fill ×2 → order: 1 right, 1 wrong → fill ×2 → order ×2 → write ×3
+    if (B.basicNorm({ f: 3, n: 4, v: 2 }).f !== 2 || B.basicNorm({ f: 1, n: 4, v: 2, clear: true }).f !== 2 || B.basicNorm({ f: 2, n: 4 }).f !== 2 || B.basicNorm(null).f !== 0) err('basic shapes: a stored state is not carried over');
+    if (x.f !== 2 || !x.clear || x.n !== 11 || x.ok !== 10) err(`basic shapes: the ladder is wrong (${JSON.stringify(x)})`);
     if (B.basicResult({ f: 2, run: 2 }, false).f !== 1 || B.basicResult({ f: 0, run: 0 }, false).f !== 0) err('basic shapes: a wrong answer does not go one format back');
     if (B.BASIC_DETAIL.length < 15 || ['like', 'between', 'null', 'groupby', 'having', 'inner', 'left'].some(k => !B.BASIC_BY_KEY[k])) err('basic shapes: an item of the course has no shape');
     if (B.nextStep({ cols: { clear: true }, wnum: { clear: true } }) !== 'wtext') err('basic shapes: the next step is wrong');
@@ -610,8 +616,8 @@ console.log('13. Shape mix (型ミックス)');
   const core = mixSteps('core', () => true), all = mixSteps('all', () => true);
   for (const shapes of [core, all, ['cols'], ['groupby', 'having']]) for (const k of SHAPE_KINDS) for (const n of SHAPE_COUNTS) {
     const slots = shapeSlots(eng, shapes, n, k, 'chk' + n), ps = slotProblems(eng, 'chk' + n, slots, '');
-    if (ps.length !== slots.length || (slots.length < n && shapes.length > 1)) err(`shape quick test ${shapes.length} shapes / ${k} / ${n}: ${ps.length} problems`);
-    if (new Set(ps.map(p => p.sql + p.stage)).size !== ps.length) err(`shape quick test ${k}/${n}: the same problem twice`);
+    if (ps.length !== slots.length || !slots.length || (slots.length < n && shapes.length > 2) || (k !== 'awrite' && shapes.length > 1 && slots.length < Math.min(n, 8))) err(`shape quick test ${shapes.length} shapes / ${k} / ${n}: ${ps.length} problems`);
+    if (new Set(ps.map(p => p.dedupe)).size !== ps.length || ps.some(p => !p.abs)) err(`shape quick test ${k}/${n}: the same problem twice`);
     made += ps.length;
   }
   console.log(`   ${made} problems made`);

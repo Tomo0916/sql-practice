@@ -1214,3 +1214,26 @@ body.pj-open { overflow: hidden; }
 .abs-t { padding: 1px 6px; border-radius: 6px; background: var(--ok-soft); }
 .abs-t.bad { background: var(--bad); color: #fff; } .abs-t.after { background: var(--surface-2); color: var(--ink-3); }
 .tag.st-abs { background: color-mix(in srgb, #0e7490 14%, transparent); color: #0e7490; }
+
+/* ---------- the shapes in words: the line with a gap, the parts to order, the clauses ---------- */
+.abs-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-family: var(--mono); font-size: 1.05rem; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); margin-bottom: 12px; }
+.abs-gap { display: inline-flex; min-width: 3.5em; justify-content: center; padding: 2px 8px; border-bottom: 3px solid var(--accent); color: var(--accent); font-weight: 800; }
+.abs-gap.ok { border-color: var(--ok); color: var(--ok); } .abs-gap.bad { border-color: var(--bad); }
+.abs-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.abs-ans { min-height: 56px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px; border: 2px dashed var(--line-2); border-radius: 12px; margin-bottom: 10px; }
+.abs-ans.empty { justify-content: center; }
+.abs-pool { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.abs-piece { font-family: var(--mono); font-size: .95rem; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+.abs-piece:hover:not([disabled]) { border-color: var(--accent); }
+.abs-piece.in { background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.abs-piece.ghost { opacity: .25; cursor: default; }
+.abs-sql { font-weight: 700; }
+.abs-good { display: grid; gap: 8px; margin-top: 6px; }
+.abs-cls { display: grid; gap: 4px; }
+.abs-cl { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: .9rem; }
+.abs-cl code { font-family: var(--mono); background: var(--surface-2); padding: 2px 8px; border-radius: 6px; }
+.abs-cl > span { color: var(--ink-2); } .abs-cl > span::before { content: '← '; color: var(--ink-3); }
+.abs-h { font-size: .95rem; margin: 6px 0; }
+.abs-hint { margin-left: auto; font-size: .85rem; } .abs-hint .abs-line { margin: 6px 0 0; font-size: .9rem; padding: 8px 10px; }
+.abs-dots { color: var(--ink-3); font-style: normal; }
+.abs-card:not(.editor-card) { padding: 16px 18px; }
