@@ -5,7 +5,7 @@
  * Progress: S.progress.py[lesson] = { seed, ok: [problem ids solved], n (solved in all), clear }
  * ========================================================= */
 import { th, t, esc, rubyHTML, raw } from './i18n.js';
-import { gridHTML } from './ui.js';
+import { gridHTML, highlightPy } from './ui.js';
 import { createEditor } from './editor.js';
 import { PD_LESSONS, PD_BY_KEY, PD_N, pdSet, pdTables, pdColumns, pdSame, pdDiff } from './pandas.js';
 import { pyRun, pyWarm, pyState, onPyState } from './pyrun.js';
@@ -46,7 +46,8 @@ function hubHTML() {
       const r = rec(l.key), set = setOf(l.key), n = set.items.filter(p => r.ok.includes(p.id)).length;
       return `<li><a class="lesson-link ${r.clear ? 'done' : ''}" href="#/py/${l.key}/0">
         <span class="lesson-num">${r.clear ? '✓' : l.no}</span><span class="lesson-name">${rubyHTML(raw('pd.t.' + l.key, L()))}</span>
-        <span class="dots" aria-label="${n}/${PD_N}">${set.items.map(p => `<i class="${r.ok.includes(p.id) ? 'on' : ''}"></i>`).join('')}</span></a></li>`;
+        <span class="dots" aria-label="${n}/${PD_N}">${set.items.map(p => `<i class="${r.ok.includes(p.id) ? 'on' : ''}"></i>`).join('')}</span></a>
+        <a class="lec-link" href="#/lecture/${l.key}" title="${esc(T('lec.open'))}">📽</a></li>`;
     }).join('')}</ul></main>`;
 }
 function statusHTML() {
@@ -87,7 +88,7 @@ function lessonHTML() {
   const pill = (j, label, on) => `<a class="py-pill ${j === idx ? 'cur' : ''} ${on ? 'on' : ''} ${j === 0 ? 'demo' : ''}" href="#/py/${key}/${j}">${label}</a>`;
   return `<main class="wrap py-page">
     <div class="py-crumb"><a href="#/py">← ${H('pd.lessons')}</a></div>
-    <section class="card py-head"><small class="muted">Python · ${lesson.no}</small><h1>${rubyHTML(raw('pd.t.' + key, L()))}</h1><p class="py-point">${P('pd.p.' + key)}</p></section>
+    <section class="card py-head"><div class="py-head-top"><small class="muted">Python · ${lesson.no}</small><a class="btn btn-ghost btn-sm lec-open" href="#/lecture/${key}">📽 ${H('lec.open')}</a></div><h1>${rubyHTML(raw('pd.t.' + key, L()))}</h1><p class="py-point">${P('pd.p.' + key)}</p></section>
     ${statusHTML()}
     <nav class="py-pills" aria-label="${esc(T('pd.practice'))}">${pill(0, `★ ${esc(T('pd.example'))}`, false)}<span class="py-sep">${H('pd.practice')}</span>
       ${set.items.map((p, j) => pill(j + 1, String(j + 1), r.ok.includes(p.id))).join('')}
@@ -175,7 +176,7 @@ export const pyActions = {
   pyIns(el) { if (ed) ed.insert(el.dataset.text, +el.dataset.back || 0); },
   pyAnswer() {
     const box = document.getElementById('py-ans'), prob = probOf(C.S.route.key, C.S.route.idx);
-    if (box) box.innerHTML = box.innerHTML ? '' : `<pre class="py-code">${esc(prob.code)}</pre><button class="btn btn-ghost btn-sm" data-act="pyUse">${H('pd.useAnswer')}</button>`;
+    if (box) box.innerHTML = box.innerHTML ? '' : `<pre class="py-code">${highlightPy(prob.code)}</pre><button class="btn btn-ghost btn-sm" data-act="pyUse">${H('pd.useAnswer')}</button>`;
   },
   pyUse() { const prob = probOf(C.S.route.key, C.S.route.idx); if (ed) { ed.set(prob.code); ed.focus(); } },
   pyNew() {

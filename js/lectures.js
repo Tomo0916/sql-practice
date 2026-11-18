@@ -21,6 +21,7 @@ import { T3, state } from './lecture-kit.js';
 import { LECT_A } from './lectures-a.js';
 import { LECT_B } from './lectures-b.js';
 import { LECT_C } from './lectures-c.js';
+import { PY_LECTURES } from './lectures-py.js';
 
 /* ---------- the lectures ---------- */
 const OLD = {
@@ -177,6 +178,10 @@ const OLD = {
 };
 /** every lecture: the new ones (lectures-a.js …) replace the old ones of the same lesson */
 export const LECTURES = Object.assign({}, OLD, LECT_A, LECT_B, LECT_C);
-export const hasLecture = key => !!LECTURES[key];
+/** the Python course's lectures (lectures-py.js): Python code, links back to #/py */
+Object.values(PY_LECTURES).forEach(L => { L.py = true; });
+/** a lecture of either course */
+export const lectureOf = key => LECTURES[key] || PY_LECTURES[key] || null;
+export const hasLecture = key => !!lectureOf(key);
 /** text of a lecture in a language (English, Japanese, Easy Japanese; others read English) */
 export const ltext = (x, lang) => (x ? x[lang] || x.en : '');

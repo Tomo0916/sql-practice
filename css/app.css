@@ -1338,3 +1338,9 @@ body.pj-open { overflow: hidden; }
 .py-value { font: 700 1.4rem/1.2 var(--mono); padding: 12px 14px; background: var(--surface-2); border-radius: 10px; }
 .py-done { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--ok-soft); border-color: transparent; }
 .py-done b { color: var(--ok); }
+
+.py-head-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.py-list li { display: flex; align-items: center; gap: 6px; }
+.py-list li .lesson-link { flex: 1; min-width: 0; }
+.py-list .lec-link { padding: 6px 8px; text-decoration: none; border-radius: 8px; }
+.py-list .lec-link:hover { background: var(--surface-2); }
