@@ -41,6 +41,9 @@ export function usedKeys() {
   ['pd_head', 'pd_cols', 'pd_num', 'pd_text', 'pd_andor', 'pd_loc', 'pd_sort', 'pd_top', 'pd_agg', 'pd_group', 'pd_count', 'pd_merge'].forEach(k => { keys.add('pd.t.' + k); keys.add('pd.p.' + k); });
   ['head', 'cols', 'filter', 'and', 'or', 'loc', 'sortAsc', 'sortDesc', 'topAsc', 'topDesc', 'agg', 'group', 'count', 'merge'].forEach(k => keys.add('pd.d.' + k));
   ['kind', 'columns', 'rows', 'order', 'values'].forEach(k => keys.add('pd.ng.' + k));
+  // reading Python errors (pyerrors.js): meanings, explanations, the error types of the cheat sheet
+  ['key', 'list', 'name', 'str', 'attr', 'eq', 'close', 'quote', 'op', 'and', 'merge'].forEach(k => { keys.add('pe.m.' + k); keys.add('pe.x.' + k); });
+  ['KeyError', 'NameError', 'AttributeError', 'SyntaxError', 'ValueError', 'TypeError'].forEach(k => keys.add('pe.k.' + k));
   ['A', 'A2', 'B', 'C', 'P', 'R'].forEach(k => keys.add('lv.part.' + k)); [0, 1, 2, 3].forEach(k => keys.add('lv.sc.' + k));
   ['col', 'table', 'val', 'cond', 'expr', 'alias'].forEach(k => keys.add('bs.w.' + k)); ['cols', 'wnum', 'wtext', 'order', 'limit', 'insert', 'update', 'delete'].forEach(k => keys.add('bs.d.' + k)); ['bs.abs.real', 'bs.abs.ng', 'bs.f.abs', 'bs.abs.startPractice', 'bs.abs.introInst'].forEach(k => keys.add(k));
   ['afill', 'aorder', 'awrite'].forEach(k => keys.add('bs.abs.inst.' + k)); ['insert', 'values', 'update', 'set', 'delete', 'join', 'on'].forEach(k => keys.add('bs.r.' + k));
