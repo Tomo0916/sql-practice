@@ -724,5 +724,70 @@ console.log('16. Python course (pandas)');
   console.log(`   ${probs.length} reference answers run`);
 }
 
+/* ---------- 17. the Python course's lectures ---------- */
+console.log('17. Python lectures');
+{
+  const P = await import('../js/pandas.js'), { PY_LECTURES, pyTopics } = await import('../js/lectures-py.js');
+  const { quizAnswer } = await import('../js/lecture-kit.js'), { execFileSync } = await import('node:child_process');
+  const runs = [], checks = [];
+  const need = code => ['books', 'customers', 'orders'].filter(t => new RegExp(`\\b${t}\\b`).test(code));
+  const run = (id, code) => { runs.push({ id, code, need: need(code) }); return id; };
+  for (const l of P.PD_LESSONS) {
+    const key = l.key, L = PY_LECTURES[key];
+    if (!L) { err(`python lecture: ${key} has none`); continue; }
+    const t3 = (where, x) => { for (const g of ['en', 'ja', 'easy']) { const v = x && x[g];
+      if (!v) err(`python lecture ${key} ${where}: no ${g}`);
+      else if (g === 'easy' && /[一-鿿]/.test(v.replace(/\{[^{}|]+\|[^{}]+\}/g, ''))) err(`python lecture ${key} ${where} (easy): kanji without furigana`);
+      else if (g === 'en' && /[぀-ヿ一-鿿]/.test(v)) err(`python lecture ${key} ${where} (en) contains Japanese`); } };
+    const table = (where, fn) => { try { const st = fn(eng); if (!st.rows.length) err(`python lecture ${key} ${where}: empty table`); return st; } catch (e) { err(`python lecture ${key} ${where}: table fails: ${e.message}`); return null; } };
+    t3('goal', L.goal);
+    const types = L.slides.map(sl => (sl.cases ? 'cases' : sl.type)), covered = new Set();
+    for (const t of ['scene', 'syntax', 'anim', 'cases', 'mistake', 'quiz', 'points', 'practice']) if (!types.includes(t)) err(`python lecture ${key}: no “${t}” slide`);
+    if (types[0] !== 'scene' || types[types.length - 1] !== 'practice') err(`python lecture ${key}: starts with the scene and ends with the practice slide`);
+    L.slides.forEach((sl, i) => {
+      const at = `slide ${i + 1}`;
+      ['notes', 'items'].forEach(k => (sl[k] || []).forEach((n, j) => t3(`${at} ${k} ${j + 1}`, n)));
+      ['title', 'why', 'who', 'ask', 'q'].forEach(k => { if (sl[k]) t3(`${at} ${k}`, sl[k]); });
+      [sl, ...(sl.frames || [])].forEach(x => (x.side || []).forEach((fn, j) => table(`${at} side ${j + 1}`, fn)));
+      if (sl.table && sl.type !== 'quiz') table(at, sl.table);
+      if (sl.code) run(`${key}|${at}|code`, sl.code);
+      if (sl.type === 'mistake') checks.push({ key, at, wrong: run(`${key}|${at}|wrong`, sl.wrong), right: run(`${key}|${at}|right`, sl.right) });
+      if (sl.type === 'quiz') {
+        sl.choices.forEach((c, j) => { if (typeof c !== 'string') t3(`${at} choice ${j + 1}`, c); });
+        let a = -1; try { a = quizAnswer(sl, eng); } catch (e) { err(`python lecture ${key} quiz: the answer fails: ${e.message}`); }
+        if (!(a >= 0 && a < sl.choices.length)) err(`python lecture ${key} quiz: the answer is not one of the choices`);
+        if (sl.mark && !sl.code.includes(sl.mark)) err(`python lecture ${key} quiz: “${sl.mark}” is not in the code`);
+        ['table', 'before'].forEach(k => { if (sl[k]) table(`quiz ${k}`, sl[k]); });
+      }
+      (sl.frames || []).forEach((f, j) => {
+        const fat = `${at} frame ${j + 1}`;
+        t3(fat, f.cap); if (sl.cases) t3(`${fat} label`, f.label);
+        (f.covers || []).forEach(c => covered.add(c));
+        if (!f.code) { err(`python lecture ${key} ${fat}: no code`); return; }
+        if (f.mark && !f.code.includes(f.mark)) err(`python lecture ${key} ${fat}: “${f.mark}” is not in the code`);
+        const id = run(`${key}|${fat}`, f.code), st = table(fat, f.table);
+        if (st && f.res) checks.push({ key, at: fat, id, st, pass: f.res === 'pass', ordered: true });
+      });
+    });
+    const used = new Set();
+    for (let n = 0; n < 80; n++) pyTopics(key, P.pdProblem(key, 'T' + n).p).forEach(t => used.add(t));
+    for (const t of used) if (!covered.has(t)) err(`python lecture ${key}: the problems use “${t}”, but no case covers it`);
+  }
+  let res = null;
+  try { res = JSON.parse(execFileSync('python3', [new URL('./pd-check.py', import.meta.url).pathname], { input: JSON.stringify({ tables: P.pdAllTables(), problems: runs }), maxBuffer: 64 << 20 }).toString()); }
+  catch (e) { warn('python lectures: CPython with pandas is not here, the code was not run'); }
+  if (res) {
+    const wrongIds = new Set(checks.filter(c => c.wrong).map(c => c.wrong));
+    runs.forEach(r => { if (!wrongIds.has(r.id) && res[r.id].error) err(`python lecture: ${r.code} fails: ${res[r.id].error}`); });
+    checks.forEach(c => {
+      if (c.wrong) { const w = res[c.wrong], r = res[c.right]; if (!w.error && P.pdSame(w, r, true)) err(`python lecture ${c.key} ${c.at}: the wrong code gives the right result`); return; }
+      const got = res[c.id], rows = c.st.rows.filter(r => !c.pass || r.cls === 'pass');
+      const shown = { kind: 'table', columns: c.st.cols, rows: rows.map(r => r.cells) };
+      if (!got.error && !P.pdSame(got, shown, c.ordered)) err(`python lecture ${c.key} ${c.at}: the table is not what pandas gives (${JSON.stringify(got).slice(0, 160)})`);
+    });
+  }
+  console.log(`   ${Object.keys(PY_LECTURES).length} lectures, ${runs.length} pieces of code run`);
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

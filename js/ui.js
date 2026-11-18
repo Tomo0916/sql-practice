@@ -75,6 +75,22 @@ export function highlightSQL(src) {
   }
   return out;
 }
+const PY_KW = new Set(['True', 'False', 'None', 'and', 'or', 'not', 'in', 'is', 'import', 'from', 'as', 'for', 'if', 'elif', 'else', 'while', 'def', 'return', 'lambda', 'print', 'len']);
+/** Highlight Python: strings, numbers, keywords, and the methods called after a dot (.head( …). */
+export function highlightPy(src) {
+  let out = '';
+  const re = /("(?:[^"\\\n]|\\.)*"?|'(?:[^'\\\n]|\\.)*'?)|(#[^\n]*)|(\b\d+(?:\.\d+)?\b)|([A-Za-z_][A-Za-z0-9_]*)|([\s\S])/g;
+  let m;
+  while ((m = re.exec(src))) {
+    const [tok, str, comment, num, word] = m;
+    if (str) out += `<span class="tok-str">${esc(str)}</span>`;
+    else if (comment) out += `<span class="muted">${esc(comment)}</span>`;
+    else if (num) out += `<span class="tok-num">${num}</span>`;
+    else if (word) out += PY_KW.has(word) ? `<span class="tok-kw">${word}</span>` : src[m.index - 1] === '.' && src[re.lastIndex] === '(' ? `<span class="tok-fn">${word}</span>` : esc(word);
+    else out += esc(tok);
+  }
+  return out;
+}
 /** Highlight `cur`, marking what is new compared with `prev`. */
 export function highlightDiff(prev, cur) {
   const tok = s => [...String(s || '').matchAll(/'(?:[^']|'')*'|[(),;*]|[^\s(),;*']+/g)].map(m => ({ w: m[0], i: m.index }));
