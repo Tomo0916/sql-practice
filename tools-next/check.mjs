@@ -789,5 +789,33 @@ console.log('17. Python lectures');
   console.log(`   ${Object.keys(PY_LECTURES).length} lectures, ${runs.length} pieces of code run`);
 }
 
+/* ---------- 18. reading Python errors ---------- */
+console.log('18. Reading Python errors');
+{
+  const P = await import('../js/pandas.js'), E = await import('../js/pyerrors.js'), { execFileSync } = await import('node:child_process');
+  const probs = [E.peProblem('key', 'demo', true)], runs = [];
+  for (const k of E.PE_KINDS) for (let i = 0; i < 25; i++) probs.push(E.peProblem(k, 'c' + i));
+  for (const seed of ['a', 'b', 'c']) { const set = E.peSet(seed); if (new Set(set.items.map(p => p.kind)).size !== E.PE_N) err(`python errors: set ${seed} does not have ${E.PE_N} different kinds`); }
+  probs.forEach((p, n) => {
+    if (new Set(p.meanings).size !== 3 || p.meanings[p.meaning] !== p.cat) err(`python errors ${p.id}: the meanings are wrong`);
+    if (new Set(p.fixes).size !== 3 || p.fixes[p.fixAt] !== p.fix) err(`python errors ${p.id}: the fixes are wrong`);
+    if (!E.PE_TYPES.includes(p.type)) err(`python errors ${p.id}: ${p.type} is not in the cheat sheet`);
+    // a fix changes only the line with the mistake
+    p.fixes.forEach(f => { const fl = f.split('\n'); if (fl.length !== p.lines.length || fl.some((l, i) => i + 1 !== p.at && l !== p.lines[i])) err(`python errors ${p.id}: a fix changes another line: ${f}`); });
+    const need = E.peNeed(p);
+    runs.push({ id: `${n}|bad`, code: p.code, need }, { id: `${n}|fix`, code: p.fix, need }, ...p.wrong.map((w, j) => ({ id: `${n}|w${j}`, code: w, need })));
+  });
+  let res = null;
+  try { res = JSON.parse(execFileSync('python3', [new URL('./pd-check.py', import.meta.url).pathname], { input: JSON.stringify({ tables: P.pdAllTables(), problems: runs }), maxBuffer: 64 << 20 }).toString()); }
+  catch (e) { warn('python errors: CPython with pandas is not here, the code was not run'); }
+  if (res) probs.forEach((p, n) => {
+    const bad = res[`${n}|bad`], fix = res[`${n}|fix`], type = e => (e && e.error ? e.error.split(':')[0].replace(/^.*\./, '') : null);
+    if (type(bad) !== p.type) err(`python errors: ${p.code} gives ${bad.error || 'no error'}, not ${p.type}`);
+    if (fix.error) err(`python errors: the fix ${p.fix} fails: ${fix.error}`);
+    p.wrong.forEach((w, j) => { const r = res[`${n}|w${j}`]; if (!r.error && !fix.error && P.pdSame(r, fix, true)) err(`python errors: the wrong fix ${w} works`); });
+  });
+  console.log(`   ${probs.length} problems run (the exact messages are checked in the browser with Pyodide)`);
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);
