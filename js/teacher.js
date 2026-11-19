@@ -258,7 +258,7 @@ function quickDraft(c) {
     shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), sk: SHAPE_KINDS.includes(d.sk) ? d.sk : 'mix', sn: Number.isInteger(d.sn) && d.sn >= 1 && d.sn <= 20 ? d.sn : 5,
     lv: Array.isArray(d.lv) ? d.lv.filter(i => Number.isInteger(i) && i >= 0 && i < LV_MAX) : [0, 1, 2],
     tb,   // one table for every problem ('' = the usual mix of tables)
-    limitBy: d.limitBy === 'end' ? 'end' : 'len', limitEnd: /^\d{1,2}:\d{2}$/.test(d.limitEnd || '') ? d.limitEnd : '', seed: d.seed, swaps: d.swaps || {},
+    limitBy: d.limitBy === 'end' ? 'end' : 'len', limitEnd: /^\d{1,2}:\d{2}$/.test(d.limitEnd || '') ? d.limitEnd : '', seed: d.seed, swaps: d.swaps || {}, perm: Array.isArray(d.perm) ? d.perm : null, permKey: typeof d.permKey === 'string' ? d.permKey : null,
     fixed: d.fixed && Array.isArray(d.fixed.slots) && d.fixed.slots.length ? d.fixed : null };   // fixed: the problems of an earlier test, to give them again
 }
 /** keepFixed: the change does not touch the problems (pass line, time limit, a swap) */
@@ -291,7 +291,17 @@ async function saveQuick(quick, log) {
 }
 const mmssOf = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 /** the draft's test: one slot per problem (easy or detailed set-up), with the teacher's swaps */
+/** the order the teacher dragged the problems into (indexes into the base list), kept while the base list has the same lessons, kinds and levels */
+const slotSig = slots => slots.map(x => `${x.b || x.k}:${x.st}:${x.bd || 0}`).join(',');
+function draftPerm(d, base) {
+  const p = d.perm, ok = Array.isArray(p) && d.permKey === slotSig(base) && p.length === base.length && new Set(p).size === p.length && p.every(i => Number.isInteger(i) && i >= 0 && i < base.length);
+  return ok ? p : base.map((x, i) => i);
+}
 function draftSlots(d) {
+  const base = draftBase(d);
+  return d.goal === 'level' && !d.fixed ? base : draftPerm(d, base).map(i => base[i]);
+}
+function draftBase(d) {
   if (d.goal === 'level' && !d.fixed) return d.lv.length ? levelSlots(S.engine, d.lv, d.seed, d.tb) : [];
   if (d.goal === 'shape') return applySwaps(S.engine, d.fixed ? d.fixed.slots : shapeCountSlots(S.engine, d.shapes, d.sc, d.seed), d.swaps, d.seed, '');
   if (!d.lessons.length && !d.fixed) return [];
@@ -342,14 +352,15 @@ function quickHTML(c) {
   const goals = [['quick', '⚡', 'tc.quick.title', 'tc.qs.goalQuick'], ['level', '🎯', 'lv.testTitle', 'tc.qs.goalLevel'], ['shape', '🧱', 'bs.title', 'tc.qs.goalShape']];
   const s1 = `<div class="qs-goals">${goals.map(([k, ic, t, sub]) => `<button class="qs-goal ${d.goal === k ? 'on' : ''}" data-act="quickSet" data-k="goal" data-v="${k}" aria-pressed="${d.goal === k}"><span class="qs-ic">${ic}</span><b>${H(t)}</b><small>${H(sub)}</small></button>`).join('')}</div>`;
   // 2. the range: every lesson in view, a chapter at a time
+  const ordB = k => (chosen.has(k) ? `<i class="qs-ord" title="${esc(T('tc.qs.orderTip'))}">${d.lessons.indexOf(k) + 1}</i>` : '');
   const asg = checkLessons().filter(l => assigned.has(l.key)), asgOn = asg.length > 0 && asg.length === chosen.size && asg.every(l => chosen.has(l.key));
   const lessonsPick = `<div class="qs-quickbtns">${asg.length ? `<button class="btn btn-ghost btn-xs q-ch ${asgOn ? 'on' : ''}" data-act="quickChapter" data-v="@assign">${I.book}${H('tc.quick.fromAssign')} <span class="muted">${asg.length}</span></button>` : ''}
       ${chosen.size ? `<button class="btn btn-ghost btn-xs" data-act="quickChapter" data-v="">${H('tc.quick.none')}</button><span class="muted small">${H('tc.qs.picked', { n: chosen.size })}</span>` : `<span class="muted small">${H('tc.qs.pickHint')}</span>`}</div>
     <div class="qs-chs">${CHAPTERS.map(ch => { const ls = checkLessons().filter(l => l.ch === ch.key); if (!ls.length) return ''; const got = ls.filter(l => chosen.has(l.key)).length;
       return `<div class="qs-ch" style="--cc:var(--c-${ch.key})"><button class="qs-chb ${got === ls.length ? 'on' : got ? 'some' : ''}" data-act="quickChapter" data-v="${ch.key}" title="${esc(T('ck.chapterTip'))}">${rubyHTML(raw('ch.' + ch.key, L()))} <span>${got}/${ls.length}</span></button>
-        <div class="qs-ls">${ls.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}"><b>${l.no}</b>${lessonTitleHTML(l, L())}</button>`).join('')}</div></div>`; }).join('')}
+        <div class="qs-ls">${ls.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}">${ordB(l.key)}<b>${l.no}</b>${lessonTitleHTML(l, L())}</button>`).join('')}</div></div>`; }).join('')}
       ${(() => { const got = PD_LESSONS.filter(l => chosen.has(l.key)).length; return `<div class="qs-ch qs-py" style="--cc:#3776ab"><button class="qs-chb ${got === PD_LESSONS.length ? 'on' : got ? 'some' : ''}" data-act="quickChapter" data-v="@py">🐍 ${H('pd.title')} <span>${got}/${PD_LESSONS.length}</span></button>
-        <div class="qs-ls">${PD_LESSONS.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}"><b>Py${l.no}</b>${rubyHTML(raw('pd.t.' + l.key, L()))}</button>`).join('')}</div></div>`; })()}</div>`;
+        <div class="qs-ls">${PD_LESSONS.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}">${ordB(l.key)}<b>Py${l.no}</b>${rubyHTML(raw('pd.t.' + l.key, L()))}</button>`).join('')}</div></div>`; })()}</div>`;
   const lvPick = `<div class="qs-quickbtns"><button class="btn btn-ghost btn-xs" data-act="quickLv" data-v="all">${H('tc.quick.lvAll')}</button><span class="muted small">${H('tc.quick.lvNote')}</span></div>
     <div class="qs-chs">${LV_CHAPTERS.map((k, i) => { const on = d.lv.includes(i); return `<button class="qs-chb wide ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="quickLv" data-v="${i}" aria-pressed="${on}">${i + 1}. ${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}</div>`;
   const s2 = lvMode ? lvPick : shMode ? shapePickHTML(d.shapes, 'quickShape') : lessonsPick;
@@ -391,7 +402,8 @@ function quickHTML(c) {
   // the test as it will be
   const wanted = d.goal === 'quick' ? quickTotal(d) : shMode ? sum3(d.sc) : n;
   const short = h => { const t = String(h).replace(/<rt>[^<]*<\/rt>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); return esc(t.length > 54 ? t.slice(0, 52) + '…' : t); };
-  const pv = probs.map((p, j) => `<details class="qs-pv"><summary><b>Q${j + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span>${slots[j] && slots[j].bd ? `<span class="bd d${slots[j].bd}">${H('dif.' + slots[j].bd)}</span>` : ''}<span class="qs-pv-t"><small class="muted">${p.basic ? '🧱' : p.py ? `🐍${PD_BY_KEY[p.lesson].no}` : `L${LESSON_BY_KEY[p.lesson].no}`}</small> ${short(probTextH(p))}</span>
+  const canMove = !lvMode && probs.length > 1;
+  const pv = probs.map((p, j) => `<details class="qs-pv" data-j="${j}"><summary>${canMove ? `<button class="qs-grip" data-grip="${j}" aria-label="${esc(T('tc.qs.dragTip'))} Q${j + 1}" title="${esc(T('tc.qs.dragTip'))}">⋮⋮</button>` : ''}<b>Q${j + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span>${slots[j] && slots[j].bd ? `<span class="bd d${slots[j].bd}">${H('dif.' + slots[j].bd)}</span>` : ''}<span class="qs-pv-t"><small class="muted">${p.basic ? '🧱' : p.py ? `🐍${PD_BY_KEY[p.lesson].no}` : `L${LESSON_BY_KEY[p.lesson].no}`}</small> ${short(probTextH(p))}</span>
       <button class="btn btn-ghost btn-xs" data-act="quickSwap" data-k="${j}" ${nextFree(S.engine, slots, j, d.seed, d.goal === 'shape' ? '' : d.tb) === null ? 'disabled' : ''} title="${esc(T('tc.quick.swapTip'))}">${I.repeat}</button></summary>
       <div class="qs-pv-b"><p class="prob-text">${probTextH(p)}</p><div class="muted small">${H('hint.answer')}</div>${probAnsH(p)}</div></details>`).join('');
   const ready = n && draftLimit(d) !== null;
@@ -400,7 +412,7 @@ function quickHTML(c) {
       <button class="btn btn-primary btn-lg qs-start" data-act="quickStart" ${ready ? '' : 'disabled'}>${lvMode ? '🎯' : shMode ? '🧱' : '⚡'} ${H(lvMode ? 'tc.quick.lvStart' : 'tc.quick.start')}</button>
       ${d.fixed ? `<p class="small"><b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b></p>` : ''}
       ${!n ? `<p class="muted small">${H('tc.qs.none')}</p>` : ''}${n && n < wanted && !d.fixed ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : ''}${d.limitBy === 'end' && draftLimit(d) === null && d.limitEnd ? `<p class="err small">${H('tc.quick.endPast')}</p>` : ''}
-      ${n ? `<div class="qs-pv-h"><b>${H('tc.quick.preview')}</b><button class="btn btn-ghost btn-xs" data-act="quickReshuffle">${I.shuffle}${H('tc.quick.reshuffle')}</button></div><div class="qs-pvs">${pv}</div><p class="muted small">${H('tc.qs.pvTip')}</p>` : ''}
+      ${n ? `<div class="qs-pv-h"><b>${H('tc.quick.preview')}</b><span class="qs-pv-btns"><button class="btn btn-ghost btn-xs" data-act="quickReshuffle">${I.shuffle}${H('tc.quick.reshuffle')}</button><button class="btn btn-ghost btn-xs qs-clear" data-act="quickClearAll">🗑 ${H('tc.qs.clearAll')}</button></span></div><div class="qs-pvs">${pv}</div><p class="muted small">${H('tc.qs.pvTip')}${canMove ? ' ' + H('tc.qs.dragNote') : ''}</p>` : ''}
       ${!lvMode && !shMode && probs.some(p => p.py) ? `<p class="small qs-pynote">🐍 ${H('tc.quick.pyNote')}</p>` : ''}
       <p class="muted small">${H(lvMode ? 'tc.quick.lvAfter' : 'tc.quick.note')}</p>
     </aside>`;
@@ -1274,14 +1286,13 @@ const actions = {
     else if (v === '@assign') { const order = checkLessons().map(l => l.key), asg = new Set(S.klass.lessons || []); d.lessons = order.filter(k => asg.has(k)); }
     else {
       const ks = v === '@py' ? PD_LESSONS.map(l => l.key) : checkLessons().filter(l => l.ch === v).map(l => l.key), on = ks.every(k => d.lessons.includes(k));
-      d.lessons = on ? d.lessons.filter(k => !ks.includes(k)) : [...d.lessons, ...ks];
-      const order = qOrder(); d.lessons = order.filter(k => d.lessons.includes(k));
+      d.lessons = on ? d.lessons.filter(k => !ks.includes(k)) : [...d.lessons, ...ks.filter(k => !d.lessons.includes(k))];   // added at the end: the order of the clicks
     }
     d.swaps = {}; saveQDraft(d); refreshTab();
   },
   quickLesson(el) {   // one lesson on / off
-    const d = quickDraft(S.klass), k = el.dataset.l, order = qOrder();
-    d.lessons = d.lessons.includes(k) ? d.lessons.filter(x => x !== k) : order.filter(x => x === k || d.lessons.includes(x)); d.swaps = {}; saveQDraft(d); refreshTab();
+    const d = quickDraft(S.klass), k = el.dataset.l;
+    d.lessons = d.lessons.includes(k) ? d.lessons.filter(x => x !== k) : [...d.lessons, k]; d.swaps = {}; saveQDraft(d); refreshTab();   // in the order of the clicks
   },
   quickDrop(el) { const d = quickDraft(S.klass); d.lessons = d.lessons.filter(k => k !== el.dataset.l); d.swaps = {}; saveQDraft(d); refreshTab(); },
   quickPer(el) {
@@ -1295,9 +1306,16 @@ const actions = {
     d.swaps = {}; saveQDraft(d); refreshTab();
   },
   quickSwap(el) {
-    const d = quickDraft(S.klass), slots = draftSlots(d), j = +el.dataset.k, i = nextFree(S.engine, slots, j, d.seed, d.tb);
+    const d = quickDraft(S.klass), slots = draftSlots(d), j = +el.dataset.k, i = nextFree(S.engine, slots, j, d.seed, d.goal === 'shape' ? '' : d.tb);
     if (i === null) return;
-    d.swaps = Object.assign({}, d.swaps, { [j]: i }); saveQDraft(d, true); refreshTab();
+    const b = d.goal === 'level' && !d.fixed ? j : draftPerm(d, draftBase(d))[j];   // the swap belongs to the problem, wherever it was dragged
+    d.swaps = Object.assign({}, d.swaps, { [b]: i }); saveQDraft(d, true); refreshTab();
+  },
+  quickClearAll() {   // everything out at once: the lessons (shapes, chapters) and the order
+    const d = quickDraft(S.klass);
+    if (!confirm(T('tc.qs.clearConfirm'))) return;
+    if (d.goal === 'shape') d.shapes = []; else if (d.goal === 'level') d.lv = []; else d.lessons = [];
+    Object.assign(d, { swaps: {}, perm: null, permKey: null, fixed: null }); saveQDraft(d); refreshTab();
   },
   quickReshuffle() { const d = quickDraft(S.klass); d.seed = randomCode(4); d.swaps = {}; saveQDraft(d); refreshTab(); },
   async quickStart(el) {
@@ -1352,7 +1370,7 @@ const actions = {
     const d = quickDraft(S.klass), slots = q.slots.filter(x => LESSON_BY_KEY[x.k] || PD_BY_KEY[x.k]), shape = slotsShape(slots), same = !!el.dataset.same;
     const order = qOrder(), grid = {};   // the same numbers per lesson and difficulty (problems without one count as 基本)
     slots.forEach(x => { grid[x.k] = grid[x.k] || kindCnt({}, 1); const st = QK.includes(x.st) ? x.st : 'write'; grid[x.k][st][Math.min(3, Math.max(1, x.bd || 1)) - 1]++; });
-    Object.assign(d, { mode: 'detail', lessons: order.filter(k => shape.lessons.includes(k)), grid, swaps: {}, pass: q.pass < q.n ? q.pass : null,
+    Object.assign(d, { mode: 'detail', lessons: shape.lessons.filter(k => order.includes(k)), grid, swaps: {}, perm: null, pass: q.pass < q.n ? q.pass : null,
       limitSec: Math.min(QUICK_MAX_SEC, limitSecOf(q)), limitBy: 'len',
       seed: same ? q.seed : randomCode(4), tb: q.tb || '', goal: q.once ? 'level' : 'quick', lv: q.lv || d.lv, fixed: same ? { seed: q.seed, slots, at: q.at, lv: q.lv } : null });
     saveQDraft(d, true); refreshTab(); toast(T(same ? 'tc.quick.readySame' : 'tc.quick.readyNew'));
@@ -1576,3 +1594,46 @@ async function openQR(c) {
   load();
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('../sw.js').catch(() => {});
 })();
+
+/* ---------- dragging the problems of a quick test into another order (mouse, touch; ↑ ↓ on the handle) ---------- */
+function quickMove(from, to) {
+  const d = quickDraft(S.klass), base = draftBase(d), p = draftPerm(d, base).slice();
+  if (from === to || from < 0 || to < 0 || from >= p.length || to >= p.length) return;
+  const [x] = p.splice(from, 1); p.splice(to, 0, x);
+  Object.assign(d, { perm: p, permKey: slotSig(base) }); saveQDraft(d, true); refreshTab();
+  requestAnimationFrame(() => { const g = document.querySelector(`[data-grip="${to}"]`); if (g) g.focus(); });
+}
+let qDrag = null;
+document.addEventListener('pointerdown', e => {
+  const g = e.target.closest('.qs-grip'); if (!g || e.button > 0) return;
+  e.preventDefault();
+  const row = g.closest('.qs-pv'), list = row.parentElement;
+  qDrag = { from: +g.dataset.grip, row, list, pid: e.pointerId, to: +g.dataset.grip };
+  row.classList.add('dragging'); document.body.classList.add('qs-dragging');
+  try { g.setPointerCapture(e.pointerId); } catch (err) { /* old browsers */ }
+});
+document.addEventListener('pointermove', e => {
+  if (!qDrag || e.pointerId !== qDrag.pid) return;
+  e.preventDefault();
+  const rows = [...qDrag.list.querySelectorAll('.qs-pv')];
+  let to = rows.length - 1;
+  for (let i = 0; i < rows.length; i++) { const r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { to = i > qDrag.from ? i - 1 : i; break; } }
+  qDrag.to = Math.max(0, to);
+  rows.forEach((r, i) => { r.classList.toggle('drop-before', i === qDrag.to && qDrag.to < qDrag.from); r.classList.toggle('drop-after', i === qDrag.to && qDrag.to > qDrag.from); });
+}, { passive: false });
+const qDragEnd = ok => {
+  if (!qDrag) return;
+  const { from, to, list } = qDrag; qDrag = null;
+  document.body.classList.remove('qs-dragging');
+  list.querySelectorAll('.qs-pv').forEach(r => r.classList.remove('dragging', 'drop-before', 'drop-after'));
+  if (ok && to !== from) quickMove(from, to);
+};
+document.addEventListener('pointerup', e => { if (qDrag && e.pointerId === qDrag.pid) qDragEnd(true); });
+document.addEventListener('pointercancel', () => qDragEnd(false));
+document.addEventListener('click', e => { if (e.target.closest('.qs-grip')) { e.preventDefault(); e.stopPropagation(); } }, true);   // the handle does not open the problem
+document.addEventListener('keydown', e => {
+  const g = e.target.closest && e.target.closest('.qs-grip'); if (!g) return;
+  const j = +g.dataset.grip, n = document.querySelectorAll('.qs-grip').length;
+  if (e.key === 'ArrowUp' && j > 0) { e.preventDefault(); quickMove(j, j - 1); }
+  else if (e.key === 'ArrowDown' && j < n - 1) { e.preventDefault(); quickMove(j, j + 1); }
+});

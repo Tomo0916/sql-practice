@@ -515,3 +515,13 @@ details.rank .rk-head { justify-content: flex-end; }
 .qs-step .seg-b { white-space: nowrap; }
 .qs-pynote { background: color-mix(in srgb, #3776ab 10%, transparent); border-radius: 10px; padding: 8px 10px; color: var(--ink-2); }
 .qs-py .qs-chb { border-style: dashed; }
+/* the order of a quick test: the order badges of the chosen lessons, dragging the problems */
+.qs-ord { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; margin-right: 5px; border-radius: 99px; background: var(--accent); color: #fff; font: 800 .7rem/1 var(--mono); font-style: normal; }
+.qs-grip { flex: none; width: 22px; height: 26px; margin: -2px 2px -2px -4px; border: 0; border-radius: 6px; background: none; color: var(--ink-3); font: 900 .85rem/1 var(--mono); letter-spacing: -2px; cursor: grab; touch-action: none; }
+.qs-grip:hover, .qs-grip:focus-visible { background: var(--surface-2); color: var(--accent); outline: none; }
+.qs-pv.dragging { opacity: .55; }
+.qs-pv.drop-before { box-shadow: 0 -3px 0 var(--accent); }
+.qs-pv.drop-after { box-shadow: 0 3px 0 var(--accent); }
+body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select: none; }
+.qs-pv-btns { display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.qs-clear:hover { color: var(--bad); border-color: var(--bad); }

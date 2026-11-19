@@ -1644,5 +1644,11 @@ export default {
   /* ---- looking things up in a quick test ---- */
   "qk.refTitle": "このレッスンを見て考えよう",
   "qk.refLesson": "レッスンを見る",
-  "qk.refNote": "見終わったら、上の「テストにもどる」でこの問題に戻れます。時間は止まりません。"
+  "qk.refNote": "見終わったら、上の「テストにもどる」でこの問題に戻れます。時間は止まりません。",
+  /* ---- the order of a quick test ---- */
+  "tc.qs.orderTip": "出題の順番（クリックした順）",
+  "tc.qs.dragTip": "ドラッグして順番を変える",
+  "tc.qs.dragNote": "⋮⋮ をドラッグすると出題の順番を変えられます（キーボードでは ↑ ↓）。",
+  "tc.qs.clearAll": "すべて削除",
+  "tc.qs.clearConfirm": "選んだレッスンと問題をすべて削除しますか？"
 };
