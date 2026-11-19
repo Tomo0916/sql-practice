@@ -383,6 +383,68 @@ export function datasetSQL(tables) {
 /** Every table by name (so the engine can build a DB for any problem). */
 import { ANALYSIS_DEMO, ANALYSIS_THEMES, ANALYSIS_PEOPLE } from './analysis-data.js';
 export { ANALYSIS_DEMO, ANALYSIS_THEMES, ANALYSIS_PEOPLE };
+/* ---------- tables with dates (Lesson 23: dates) ---------- */
+export const DATE_DATASETS = [
+  {
+    table: 'sales_log',
+    columns: [['id', 'INTEGER'], ['item', 'TEXT'], ['shop', 'TEXT'], ['amount', 'INTEGER'], ['sold_on', 'TEXT']],
+    roles: { name: 'item', cat: 'shop', n1: 'amount', d: 'sold_on' },
+    rows: [[1, 'Notebook', 'Ueno', 1200, '2025-03-04'], [2, 'Pen set', 'Shibuya', 800, '2025-03-15'], [3, 'Backpack', 'Ueno', 6400, '2025-03-28'],
+      [4, 'Notebook', 'Shibuya', 1200, '2025-04-02'], [5, 'Lamp', 'Ueno', 3500, '2025-04-11'], [6, 'Pen set', 'Ikebukuro', 800, '2025-04-19'],
+      [7, 'Calendar', 'Shibuya', 1500, '2025-04-30'], [8, 'Backpack', 'Ikebukuro', 6400, '2025-05-06'], [9, 'Lamp', 'Shibuya', 3500, '2025-05-13'],
+      [10, 'Mug', 'Ueno', 900, '2025-05-21'], [11, 'Notebook', 'Ikebukuro', 1200, '2025-05-30'], [12, 'Mug', 'Shibuya', 900, '2025-06-03'],
+      [13, 'Calendar', 'Ueno', 1500, '2025-06-17'], [14, 'Lamp', 'Ikebukuro', 3500, '2025-06-25']]
+  },
+  {
+    table: 'workshops',
+    columns: [['id', 'INTEGER'], ['title', 'TEXT'], ['place', 'TEXT'], ['seats', 'INTEGER'], ['held_on', 'TEXT']],
+    roles: { name: 'title', cat: 'place', n1: 'seats', d: 'held_on' },
+    rows: [[1, 'Bread baking', 'Kitchen', 12, '2025-03-08'], [2, 'Photo walk', 'Park', 20, '2025-03-22'], [3, 'Watercolor', 'Studio', 10, '2025-04-05'],
+      [4, 'Curry night', 'Kitchen', 16, '2025-04-12'], [5, 'Bird watching', 'Park', 25, '2025-04-26'], [6, 'Clay cups', 'Studio', 8, '2025-05-03'],
+      [7, 'Sushi rolls', 'Kitchen', 14, '2025-05-17'], [8, 'Night stars', 'Park', 30, '2025-05-31'], [9, 'Paper lamps', 'Studio', 10, '2025-06-07'],
+      [10, 'Mochi making', 'Kitchen', 12, '2025-06-14'], [11, 'Tree climbing', 'Park', 18, '2025-06-21'], [12, 'Ink drawing', 'Studio', 9, '2025-06-28']]
+  },
+  {
+    table: 'trips',
+    columns: [['id', 'INTEGER'], ['city', 'TEXT'], ['team', 'TEXT'], ['cost', 'INTEGER'], ['start_on', 'TEXT']],
+    roles: { name: 'city', cat: 'team', n1: 'cost', d: 'start_on' },
+    rows: [[1, 'Osaka', 'Sales', 42000, '2025-03-10'], [2, 'Sapporo', 'Design', 68000, '2025-03-18'], [3, 'Fukuoka', 'Sales', 55000, '2025-04-01'],
+      [4, 'Nagoya', 'IT', 30000, '2025-04-09'], [5, 'Sendai', 'Design', 38000, '2025-04-23'], [6, 'Naha', 'IT', 72000, '2025-05-08'],
+      [7, 'Kyoto', 'Sales', 36000, '2025-05-15'], [8, 'Kobe', 'IT', 40000, '2025-05-27'], [9, 'Hiroshima', 'Design', 47000, '2025-06-05'],
+      [10, 'Kanazawa', 'Sales', 39000, '2025-06-12'], [11, 'Niigata', 'IT', 33000, '2025-06-19'], [12, 'Matsuyama', 'Design', 51000, '2025-06-30']]
+  }
+];
+
+/* ---------- three tables, a table joined with itself, two small tables (Lesson 35) ---------- */
+const mk3 = (table, columns, rows) => ({ table, columns, rows });
+export const JOIN3_DATASETS = [
+  {
+    key: 'school3',
+    // learners.club_id → club_list.id, club_list.room_id → room_list.id
+    a: mk3('learners', [['id', 'INTEGER'], ['name', 'TEXT'], ['club_id', 'INTEGER']], [[1, 'Aya', 1], [2, 'Ben', 2], [3, 'Chika', 1], [4, 'Dan', 3], [5, 'Emi', 4], [6, 'Fumi', 2], [7, 'Gen', 3], [8, 'Hana', 1]]),
+    b: mk3('club_list', [['id', 'INTEGER'], ['club', 'TEXT'], ['room_id', 'INTEGER']], [[1, 'Music', 2], [2, 'Soccer', 1], [3, 'Science', 3], [4, 'Art', 2]]),
+    c: mk3('room_list', [['id', 'INTEGER'], ['room', 'TEXT'], ['floor', 'INTEGER']], [[1, 'Ground', 1], [2, 'Hall', 2], [3, 'Lab', 3]]),
+    roles: { aName: 'name', aKey: 'club_id', bName: 'club', bKey: 'room_id', cName: 'room', cNum: 'floor' },
+    self: mk3('tutors', [['id', 'INTEGER'], ['name', 'TEXT'], ['mentor_id', 'INTEGER']], [[1, 'Mori', null], [2, 'Sato', 1], [3, 'Kim', 1], [4, 'Ito', 2], [5, 'Lee', 2], [6, 'Ono', 3]]),
+    selfRoles: { name: 'name', boss: 'mentor_id' },
+    x: mk3('shirt_sizes', [['size', 'TEXT']], [['S'], ['M'], ['L']]),
+    y: mk3('shirt_colors', [['color', 'TEXT']], [['Navy'], ['White']])
+  },
+  {
+    key: 'cafe3',
+    // guests.drink_id → drinks.id, drinks.kind_id → drink_kinds.id
+    a: mk3('guests', [['id', 'INTEGER'], ['name', 'TEXT'], ['drink_id', 'INTEGER']], [[1, 'Kai', 2], [2, 'Lina', 1], [3, 'Mo', 4], [4, 'Nao', 3], [5, 'Oto', 2], [6, 'Pia', 5], [7, 'Rui', 1]]),
+    b: mk3('drinks', [['id', 'INTEGER'], ['drink', 'TEXT'], ['kind_id', 'INTEGER']], [[1, 'Latte', 1], [2, 'Matcha', 2], [3, 'Lemonade', 3], [4, 'Mocha', 1], [5, 'Chai', 2]]),
+    c: mk3('drink_kinds', [['id', 'INTEGER'], ['kind', 'TEXT'], ['price', 'INTEGER']], [[1, 'Coffee', 500], [2, 'Tea', 450], [3, 'Juice', 400]]),
+    roles: { aName: 'name', aKey: 'drink_id', bName: 'drink', bKey: 'kind_id', cName: 'kind', cNum: 'price' },
+    self: mk3('baristas', [['id', 'INTEGER'], ['name', 'TEXT'], ['leader_id', 'INTEGER']], [[1, 'Yuki', null], [2, 'Tom', 1], [3, 'Rina', 1], [4, 'Sho', 3], [5, 'Ami', 3]]),
+    selfRoles: { name: 'name', boss: 'leader_id' },
+    x: mk3('cup_sizes', [['cup', 'TEXT']], [['Short'], ['Tall'], ['Grande']]),
+    y: mk3('milk_types', [['milk', 'TEXT']], [['Whole'], ['Oat'], ['Soy']])
+  }
+];
+const JOIN3_TABLES = d => [d.a, d.b, d.c, d.self, d.x, d.y];
+
 export const ALL_TABLES = (() => {
   const m = {};
   Object.values(ANALYSIS_DEMO).forEach(t => (m[t.table] = t));
@@ -391,6 +453,8 @@ export const ALL_TABLES = (() => {
   Object.values(DEMO_DATASETS).forEach(t => (m[t.table] = t));
   SINGLE_DATASETS.forEach(t => (m[t.table] = t));
   NULL_DATASETS.forEach(t => (m[t.table] = t));
+  DATE_DATASETS.forEach(t => (m[t.table] = t));
+  JOIN3_DATASETS.forEach(d => JOIN3_TABLES(d).forEach(t => (m[t.table] = Object.assign({ pair: d.key }, t))));
   JOIN_DATASETS.forEach(p => { m[p.left.table] = Object.assign({ pair: p.key }, p.left); m[p.right.table] = Object.assign({ pair: p.key }, p.right); });
   return m;
 })();
@@ -402,6 +466,8 @@ export function tableGroups() {
     { key: 'single', sets: SINGLE_DATASETS.map(d => ({ label: 'ds.' + d.table, tables: [d.table] })) },
     { key: 'null', sets: NULL_DATASETS.map(d => ({ label: 'ds.' + d.table, tables: [d.table] })) },
     { key: 'join', sets: JOIN_DATASETS.map(p => ({ label: 'ds.' + p.key, tables: [p.left.table, p.right.table] })) },
+    { key: 'date', sets: DATE_DATASETS.map(d => ({ label: 'ds.' + d.table, tables: [d.table] })) },
+    { key: 'join3', sets: JOIN3_DATASETS.map(d => ({ label: 'ds.' + d.key, tables: JOIN3_TABLES(d).map(t => t.table) })) },
     { key: 'analysis', sets: [{ label: 'tb.kumo', tables: Object.values(ANALYSIS_DEMO).map(d => d.table).concat([ANALYSIS_DEMO.kumo_orders.people]) }].concat(ANALYSIS_THEMES.map(d => ({ label: 'ds.' + d.table, tables: [d.table, d.people] }))) },
   ];
 }

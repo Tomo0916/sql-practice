@@ -30,6 +30,11 @@ export function usedKeys() {
   ['eq', 'ne', 'gt', 'ge', 'lt', 'le'].forEach(k => keys.add('cmp.' + k));
   for (const [l, ks] of [['an_missing', ['null', 'dup']], ['an_center', ['mid', 'mode']], ['an_spread', ['sd', 'range']], ['an_hist', ['bin', 'freq']], ['an_zscore', ['top', 'count']]]) ks.forEach(k => keys.add(`L.${l}.desc_${k}`));
   ['beginner', 'intermediate', 'advanced'].forEach(k => keys.add('book.lv.' + k));
+  // Lessons 19–28, 35, 36: the problem texts of each variant
+  for (const [l, ks] of [['case', ['desc3']], ['calc', ['tax', 'ratio', 'avg']], ['coalesce', ['fill', 'count']], ['strfn', ['upper', 'len', 'substr', 'concat']], ['dates', ['range', 'month', 'plus']],
+    ['sub1', ['gt', 'lt', 'max', 'min']], ['subin', ['not']], ['subfrom', ['avgsum', 'maxsum', 'maxcnt', 'minavg']], ['with', ['avg', 'big']], ['window', ['rank', 'part', 'run', 'avg']],
+    ['join3', ['three', 'threeWhere', 'self', 'selfLeft', 'cross']], ['setops', ['union', 'intersect', 'except']]]) ks.forEach(k => keys.add(k.startsWith('desc') ? `L.${l}.${k}` : `L.${l}.desc_${k}`));
+  ['date', 'join3'].forEach(k => keys.add('tb.g.' + k));
   keys.add('dx.quizWrong');
   // the clause quiz (clauses.js): roles, tips, questions and the texts of the choices
   ['select', 'from', 'where', 'order', 'limit', 'group', 'having'].forEach(k => { keys.add('cq.role.' + k); keys.add('cq.tip.' + k); });
