@@ -9,6 +9,7 @@
  * Text: English, Japanese and Easy Japanese; other languages read English.
  * ========================================================= */
 import { T3, state, checked } from './lecture-kit.js';
+import { PY_LECTURES_2 } from './lectures-py2.js';
 
 const ALL = 'SELECT * FROM books;';
 /** the pandas index of a books row: id − 1 (the DataFrame is made from the rows in order) */
@@ -454,11 +455,14 @@ export const PY_LECTURES = {
   }
 };
 
+Object.assign(PY_LECTURES, PY_LECTURES_2);   // Lessons 13–21
+
 /** what a Python problem uses, as the topics above (check.mjs: every topic has a case) */
 export function pyTopics(key, p) {
   if (key === 'pd_num' || key === 'pd_text' || key === 'pd_loc') return [p.op];
   if (key === 'pd_andor') return [p.and ? 'and' : 'or'];
   if (key === 'pd_sort' || key === 'pd_top') return [p.desc ? 'desc' : 'asc'];
   if (key === 'pd_agg' || key === 'pd_group') return [p.f];
+  if (['pd_na', 'pd_newcol', 'pd_str', 'pd_date', 'pd_dup', 'pd_pivot', 'pd_concat', 'pd_how', 'pd_plot'].includes(key)) return [p.v];   // Lessons 13–21: one topic per kind of problem
   return [];
 }
