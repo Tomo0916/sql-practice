@@ -4,7 +4,7 @@
  * Pure logic: no DOM, no language. Runs in the browser and in Node (tools-next/check.mjs).
  * ========================================================= */
 import { ALL_TABLES, SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES, datasetSQL } from './datasets.js';
-import { LESSONS, BLANK, levelSpec, variantOf, MORE_AGG } from './lessons.js';
+import { LESSONS, BLANK, levelSpec, variantOf, MORE_AGG, bandLevel } from './lessons.js';
 
 export const LESSON_BY_KEY = {};
 LESSONS.forEach((l, i) => { l.index = i; LESSON_BY_KEY[l.key] = l; });
@@ -16,7 +16,8 @@ export const stagesOf = lesson => lesson.stages || STAGES;
 
 /* ---------- a class's own problem format ----------
  * { demo: true|false, fill, order1, order2, write } = how many problems of each kind per lesson
- * (order1 = clause pieces, order2 = one or two words). null = the lesson's usual set. */
+ * (order1 = clause pieces, order2 = one or two words). null = the lesson's usual set.
+ * dif: the difficulty of the practice problems: 0 = any (as before), 1 基本 · 2 標準 · 3 発展, 4 = step by step (基本 → 発展 within the lesson). */
 export const FORMAT_KEYS = ['fill', 'order1', 'order2', 'write'];
 export const FORMAT_MAX = 5;
 export const STANDARD_FORMAT = { demo: true, fill: 1, order1: 1, order2: 1, write: 2 };
@@ -25,11 +26,14 @@ export function normFormat(f) {
   const o = { demo: f.demo !== false };
   FORMAT_KEYS.forEach(k => { o[k] = Math.max(0, Math.min(FORMAT_MAX, parseInt(f[k], 10) || 0)); });
   if (!o.demo && FORMAT_KEYS.every(k => !o[k])) o.write = 1;   // never an empty lesson
-  return FORMAT_KEYS.every(k => o[k] === STANDARD_FORMAT[k]) && o.demo ? null : o;   // the usual set is stored as null
+  const dif = parseInt(f.dif, 10); if (dif >= 1 && dif <= 4) o.dif = dif;
+  return FORMAT_KEYS.every(k => o[k] === STANDARD_FORMAT[k]) && o.demo && !o.dif ? null : o;   // the usual set is stored as null
 }
 /** short text form of a format ("101021"), used in cache keys and links */
-export function formatKey(f) { f = normFormat(f); return f ? (f.demo ? '1' : '0') + FORMAT_KEYS.map(k => f[k]).join('') : ''; }
-export function formatFromKey(k) { return /^[01][0-5]{4}$/.test(k || '') ? normFormat({ demo: k[0] === '1', fill: +k[1], order1: +k[2], order2: +k[3], write: +k[4] }) : null; }
+export function formatKey(f) { f = normFormat(f); return f ? (f.demo ? '1' : '0') + FORMAT_KEYS.map(k => f[k]).join('') + (f.dif ? f.dif : '') : ''; }
+export function formatFromKey(k) { return /^[01][0-5]{4}[1-4]?$/.test(k || '') ? normFormat({ demo: k[0] === '1', fill: +k[1], order1: +k[2], order2: +k[3], write: +k[4], dif: +k[5] || 0 }) : null; }
+/** the difficulty band of the j-th of n practice problems for a format's dif (0 = any) */
+export const bandOf = (dif, j, n) => (!dif ? 0 : dif <= 3 ? dif : Math.min(3, 1 + Math.floor((j * 3) / Math.max(1, n))));
 /**
  * The kinds of problem of a lesson, in order: demo · fill · order1 · order2 · write · quiz.
  * Lesson 0 has questions only; lessons without ordering (Lesson 2, data analysis) get writing problems instead.
@@ -401,15 +405,19 @@ export class SqlEngine {
     if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
     const tokens = stagesFor(lesson, fmt);
     const out = tokens[0] === 'demo' ? [this.demoProblem(lesson)] : [];
-    const seen = new Set(out.map(p => p.sql));
+    const seen = new Set(out.map(p => p.sql)), nf = normFormat(fmt), first = out.length, nPr = tokens.length - first;
     // more problems than data sets: go round the data sets again with new seeds
     for (let pass = 0; pass < 4 && out.length < tokens.length; pass++) {
       const pool = makeRng(pass ? `${key}|${pass}` : key).shuffle(this.themesFor(lesson));
       for (const ds of pool) {
         if (out.length >= tokens.length) break;
-        const p = this.genOne(lesson, ds, pass ? `${key}|${pass}|${ds.table || ds.key}` : `${key}|${ds.table || ds.key}`);
+        const sd = pass ? `${key}|${pass}|${ds.table || ds.key}` : `${key}|${ds.table || ds.key}`;
+        // a difficulty in the class format: the problem at that level of the lesson (lessons without levels: as usual)
+        const band = nf && lesson.kind !== 'quiz' ? bandOf(nf.dif, out.length - first, nPr) : 0, lv = band ? bandLevel(lesson.key, band) : 0;
+        const p = (lv && this.genLevel(lesson, ds, `${sd}|b${band}`, lv)) || this.genOne(lesson, ds, sd);
         if (!p) continue;
         const prob = this.buildProblem(lesson, p, 'practice', out.length, ds.table || ds.key, tokens);
+        if (lv) prob.bd = band;
         if (seen.has(prob.sql)) continue;
         if (prob.stage === 'order' && !this.orderTask(prob)) continue;
         seen.add(prob.sql); out.push(prob);

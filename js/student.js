@@ -30,7 +30,7 @@ import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest,
 import { BASIC_STEPS, BASIC_CORE, BASIC_DETAIL, BASIC_BY_KEY, BASIC_FORMATS, BASIC_ROUND, BASIC_UP, BASIC_CLEAR, basicStart, basicResult, basicNorm, nextStep, basicProblem, stepForMistake, absCheck, absChips, absShape, absVariant, absPieces, absClauses, ABS_SLOTS, CHAPTER_SHAPES, MIX_RANGES, MIX_FORMATS, MIX_COUNTS, mixSteps, mixProblems } from './basics.js';
 import { levelProfile } from './quick.js';
 import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, cqQuiz, cqRecord } from './clauses.js';
-import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, slotProblems, kindsOf, levelFor } from './quick.js';
+import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, shapeCountSlots, slotProblems, kindsOf, levelFor } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { installPy, pyRoute, pyHTML, pyMount, pyActions } from './py-ui.js';
 import { PD_LESSONS, PD_BY_KEY } from './pandas.js';
@@ -755,7 +755,7 @@ const taskOf = () => (S.klass && S.klass.tasks && S.klass.tasks.mix && Array.isA
 const taskSolved = t => ((S.progress.tasks || {})[t.id] || []).length;
 function taskMark(id, n) { S.progress.tasks = S.progress.tasks || {}; const l = S.progress.tasks[id] = S.progress.tasks[id] || []; if (!l.includes(n)) l.push(n); }
 function taskProblems(t) {
-  return slotProblems(S.engine, t.seed, shapeSlots(S.engine, t.shapes, t.n, t.kind, t.seed), '')
+  return slotProblems(S.engine, t.seed, Array.isArray(t.cnt) ? shapeCountSlots(S.engine, t.shapes, t.cnt, t.seed) : shapeSlots(S.engine, t.shapes, t.n, t.kind, t.seed), '')
     .map((p, i) => Object.assign({}, p, { id: `task:${t.id}:${i}`, test: false, quick: undefined, tn: i }));
 }
 function bsMixHTML() {
