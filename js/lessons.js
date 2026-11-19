@@ -24,6 +24,8 @@ const fn = (f, c) => (f === 'COUNT' ? 'COUNT(*)' : `${f}(${c})`);
 /* ---- small helpers used by the generators ---- */
 function colIndex(tbl, col) { return tbl.columns.findIndex(c => c[0] === col); }
 function colVals(tbl, col) { const i = colIndex(tbl, col); return tbl.rows.map(r => r[i]); }
+/** the different values of a numeric column, small to large */
+const sortedVals = (tbl, col) => [...new Set(colVals(tbl, col).filter(x => x !== null && x !== undefined))].sort((a, b) => a - b);
 function groupsOf(tbl, col) {
   const m = new Map();
   colVals(tbl, col).forEach(v => m.set(v, (m.get(v) || 0) + 1));
@@ -61,6 +63,8 @@ export const CHAPTERS = [
   { key: 'sort', icon: '↕' },
   { key: 'change', icon: '✎' },
   { key: 'agg', icon: 'Σ' },
+  { key: 'func', icon: 'ƒ' },
+  { key: 'sub', icon: '( )' },
   { key: 'join', icon: '⋈' },
   { key: 'analysis', icon: 'x̄' }
 ];
@@ -307,7 +311,20 @@ export const LESSONS = [
     blanks: p => (p.skip ? ['k', 'skip'] : ['k']),
     steps: p => [['step.from', `SELECT * FROM ${p.t};`], ['step.order', `SELECT * FROM ${p.t} ORDER BY ${p.c} ${dir(p.ord)};`],
       [p.skip ? 'step.offset' : 'step.limit', `SELECT * FROM ${p.t} ORDER BY ${p.c} ${dir(p.ord)} LIMIT ${p.k}${p.skip ? ` OFFSET ${p.skip}` : ''};`], ['step.select', LESSON_SQL.limit(p)]]
+  },  {
+    key: 'setops', no: 36, ch: 'sort', kind: 'single', stages: NO_ORDER,
+    syntax: 'SELECT {col} FROM {table} WHERE {cond} UNION SELECT {col} FROM {table} WHERE {cond};   -- INTERSECT EXCEPT',
+    keywords: ['SELECT', 'FROM', 'WHERE', 'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT', '>=', '=', ','],
+    demo: { ds: 'products', p: { t: 'products', name: 'name', c: 'price', x: 5000, cat: 'category', w: 'Electronics', op: 'UNION' } },
+    gen(ds, R) {
+      const r = ds.roles, c = R.pick([r.n1, r.n2]), v = sortedVals(ds, c), cats = [...new Set(colVals(ds, r.cat))];
+      return { t: ds.table, name: r.name, c, x: v[R.int(1, v.length - 2)], cat: r.cat, w: R.pick(cats), op: R.pick(['UNION', 'INTERSECT', 'EXCEPT']) };
+    },
+    descKey: p => `L.setops.desc_${p.op.toLowerCase()}`,
+    sql: p => `SELECT ${p.name} FROM ${p.t} WHERE ${p.c} >= ${p.x} ${p.op} SELECT ${p.name} FROM ${p.t} WHERE ${p.cat} = '${p.w}';`,
+    blanks: ['op']
   },
+
 
   /* =================== CHANGE DATA (Lesson 12–14) =================== */
   {
@@ -430,7 +447,168 @@ export const LESSONS = [
       ['step.group', `SELECT ${p.cat}, COUNT(*) FROM ${p.t} WHERE ${p.yr} >= ${p.y} GROUP BY ${p.cat};`],
       ['step.having', `SELECT ${p.cat}, COUNT(*) FROM ${p.t} WHERE ${p.yr} >= ${p.y} GROUP BY ${p.cat} HAVING COUNT(*) >= ${p.k};`]
     ]
+  },  /* =================== EXPRESSIONS AND FUNCTIONS (Lesson 19–23) =================== */
+  {
+    key: 'case', no: 19, ch: 'func', kind: 'single', stages: NO_ORDER,
+    syntax: 'SELECT {col}, CASE WHEN {cond} THEN {value} ELSE {value} END AS {alias} FROM {table};',
+    keywords: ['SELECT', 'FROM', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'AS', '>=', "'high'", "'mid'", "'low'", ','],
+    demo: { ds: 'products', p: { t: 'products', name: 'name', c: 'price', x: 5000, x2: null } },
+    gen(ds, R) {
+      const r = ds.roles, c = R.pick([r.n1, r.n2]), v = sortedVals(ds, c);
+      if (v.length < 5) return null;
+      if (R.next() < 0.5) return { t: ds.table, name: r.name, c, x: v[R.int(1, v.length - 2)], x2: null };
+      const i = R.int(1, v.length - 3), j = R.int(i + 1, v.length - 2);
+      return { t: ds.table, name: r.name, c, x: v[i], x2: v[j] };
+    },
+    descKey: p => (p.x2 ? 'L.case.desc3' : 'L.case.desc'),
+    sql: p => (p.x2 ? `SELECT ${p.name}, ${p.c}, CASE WHEN ${p.c} >= ${p.x2} THEN 'high' WHEN ${p.c} >= ${p.x} THEN 'mid' ELSE 'low' END AS level FROM ${p.t};`
+      : `SELECT ${p.name}, ${p.c}, CASE WHEN ${p.c} >= ${p.x} THEN 'high' ELSE 'low' END AS level FROM ${p.t};`),
+    blanks: p => (p.x2 ? ['x', 'x2'] : ['x'])
   },
+  {
+    key: 'calc', no: 20, ch: 'func', kind: 'single', stages: NO_ORDER,
+    syntax: 'SELECT {col}, ROUND({expr}, {n}) AS {alias} FROM {table};',
+    keywords: ['SELECT', 'FROM', 'ROUND()', 'AVG()', '*', '/', '1.0', '1.1', '1.08', 'AS', 'GROUP BY', ','],
+    demo: { ds: 'products', p: { t: 'products', name: 'name', v: 'tax', c: 'price', c2: 'stock', cat: 'category', d: 0, r: 1.1 } },
+    gen(ds, R) {
+      const r = ds.roles, v = R.pick(['tax', 'ratio', 'avg']);
+      return { t: ds.table, name: r.name, v, c: r.n1, c2: r.n2, cat: r.cat, d: v === 'tax' ? 0 : v === 'ratio' ? 2 : R.pick([0, 1]), r: R.pick([1.1, 1.08]) };
+    },
+    descKey: p => `L.calc.desc_${p.v}`,
+    view: p => ({ pct: Math.round((p.r - 1) * 100) }),
+    sql: p => (p.v === 'tax' ? `SELECT ${p.name}, ${p.c}, ROUND(${p.c} * ${p.r}) AS with_tax FROM ${p.t};`
+      : p.v === 'ratio' ? `SELECT ${p.name}, ROUND(${p.c} * 1.0 / ${p.c2}, ${p.d}) AS per_one FROM ${p.t};`
+        : `SELECT ${p.cat}, ROUND(AVG(${p.c}), ${p.d}) AS avg_${p.c} FROM ${p.t} GROUP BY ${p.cat};`),
+    blanks: p => (p.v === 'tax' ? ['r'] : ['d'])
+  },
+  {
+    key: 'coalesce', no: 21, ch: 'func', kind: 'single', themes: 'null', stages: NO_ORDER,
+    syntax: "SELECT {col}, COALESCE({col}, {value}) AS {alias} FROM {table};",
+    keywords: ['SELECT', 'FROM', 'COALESCE()', 'COUNT(*)', 'COUNT()', 'AS', 'GROUP BY', "'none'", ','],
+    demo: { ds: 'contacts', p: { t: 'contacts', name: 'name', opt: 'email', v: 'fill', fill: 'none' } },
+    gen(ds, R) {
+      const r = ds.roles;
+      return R.next() < 0.6 ? { t: ds.table, name: r.name, opt: r.opt, v: 'fill', fill: R.pick(['none', 'unknown', '-']) } : { t: ds.table, cat: r.cat, opt: r.opt, v: 'count' };
+    },
+    descKey: p => `L.coalesce.desc_${p.v}`,
+    sql: p => (p.v === 'fill' ? `SELECT ${p.name}, COALESCE(${p.opt}, '${p.fill}') AS ${p.opt} FROM ${p.t};`
+      : `SELECT ${p.cat}, COUNT(*) AS all_rows, COUNT(${p.opt}) AS filled FROM ${p.t} GROUP BY ${p.cat};`),
+    blanks: p => (p.v === 'fill' ? ['fill'] : ['opt'])
+  },
+  {
+    key: 'strfn', no: 22, ch: 'func', kind: 'single', stages: NO_ORDER,
+    syntax: 'SELECT {col}, LENGTH({col}) FROM {table};   -- UPPER() SUBSTR() ||',
+    keywords: ['SELECT', 'FROM', 'WHERE', 'LENGTH()', 'UPPER()', 'SUBSTR()', '||', "' / '", 'AS', '>=', ','],
+    demo: { ds: 'products', p: { t: 'products', name: 'name', cat: 'category', v: 'upper', fn: 'UPPER' } },
+    gen(ds, R) {
+      const r = ds.roles, v = R.pick(['upper', 'len', 'substr', 'concat']);
+      const lens = [...new Set(colVals(ds, r.name).map(x => String(x).length))].sort((a, b) => a - b);
+      return { t: ds.table, name: r.name, cat: r.cat, v, fn: { upper: 'UPPER', len: 'LENGTH', substr: 'SUBSTR', concat: '||' }[v], k: v === 'len' ? lens[R.int(1, lens.length - 2)] : v === 'substr' ? R.int(3, 5) : null };
+    },
+    descKey: p => `L.strfn.desc_${p.v}`,
+    sql: p => (p.v === 'upper' ? `SELECT ${p.fn}(${p.name}) AS upper_name FROM ${p.t};`
+      : p.v === 'len' ? `SELECT ${p.name}, LENGTH(${p.name}) AS len FROM ${p.t} WHERE ${p.fn}(${p.name}) >= ${p.k};`
+        : p.v === 'substr' ? `SELECT ${p.name}, ${p.fn}(${p.name}, 1, ${p.k}) AS short FROM ${p.t};`
+          : `SELECT ${p.name} ${p.fn} ' / ' ${p.fn} ${p.cat} AS label FROM ${p.t};`),
+    blanks: p => (p.v === 'len' || p.v === 'substr' ? ['fn', 'k'] : ['fn'])
+  },
+  {
+    key: 'dates', no: 23, ch: 'func', kind: 'single', themes: 'date', stages: NO_ORDER,
+    syntax: "SELECT {col} FROM {table} WHERE {col} BETWEEN {value} AND {value};   -- strftime('%m', {col})",
+    keywords: ['SELECT', 'FROM', 'WHERE', 'BETWEEN', 'AND', "strftime('%m', )", "date( , '+7 days')", 'COUNT(*)', 'AS', 'GROUP BY', ','],
+    demo: { ds: 'sales_log', p: { t: 'sales_log', name: 'item', d: 'sold_on', v: 'range', a: '2025-04-01', b: '2025-04-30' } },
+    gen(ds, R) {
+      const r = ds.roles, v = R.pick(['range', 'month', 'plus']);
+      if (v === 'range') { const m = R.pick(['03', '04', '05', '06']); return { t: ds.table, name: r.name, d: r.d, v, a: `2025-${m}-01`, b: `2025-${m}-${m === '04' || m === '06' ? '30' : '31'}` }; }
+      if (v === 'month') return { t: ds.table, d: r.d, v, fmt: '%m' };
+      return { t: ds.table, name: r.name, d: r.d, v, k: R.pick([7, 10, 14]) };
+    },
+    descKey: p => `L.dates.desc_${p.v}`,
+    sql: p => (p.v === 'range' ? `SELECT ${p.name}, ${p.d} FROM ${p.t} WHERE ${p.d} BETWEEN '${p.a}' AND '${p.b}';`
+      : p.v === 'month' ? `SELECT strftime('${p.fmt}', ${p.d}) AS month, COUNT(*) AS n FROM ${p.t} GROUP BY month;`
+        : `SELECT ${p.name}, ${p.d}, date(${p.d}, '+${p.k} days') AS due FROM ${p.t};`),
+    blanks: p => (p.v === 'range' ? ['a', 'b'] : p.v === 'plus' ? ['k'] : ['fmt'])
+  },
+
+  /* =================== SUBQUERIES, WITH, WINDOW FUNCTIONS (Lesson 24–28) =================== */
+  {
+    key: 'sub1', no: 24, ch: 'sub', kind: 'single', stages: NO_ORDER,
+    syntax: 'SELECT {col} FROM {table} WHERE {col} > (SELECT AVG({col}) FROM {table});',
+    keywords: ['SELECT', 'FROM', 'WHERE', '(SELECT )', 'AVG()', 'MAX()', 'MIN()', '>', '<', '=', ','],
+    demo: { ds: 'products', p: { t: 'products', name: 'name', c: 'price', v: 'gt', op: '>', f: 'AVG' } },
+    gen(ds, R) {
+      const r = ds.roles, v = R.pick(['gt', 'lt', 'max', 'min']);
+      return { t: ds.table, name: r.name, c: R.pick([r.n1, r.n2]), v, op: { gt: '>', lt: '<' }[v] || '=', f: { max: 'MAX', min: 'MIN' }[v] || 'AVG' };
+    },
+    descKey: p => `L.sub1.desc_${p.v}`,
+    sql: p => `SELECT ${p.name}, ${p.c} FROM ${p.t} WHERE ${p.c} ${p.op} (SELECT ${p.f}(${p.c}) FROM ${p.t});`,
+    blanks: p => (p.v === 'gt' || p.v === 'lt' ? ['op'] : ['f'])
+  },
+  {
+    key: 'subin', no: 25, ch: 'sub', kind: 'join', stages: NO_ORDER,
+    syntax: 'SELECT {col} FROM {table} WHERE {key} IN (SELECT {key} FROM {table} WHERE {cond});',
+    keywords: ['SELECT', 'FROM', 'WHERE', 'IN', 'NOT IN', '(SELECT )', '>=', ','],
+    demo: { p: { L: 'customers', R: 'orders', id: 'id', key: 'customer_id', name: 'name', grp: 'city', text: 'item', num: 'amount', not: false, x: 20000, kw: 'IN' } },
+    gen(pair, R, ctx) {
+      const p = joinParams(pair), not = R.next() < 0.35;
+      const v = [...new Set(ctx.values(`SELECT ${p.num} FROM ${p.R};`).map(x => x[0]))].sort((a, b) => a - b);
+      if (v.length < 3) return null;
+      return Object.assign(p, { not, kw: not ? 'NOT IN' : 'IN', x: not ? null : v[R.int(1, v.length - 2)] });
+    },
+    descKey: p => (p.not ? 'L.subin.desc_not' : 'L.subin.desc'),
+    sql: p => (p.not ? `SELECT ${p.name} FROM ${p.L} WHERE ${p.id} ${p.kw} (SELECT ${p.key} FROM ${p.R});`
+      : `SELECT ${p.name} FROM ${p.L} WHERE ${p.id} ${p.kw} (SELECT ${p.key} FROM ${p.R} WHERE ${p.num} >= ${p.x});`),
+    blanks: p => (p.not ? ['kw'] : ['x'])
+  },
+  {
+    key: 'subfrom', no: 26, ch: 'sub', kind: 'single', stages: NO_ORDER,
+    syntax: 'SELECT AVG({alias}) FROM (SELECT {group}, SUM({num}) AS {alias} FROM {table} GROUP BY {group}) AS g;',
+    keywords: ['SELECT', 'FROM', '(SELECT )', 'AS', 'GROUP BY', 'COUNT(*)', 'SUM()', 'AVG()', 'MAX()', 'MIN()', ','],
+    demo: { ds: 'products', p: { t: 'products', cat: 'category', c: 'price', v: 'avgsum', out: 'AVG' } },
+    gen(ds, R) {
+      const r = ds.roles, v = R.pick(['avgsum', 'maxcnt', 'minavg', 'maxsum']);
+      return { t: ds.table, cat: r.cat, c: R.pick([r.n1, r.n2]), v, out: { avgsum: 'AVG', maxcnt: 'MAX', minavg: 'MIN', maxsum: 'MAX' }[v] };
+    },
+    descKey: p => `L.subfrom.desc_${p.v}`,
+    sql: p => (p.v === 'avgsum' || p.v === 'maxsum' ? `SELECT ${p.out}(total) FROM (SELECT ${p.cat}, SUM(${p.c}) AS total FROM ${p.t} GROUP BY ${p.cat}) AS g;`
+      : p.v === 'maxcnt' ? `SELECT ${p.out}(cnt) FROM (SELECT ${p.cat}, COUNT(*) AS cnt FROM ${p.t} GROUP BY ${p.cat}) AS g;`
+        : `SELECT ${p.out}(avg_c) FROM (SELECT ${p.cat}, AVG(${p.c}) AS avg_c FROM ${p.t} GROUP BY ${p.cat}) AS g;`),
+    blanks: ['out']
+  },
+  {
+    key: 'with', no: 27, ch: 'sub', kind: 'single', stages: NO_ORDER,
+    syntax: 'WITH {alias} AS (SELECT … ) SELECT {col} FROM {alias} WHERE {cond};',
+    keywords: ['WITH', 'AS', '(SELECT )', 'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'AVG()', 'COUNT(*)', '>=', ','],
+    demo: { ds: 'products', p: { t: 'products', cat: 'category', c: 'price', v: 'avg', x: 5000 } },
+    gen(ds, R, ctx) {
+      const r = ds.roles, c = R.pick([r.n1, r.n2]), v = R.pick(['avg', 'big']);
+      if (v === 'avg') {
+        const a = ctx.values(`SELECT AVG(${c}) FROM ${ds.table} GROUP BY ${r.cat};`).map(x => x[0]).sort((p, q) => p - q);
+        if (a.length < 2) return null;
+        const lo = a[0], hi = a[a.length - 1], x = [niceFloor(hi), Math.floor(hi)].find(y => y > lo && y <= hi);
+        return x === undefined ? null : { t: ds.table, cat: r.cat, c, v, x };
+      }
+      const vals = sortedVals(ds, c); return { t: ds.table, cat: r.cat, c, v, x: vals[R.int(1, vals.length - 3)] };
+    },
+    descKey: p => `L.with.desc_${p.v}`,
+    sql: p => (p.v === 'avg' ? `WITH g AS (SELECT ${p.cat}, AVG(${p.c}) AS avg_c FROM ${p.t} GROUP BY ${p.cat}) SELECT ${p.cat}, avg_c FROM g WHERE avg_c >= ${p.x};`
+      : `WITH big AS (SELECT * FROM ${p.t} WHERE ${p.c} >= ${p.x}) SELECT ${p.cat}, COUNT(*) AS n FROM big GROUP BY ${p.cat};`),
+    blanks: ['x']
+  },
+  {
+    key: 'window', no: 28, ch: 'sub', kind: 'single', stages: NO_ORDER,
+    syntax: 'SELECT {col}, RANK() OVER (ORDER BY {col} DESC) AS {alias} FROM {table};',
+    keywords: ['SELECT', 'FROM', 'RANK()', 'ROW_NUMBER()', 'SUM()', 'AVG()', 'OVER', '(ORDER BY )', 'PARTITION BY', 'DESC', 'AS', ','],
+    demo: { ds: 'products', p: { t: 'products', name: 'name', cat: 'category', c: 'price', v: 'rank', w: 'OVER' } },
+    gen(ds, R) { const r = ds.roles; return { t: ds.table, name: r.name, cat: r.cat, c: R.pick([r.n1, r.n2]), v: R.pick(['rank', 'part', 'run', 'avg']), w: 'OVER' }; },
+    descKey: p => `L.window.desc_${p.v}`,
+    sql: p => (p.v === 'rank' ? `SELECT ${p.name}, ${p.c}, RANK() ${p.w} (ORDER BY ${p.c} DESC) AS rnk FROM ${p.t};`
+      : p.v === 'part' ? `SELECT ${p.name}, ${p.cat}, ${p.c}, RANK() ${p.w} (PARTITION BY ${p.cat} ORDER BY ${p.c} DESC) AS rnk FROM ${p.t};`
+        : p.v === 'run' ? `SELECT id, ${p.name}, ${p.c}, SUM(${p.c}) ${p.w} (ORDER BY id) AS running FROM ${p.t};`
+          : `SELECT ${p.name}, ${p.cat}, ${p.c}, AVG(${p.c}) ${p.w} (PARTITION BY ${p.cat}) AS cat_avg FROM ${p.t};`),
+    blanks: ['w']
+  },
+
 
   /* =================== JOIN =================== */
   {
@@ -515,7 +693,25 @@ export const LESSONS = [
     tie: p => `SELECT ${p.L}.${p.id} FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)};`,
     blanks: ['ord', 'k'],
     steps: p => [['step.from', `SELECT * FROM ${p.L};`], ['step.join_left', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)};`], ['step.order', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.L}.${p.id} ${dir(p.ord)};`], ['step.limit', `SELECT * FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.L}.${p.id} ${dir(p.ord)} LIMIT ${p.k};`], ['step.select', `SELECT ${p.L}.${p.name}, ${p.R}.${p.num} FROM ${p.L} LEFT JOIN ${p.R} ON ${onOf(p)} ORDER BY ${p.L}.${p.id} ${dir(p.ord)} LIMIT ${p.k};`]]
+  },  {
+    key: 'join3', no: 35, ch: 'join', kind: 'single', themes: 'join3', stages: NO_ORDER,
+    syntax: 'SELECT {col} FROM {table} a JOIN {table} b ON {cond} JOIN {table} c ON {cond};',
+    keywords: ['SELECT', 'FROM', 'JOIN', 'LEFT JOIN', 'CROSS JOIN', 'ON', 'WHERE', 'AS', '=', ','],
+    demo: { ds: 'school3', p: { v: 'three', j: 'JOIN', A: 'learners', B: 'club_list', C: 'room_list', an: 'name', ak: 'club_id', bn: 'club', bk: 'room_id', cn: 'room', w: null, tables: ['learners', 'club_list', 'room_list'] } },
+    gen(ds, R) {
+      const v = R.pick(['three', 'threeWhere', 'self', 'selfLeft', 'cross']), r = ds.roles;
+      if (v === 'three' || v === 'threeWhere') return { v, j: 'JOIN', A: ds.a.table, B: ds.b.table, C: ds.c.table, an: r.aName, ak: r.aKey, bn: r.bName, bk: r.bKey, cn: r.cName,
+        w: v === 'three' ? null : R.pick(colVals(ds.c, r.cName)), tables: [ds.a.table, ds.b.table, ds.c.table] };
+      if (v === 'cross') return { v, j: 'CROSS JOIN', X: ds.x.table, Y: ds.y.table, xc: ds.x.columns[0][0], yc: ds.y.columns[0][0], tables: [ds.x.table, ds.y.table] };
+      return { v, j: v === 'selfLeft' ? 'LEFT JOIN' : 'JOIN', S: ds.self.table, sn: ds.selfRoles.name, sb: ds.selfRoles.boss, tables: [ds.self.table] };
+    },
+    descKey: p => `L.join3.desc_${p.v}`,
+    sql: p => (p.v === 'three' || p.v === 'threeWhere' ? `SELECT a.${p.an}, b.${p.bn}, c.${p.cn} FROM ${p.A} a ${p.j} ${p.B} b ON a.${p.ak} = b.id ${p.j} ${p.C} c ON b.${p.bk} = c.id${p.w ? ` WHERE c.${p.cn} = '${p.w}'` : ''};`
+      : p.v === 'cross' ? `SELECT ${p.xc}, ${p.yc} FROM ${p.X} ${p.j} ${p.Y};`
+        : `SELECT e.${p.sn}, m.${p.sn} AS boss FROM ${p.S} e ${p.j} ${p.S} m ON e.${p.sb} = m.id;`),
+    blanks: p => (p.v === 'threeWhere' ? ['w'] : ['j'])
   },
+
 
   /* =================== DATA ANALYSIS (course A, units 1–6) ===================
    * Examples use Kumo Mart (kumo_*); practice uses other businesses (analysis-data.js).

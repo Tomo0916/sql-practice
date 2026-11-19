@@ -3,7 +3,7 @@
  *             fill-in-the-blank and clause-ordering builders, paper tests.
  * Pure logic: no DOM, no language. Runs in the browser and in Node (tools-next/check.mjs).
  * ========================================================= */
-import { ALL_TABLES, SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES, datasetSQL } from './datasets.js';
+import { ALL_TABLES, SINGLE_DATASETS, NULL_DATASETS, JOIN_DATASETS, ANALYSIS_THEMES, DATE_DATASETS, JOIN3_DATASETS, datasetSQL } from './datasets.js';
 import { LESSONS, BLANK, levelSpec, variantOf, MORE_AGG, bandLevel } from './lessons.js';
 
 export const LESSON_BY_KEY = {};
@@ -233,6 +233,12 @@ function alignColumns(user, exp) {
  * reason: 'noResult' | 'cols' | 'rows' | 'order' | 'values'
  * detail: 'tooMany' | 'tooFew' | 'reversed' | 'noOrder' | null
  */
+/** does the query itself sort its rows? (an ORDER BY outside every bracket) */
+export function topOrderBy(sql) {
+  let x = stripLiterals(String(sql)), prev;
+  do { prev = x; x = x.replace(/\([^()]*\)/g, ' '); } while (x !== prev);
+  return /\bORDER\s+BY\b/i.test(x);
+}
 export function grade(user, exp, ordered, userSql, names) {
   if (!user || !user.columns || !user.columns.length) return { ok: false, reason: 'noResult', b: exp && exp.values ? exp.values.length : 0 };
   if (names && user.columns.length === exp.columns.length) {   // the lesson is about naming columns (AS)
@@ -317,7 +323,7 @@ export class SqlEngine {
     const sql = lesson.sql(p);
     const blankP = Object.assign({}, p);
     blanksOf(lesson, p).forEach(k => (blankP[k] = BLANK));
-    const tables = lesson.kind === 'join' ? [p.L, p.R] : p.t2 ? [p.t, p.t2] : [p.t];
+    const tables = lesson.kind === 'join' ? [p.L, p.R] : p.tables ? p.tables : p.t2 ? [p.t, p.t2] : [p.t];
     const toks = tokens || stagesFor(lesson);
     const token = kind === 'demo' ? 'demo' : kind === 'practice' ? toks[idx] : kind;
     const stage = stageOfToken(token);
@@ -331,7 +337,7 @@ export class SqlEngine {
       lesson: lesson.key, kind, stage, idx, tables, p, sql,
       blank: lesson.sql(blankP),
       steps: lesson.steps ? lesson.steps(p) : [],
-      ordered: /\bORDER\s+BY\b/i.test(sql),
+      ordered: topOrderBy(sql),   // ORDER BY of the whole query (not one inside OVER ( … ) or a subquery)
       theme: theme || (ALL_TABLES[tables[0]] && (ALL_TABLES[tables[0]].pair || ALL_TABLES[tables[0]].table))
     };
   }
@@ -393,7 +399,7 @@ export class SqlEngine {
     }
     return null;
   }
-  themesFor(lesson) { return lesson.kind === 'join' ? JOIN_DATASETS : lesson.themes === 'null' ? NULL_DATASETS : lesson.themes === 'analysis' ? ANALYSIS_THEMES : SINGLE_DATASETS; }
+  themesFor(lesson) { return lesson.kind === 'join' ? JOIN_DATASETS : lesson.themes === 'null' ? NULL_DATASETS : lesson.themes === 'analysis' ? ANALYSIS_THEMES : lesson.themes === 'date' ? DATE_DATASETS : lesson.themes === 'join3' ? JOIN3_DATASETS : SINGLE_DATASETS; }
   /**
    * The problems of a lesson for a set code: usually the example + 5 practice problems
    * (fill, order 1, order 2, write ×2); a class can choose its own format (see stagesFor).
@@ -407,7 +413,8 @@ export class SqlEngine {
     const out = tokens[0] === 'demo' ? [this.demoProblem(lesson)] : [];
     const seen = new Set(out.map(p => p.sql)), nf = normFormat(fmt), first = out.length, nPr = tokens.length - first;
     // more problems than data sets: go round the data sets again with new seeds
-    for (let pass = 0; pass < 4 && out.length < tokens.length; pass++) {
+    const passes = Math.max(4, Math.ceil(3 * tokens.length / this.themesFor(lesson).length));   // few data sets (Lesson 35 has two): more rounds
+    for (let pass = 0; pass < passes && out.length < tokens.length; pass++) {
       const pool = makeRng(pass ? `${key}|${pass}` : key).shuffle(this.themesFor(lesson));
       for (const ds of pool) {
         if (out.length >= tokens.length) break;
@@ -593,7 +600,7 @@ export class SqlEngine {
     const questions = [], seen = new Set();
     const RT = makeRng(`test-types|${opts.code}`);
     LESSONS.filter(l => opts.lessons.includes(l.key) && l.kind !== 'quiz' && !l.noTest).forEach(lesson => {
-      const themes = lesson.kind === 'join' ? joins : lesson.themes === 'null' ? NULL_DATASETS.slice(0, 2) : lesson.themes === 'analysis' ? R.shuffle(ANALYSIS_THEMES).slice(0, 2) : singles;
+      const themes = lesson.kind === 'join' ? joins : lesson.themes === 'null' ? NULL_DATASETS.slice(0, 2) : lesson.themes === 'analysis' ? R.shuffle(ANALYSIS_THEMES).slice(0, 2) : lesson.themes === 'date' ? DATE_DATASETS.slice(0, 2) : lesson.themes === 'join3' ? JOIN3_DATASETS : singles;
       for (let q = 0; q < opts.per; q++) {
         const wantType = opts.type === 'mix' ? (RT.next() < 0.5 ? 'write' : 'predict') : opts.type;
         let made = null;

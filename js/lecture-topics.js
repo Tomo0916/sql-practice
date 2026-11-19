@@ -30,6 +30,19 @@ export const TOPICS = {
   wherehaving: () => ['where+having'],
   innercols: p => [p.rc === p.text ? 'right.text' : 'right.num'],   // which column of the right table is shown
   leftorder: p => ['limit', dirOf(p.ord)],
+  // Lessons 19–28, 35, 36: one topic per kind of problem
+  case: p => [p.x2 ? 'three' : 'two'],
+  calc: p => [p.v],                                          // tax, ratio, avg
+  coalesce: p => [p.v],                                      // fill, count
+  strfn: p => [p.v],                                         // upper, len, substr, concat
+  dates: p => [p.v],                                         // range, month, plus
+  sub1: p => [p.v],                                          // gt, lt, max, min
+  subin: p => [p.not ? 'notin' : 'in'],
+  subfrom: p => [p.v],                                       // avgsum, maxsum, maxcnt, minavg
+  with: p => [p.v],                                          // avg, big
+  window: p => [p.v],                                        // rank, part, run, avg
+  join3: p => [p.v],                                         // three, threeWhere, self, selfLeft, cross
+  setops: p => [p.op.toLowerCase()],                         // union, intersect, except
 };
 /** the topics of one problem (lessons not listed yet: one topic, "main") */
 export const topicsOf = (lessonKey, p) => (TOPICS[lessonKey] ? TOPICS[lessonKey](p) : ['main']);
