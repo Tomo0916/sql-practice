@@ -138,7 +138,8 @@ export function pyMount() {
     lang: 'python', doc: d[prob.id] !== undefined ? d[prob.id] : '', label: 'Python', placeholder: '# Python',
     schema: Object.fromEntries(pdColumns(prob).map(x => [x.t, x.cols])),
     onRun: () => run(),
-    onChange: v => { clearTimeout(timer); timer = setTimeout(() => { C.S.progress.drafts = C.S.progress.drafts || {}; C.S.progress.drafts[prob.id] = v; C.save(); }, 400); }
+    key: prob.id,
+    onChange: v => { C.S.progress.drafts = C.S.progress.drafts || {}; C.S.progress.drafts[prob.id] = v; clearTimeout(timer); timer = setTimeout(() => C.save(), 400); }
   });
 }
 
