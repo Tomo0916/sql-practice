@@ -94,6 +94,12 @@ export function pdSet(key, seed) {
   for (let i = 0; out.length < PD_N && i < PD_N * 6; i++) { const p = pdProblem(key, `${seed}|${i}`); if (!seen.has(p.code)) { seen.add(p.code); out.push(p); } }
   return { demo, items: out };
 }
+/** up to 12 different problems of a lesson for a quick test (seed = the test's) */
+export function pdPool(key, seed) {
+  const out = [], seen = new Set();
+  for (let n = 0; n < 60 && out.length < 12; n++) { const p = pdProblem(key, `QT${seed}|${n}`); if (!seen.has(p.code)) { seen.add(p.code); out.push(p); } }
+  return out;
+}
 /** the tables a problem needs, as { name: { columns, rows } } (for the Python side) */
 export function pdTables(prob) {
   const lesson = PD_BY_KEY[prob.lesson], ds = pdSets(lesson).find(d => setKey(d) === prob.ds);

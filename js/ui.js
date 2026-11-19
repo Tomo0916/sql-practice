@@ -4,6 +4,7 @@
 import { LANGS, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { LESSON_BY_KEY } from './engine.js';
 import { joinView, MORE_AGG } from './lessons.js';
+import { PD_BY_KEY } from './pandas.js';
 
 /* ---------- icons ---------- */
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -90,6 +91,12 @@ export function highlightPy(src) {
     else out += esc(tok);
   }
   return out;
+}
+/** the text of a Python-course problem: values as code, nested texts (cmp.ge …) filled the same way */
+export function pyDescHTML(prob, lang) {
+  const [k, v] = PD_BY_KEY[prob.lesson].desc(prob.p);
+  const fill = vars => Object.fromEntries(Object.entries(vars).map(([a, b]) => [a, b && typeof b === 'object' ? th(b.k, lang, b.v ? fill(b.v) : undefined) : `<code>${esc(b)}</code>`]));
+  return th(k, lang, fill(v));
 }
 /** Highlight `cur`, marking what is new compared with `prev`. */
 export function highlightDiff(prev, cur) {
@@ -212,12 +219,12 @@ export function composeHTML(o) {
   const full = o.totalMax && total >= o.totalMax;
   const cell = (r, c) => { const v = val(r, c); if (v === null || v === undefined) return '<td class="cmp-na" aria-hidden="true">—</td>';
     return `<td class="${v ? 'on ' + (c.tone || '') : ''}"><span class="cmp-st"><button type="button" data-act="${o.act}" data-r="${r.id}" data-c="${c.id}" data-d="-1" aria-label="${esc(String(r.text || ''))} ${esc(String(c.text || ''))} −" ${v <= 0 ? 'disabled' : ''}>−</button><b>${v}</b><button type="button" data-act="${o.act}" data-r="${r.id}" data-c="${c.id}" data-d="1" aria-label="${esc(String(r.text || ''))} ${esc(String(c.text || ''))} +" ${v >= o.max || full ? 'disabled' : ''}>+</button></span></td>`; };
-  const rowSum = r => o.cols.reduce((a, c) => a + (val(r, c) || 0), 0), min = Math.max(1, Math.round((o.secEach || 60) * total / 60));
+  const rowSum = r => o.cols.reduce((a, c) => a + (val(r, c) || 0), 0), min = Math.max(1, Math.round(o.rows.reduce((a, r) => a + rowSum(r) * (o.secFor ? o.secFor(r) : o.secEach || 60), 0) / 60));
   return `<div class="cmp">
-    ${o.presets && o.presets.length ? `<div class="cmp-presets">${o.presets.map(p => `<button type="button" class="cmp-p ${o.presetOn === p.v ? 'on' : ''}" data-act="${o.presetAct}" data-v="${p.v}" aria-pressed="${o.presetOn === p.v}">${p.label}</button>`).join('')}</div>` : ''}
+    ${(o.groups || (o.presets && o.presets.length ? [{ act: o.presetAct, on: o.presetOn, items: o.presets }] : [])).map(g => `<div class="cmp-presets">${g.label ? `<span class="cmp-pl">${g.label}</span>` : ''}${g.items.map(p => `<button type="button" class="cmp-p ${g.on === p.v ? 'on' : ''}" data-act="${g.act}" data-v="${p.v}" aria-pressed="${g.on === p.v}">${p.label}</button>`).join('')}</div>`).join('')}
     <div class="cmp-wrap"><table class="cmp-t ${many ? 'many' : ''}">
       <thead><tr><th class="cmp-rh">${o.corner || ''}</th>${o.cols.map(c => `<th class="cmp-ch ${c.tone || ''}"><b>${c.label}</b>${c.sub ? `<small>${c.sub}</small>` : ''}</th>`).join('')}${cols ? `<th class="cmp-sum">${th('cmp.sum', o.lang)}</th>` : ''}</tr></thead>
-      <tbody>${o.rows.map(r => `<tr><th class="cmp-rh">${r.label}</th>${o.cols.map(c => cell(r, c)).join('')}${cols ? `<td class="cmp-sum"><b>${rowSum(r)}</b></td>` : ''}</tr>`).join('')}</tbody>
+      <tbody>${o.rows.map((r, i) => `${r.group && (i === 0 || o.rows[i - 1].group !== r.group) ? `<tr class="cmp-g"><th colspan="${o.cols.length + (cols ? 2 : 1)}">${r.group}</th></tr>` : ''}<tr class="${r.cls || ''}"><th class="cmp-rh">${r.label}</th>${o.cols.map(c => cell(r, c)).join('')}${cols ? `<td class="cmp-sum"><b>${rowSum(r)}</b></td>` : ''}</tr>`).join('')}</tbody>
       ${many && cols ? `<tfoot><tr><th class="cmp-rh">${th('cmp.sum', o.lang)}</th>${sums.map((n, i) => `<td class="${o.cols[i].tone || ''}"><b>${n}</b></td>`).join('')}<td class="cmp-sum"><b>${total}</b></td></tr></tfoot>` : ''}
     </table></div>
     ${cols && total ? `<div class="cmp-bar" aria-hidden="true">${o.cols.map((c, i) => (sums[i] ? `<i class="${c.tone || ''}" style="flex:${sums[i]}"></i>` : '')).join('')}</div>` : ''}

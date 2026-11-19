@@ -1624,5 +1624,20 @@ export default {
   "tc.shape.cmpNote": "按 填空 → 排序 → 书写 的顺序出题。所选句型依次使用。",
   "tc.fmt.perLesson": "每课",
   "tc.fmt.anyNote": "多样：和以前一样，出各种难度的题。",
-  "tc.fmt.riseNote": "逐渐变难：每课中按 基本 → 标准 → 发展 的顺序变难。"
+  "tc.fmt.riseNote": "逐渐变难：每课中按 基本 → 标准 → 发展 的顺序变难。",
+  /* ---- Python in the quick test ---- */
+  "tc.quick.pyNote": "有 Python 题目。学生的设备第一次使用 Python 时需要大约一分钟准备，开始前请让学生先打开一次 Python 课程。",
+  "qk.pyPrep": "正在准备 Python。请停留在此画面直到开始。",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.byKindDif": "各形式与难度的题数",
+  "tc.qs.kindCol": "形式",
+  "tc.qs.kpLabel": "形式",
+  "tc.qs.dpLabel": "难度",
+  "tc.qs.kp.write": "只写",
+  "tc.qs.kp.order": "只排序",
+  "tc.qs.kp.ow": "排序＋书写",
+  "tc.qs.kp.all": "全部形式",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.s3kind": "题数、形式与难度",
+  "tc.qs.pyNoDif": "Python 题目不分难度（放在哪一列都是同类题目）。"
 };

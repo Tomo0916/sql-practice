@@ -702,12 +702,14 @@ console.log('15b. Counts by difficulty');
   const Q = await import('../js/quick.js'), E = await import('../js/engine.js'), { splitBy } = Q;
   [[5, [1, 1, 1]], [7, [3, 2, 0]], [1, [1, 2, 2]], [10, [1, 0, 0]]].forEach(([n, r]) => { const x = splitBy(n, r); if (x.reduce((a, b) => a + b, 0) !== n || x.some((v, i) => !r[i] && v)) err(`splitBy(${n}, ${r}) = ${x}`); });
   const ls = ['where', 'orderby', 'groupby'];
-  for (const cnt of [[2, 1, 1], [0, 3, 0], [1, 0, 4]]) {
-    const g = Q.spreadGrid(ls, cnt), slots = Q.gridSlots(eng, g, ls, 'mix', 'CHK', '');
-    [1, 2, 3].forEach(b => { if (slots.filter(x => x.bd === b).length !== cnt[b - 1]) err(`gridSlots ${cnt}: ${slots.filter(x => x.bd === b).length} problems of band ${b}`); });
+  const K = c => Object.fromEntries(Q.QK.map(st => [st, c[st] || [0, 0, 0]]));
+  for (const cnt of [{ write: [2, 1, 1] }, { order1: [0, 2, 0], write: [1, 1, 0] }, { fill: [1, 0, 0], order2: [1, 1, 0], write: [0, 0, 2] }]) {
+    const g = Q.spreadGrid(eng, ls, K(cnt), ''), slots = Q.gridSlots(eng, g, ls, 'CHK', '');
+    Q.QK.forEach(st => [1, 2, 3].forEach(b => { const want = (cnt[st] || [0, 0, 0])[b - 1], got = slots.filter(x => x.st === st && x.bd === b).length; if (got !== want) err(`gridSlots ${JSON.stringify(cnt)}: ${got} ${st} problems of band ${b}, not ${want}`); }));
     if (slots.some((x, i) => i && x.bd < slots[i - 1].bd)) err('gridSlots: the easier problems should come first');
-    const per = ls.map(k => slots.filter(x => x.k === k).length); if (Math.max(...per) - Math.min(...per) > 1) err(`spreadGrid ${cnt}: uneven ${per}`);
+    const per = ls.map(k => slots.filter(x => x.k === k).length); if (Math.max(...per) - Math.min(...per) > 1) err(`spreadGrid ${JSON.stringify(cnt)}: uneven ${per}`);
     const probs = Q.slotProblems(eng, 'CHK', slots, ''); if (probs.length !== slots.length) err('gridSlots: a slot has no problem');
+    probs.forEach((p, i) => { const want = slots[i].st.startsWith('order') ? 'order' : slots[i].st; if (p.stage !== want) err(`gridSlots: slot ${slots[i].st} gives a ${p.stage} problem`); });
   }
   const { BASIC_CORE } = await import('../js/basics.js'), sh = Q.shapeCountSlots(eng, BASIC_CORE.map(x => x.key), [2, 1, 3], 'CHK');
   if (sh.length !== 6 || ['afill', 'aorder', 'awrite'].some((st, i) => sh.filter(x => x.st === st).length !== [2, 1, 3][i])) err(`shapeCountSlots: wrong counts ${sh.map(x => x.st)}`);
@@ -723,6 +725,14 @@ console.log('15b. Counts by difficulty');
     }
   }
   if (E.normFormat({ demo: true, fill: 1, order1: 1, order2: 1, write: 2, dif: 0 }) !== null) err('the usual format with no difficulty should be null');
+  { // a quick test with SQL and Python lessons
+    const ls = ['where', 'pd_num', 'pd_group', 'pd_merge'], slots = Q.gridSlots(eng, Q.spreadGrid(eng, ls, Object.fromEntries(Q.QK.map(st => [st, st === 'write' ? [2, 2, 2] : [0, 0, 0]])), ''), ls, 'PYQ', '');
+    const q = Q.newQuick({ seed: 'PYQ', slots, limitSec: 300 }, Date.now()), probs = Q.quickProblems(eng, q), py = probs.filter(p => p.py);
+    if (probs.length !== 6) err(`quick test with Python: ${probs.length} problems`);
+    if (py.length !== 4 || py.some(p => !p.code || p.stage !== 'write' || !p.id.startsWith('quick:'))) err('quick test with Python: the Python problems are wrong');
+    if (new Set(py.map(p => p.code)).size !== py.length) err('quick test with Python: the same Python problem twice');
+    if (py.some(p => p.bd)) err('quick test with Python: Python problems have no difficulty');
+  }
   console.log('   counts, order and class-format difficulty checked');
 }
 

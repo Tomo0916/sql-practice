@@ -8,6 +8,7 @@
  * Class features need Supabase (config.js). Presenter and paper tests work without it.
  * ========================================================= */
 import { LANGS, loadLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
+import { PD_LESSONS, PD_BY_KEY } from './pandas.js';
 import { SqlEngine, LESSON_BY_KEY, grade, todayCode, randomCode, normCode, normFormat, formatKey, stagesFor, FORMAT_KEYS, FORMAT_MAX, STANDARD_FORMAT } from './engine.js';
 import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
@@ -17,7 +18,7 @@ import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
-import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS, DIF_RATIOS, splitBy, spreadGrid, gridSlots, shapeCountSlots, shapeCountsOf } from './quick.js';
+import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS, DIF_RATIOS, KIND_RATIOS, QK, splitBy, spreadGrid, gridSlots, shapeCountSlots, shapeCountsOf } from './quick.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_BY_KEY } from './basics.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
@@ -25,7 +26,7 @@ import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
 import * as backend from './backend.js';
-import { composeHTML, countPickHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
+import { pyDescHTML, highlightPy, composeHTML, countPickHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -220,20 +221,35 @@ const difCols = () => [1, 2, 3].map(b => ({ id: b, label: H('dif.' + b), sub: H(
 const DIF_PRESETS = ['basic', 'easy', 'even', 'hard'];
 const presetOf = (rows, ps) => ps.find(v => rows.every(r => sum3(r) === 0 || splitBy(sum3(r), DIF_RATIOS[v]).every((x, i) => x === r[i]))) || null;
 /** the counts of a whole quick test (by difficulty) */
-const quickCounts = d => (d.mode === 'detail' ? d.lessons.reduce((a, k) => a.map((x, i) => x + d.grid[k][i]), [0, 0, 0]) : d.cnt);
+const KIND_SEC = { fill: 60, order1: 70, order2: 70, write: 120 };   // seconds a problem, for the estimate
+const kindCnt = (o, max) => Object.fromEntries(QK.map(st => [st, cnt3((o || {})[st], max) || [0, 0, 0]]));
+/** the kinds the chosen lessons have (the rows of the table when all lessons are set together) */
+const kindsIn = d => QK.filter(st => d.lessons.some(k => kindsOf(k, S.engine, d.tb).includes(st)));
+/** every row of the table as [基本, 標準, 発展]: per kind (together), or per lesson and kind */
+const quickRows = d => (d.mode === 'detail' ? d.lessons.flatMap(k => kindsOf(k, S.engine, d.tb).map(st => d.grid[k][st])) : kindsIn(d).map(st => d.cnt[st]));
+const quickTotal = d => quickRows(d).reduce((a, r) => a + sum3(r), 0);
+/** the per-lesson table added up per kind */
+const gridToCnt = d => { const c = kindCnt({}, 99); d.lessons.forEach(k => kindsOf(k, S.engine, d.tb).forEach(st => { c[st] = c[st].map((x, i) => Math.min(CMP_CELL, x + d.grid[k][st][i])); })); return c; };
+/** the lessons a quick test can use, in order: the SQL lessons, then the Python course */
+const qOrder = () => [...checkLessons().map(l => l.key), ...PD_LESSONS.map(l => l.key)];
+/** a lesson's number and title (SQL or Python) */
+const qLessonH = k => (PD_BY_KEY[k] ? `<b>Py${PD_BY_KEY[k].no}</b> ${rubyHTML(raw('pd.t.' + k, L()))}` : `<b>${LESSON_BY_KEY[k].no}</b> ${lessonTitleHTML(LESSON_BY_KEY[k], L())}`);
 function quickDraft(c) {
   const d = Store.get(QDRAFT, null) || {};
   if (!d.seed) { d.seed = randomCode(4); Store.set(QDRAFT, d); }   // the preview stays the same until the teacher asks for new problems
-  const ok = new Set(checkLessons().map(l => l.key));
+  const ok = new Set(qOrder());
   const lessons = (Array.isArray(d.lessons) ? d.lessons : (c.lessons || [])).filter(k => ok.has(k));   // first time: the assigned lessons
   const tb = d.tb && S.engine && tableSets(S.engine).some(x => x.key === d.tb) ? d.tb : '';
   const per = {};
   lessons.forEach(k => { const o = (d.per || {})[k] || { write: 1 }; per[k] = {}; KINDS.forEach(st => { per[k][st] = kindsOf(k).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +o[st] || 0)) : 0; }); });
   // counts by difficulty [基本, 標準, 発展]: all lessons together (cnt), or per lesson (grid); older drafts: n problems of one difficulty
   const n0 = Number.isInteger(d.n) && d.n >= 1 && d.n <= 10 ? d.n : 3, dif0 = [1, 2, 3].includes(d.dif) ? d.dif : 0;
-  const cnt = cnt3(d.cnt, CMP_CELL) || (dif0 ? [0, 0, 0].map((x, i) => (i === dif0 - 1 ? n0 : 0)) : splitBy(n0, [1, 1, 1]));
-  const usable = lessons.filter(k => kindsOf(k, S.engine, tb).length), spread = d.grid ? null : spreadGrid(usable, cnt), grid = {};
-  lessons.forEach(k => { grid[k] = cnt3((d.grid || {})[k], CMP_CELL_L) || (spread && spread[k]) || [1, 0, 0]; });
+  // counts per kind (fill, order1, order2, write) and difficulty; older drafts: one row of difficulties for the kind preset
+  let cnt;
+  if (d.cnt && typeof d.cnt === 'object' && !Array.isArray(d.cnt)) cnt = kindCnt(d.cnt, CMP_CELL);
+  else { cnt = kindCnt({}, CMP_CELL); cnt[d.kind === 'order' ? 'order1' : 'write'] = cnt3(d.cnt, CMP_CELL) || (dif0 ? [0, 0, 0].map((x, i) => (i === dif0 - 1 ? n0 : 0)) : splitBy(n0, [1, 1, 1])); }
+  const newGrid = d.grid && Object.values(d.grid).every(o => o && !Array.isArray(o)), spread = newGrid ? null : spreadGrid(S.engine, lessons, cnt, tb), grid = {};
+  lessons.forEach(k => { const o = newGrid ? d.grid[k] : null; grid[k] = o ? kindCnt(o, CMP_CELL_L) : spread ? spread[k] : Object.assign(kindCnt({}, 1), { write: [1, 0, 0] }); });
   const sn0 = Number.isInteger(d.sn) && d.sn >= 1 && d.sn <= 20 ? d.sn : 5;
   return { mode: d.mode === 'detail' ? 'detail' : 'simple', lessons, cnt, grid, sc: cnt3(d.sc, CMP_CELL) || shapeCountsOf(sn0, SHAPE_KINDS.includes(d.sk) ? d.sk : 'mix'), n: Number.isInteger(d.n) && d.n >= 1 && d.n <= 10 ? d.n : 3, kind: QUICK_PRESETS.includes(d.kind) ? d.kind : 'write', per,
     pass: Number.isInteger(d.pass) && d.pass >= 1 ? d.pass : null, limitSec: Number.isInteger(d.limitSec) && d.limitSec >= 0 && d.limitSec <= QUICK_MAX_SEC ? d.limitSec : Number.isInteger(d.limit) && d.limit >= 0 && d.limit <= 120 ? d.limit * 60 : 300,
@@ -280,7 +296,7 @@ function draftSlots(d) {
   if (d.goal === 'shape') return applySwaps(S.engine, d.fixed ? d.fixed.slots : shapeCountSlots(S.engine, d.shapes, d.sc, d.seed), d.swaps, d.seed, '');
   if (!d.lessons.length && !d.fixed) return [];
   const usable = d.lessons.filter(k => kindsOf(k, S.engine, d.tb).length);
-  const base = d.fixed ? d.fixed.slots : gridSlots(S.engine, d.mode === 'detail' ? d.grid : spreadGrid(usable, d.cnt), d.lessons, d.kind, d.seed, d.tb);
+  const base = d.fixed ? d.fixed.slots : gridSlots(S.engine, d.mode === 'detail' ? d.grid : spreadGrid(S.engine, usable, d.cnt, d.tb), d.lessons, d.seed, d.tb);
   return applySwaps(S.engine, base, d.swaps, d.seed, d.tb);
 }
 /* ---------- the basic shapes (基礎の型): names and a picker, for the shape-mix quick test and assignment ---------- */
@@ -290,8 +306,8 @@ const shapeKindH = v => H(v === 'mix' ? 'tc.shape.k.mix' : v === 'afill' ? 'stag
 const ABS_W = { col: 'col', group: 'col', num: 'col', key: 'col', table: 'table', cond: 'cond', expr: 'expr', alias: 'alias' };
 const absShapeTH = shape => `<code class="bs-shape">${String(shape).split(/(\{[a-z]+\})/).map(part => { const m = /^\{([a-z]+)\}$/.exec(part); return m ? `<span class="bs-slot ${ABS_W[m[1]] || 'val'}">${H('bs.w.' + (ABS_W[m[1]] || 'val'))}</span>` : highlightSQL(part); }).join('')}</code>`;
 const absGoalTH = p => { const [k, v] = p.goal || []; return k === 'bs.abs.goal' ? H(k, { name: lessonTitle(LESSON_BY_KEY[v.lesson], L()) }) : H(k, v); };
-const probTextH = p => (p.abs ? absGoalTH(p) : problemHTML(p, L()));
-const probAnsH = p => (p.abs ? absShapeTH(p.shape) : `<pre class="sql">${highlightSQL(p.sql)}</pre>`);
+const probTextH = p => (p.abs ? absGoalTH(p) : p.py ? pyDescHTML(p, L()) : problemHTML(p, L()));
+const probAnsH = p => (p.abs ? absShapeTH(p.shape) : p.py ? `<pre class="sql py">${highlightPy(p.code)}</pre>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>`);
 const shapeCh = st => (st.core ? (st.lesson === 'select' ? 'basics' : LESSON_BY_KEY[st.lesson].ch) : st.ch);
 /** chosen shapes as chips, quick buttons (the 8 basic ones, a chapter, none) and every shape to tick; act = the action of the clicks */
 function shapePickHTML(chosen, act) {
@@ -331,25 +347,32 @@ function quickHTML(c) {
       ${chosen.size ? `<button class="btn btn-ghost btn-xs" data-act="quickChapter" data-v="">${H('tc.quick.none')}</button><span class="muted small">${H('tc.qs.picked', { n: chosen.size })}</span>` : `<span class="muted small">${H('tc.qs.pickHint')}</span>`}</div>
     <div class="qs-chs">${CHAPTERS.map(ch => { const ls = checkLessons().filter(l => l.ch === ch.key); if (!ls.length) return ''; const got = ls.filter(l => chosen.has(l.key)).length;
       return `<div class="qs-ch" style="--cc:var(--c-${ch.key})"><button class="qs-chb ${got === ls.length ? 'on' : got ? 'some' : ''}" data-act="quickChapter" data-v="${ch.key}" title="${esc(T('ck.chapterTip'))}">${rubyHTML(raw('ch.' + ch.key, L()))} <span>${got}/${ls.length}</span></button>
-        <div class="qs-ls">${ls.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}"><b>${l.no}</b>${lessonTitleHTML(l, L())}</button>`).join('')}</div></div>`; }).join('')}</div>`;
+        <div class="qs-ls">${ls.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}"><b>${l.no}</b>${lessonTitleHTML(l, L())}</button>`).join('')}</div></div>`; }).join('')}
+      ${(() => { const got = PD_LESSONS.filter(l => chosen.has(l.key)).length; return `<div class="qs-ch qs-py" style="--cc:#3776ab"><button class="qs-chb ${got === PD_LESSONS.length ? 'on' : got ? 'some' : ''}" data-act="quickChapter" data-v="@py">🐍 ${H('pd.title')} <span>${got}/${PD_LESSONS.length}</span></button>
+        <div class="qs-ls">${PD_LESSONS.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}"><b>Py${l.no}</b>${rubyHTML(raw('pd.t.' + l.key, L()))}</button>`).join('')}</div></div>`; })()}</div>`;
   const lvPick = `<div class="qs-quickbtns"><button class="btn btn-ghost btn-xs" data-act="quickLv" data-v="all">${H('tc.quick.lvAll')}</button><span class="muted small">${H('tc.quick.lvNote')}</span></div>
     <div class="qs-chs">${LV_CHAPTERS.map((k, i) => { const on = d.lv.includes(i); return `<button class="qs-chb wide ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="quickLv" data-v="${i}" aria-pressed="${on}">${i + 1}. ${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}</div>`;
   const s2 = lvMode ? lvPick : shMode ? shapePickHTML(d.shapes, 'quickShape') : lessonsPick;
   // 3. how many problems of each difficulty (all lessons together, or per lesson), and of which kind
   const detail = d.mode === 'detail';
   const modeSeg = `<div class="seg">${['simple', 'detail'].map(v => `<button class="seg-b ${d.mode === v ? 'on' : ''}" data-act="quickSet" data-k="mode" data-v="${v}" aria-pressed="${d.mode === v}">${H(v === 'simple' ? 'cmp.together' : 'cmp.perLesson')}</button>`).join('')}</div>`;
-  const qRows = detail ? d.lessons.map(k => { const l = LESSON_BY_KEY[k]; return { id: k, label: `<b>${l.no}</b> ${lessonTitleHTML(l, L())}`, text: `${l.no}` }; })
-    : [{ id: '@all', label: `${H('cmp.all')}<small>${H('cmp.allSub', { n: d.lessons.length })}</small>`, text: T('cmp.all') }];
-  const difTable = !d.lessons.length ? `<p class="muted small">${H('tc.qs.pickHint')}</p>` : composeHTML({ act: 'quickCmp', rows: qRows, cols: difCols(), get: (r, b) => (detail ? d.grid[r][b - 1] : d.cnt[b - 1]),
-    max: detail ? CMP_CELL_L : CMP_CELL, totalMax: CMP_TOTAL, secEach: d.kind === 'write' ? 120 : 80, lang: L(),
-    presets: DIF_PRESETS.map(v => ({ v, label: H('dif.p.' + v) })), presetAct: 'quickDifP', presetOn: presetOf(detail ? d.lessons.map(k => d.grid[k]) : [d.cnt], DIF_PRESETS), note: H('dif.note') });
+  const kindH = st => `<span class="kd k-${st}">${H(KIND_LABEL[st])}</span>`;
+  const qRows = detail ? d.lessons.flatMap(k => kindsOf(k, S.engine, d.tb).map(st => ({ id: `${k}|${st}`, group: qLessonH(k), label: kindH(st), st, text: `${PD_BY_KEY[k] ? 'Py' + PD_BY_KEY[k].no : LESSON_BY_KEY[k].no} ${T(KIND_LABEL[st])}` })))
+    : kindsIn(d).map(st => ({ id: st, label: kindH(st), st, text: T(KIND_LABEL[st]) }));
+  const rowOf = id => (detail ? d.grid[id.split('|')[0]][id.split('|')[1]] : d.cnt[id]);
+  const kindOn = detail ? null : Object.keys(KIND_RATIOS).find(v => { const ks = kindsIn(d), tot = ks.map(st => sum3(d.cnt[st])), n = tot.reduce((a, b) => a + b, 0), r = ks.map(st => KIND_RATIOS[v][QK.indexOf(st)]);
+    return n && r.some(Boolean) && splitBy(n, r).every((x, i) => x === tot[i]); }) || null;
+  const difTable = !d.lessons.length ? `<p class="muted small">${H('tc.qs.pickHint')}</p>` : composeHTML({ act: 'quickCmp', rows: qRows, cols: difCols(), get: (r, b) => rowOf(r)[b - 1],
+    max: detail ? CMP_CELL_L : CMP_CELL, totalMax: CMP_TOTAL, secFor: r => KIND_SEC[r.st], lang: L(), corner: H('tc.qs.kindCol'),
+    groups: [{ label: H('tc.qs.kpLabel'), act: 'quickKindP', on: kindOn, items: Object.keys(KIND_RATIOS).map(v => ({ v, label: H('tc.qs.kp.' + v) })) },
+      { label: H('tc.qs.dpLabel'), act: 'quickDifP', on: presetOf(quickRows(d), DIF_PRESETS), items: DIF_PRESETS.map(v => ({ v, label: H('dif.p.' + v) })) }],
+    note: H('dif.note') + (d.lessons.some(k => PD_BY_KEY[k]) ? ' ' + H('tc.qs.pyNoDif') : '') });
   const shCols = [['stage.fill', 's1'], ['stage.order', 's2'], ['rv.write', 's3']].map(([k, tone], i) => ({ id: i, label: H(k), tone, text: T(k) }));
   const shTable = (act, pAct, sc) => composeHTML({ act, rows: [{ id: '@all', label: H('tc.shape.row'), text: '' }], cols: shCols, get: (r, i) => sc[i], max: CMP_CELL, totalMax: 30, secEach: 40, lang: L(),
     presets: ['easy', 'even', 'hard'].map(v => ({ v, label: H('dif.p.' + v) })), presetAct: pAct, presetOn: presetOf([sc], ['easy', 'even', 'hard']), note: H('tc.shape.cmpNote') });
   const s3 = lvMode ? `<p class="muted small">${H('tc.qs.levelFixed', { n })}</p>`
     : shMode ? shTable('quickShCmp', 'quickShP', d.sc)
-    : `<div class="fld"><div class="cmp-head"><span>${H('tc.qs.byDif')}</span>${d.lessons.length > 1 ? modeSeg : ''}</div>${difTable}</div>
-      <div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', QUICK_PRESETS, d.kind, v => H('tc.quick.k.' + v))}</div>`;
+    : `<div class="fld"><div class="cmp-head"><span>${H('tc.qs.byKindDif')}</span>${d.lessons.length > 1 ? modeSeg : ''}</div>${difTable}</div>`;
   // 4. pass line and time
   const passSel = `<select class="select" data-qsel="pass" aria-label="${esc(T('tc.quick.pass'))}">${[null, ...Array.from({ length: Math.max(0, n - 1) }, (_, i) => n - 1 - i)].map(v => `<option value="${v === null ? '' : v}" ${pass === v ? 'selected' : ''}>${esc(v === null ? T('tc.quick.passAll') : T('tc.quick.passN', { n: v }))}</option>`).join('')}</select>`;
   const time = `<div class="q-limit">${seg('limitBy', ['len', 'end'], d.limitBy, v => H(v === 'len' ? 'tc.live.byLen' : 'tc.live.byEnd'))}
@@ -362,13 +385,13 @@ function quickHTML(c) {
       <option value="">${esc(T('tc.quick.tableAny'))}</option>
       <optgroup label="${esc(T('tp.single'))}">${tableSets(S.engine).filter(x => !x.join).map(x => `<option value="${x.key}" ${d.tb === x.key ? 'selected' : ''}>${esc(x.tables.join(' + '))}</option>`).join('')}</optgroup>
       <optgroup label="${esc(T('tp.join'))}">${tableSets(S.engine).filter(x => x.join).map(x => `<option value="${x.key}" ${d.tb === x.key ? 'selected' : ''}>${esc(x.tables.join(' + '))}</option>`).join('')}</optgroup></select>
-      ${d.tb && d.lessons.some(k => !tableLessons(S.engine, d.tb).includes(k)) ? `<span class="muted small">${H('tc.quick.tableSkip', { l: d.lessons.filter(k => !tableLessons(S.engine, d.tb).includes(k)).map(k => LESSON_BY_KEY[k].no).join(', ') })}</span>` : ''}</div>`;
+      ${d.tb && d.lessons.some(k => LESSON_BY_KEY[k] && !tableLessons(S.engine, d.tb).includes(k)) ? `<span class="muted small">${H('tc.quick.tableSkip', { l: d.lessons.filter(k => LESSON_BY_KEY[k] && !tableLessons(S.engine, d.tb).includes(k)).map(k => LESSON_BY_KEY[k].no).join(', ') })}</span>` : ''}</div>`;
   const s4 = `<div class="qs-row">${lvMode ? '' : `<div class="fld"><span>${H('tc.quick.pass')}</span>${passSel}</div>`}<div class="fld"><span>${H('tc.quick.limit')}</span>${time}</div></div>
     ${tableSel ? `<details class="qs-more" ${d.tb ? 'open' : ''}><summary>${H('tc.qs.more')}</summary>${tableSel}</details>` : ''}`;
   // the test as it will be
-  const wanted = d.goal === 'quick' ? sum3(quickCounts(d)) : shMode ? sum3(d.sc) : n;
+  const wanted = d.goal === 'quick' ? quickTotal(d) : shMode ? sum3(d.sc) : n;
   const short = h => { const t = String(h).replace(/<rt>[^<]*<\/rt>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); return esc(t.length > 54 ? t.slice(0, 52) + '…' : t); };
-  const pv = probs.map((p, j) => `<details class="qs-pv"><summary><b>Q${j + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span>${slots[j] && slots[j].bd ? `<span class="bd d${slots[j].bd}">${H('dif.' + slots[j].bd)}</span>` : ''}<span class="qs-pv-t"><small class="muted">${p.basic ? '🧱' : `L${LESSON_BY_KEY[p.lesson].no}`}</small> ${short(probTextH(p))}</span>
+  const pv = probs.map((p, j) => `<details class="qs-pv"><summary><b>Q${j + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span>${slots[j] && slots[j].bd ? `<span class="bd d${slots[j].bd}">${H('dif.' + slots[j].bd)}</span>` : ''}<span class="qs-pv-t"><small class="muted">${p.basic ? '🧱' : p.py ? `🐍${PD_BY_KEY[p.lesson].no}` : `L${LESSON_BY_KEY[p.lesson].no}`}</small> ${short(probTextH(p))}</span>
       <button class="btn btn-ghost btn-xs" data-act="quickSwap" data-k="${j}" ${nextFree(S.engine, slots, j, d.seed, d.goal === 'shape' ? '' : d.tb) === null ? 'disabled' : ''} title="${esc(T('tc.quick.swapTip'))}">${I.repeat}</button></summary>
       <div class="qs-pv-b"><p class="prob-text">${probTextH(p)}</p><div class="muted small">${H('hint.answer')}</div>${probAnsH(p)}</div></details>`).join('');
   const ready = n && draftLimit(d) !== null;
@@ -378,12 +401,13 @@ function quickHTML(c) {
       ${d.fixed ? `<p class="small"><b>${H('tc.quick.sameAs', { t: esc(fmtTime(d.fixed.at)) })}</b></p>` : ''}
       ${!n ? `<p class="muted small">${H('tc.qs.none')}</p>` : ''}${n && n < wanted && !d.fixed ? `<p class="muted small">${H('tc.quick.fewer')}</p>` : ''}${d.limitBy === 'end' && draftLimit(d) === null && d.limitEnd ? `<p class="err small">${H('tc.quick.endPast')}</p>` : ''}
       ${n ? `<div class="qs-pv-h"><b>${H('tc.quick.preview')}</b><button class="btn btn-ghost btn-xs" data-act="quickReshuffle">${I.shuffle}${H('tc.quick.reshuffle')}</button></div><div class="qs-pvs">${pv}</div><p class="muted small">${H('tc.qs.pvTip')}</p>` : ''}
+      ${!lvMode && !shMode && probs.some(p => p.py) ? `<p class="small qs-pynote">🐍 ${H('tc.quick.pyNote')}</p>` : ''}
       <p class="muted small">${H(lvMode ? 'tc.quick.lvAfter' : 'tc.quick.note')}</p>
     </aside>`;
   return `<div class="qs-wrap"><div class="qs-main">
       ${step(1, H('tc.qs.s1'), s1)}
       ${step(2, H('tc.qs.s2'), s2)}
-      ${step(3, H(lvMode ? 'tc.qs.s3' : 'tc.qs.s3dif'), s3)}
+      ${step(3, H(lvMode ? 'tc.qs.s3' : shMode ? 'tc.qs.s3dif' : 'tc.qs.s3kind'), s3)}
       ${step(4, H('tc.qs.s4'), s4)}
     </div>${side}</div>
     ${quickHistoryHTML(c)}`;
@@ -391,10 +415,10 @@ function quickHTML(c) {
 /* ---------- results: each problem (how many got it, the common wrong answers) and each student ---------- */
 function quickPerQHTML(q, st, probs) {
   return `<div class="q-perq">${probs.map((p, i) => { const x = st.perQ[i] || { rate: 0, solved: 0, wrong: [] }, pct = Math.round(x.rate * 100);
-    return `<details class="q-pq"><summary><b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span><span class="muted small">${p.basic && BASIC_BY_KEY[p.basic] ? `🧱 ${shapeNameH(p.basic)}` : `Lesson ${LESSON_BY_KEY[p.lesson].no}`}</span>
+    return `<details class="q-pq"><summary><b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span><span class="muted small">${p.basic && BASIC_BY_KEY[p.basic] ? `🧱 ${shapeNameH(p.basic)}` : p.py ? `🐍 Python ${PD_BY_KEY[p.lesson].no}` : `Lesson ${LESSON_BY_KEY[p.lesson].no}`}</span>
         <span class="q-bar ${st.started && pct < 50 ? 'low' : ''}"><i style="width:${st.started ? pct : 0}%"></i></span><b class="q-pct">${st.started ? pct + '%' : '—'}</b><span class="muted small">${x.solved} / ${st.started}</span></summary>
       <p class="prob-text">${probTextH(p)}</p>${probAnsH(p)}
-      ${x.wrong.length ? `<div class="q-wrong"><b class="small">${H('tc.quick.wrongTop')}</b>${x.wrong.map(w => `<div class="q-w"><span class="q-wn" title="${esc(T('tc.quick.wrongN', { n: w.n }))}">${w.n}</span><pre class="sql wrong">${highlightSQL(w.sql)}</pre></div>`).join('')}</div>` : ''}</details>`; }).join('')}</div>`;
+      ${x.wrong.length ? `<div class="q-wrong"><b class="small">${H('tc.quick.wrongTop')}</b>${x.wrong.map(w => `<div class="q-w"><span class="q-wn" title="${esc(T('tc.quick.wrongN', { n: w.n }))}">${w.n}</span><pre class="sql wrong">${(p.py ? highlightPy : highlightSQL)(w.sql)}</pre></div>`).join('')}</div>` : ''}</details>`; }).join('')}</div>`;
 }
 function quickTableHTML(q, st) {
   const rank = r => (r.passed ? 0 : r.started ? 1 : 2);
@@ -657,8 +681,8 @@ function formatSummary(f) {
 }
 
 function stageName(p) { return (p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? T('stage.orderN', { n: p.wn }) : T('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + T('drill.lv2') : ''); }
-function stageNameH(p) { if (p.abs) return `${H('bs.f.abs')}・${shapeKindH(p.af)}`; return (p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + H('drill.lv2') : ''); }
-const isQuiz = p => p.answer !== undefined || LESSON_BY_KEY[p.lesson].kind === 'quiz';
+function stageNameH(p) { if (p.abs) return `${H('bs.f.abs')}・${shapeKindH(p.af)}`; return (p.stage === 'write' || p.stage === 'quiz' ? H('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? H('stage.orderN', { n: p.wn }) : H('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + H('drill.lv2') : p.stage === 'order' && p.test && p.level ? ` · ${H(p.level === 2 ? 'drill.lv2' : 'drill.lv1')}` : ''); }
+const isQuiz = p => p.answer !== undefined || (LESSON_BY_KEY[p.lesson] || {}).kind === 'quiz';
 /** the answer of a problem: SQL, or the value for Lesson 0 */
 const answerHTML = p => (isQuiz(p) ? `<p class="quiz-ans">${answerTextHTML(p, L())}</p>` : `<pre class="sql">${highlightSQL(p.sql)}</pre>${altsHTML(p)}`);
 /** other correct answers (別解), closed */
@@ -1174,8 +1198,8 @@ const actions = {
   quickSet(el) {
     const d = quickDraft(S.klass), k = el.dataset.k, v = el.dataset.v;
     if (k === 'mode' && v !== d.mode) {   // keep what was set: the totals become the rows, or the rows add up
-      if (v === 'detail') d.grid = spreadGrid(d.lessons.filter(x => kindsOf(x, S.engine, d.tb).length), d.cnt);
-      else { const t = quickCounts(d); if (sum3(t)) d.cnt = t.map(x => Math.min(CMP_CELL, x)); }
+      if (v === 'detail') d.grid = spreadGrid(S.engine, d.lessons, d.cnt, d.tb);
+      else if (quickTotal(d)) d.cnt = gridToCnt(d);
     }
     if (k === 'n') d.n = +v;
     else if (k === 'sn') { d.sn = +v; d.swaps = {}; }
@@ -1206,17 +1230,31 @@ const actions = {
     try { const tasks = Object.assign({}, c.tasks); delete tasks.mix; S.klass = await backend.updateClass(c.id, { tasks: Object.keys(tasks).length ? tasks : null }); redrawTask(); }
     catch (e) { console.error(e); toast(T('class.netError')); }
   },
-  quickCmp(el) {   // one more / one less in a cell of the difficulty table
-    const d = quickDraft(S.klass), b = +el.dataset.c - 1, dd = +el.dataset.d, row = d.mode === 'detail' ? d.grid[el.dataset.r] : d.cnt;
+  quickCmp(el) {   // one more / one less in a cell of the table (a kind, or a lesson's kind; a difficulty)
+    const d = quickDraft(S.klass), b = +el.dataset.c - 1, dd = +el.dataset.d, [k, st] = String(el.dataset.r).split('|');
+    const row = d.mode === 'detail' ? (d.grid[k] || {})[st] : d.cnt[k];
     if (!row) return;
-    const max = d.mode === 'detail' ? CMP_CELL_L : CMP_CELL;
-    if (dd > 0 && sum3(quickCounts(d)) >= CMP_TOTAL) return;
-    row[b] = Math.max(0, Math.min(max, row[b] + dd)); d.swaps = {}; saveQDraft(d); refreshTab();
+    if (dd > 0 && quickTotal(d) >= CMP_TOTAL) return;
+    row[b] = Math.max(0, Math.min(d.mode === 'detail' ? CMP_CELL_L : CMP_CELL, row[b] + dd)); d.swaps = {}; saveQDraft(d); refreshTab();
   },
-  quickDifP(el) {   // a preset: the same number of problems, split by the preset (per lesson in the per-lesson table)
+  quickDifP(el) {   // difficulty preset: each row keeps its number of problems, split by the preset
     const d = quickDraft(S.klass), r = DIF_RATIOS[el.dataset.v]; if (!r) return;
-    if (d.mode === 'detail') d.lessons.forEach(k => { d.grid[k] = splitBy(sum3(d.grid[k]) || 1, r).map(x => Math.min(CMP_CELL_L, x)); });
-    else d.cnt = splitBy(sum3(d.cnt) || 3, r).map(x => Math.min(CMP_CELL, x));
+    const max = d.mode === 'detail' ? CMP_CELL_L : CMP_CELL;
+    if (!quickTotal(d)) { if (d.mode === 'detail') d.lessons.forEach(k => { d.grid[k][kindsOf(k, S.engine, d.tb).includes('write') ? 'write' : kindsOf(k, S.engine, d.tb)[0]] = [1, 0, 0]; }); else d.cnt.write = [3, 0, 0]; }
+    quickRows(d).forEach(row => { const n = sum3(row); if (n) splitBy(n, r).forEach((x, i) => { row[i] = Math.min(max, x); }); });
+    d.swaps = {}; saveQDraft(d); refreshTab();
+  },
+  quickKindP(el) {   // kind preset: the same number of problems (and the same mix of difficulties), split over the kinds
+    const d = quickDraft(S.klass), kr = KIND_RATIOS[el.dataset.v]; if (!kr) return;
+    const fill = (obj, kinds, n, max) => {
+      const cols = kinds.reduce((a, st) => a.map((x, i) => x + obj[st][i]), [0, 0, 0]), cr = sum3(cols) ? cols : [1, 1, 1];
+      const r = kinds.map(st => kr[QK.indexOf(st)]); if (!r.some(Boolean)) return;
+      const tot = splitBy(n, r);
+      QK.forEach(st => { obj[st] = [0, 0, 0]; });
+      kinds.forEach((st, i) => { obj[st] = splitBy(tot[i], cr).map(x => Math.min(max, x)); });
+    };
+    if (d.mode === 'detail') d.lessons.forEach(k => { const ks = kindsOf(k, S.engine, d.tb); fill(d.grid[k], ks, ks.reduce((a, st) => a + sum3(d.grid[k][st]), 0) || 1, CMP_CELL_L); });
+    else fill(d.cnt, kindsIn(d), quickTotal(d) || 3, CMP_CELL);
     d.swaps = {}; saveQDraft(d); refreshTab();
   },
   quickShCmp(el) { const d = quickDraft(S.klass), i = +el.dataset.c; if (+el.dataset.d > 0 && sum3(d.sc) >= 30) return; d.sc[i] = Math.max(0, Math.min(CMP_CELL, d.sc[i] + +el.dataset.d)); d.swaps = {}; saveQDraft(d); refreshTab(); },
@@ -1235,14 +1273,14 @@ const actions = {
     if (!v) d.lessons = [];
     else if (v === '@assign') { const order = checkLessons().map(l => l.key), asg = new Set(S.klass.lessons || []); d.lessons = order.filter(k => asg.has(k)); }
     else {
-      const ks = checkLessons().filter(l => l.ch === v).map(l => l.key), on = ks.every(k => d.lessons.includes(k));
+      const ks = v === '@py' ? PD_LESSONS.map(l => l.key) : checkLessons().filter(l => l.ch === v).map(l => l.key), on = ks.every(k => d.lessons.includes(k));
       d.lessons = on ? d.lessons.filter(k => !ks.includes(k)) : [...d.lessons, ...ks];
-      const order = checkLessons().map(l => l.key); d.lessons = order.filter(k => d.lessons.includes(k));
+      const order = qOrder(); d.lessons = order.filter(k => d.lessons.includes(k));
     }
     d.swaps = {}; saveQDraft(d); refreshTab();
   },
   quickLesson(el) {   // one lesson on / off
-    const d = quickDraft(S.klass), k = el.dataset.l, order = checkLessons().map(l => l.key);
+    const d = quickDraft(S.klass), k = el.dataset.l, order = qOrder();
     d.lessons = d.lessons.includes(k) ? d.lessons.filter(x => x !== k) : order.filter(x => x === k || d.lessons.includes(x)); d.swaps = {}; saveQDraft(d); refreshTab();
   },
   quickDrop(el) { const d = quickDraft(S.klass); d.lessons = d.lessons.filter(k => k !== el.dataset.l); d.swaps = {}; saveQDraft(d); refreshTab(); },
@@ -1311,11 +1349,12 @@ const actions = {
       const top = document.querySelector('.quick-setup'); if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
-    const d = quickDraft(S.klass), slots = q.slots.filter(x => LESSON_BY_KEY[x.k]), shape = slotsShape(slots), same = !!el.dataset.same;
-    const order = checkLessons().map(l => l.key);
-    Object.assign(d, { mode: 'detail', lessons: order.filter(k => shape.lessons.includes(k)), per: shape.per, swaps: {}, pass: q.pass < q.n ? q.pass : null,
+    const d = quickDraft(S.klass), slots = q.slots.filter(x => LESSON_BY_KEY[x.k] || PD_BY_KEY[x.k]), shape = slotsShape(slots), same = !!el.dataset.same;
+    const order = qOrder(), grid = {};   // the same numbers per lesson and difficulty (problems without one count as 基本)
+    slots.forEach(x => { grid[x.k] = grid[x.k] || kindCnt({}, 1); const st = QK.includes(x.st) ? x.st : 'write'; grid[x.k][st][Math.min(3, Math.max(1, x.bd || 1)) - 1]++; });
+    Object.assign(d, { mode: 'detail', lessons: order.filter(k => shape.lessons.includes(k)), grid, swaps: {}, pass: q.pass < q.n ? q.pass : null,
       limitSec: Math.min(QUICK_MAX_SEC, limitSecOf(q)), limitBy: 'len',
-      seed: same ? q.seed : randomCode(4), tb: q.tb || '', goal: q.once ? 'level' : 'quick', dif: Math.max(0, ...slots.map(x => x.bd || 0)), lv: q.lv || d.lv, fixed: same ? { seed: q.seed, slots, at: q.at, lv: q.lv } : null });
+      seed: same ? q.seed : randomCode(4), tb: q.tb || '', goal: q.once ? 'level' : 'quick', lv: q.lv || d.lv, fixed: same ? { seed: q.seed, slots, at: q.at, lv: q.lv } : null });
     saveQDraft(d, true); refreshTab(); toast(T(same ? 'tc.quick.readySame' : 'tc.quick.readyNew'));
     const top = document.querySelector('.quick-setup'); if (top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
   },

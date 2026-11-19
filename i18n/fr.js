@@ -1624,5 +1624,20 @@ export default {
   "tc.shape.cmpNote": "Dans cet ordre : compléter → remettre en ordre → écrire. Les formes choisies sont utilisées à tour de rôle.",
   "tc.fmt.perLesson": "Par leçon",
   "tc.fmt.anyNote": "Varié : des problèmes de difficultés diverses, comme avant.",
-  "tc.fmt.riseNote": "Progressif : dans chaque leçon, les problèmes vont de base → standard → avancé."
+  "tc.fmt.riseNote": "Progressif : dans chaque leçon, les problèmes vont de base → standard → avancé.",
+  /* ---- Python in the quick test ---- */
+  "tc.quick.pyNote": "Il y a des problèmes Python. La première fois qu'un appareil utilise Python, la préparation prend environ une minute : demandez aux élèves d'ouvrir une fois le cours Python avant de commencer.",
+  "qk.pyPrep": "Préparation de Python. Restez sur cet écran jusqu'au début.",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.byKindDif": "Problèmes par type et difficulté",
+  "tc.qs.kindCol": "Type",
+  "tc.qs.kpLabel": "Type",
+  "tc.qs.dpLabel": "Difficulté",
+  "tc.qs.kp.write": "Écrire seulement",
+  "tc.qs.kp.order": "Remettre en ordre seulement",
+  "tc.qs.kp.ow": "Ordre + écrire",
+  "tc.qs.kp.all": "Tous les types",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.s3kind": "Nombre, type et difficulté",
+  "tc.qs.pyNoDif": "Les problèmes Python n'ont pas de niveaux de difficulté (toutes les colonnes donnent le même genre de problème)."
 };
