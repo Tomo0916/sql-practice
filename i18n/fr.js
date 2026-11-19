@@ -1649,5 +1649,15 @@ export default {
   "tc.qs.dragTip": "Glisser pour changer l'ordre",
   "tc.qs.dragNote": "Faites glisser ⋮⋮ pour changer l'ordre des problèmes (ou ↑ ↓ au clavier).",
   "tc.qs.clearAll": "Tout supprimer",
-  "tc.qs.clearConfirm": "Supprimer toutes les leçons et tous les problèmes choisis ?"
+  "tc.qs.clearConfirm": "Supprimer toutes les leçons et tous les problèmes choisis ?",
+  /* ---- writing a join shorter ---- */
+  "short.title": "Écrire plus court",
+  "short.eg": "Exemple : joindre customers et orders (même résultat partout)",
+  "short.long": "La forme habituelle (table.colonne)",
+  "short.alias": "Donner un nom court aux tables (FROM table AS nom)",
+  "short.omit": "AS et INNER peuvent être omis",
+  "short.omitLeft": "AS peut être omis (gardez LEFT)",
+  "short.bare": "Une colonne présente dans une seule table n'a pas besoin du nom de table",
+  "short.rule": "Une fois qu'une table a un nom court, utilisez ce nom partout dans la requête (customers.name donne une erreur).",
+  "short.ok": "Toutes ces formes sont acceptées comme correctes."
 };

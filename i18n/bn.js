@@ -1649,5 +1649,15 @@ export default {
   "tc.qs.dragTip": "ক্রম বদলাতে টানুন",
   "tc.qs.dragNote": "⋮⋮ টেনে প্রশ্নের ক্রম বদলান (কিবোর্ডে ↑ ↓)।",
   "tc.qs.clearAll": "সব মুছুন",
-  "tc.qs.clearConfirm": "বাছাই করা সব পাঠ ও প্রশ্ন মুছবেন?"
+  "tc.qs.clearConfirm": "বাছাই করা সব পাঠ ও প্রশ্ন মুছবেন?",
+  /* ---- writing a join shorter ---- */
+  "short.title": "ছোট করে লেখার উপায়",
+  "short.eg": "উদাহরণ: customers ও orders জোড়া (সবগুলোর ফল একই)",
+  "short.long": "সাধারণ লেখা (টেবিল.কলাম)",
+  "short.alias": "টেবিলের ছোট নাম দিন (FROM টেবিল AS নাম)",
+  "short.omit": "AS ও INNER বাদ দেওয়া যায়",
+  "short.omitLeft": "AS বাদ দেওয়া যায় (LEFT রাখুন)",
+  "short.bare": "শুধু একটি টেবিলে থাকা কলামে টেবিলের নাম লাগে না",
+  "short.rule": "ছোট নাম দিলে পুরো কোয়েরিতে সেই নামই লিখুন (customers.name লিখলে ত্রুটি)।",
+  "short.ok": "যেকোনো উপায়ে লিখলেই সঠিক ধরা হবে।"
 };

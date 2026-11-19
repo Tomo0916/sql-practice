@@ -737,6 +737,32 @@ console.log('15b. Counts by difficulty');
   console.log('   counts, order and class-format difficulty checked');
 }
 
+/* ---------- 15c. writing a join shorter (aliases) ---------- */
+console.log('15c. Shorter joins');
+{
+  const { shortForms } = await import('../js/alt.js'), { SHORT_FORMS } = await import('../js/lectures-c.js'), { JOIN_DATASETS } = await import('../js/datasets.js');
+  const same = (a, b) => { const x = eng.exec(a), y = eng.exec(b); return JSON.stringify(x.values) === JSON.stringify(y.values); };
+  let n = 0;
+  for (const k of ['inner', 'innercols', 'innerwhere', 'left', 'antijoin', 'leftorder']) {
+    const L = LESSON_BY_KEY[k];
+    for (const ds of JOIN_DATASETS) for (const seed of ['SHORT|' + k, 'a', 'b']) {
+      const p = eng.genOne(L, ds, seed); if (!p) continue;
+      const f = shortForms(eng, L.sql(p), !!L.ordered, L.names); n++;
+      if (f.length < 3) err(`shorter join: ${k} on ${ds.key} gives only ${f.length} forms`);
+      if (f.some(x => !same(x.sql, f[0].sql))) err(`shorter join: ${k} a short form gives another result`);
+    }
+  }
+  // the lecture slides
+  const { LECT_C } = await import('../js/lectures-c.js');
+  Object.entries(LECT_C).forEach(([k, Lc]) => { const sl = Lc.slides.find(s => s.type === 'anim' && s.title && /短く/.test(s.title.ja));
+    if (!sl) { err(`lecture ${k}: no slide on writing it shorter`); return; }
+    const forms = sl.frames.map(f => f.sql);
+    if (forms.length < 3) err(`lecture ${k}: only ${forms.length} short forms`);
+    forms.forEach(q => { try { if (!same(q, forms[0])) err(`lecture ${k}: “${q.replace(/\s+/g, ' ')}” gives another result`); } catch (e) { err(`lecture ${k}: “${q.replace(/\s+/g, ' ')}” fails: ${e.message}`); } });
+    sl.frames.forEach(f => { if (f.mark && !f.sql.includes(f.mark)) err(`lecture ${k}: the mark “${f.mark}” is not in the SQL`); }); });
+  console.log(`   ${n} problems: every short form gives the same result`);
+}
+
 /* ---------- 16. the Python course (pandas) ---------- */
 console.log('16. Python course (pandas)');
 {

@@ -1457,3 +1457,11 @@ body.pj-open { overflow: hidden; }
 .qk-ref { display: grid; gap: 4px; margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent); }
 .qk-ref > span:first-child { font-weight: 800; }
 .qk-ref-b { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+/* JOIN lessons: the shorter ways to write it */
+.short-sql { padding: 12px 14px; display: grid; gap: 8px; }
+.short-sql summary { cursor: pointer; font-weight: 800; }
+.short-sql p { margin: 0; }
+.short-step b { display: block; font-size: .82rem; margin-bottom: 3px; color: var(--ink-2); }
+.short-step.long b { color: var(--ink-3); }
+.short-step pre.sql { margin: 0; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.short-rule { color: var(--warn); }

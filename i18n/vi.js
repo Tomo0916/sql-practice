@@ -1649,5 +1649,15 @@ export default {
   "tc.qs.dragTip": "Kéo để đổi thứ tự",
   "tc.qs.dragNote": "Kéo ⋮⋮ để đổi thứ tự các bài (hoặc ↑ ↓ trên bàn phím).",
   "tc.qs.clearAll": "Xóa tất cả",
-  "tc.qs.clearConfirm": "Xóa tất cả bài học và bài tập đã chọn?"
+  "tc.qs.clearConfirm": "Xóa tất cả bài học và bài tập đã chọn?",
+  /* ---- writing a join shorter ---- */
+  "short.title": "Cách viết ngắn hơn",
+  "short.eg": "Ví dụ: nối customers và orders (kết quả đều như nhau)",
+  "short.long": "Cách viết thông thường (bảng.cột)",
+  "short.alias": "Đặt tên ngắn cho bảng (FROM bảng AS tên)",
+  "short.omit": "Có thể bỏ AS và INNER",
+  "short.omitLeft": "Có thể bỏ AS (giữ LEFT)",
+  "short.bare": "Cột chỉ có ở một bảng thì không cần tên bảng",
+  "short.rule": "Khi đã đặt tên ngắn cho bảng, hãy dùng tên đó trong cả câu lệnh (viết customers.name sẽ bị lỗi).",
+  "short.ok": "Viết cách nào cũng được tính là đúng."
 };

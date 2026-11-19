@@ -277,3 +277,36 @@ export const LECT_C = {
     ]
   }
 };
+
+/* ---------- writing a join shorter (短く書く方法): one more slide in every JOIN lecture ----------
+ * long → short names for the tables (AS c / AS o) → no AS, no INNER → no table name where the column is in one table only.
+ * check.mjs runs every form and checks it gives the same result as the long one. */
+const ALIAS = q => q.replace(/\bcustomers\./g, 'c.').replace(/\borders\./g, 'o.').replace('FROM customers', 'FROM customers AS c').replace(/JOIN orders\b/, 'JOIN orders AS o');
+const OMIT = q => ALIAS(q).replace('customers AS c', 'customers c').replace('orders AS o', 'orders o').replace('INNER JOIN', 'JOIN');
+const ONE_TABLE = /\b[co]\.(name|city|item|amount)\b/g;   // columns that only one of the two tables has
+const BARE = q => { const x = OMIT(q), a = x.indexOf('\nON '), b = x.indexOf('\n', a + 1), cut = b < 0 ? x.length : b; return x.slice(0, a).replace(ONE_TABLE, '$1') + x.slice(a, cut) + x.slice(cut).replace(ONE_TABLE, '$1'); };
+const oneLine = q => q.replace(/\s+/g, ' ').trim();
+export const SHORT_FORMS = sql => [sql, ALIAS(sql), OMIT(sql), BARE(sql)].filter((x, i, all) => all.indexOf(x) === i);
+function shortSlide(sql) {
+  const left = /LEFT JOIN/.test(sql), forms = SHORT_FORMS(sql), res = e => state(e, oneLine(sql));
+  const caps = [
+    T3('The usual way: every column with its table name (table.column).', 'ふつうの書き方：列はすべて「表名.列名」。', 'ふつうの {書|か}きかた：{列|れつ}は ぜんぶ「{表|ひょう}の {名前|なまえ}.{列|れつ}の {名前|なまえ}」。'),
+    T3('Give each table a short name with AS: customers AS c, orders AS o. Then c.name means customers.name.', '表に AS で短い別名を付ける：customers AS c、orders AS o。すると c.name が customers.name の意味になる。', '{表|ひょう}に AS で みじかい {名前|なまえ}を つける：customers AS c、orders AS o。c.name が customers.name の いみに なる。'),
+    left ? T3('AS can be left out: customers c. But keep LEFT: JOIN alone would be an INNER JOIN.', 'AS は省略できる（customers c）。ただし LEFT は省略しない：JOIN だけだと INNER JOIN になる。', 'AS は はぶける（customers c）。でも LEFT は はぶかない：JOIN だけだと INNER JOIN に なる。')
+      : T3('AS can be left out (customers c), and INNER JOIN can be just JOIN.', 'AS は省略できる（customers c）。INNER JOIN も JOIN だけでよい。', 'AS は はぶける（customers c）。INNER JOIN も JOIN だけで よい。'),
+    T3('A column that only one table has (name, city, item, amount) needs no table name. Keep it in ON, and for id and customer_id it makes the meaning clear.', '片方の表にしかない列（name・city・item・amount）は「c.」「o.」も省略できる。ON には付けたままにすると、どの表の列か分かりやすい。', 'かたほうの {表|ひょう}にしか ない {列|れつ}（name・city・item・amount）は「c.」「o.」も はぶける。ON には つけた ままに すると わかりやすい。')
+  ];
+  const marks = ['customers.', 'customers AS c', left ? 'customers c' : 'customers c\nJOIN', null];
+  return { type: 'anim', title: T3('Shorter ways to write it', '短く書く方法', 'みじかく {書|か}く ほうほう'),
+    frames: forms.map((q, i) => { const k = i === forms.length - 1 && forms.length === 4 ? 3 : i, sel = q.slice(7, q.indexOf('\nFROM'));
+      return { cap: caps[k], sql: q, mark: k === 3 ? sel : marks[k], side: PLAIN, table: res }; }) };
+}
+const SHORT_OF = { inner: INNER, innercols: COLS, innerwhere: WHERE, left: LEFT, antijoin: ANTI, leftorder: TOP('DESC') };
+Object.entries(SHORT_OF).forEach(([k, sql]) => {
+  const sl = LECT_C[k].slides, at = sl.findIndex(x => x.type === 'mistake');
+  sl.splice(at < 0 ? sl.length - 2 : at, 0, shortSlide(sql));
+});
+// one more mistake: a table with a short name is called by that name only
+LECT_C.innercols.slides.splice(LECT_C.innercols.slides.findIndex(x => x.type === 'mistake'), 0, { type: 'mistake', title: T3('The long name after AS', '別名を付けたのに表名で書く', 'べつの {名前|なまえ}を つけたのに {表|ひょう}の {名前|なまえ}で {書|か}く'),
+  wrong: 'SELECT customers.name, o.item\nFROM customers AS c\nINNER JOIN orders AS o\nON c.id = o.customer_id;', right: ALIAS(COLS),
+  why: T3('Once a table has a short name, use that name everywhere in the query: “no such column: customers.name”.', '別名を付けたら、その SQL の中ではずっと別名で書く。customers.name と書くと「no such column」のエラーになる。', 'べつの {名前|なまえ}を つけたら、その SQL の {中|なか}では ずっと その {名前|なまえ}で {書|か}く。') });

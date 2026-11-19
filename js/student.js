@@ -11,7 +11,7 @@
 import { LANGS, LANG_CODES, loadLang, hasLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, formatKey, grade, checkAnswer, todayCode, randomCode, normCode, makeRng } from './engine.js';
 import { LESSONS, CHAPTERS, levelsOf, levelInfo } from './lessons.js';
-import { ALL_TABLES } from './datasets.js';
+import { ALL_TABLES, JOIN_DATASETS } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
@@ -23,7 +23,7 @@ import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, 
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
 import { hasLecture, lectureOf } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui.js';
-import { altAnswers } from './alt.js';
+import { altAnswers, shortForms, sqlLines } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
 import { patWaiting, patPick, patProblem, patResult, patLabel, ladderOf, lessonLevels, REVIEW_N, tableSets, tableCourse, makeProblem } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, LV_PASS, LV_FORMATS, LV_STREAK, buildTest, testEnds, afterTest, adaptiveStart, adaptiveNext, adaptiveAnswer, adaptiveProblem, adaptiveResult, mistakeKind, buildRound, afterRound, targetChapter, passed, levelTag, chapterLessons, isLevelRow, levelsFromLog, levelOf } from './level.js';
@@ -376,6 +376,7 @@ function lessonHTML() {
       ${hasLecture(lesson.key) ? `<a class="btn btn-ghost btn-sm lec-open" href="#/lecture/${lesson.key}">📽 ${H('lec.open')}</a>` : ''}
       <div class="point"><b>${H('lesson.point')}</b>${withGloss(bi(`L.${lesson.key}.point`, null, 'div'))}</div>
     </div>
+    ${lesson.kind === 'join' ? shortSqlHTML(lesson) : ''}
     <nav class="card plist" aria-label="${esc(T('lesson.problems'))}">
       <div class="plist-title"><span>${H('lesson.problems')}</span><span>${st.count}/${probs.length}</span></div>
       ${probs.map(p => `<a class="pitem st-${p.stage} ${p.idx === prob.idx ? 'on' : ''} ${isSolved(p.id) ? 'solved' : ''}" href="#/l/${lesson.key}/${p.idx}" ${p.idx === prob.idx ? 'aria-current="page"' : ''}>
@@ -1474,6 +1475,22 @@ function workspaceHTML(prob) {
     <div id="ws-res">${isQuiz(prob) ? '' : resultsHTML(prob)}</div>`;
 }
 /** other correct answers (別解): a closed box under an answer; withModel adds the model answer first */
+/** JOIN lessons: the shorter ways to write it, on an example of the lesson (customers and orders, not one of the student's problems) */
+const shortCache = new Map();
+function shortSqlHTML(lesson) {
+  if (!shortCache.has(lesson.key)) {
+    let steps = [];
+    try { const ds = JOIN_DATASETS[0], p = S.engine.genOne(lesson, ds, 'SHORT|' + lesson.key); if (p) steps = shortForms(S.engine, lesson.sql(p), !!lesson.ordered, lesson.names); } catch (e) { steps = []; }
+    shortCache.set(lesson.key, steps);
+  }
+  const steps = shortCache.get(lesson.key);
+  if (steps.length < 2) return '';
+  const left = /LEFT JOIN/.test(steps[0].sql), label = st => H(st === 'omit' && left ? 'short.omitLeft' : 'short.' + st);
+  return `<details class="card short-sql" open><summary>✂ ${H('short.title')}</summary>
+    <p class="muted small">${H('short.eg')}</p>
+    ${steps.map((x, i) => `<div class="short-step ${x.step}"><b>${i ? `${['①', '②', '③'][i - 1]} ` : ''}${label(x.step)}</b><pre class="sql">${highlightSQL(sqlLines(x.sql))}</pre></div>`).join('')}
+    <p class="small short-rule">⚠ ${H('short.rule')}</p><p class="muted small">✓ ${H('short.ok')}</p></details>`;
+}
 function altsHTML(prob, withModel, mine) {
   if (isQuiz(prob)) return '';
   const alts = altAnswers(S.engine, prob);
