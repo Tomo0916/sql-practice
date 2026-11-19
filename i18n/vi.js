@@ -1624,5 +1624,20 @@ export default {
   "tc.shape.cmpNote": "Theo thứ tự: điền → sắp xếp → viết. Các mẫu đã chọn được dùng lần lượt.",
   "tc.fmt.perLesson": "Mỗi bài học",
   "tc.fmt.anyNote": "Đa dạng: bài với nhiều mức độ khó như trước.",
-  "tc.fmt.riseNote": "Khó dần: trong mỗi bài học, bài đi từ cơ bản → chuẩn → nâng cao."
+  "tc.fmt.riseNote": "Khó dần: trong mỗi bài học, bài đi từ cơ bản → chuẩn → nâng cao.",
+  /* ---- Python in the quick test ---- */
+  "tc.quick.pyNote": "Có bài Python. Lần đầu thiết bị của học sinh dùng Python sẽ mất khoảng một phút để chuẩn bị, nên hãy nhờ học sinh mở khóa Python một lần trước khi bắt đầu.",
+  "qk.pyPrep": "Đang chuẩn bị Python. Hãy ở lại màn hình này cho đến khi bắt đầu.",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.byKindDif": "Số bài theo dạng và độ khó",
+  "tc.qs.kindCol": "Dạng",
+  "tc.qs.kpLabel": "Dạng",
+  "tc.qs.dpLabel": "Độ khó",
+  "tc.qs.kp.write": "Chỉ viết",
+  "tc.qs.kp.order": "Chỉ sắp xếp",
+  "tc.qs.kp.ow": "Sắp xếp + viết",
+  "tc.qs.kp.all": "Mọi dạng",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.s3kind": "Số bài, dạng và độ khó",
+  "tc.qs.pyNoDif": "Bài Python không chia độ khó (cột nào cũng cho cùng loại bài)."
 };

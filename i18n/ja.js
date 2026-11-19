@@ -1625,5 +1625,20 @@ export default {
   "tc.shape.cmpNote": "穴うめ → ならべかえ → 書く の順に出ます。型は選んだものを順番に使います。",
   "tc.fmt.perLesson": "1 レッスンあたり",
   "tc.fmt.anyNote": "いろいろ：これまでどおり、いろいろな難しさの問題が出ます。",
-  "tc.fmt.riseNote": "だんだん難しく：1 つのレッスンの中で、基本 → 標準 → 発展 の順に難しくなります。"
+  "tc.fmt.riseNote": "だんだん難しく：1 つのレッスンの中で、基本 → 標準 → 発展 の順に難しくなります。",
+  /* ---- Python in the quick test ---- */
+  "tc.quick.pyNote": "Python の問題があります。生徒の端末で初めて Python を使うときは準備に 1 分ほどかかります。始める前に、生徒に Python コースを一度開いておいてもらうと安心です。",
+  "qk.pyPrep": "Python を準備しています。始まるまでこの画面のままお待ちください。",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.byKindDif": "形式と難易度ごとの問題数",
+  "tc.qs.kindCol": "形式",
+  "tc.qs.kpLabel": "形式",
+  "tc.qs.dpLabel": "難易度",
+  "tc.qs.kp.write": "書くだけ",
+  "tc.qs.kp.order": "ならべかえだけ",
+  "tc.qs.kp.ow": "ならべかえ＋書く",
+  "tc.qs.kp.all": "全部の形式",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.s3kind": "問題の数・形式・難易度",
+  "tc.qs.pyNoDif": "Python の問題は難易度の区別がありません（どの列に入れても同じ種類の問題です）。"
 };

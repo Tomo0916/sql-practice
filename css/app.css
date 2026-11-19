@@ -1447,3 +1447,8 @@ body.pj-open { overflow: hidden; }
   .cmp-rh { min-width: 0; font-size: .82rem; }
   .cmp-sum { width: 2.4em; }
 }
+.cmp-g th { text-align: left; background: var(--surface-2); font-weight: 800; font-size: .88rem; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.cmp-g th b { color: var(--ink-3); margin-right: 4px; }
+.cmp-pl { font-size: .78rem; font-weight: 800; color: var(--ink-3); margin-right: 2px; align-self: center; min-width: 3.5em; }
+.kd { font-weight: 700; }
+.kd.k-fill { color: #10956a; } .kd.k-order1, .kd.k-order2 { color: #7a4fd6; } .kd.k-write { color: var(--ink); }

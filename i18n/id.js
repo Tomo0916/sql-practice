@@ -1624,5 +1624,20 @@ export default {
   "tc.shape.cmpNote": "Urutannya: isian → susun → tulis. Pola yang dipilih dipakai bergiliran.",
   "tc.fmt.perLesson": "Per pelajaran",
   "tc.fmt.anyNote": "Campuran: soal dengan berbagai tingkat kesulitan, seperti sebelumnya.",
-  "tc.fmt.riseNote": "Bertahap: dalam tiap pelajaran soal naik dari dasar → standar → lanjutan."
+  "tc.fmt.riseNote": "Bertahap: dalam tiap pelajaran soal naik dari dasar → standar → lanjutan.",
+  /* ---- Python in the quick test ---- */
+  "tc.quick.pyNote": "Ada soal Python. Pertama kali perangkat siswa memakai Python, persiapannya sekitar satu menit, jadi minta siswa membuka kursus Python sekali sebelum mulai.",
+  "qk.pyPrep": "Menyiapkan Python. Tetap di layar ini sampai dimulai.",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.byKindDif": "Soal per jenis dan tingkat kesulitan",
+  "tc.qs.kindCol": "Jenis",
+  "tc.qs.kpLabel": "Jenis",
+  "tc.qs.dpLabel": "Kesulitan",
+  "tc.qs.kp.write": "Menulis saja",
+  "tc.qs.kp.order": "Menyusun saja",
+  "tc.qs.kp.ow": "Menyusun + menulis",
+  "tc.qs.kp.all": "Semua jenis",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.s3kind": "Jumlah, jenis, dan kesulitan",
+  "tc.qs.pyNoDif": "Soal Python tidak punya tingkat kesulitan (kolom mana pun memberi jenis soal yang sama)."
 };

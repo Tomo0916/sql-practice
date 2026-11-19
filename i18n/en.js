@@ -1625,5 +1625,20 @@ export default {
   "tc.shape.cmpNote": "They come in this order: fill in → put in order → write. The shapes you chose are used in turn.",
   "tc.fmt.perLesson": "Per lesson",
   "tc.fmt.anyNote": "Mixed: problems of various difficulty, as before.",
-  "tc.fmt.riseNote": "Step by step: within each lesson the problems go basic → standard → advanced."
+  "tc.fmt.riseNote": "Step by step: within each lesson the problems go basic → standard → advanced.",
+  /* ---- Python in the quick test ---- */
+  "tc.quick.pyNote": "There are Python problems. The first time a student's device uses Python, it takes about a minute to get ready, so ask them to open the Python course once before you start.",
+  "qk.pyPrep": "Getting Python ready. Please stay on this screen until it starts.",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.byKindDif": "Problems by kind and difficulty",
+  "tc.qs.kindCol": "Kind",
+  "tc.qs.kpLabel": "Kind",
+  "tc.qs.dpLabel": "Difficulty",
+  "tc.qs.kp.write": "Writing only",
+  "tc.qs.kp.order": "Ordering only",
+  "tc.qs.kp.ow": "Ordering + writing",
+  "tc.qs.kp.all": "Every kind",
+  /* ---- kinds in the quick test ---- */
+  "tc.qs.s3kind": "Number, kind and difficulty",
+  "tc.qs.pyNoDif": "Python problems have no difficulty levels (any column gives the same kind of problem)."
 };

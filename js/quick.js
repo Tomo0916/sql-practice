@@ -25,6 +25,7 @@ import { randomCode, stagesOf, LESSON_BY_KEY, FORMAT_KEYS, FORMAT_MAX, makeRng }
 import { tableSets, makeProblem } from './mastery.js';
 import { BASIC_BY_KEY, basicProblem } from './basics.js';
 import { bandLevel } from './lessons.js';
+import { PD_BY_KEY, pdPool } from './pandas.js';
 
 export const QUICK_COUNTS = [1, 2, 3, 4, 5];
 export const QUICK_LIMITS = [0, 3, 5, 10, 15];   // minutes; 0 = no limit
@@ -43,6 +44,7 @@ const setOf = (engine, tb) => (tb ? tableSets(engine).find(x => x.key === tb) ||
 export const tableLessons = (engine, tb) => { const set = setOf(engine, tb); return set ? set.lessons : null; };
 /** the kinds a lesson has (Lesson 2 and data analysis have no fill-in / ordering); with a table: none when the lesson cannot use it */
 export function kindsOf(key, engine, tb) {
+  if (PD_BY_KEY[key]) return ['write'];   // the Python course: write the code (any table)
   const l = LESSON_BY_KEY[key]; if (!l || l.kind === 'quiz') return [];
   if (tb && engine) { const set = setOf(engine, tb); if (!set || !set.lessons.includes(key)) return []; }
   const own = stagesOf(l);
@@ -94,7 +96,14 @@ export function shapePool(engine, b, st, seed) {
 /** the kind a shape gives for a wanted kind (a shape without ordering → write) */
 export const shapeKind = (b, st) => { const step = BASIC_BY_KEY[b]; return step && step.formats.includes(st) ? st : 'awrite'; };   // the shapes are all in words
 /** the pool a slot points into */
-const poolOf = (engine, x, seed, tb) => (x.b ? shapePool(engine, x.b, x.st, seed) : kindPool(engine, x.k, x.st, seed, tb, x.lv));
+/** a lesson of the Python course: its problems, shaped like the others (stage write, dedupe on the code) */
+const pyPoolCache = new Map();
+function pyPool(key, seed) {
+  const id = `${key}|${seed}`;
+  if (!pyPoolCache.has(id)) { if (pyPoolCache.size > 200) pyPoolCache.clear(); pyPoolCache.set(id, pdPool(key, seed).map(p => Object.assign({}, p, { py: true, stage: 'write', dedupe: p.code, kind: 'practice', test: true }))); }
+  return pyPoolCache.get(id);
+}
+const poolOf = (engine, x, seed, tb) => (x.b ? shapePool(engine, x.b, x.st, seed) : PD_BY_KEY[x.k] ? pyPool(x.k, seed) : kindPool(engine, x.k, x.st, seed, tb, x.lv));
 const SIMPLE_KINDS = { write: ['write'], mix: ['fill', 'order1', 'write'], order: ['order1', 'order2'] };
 /** the first position of a lesson's pool of this kind that is free: not used, and not the same query as another slot (a fill-in and a write of one query would give it away) */
 function freeIndex(engine, x, seed, slots, from = 0, skip = -1, tb) {
@@ -128,23 +137,25 @@ export function splitBy(n, ratios) {
 }
 /* ---------- counts by difficulty (問題の組み立て): [基本, 標準, 発展] ---------- */
 export const DIF_RATIOS = { basic: [1, 0, 0], easy: [3, 2, 0], even: [1, 1, 1], hard: [1, 2, 2] };
-/** counts per band spread over the lessons in turn → { lesson: [n1, n2, n3] } (a lesson does not get two in a row while others have none) */
-export function spreadGrid(lessons, cnt) {
-  const g = {}; lessons.forEach(k => { g[k] = [0, 0, 0]; });
-  if (!lessons.length) return g;
-  let j = 0; cnt.forEach((n, b) => { for (let i = 0; i < n; i++, j++) g[lessons[j % lessons.length]][b]++; });
+/* counts by kind and difficulty: { fill | order1 | order2 | write: [基本, 標準, 発展] } (all lessons), or per lesson { lesson: that } */
+export const QK = ['fill', 'order1', 'order2', 'write'];
+export const KIND_RATIOS = { write: [0, 0, 0, 1], order: [0, 1, 1, 0], ow: [0, 1, 1, 2], all: [1, 1, 1, 1] };
+/** the counts shared out over the lessons that have each kind, the lesson with fewest problems first (in order) */
+export function spreadGrid(engine, lessons, cnt, tb) {
+  const g = {}, used = {}; lessons.forEach(k => { g[k] = {}; QK.forEach(st => { g[k][st] = [0, 0, 0]; }); used[k] = 0; });
+  QK.forEach(st => { const ok = lessons.filter(k => kindsOf(k, engine, tb).includes(st));
+    if (!ok.length) return;
+    [0, 1, 2].forEach(b => { for (let n = 0; n < ((cnt[st] || [])[b] || 0); n++) { const k = ok.reduce((a, x) => (used[x] < used[a] ? x : a), ok[0]); g[k][st][b]++; used[k]++; } }); });
   return g;
 }
-/** a test from counts per lesson and band: the easier problems first, the kinds of the preset in turn */
-export function gridSlots(engine, grid, order, kind, seed, tb) {
-  const kinds = SIMPLE_KINDS[kind] || SIMPLE_KINDS.write, out = [];
-  let j = 0;
-  for (let b = 1; b <= 3; b++) for (const k of order) {
-    const ks = kindsOf(k, engine, tb), n = ((grid[k] || [])[b - 1]) || 0;
-    if (!ks.length) continue;
-    for (let w = 0; w < n; w++, j++) {
-      const st0 = kinds[j % kinds.length], st = ks.includes(st0) ? st0 : ks.includes('write') ? 'write' : ks[0];
-      const x = { k, st, lv: levelFor(k, b), bd: b }, i = freeIndex(engine, x, seed, out, 0, -1, tb);
+/** a test from counts per lesson, kind and band: easier first; within a band fill-ins, then orderings, then writing */
+export function gridSlots(engine, grid, order, seed, tb) {
+  const out = [];
+  for (let b = 1; b <= 3; b++) for (const st of QK) for (const k of order) {
+    const n = (((grid[k] || {})[st]) || [])[b - 1] || 0;
+    if (!n || !kindsOf(k, engine, tb).includes(st)) continue;
+    for (let w = 0; w < n; w++) {
+      const x = PD_BY_KEY[k] ? { k, st: 'write' } : { k, st, lv: levelFor(k, b), bd: b }, i = freeIndex(engine, x, seed, out, 0, -1, tb);   // Python: no levels
       if (i !== null) out.push(Object.assign(x, { i }));
     }
   }

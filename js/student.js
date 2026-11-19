@@ -15,7 +15,7 @@ import { ALL_TABLES } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
-import { countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
+import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
@@ -32,7 +32,7 @@ import { levelProfile } from './quick.js';
 import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, cqQuiz, cqRecord } from './clauses.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, shapeCountSlots, slotProblems, kindsOf, levelFor } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
-import { installPy, pyRoute, pyHTML, pyMount, pyActions } from './py-ui.js';
+import { installPy, pyRoute, pyHTML, pyMount, pyActions, pyQuickHTML, pyPrepare } from './py-ui.js';
 import { PD_LESSONS, PD_BY_KEY } from './pandas.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
@@ -120,7 +120,7 @@ function stageLabel(p) {
   if (p.stage === 'quiz') return T('stage.quiz', { n: p.wn });
   return T('stage.write', { n: p.wn });
 }
-const isQuiz = prob => prob.answer !== undefined || LESSON_BY_KEY[prob.lesson].kind === 'quiz';
+const isQuiz = prob => prob.answer !== undefined || (LESSON_BY_KEY[prob.lesson] || {}).kind === 'quiz';
 
 /* ---------- routing ---------- */
 function parseRoute() {
@@ -1166,9 +1166,9 @@ function qAnswer(n, sql) { const st = qState(); if (!st.id) return; st.ans[n] = 
 function qReviewHTML(items, st) {
   return `<section class="ck-review"><h2>${H('ck.review')}</h2>${items.map((p, i) => { const ok = !!st.done[p.qn], mine = (st.ans || {})[p.qn];
     return `<details class="card ck-item" ${ok ? '' : 'open'}><summary>${ok ? '<b class="ck-m ok">○</b>' : '<b class="ck-m bad">×</b>'}<b>Q${i + 1}</b><span class="tag st-${p.stage}">${stageLabelH(p)}</span></summary>
-      <p class="prob-text">${problemHTML(p, L())}</p>
-      ${ok ? '' : `<div class="ck-ans qk-mine"><span class="muted small">${H('qk.yourAnswer')}</span>${mine ? `<pre class="sql wrong">${highlightSQL(mine)}</pre>` : `<p class="muted small">${H('qk.noAnswer')}</p>`}</div>`}
-      <div class="ck-ans"><span class="muted small">${H('hint.answer')}</span><pre class="sql">${highlightSQL(p.sql)}</pre></div></details>`; }).join('')}</section>`;
+      <p class="prob-text">${p.py ? pyDescHTML(p, L()) : problemHTML(p, L())}</p>
+      ${ok ? '' : `<div class="ck-ans qk-mine"><span class="muted small">${H('qk.yourAnswer')}</span>${mine ? `<pre class="sql wrong">${(p.py ? highlightPy : highlightSQL)(mine)}</pre>` : `<p class="muted small">${H('qk.noAnswer')}</p>`}</div>`}
+      <div class="ck-ans"><span class="muted small">${H('hint.answer')}</span><pre class="sql">${p.py ? highlightPy(p.code) : highlightSQL(p.sql)}</pre></div></details>`; }).join('')}</section>`;
 }
 /** the teacher has ended the test: the student's result and the answers */
 function quickEndedHTML(st) {
@@ -1236,7 +1236,7 @@ function quickViewHTML() {
       <div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.soon')}</p>
       <p class="qk-count" data-qk-clock>${qClockHTML()}</p>
       <div class="qk-tiles"><div><b>${n}</b><span>${H('tc.quick.count')}</span></div><div><b>${passOf(q)} / ${n}</b><span>${H('tc.quick.pass')}</span></div><div><b>${q.end ? esc(spanText(limitSecOf(q), k => T('qk.minutes', { n: k }))) : '∞'}</b><span>${H('tc.quick.limit')}</span></div></div>
-      <p class="muted small">${H('qk.rule')}</p></section></main>`;
+      <p class="muted small">${H('qk.rule')}</p>${items.some(p => p.py) ? (pyPrepare(), `<p class="muted small">🐍 ${H('qk.pyPrep')}</p>`) : ''}</section></main>`;
   if (q.once && (ph === 'up' || (qAllDone() && !current()))) {   // a level test: the new level, then the answers
     qLevelApply(st); const lv = lvState();
     return `<main class="wrap narrow ck-result"><section class="card empty lv-hero"><div class="empty-icon">🎯</div><h1>${H('lv.result')}</h1>
@@ -1264,7 +1264,7 @@ function quickViewHTML() {
       <p class="muted small">${H('qk.afterNote')}</p></section></main>`;
   }
   const c = current(), pass = passOf(q);
-  const prob = c ? c.prob : items.find(p => !(q.once ? qTried(p) : qDone(p))) || items[0], lesson = LESSON_BY_KEY[prob.lesson];
+  const prob = c ? c.prob : items.find(p => !(q.once ? qTried(p) : qDone(p))) || items[0], lesson = LESSON_BY_KEY[prob.lesson] || { ch: 'py', no: PD_BY_KEY[prob.lesson].no, py: true };
   return `<main class="wrap">
     <div class="session-head">
       <h1>⚡ ${H('qk.title')}</h1>
@@ -1273,11 +1273,11 @@ function quickViewHTML() {
       <div class="session-progress"><span>${ok} / ${n}</span><div class="bar"><i style="width:${Math.round(ok / n * 100)}%"></i></div></div>
     </div>
     <div class="session-layout">
-      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="chap">${H('lesson.of', { a: lesson.no })}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
+      <aside class="card side-card" style="--cc:${lesson.py ? '#3776ab' : `var(--c-${lesson.ch})`}"><div class="chap">${lesson.py ? `Python · ${lesson.no}` : H('lesson.of', { a: lesson.no })}</div><h2>${lesson.py ? rubyHTML(raw('pd.t.' + prob.lesson, L())) : lessonTitleHTML(lesson, L())}</h2>
         ${q.once ? '' : `<p class="qk-rule small">${qRuleHTML(q)}</p>`}
         <p class="muted small">${H(q.once ? 'qk.lvRule' : 'qk.rule')}</p>
         <div class="ck-dots qk-dots">${items.map(p => `<a href="#/quick/${p.qn}" class="${qDone(p) ? 'ok' : q.once && qTried(p) ? 'bad' : ''}${p.id === prob.id ? ' cur' : ''}" title="Q${p.qn + 1}" aria-label="Q${p.qn + 1}">${p.qn + 1}</a>`).join('')}</div></aside>
-      <div class="main" id="ws">${workspaceHTML(prob)}</div>
+      <div class="main" id="ws">${prob.py ? pyQuickHTML(prob) : workspaceHTML(prob)}</div>
     </div>
   </main>`;
 }
@@ -2439,7 +2439,10 @@ window.addEventListener('storage', e => {
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
-  installPy({ S, L, save, render });
+  installPy({ S, L, save, render,
+    // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)
+    quickAnswer: (prob, ok, code, reason) => { if (qPhaseNow() !== 'run') { render(); return false; } record(prob, ok, { grade: { reason } }, code); return true; },
+    quickNext: prob => { const n = qNext(prob); return n ? `<a class="btn btn-ok fb-next" href="#/quick/${n.qn}">${H('btn.next')}${I.next}</a>` : `<a class="btn btn-ok fb-next" href="#/quick/done">${H('qk.finish')}${I.next}</a>`; } });
   installCheckUI({ mode: 'student', lang: L, engine: () => S.engine, assigned: () => (S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k] && LESSON_BY_KEY[k].kind !== 'quiz') : []),
     onStart(cfg) { const code = encodeCheck(cfg); startCheck(code, cfg); if (location.hash === '#/check/' + code) render(); else location.hash = '#/check/' + code; } });
   S.route = parseRoute();

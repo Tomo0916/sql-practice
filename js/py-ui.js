@@ -5,7 +5,7 @@
  * Progress: S.progress.py[lesson] = { seed, ok: [problem ids solved], n (solved in all), clear }
  * ========================================================= */
 import { th, t, esc, rubyHTML, raw } from './i18n.js';
-import { gridHTML, highlightPy } from './ui.js';
+import { gridHTML, highlightPy, pyDescHTML } from './ui.js';
 import { createEditor } from './editor.js';
 import { PD_LESSONS, PD_BY_KEY, PD_N, pdSet, pdTables, pdColumns, pdSame, pdDiff } from './pandas.js';
 import { pyRun, pyWarm, pyState, onPyState } from './pyrun.js';
@@ -30,11 +30,12 @@ const setOf = key => pdSet(key, rec(key).seed);
 const probOf = (key, i) => { const s = setOf(key); return i === 0 ? s.demo : s.items[i - 1]; };
 
 /** the problem text: values as code, nested texts (cmp.ge …) filled the same way */
-function descHTML(prob) {
-  const [k, v] = PD_BY_KEY[prob.lesson].desc(prob.p);
-  const fill = vars => Object.fromEntries(Object.entries(vars).map(([a, b]) => [a, b && typeof b === 'object' ? th(b.k, L(), b.v ? fill(b.v) : undefined) : `<code>${esc(b)}</code>`]));
-  return th(k, L(), fill(v));
-}
+const descHTML = prob => pyDescHTML(prob, L());
+/* a Python problem in a quick test (#/quick/<n>): the student page draws it with pyQuickHTML */
+let qProb = null;
+const isQuick = () => C.S.route.view === 'quick';
+const curProb = () => (isQuick() ? qProb : probOf(C.S.route.key, C.S.route.idx));
+const pyLast = new Map();   // problem id → the last result shown (kept when the page is drawn again)
 
 /* ---------- the list of lessons ---------- */
 function hubHTML() {
@@ -126,12 +127,12 @@ export function pyHTML() {
 export function pyMount() {
   if (unsub) { unsub(); unsub = null; }
   if (ed) { ed.destroy(); ed = null; }
-  if (C.S.route.view !== 'py') return;
+  if (C.S.route.view !== 'py' && !(isQuick() && qProb && document.getElementById('py-editor'))) return;
   pyWarm();
   unsub = onPyState(() => { const el = document.getElementById('py-status'); if (el) el.outerHTML = statusHTML(); });
   const el = document.getElementById('py-editor');
   if (!el) return;
-  const prob = probOf(C.S.route.key, C.S.route.idx), d = C.S.progress.drafts || {};
+  const prob = curProb(), d = C.S.progress.drafts || {};
   let timer;
   ed = createEditor(el, {
     lang: 'python', doc: d[prob.id] !== undefined ? d[prob.id] : '', label: 'Python', placeholder: '# Python',
@@ -144,24 +145,31 @@ export function pyMount() {
 /* ---------- running ---------- */
 const resGrid = r => (r.kind === 'table' ? `<div class="data-box">${gridHTML({ columns: r.columns, values: r.rows }, { rowNums: r.rows.length > 3 })}</div>` : r.kind === 'value' ? `<div class="py-value">${esc(r.value)}</div>` : `<div class="res-empty">${H('pd.none')}</div>`);
 async function run() {
-  const { key, idx } = C.S.route, prob = probOf(key, idx), out = document.getElementById('py-res');
-  if (!ed || !out) return;
+  const prob = curProb(), key = prob && prob.lesson, quick = isQuick(), out = document.getElementById('py-res');
+  if (!ed || !out || !prob) return;
   const code = ed.get();
   if (!code.trim()) return;
+  C.S.progress.drafts = C.S.progress.drafts || {}; C.S.progress.drafts[prob.id] = code;
   if (pyState() !== 'ready') out.innerHTML = `<section class="card py-res"><p class="muted">${H('pd.notNow')}</p></section>`;
   const need = Object.keys(pdTables(prob));
   const [got, exp] = await Promise.all([pyRun(code, need), want.has(prob.id) ? want.get(prob.id) : pyRun(prob.code, need)]);
   if (exp.ok) want.set(prob.id, exp);
-  if (C.S.route.view !== 'py' || probOf(C.S.route.key, C.S.route.idx).id !== prob.id) return;   // moved on meanwhile
+  if ((C.S.route.view !== 'py' && !isQuick()) || !curProb() || curProb().id !== prob.id) return;   // moved on meanwhile
   const ok = got.ok && exp.ok && pdSame(got.result, exp.result, prob.ordered);
   let head;
   if (got.timeout) head = `<div class="py-verdict bad">${H('pd.timeout')}</div>`;
   else if (!got.ok) head = `<div class="py-verdict bad"><b>${H('pd.err')}</b>${got.line ? ` <span class="muted">(${H('pd.errLine', { n: got.line })})</span>` : ''}${tbHTML(got.full ? cleanTb(got.full, code) : got.error)}<a class="small" href="#/py/errors/0">${H('pe.howTo')} →</a></div>`;
   else head = ok ? `<div class="py-verdict ok">✓ ${H('pd.ok')}</div>` : `<div class="py-verdict bad">${H('pd.ng.' + pdDiff(got.result, exp.result, prob.ordered))}</div>`;
   const outTxt = got.ok && got.out ? `<div class="muted small strong">${H('pd.out')}</div><pre class="py-out">${esc(got.out)}</pre>` : '';
-  out.innerHTML = `<section class="card py-res">${head}${outTxt}
+  // a quick test: the answer counts like any other (the student page records it); no correct result before the end
+  const counted = quick && C.quickAnswer ? C.quickAnswer(prob, ok, code, ok ? null : got.ok ? pdDiff(got.result, exp.result, prob.ordered) : got.timeout ? 'timeout' : 'error') : true;
+  const next = quick && ok && C.quickNext ? C.quickNext(prob) : '';
+  const html = `<section class="card py-res">${head}${outTxt}
     <div class="py-two">${got.ok ? `<div><div class="muted small strong">${H('pd.yourResult')}</div>${resGrid(got.result)}</div>` : ''}
-    ${!ok && exp.ok && (got.ok || prob.demo) ? `<div><div class="muted small strong">${H('pd.wantResult')}</div>${resGrid(exp.result)}</div>` : ''}</div></section>`;
+    ${!quick && !ok && exp.ok && (got.ok || prob.demo) ? `<div><div class="muted small strong">${H('pd.wantResult')}</div>${resGrid(exp.result)}</div>` : ''}</div>${next}</section>`;
+  pyLast.set(prob.id, html);
+  if (quick) { if (counted !== false) C.render(); return; }
+  out.innerHTML = html;
   if (ok && !prob.demo) {
     const r = rec(key);
     if (!r.ok.includes(prob.id)) {
@@ -176,6 +184,17 @@ async function run() {
   }
 }
 
+/** a Python problem of a quick test: the question, the editor with quick input, and the last result */
+export function pyQuickHTML(prob) {
+  qProb = prob;
+  return `${statusHTML()}
+    <section class="card py-q"><div class="py-tag">Python · ${PD_BY_KEY[prob.lesson].no}</div><h2 class="py-desc">${descHTML(prob)}</h2>${tablesHTML(prob)}</section>
+    <section class="card editor-card py-ed">${chipsHTML(prob)}<div id="py-editor" class="editor"></div>
+      <div class="py-actions"><button class="btn btn-primary" data-act="pyRun">▶ ${H('pd.run')}</button><span class="muted small">${H('pd.lastLine')}</span></div></section>
+    <div id="py-res">${pyLast.get(prob.id) || ''}</div>`;
+}
+/** start loading Python (a quick test with Python problems, during its countdown) */
+export const pyPrepare = () => { pyWarm(); };
 export const pyActions = {
   pyRun: () => run(),
   pyIns(el) { if (ed) ed.insert(el.dataset.text, +el.dataset.back || 0); },
