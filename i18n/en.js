@@ -1640,5 +1640,9 @@ export default {
   "tc.qs.kp.all": "Every kind",
   /* ---- kinds in the quick test ---- */
   "tc.qs.s3kind": "Number, kind and difficulty",
-  "tc.qs.pyNoDif": "Python problems have no difficulty levels (any column gives the same kind of problem)."
+  "tc.qs.pyNoDif": "Python problems have no difficulty levels (any column gives the same kind of problem).",
+  /* ---- looking things up in a quick test ---- */
+  "qk.refTitle": "Look at this lesson for help",
+  "qk.refLesson": "Open the lesson",
+  "qk.refNote": "When you are done, “Back to the test” at the top brings you back to this problem. The time does not stop."
 };

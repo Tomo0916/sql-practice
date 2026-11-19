@@ -1639,5 +1639,9 @@ export default {
   "tc.qs.kp.all": "Tous les types",
   /* ---- kinds in the quick test ---- */
   "tc.qs.s3kind": "Nombre, type et difficulté",
-  "tc.qs.pyNoDif": "Les problèmes Python n'ont pas de niveaux de difficulté (toutes les colonnes donnent le même genre de problème)."
+  "tc.qs.pyNoDif": "Les problèmes Python n'ont pas de niveaux de difficulté (toutes les colonnes donnent le même genre de problème).",
+  /* ---- looking things up in a quick test ---- */
+  "qk.refTitle": "Regardez cette leçon pour vous aider",
+  "qk.refLesson": "Ouvrir la leçon",
+  "qk.refNote": "Ensuite, le bouton de retour au test en haut vous ramène à ce problème. Le temps ne s'arrête pas."
 };

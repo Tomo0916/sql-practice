@@ -1639,5 +1639,9 @@ export default {
   "tc.qs.kp.all": "সব ধরন",
   /* ---- kinds in the quick test ---- */
   "tc.qs.s3kind": "সংখ্যা, ধরন ও কঠিনতা",
-  "tc.qs.pyNoDif": "Python প্রশ্নে কঠিনতার ভাগ নেই (যে কলামেই দিন একই ধরনের প্রশ্ন)।"
+  "tc.qs.pyNoDif": "Python প্রশ্নে কঠিনতার ভাগ নেই (যে কলামেই দিন একই ধরনের প্রশ্ন)।",
+  /* ---- looking things up in a quick test ---- */
+  "qk.refTitle": "সাহায্যের জন্য এই পাঠটি দেখুন",
+  "qk.refLesson": "পাঠ খুলুন",
+  "qk.refNote": "দেখা শেষ হলে উপরের দ্রুত পরীক্ষায় ফেরার বোতামে এই প্রশ্নে ফিরবেন। সময় থামবে না।"
 };
