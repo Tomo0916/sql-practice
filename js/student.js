@@ -1831,8 +1831,8 @@ function mountWorkspace() {
     schema,
     placeholder: T('ed.placeholder'),
     label: T('ed.yourSql'),
-    onRun: runWrite,
-    onChange: v => { clearTimeout(timer); timer = setTimeout(() => { S.progress.drafts[prob.id] = v; save(); }, 400); }
+    onRun: runWrite, key: prob.id,
+    onChange: v => { S.progress.drafts[prob.id] = v; clearTimeout(timer); timer = setTimeout(save, 400); }   // the draft at once (a redraw keeps it), stored a little later
   });
   const run = S.runs[prob.id];
   if (run && run.mark) S.editor.mark(run.mark.from, run.mark.to);
