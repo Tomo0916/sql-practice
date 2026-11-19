@@ -1643,5 +1643,11 @@ export default {
   /* ---- looking things up in a quick test ---- */
   "qk.refTitle": "Regardez cette leçon pour vous aider",
   "qk.refLesson": "Ouvrir la leçon",
-  "qk.refNote": "Ensuite, le bouton de retour au test en haut vous ramène à ce problème. Le temps ne s'arrête pas."
+  "qk.refNote": "Ensuite, le bouton de retour au test en haut vous ramène à ce problème. Le temps ne s'arrête pas.",
+  /* ---- the order of a quick test ---- */
+  "tc.qs.orderTip": "Ordre dans le test (ordre des clics)",
+  "tc.qs.dragTip": "Glisser pour changer l'ordre",
+  "tc.qs.dragNote": "Faites glisser ⋮⋮ pour changer l'ordre des problèmes (ou ↑ ↓ au clavier).",
+  "tc.qs.clearAll": "Tout supprimer",
+  "tc.qs.clearConfirm": "Supprimer toutes les leçons et tous les problèmes choisis ?"
 };

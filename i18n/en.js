@@ -1644,5 +1644,11 @@ export default {
   /* ---- looking things up in a quick test ---- */
   "qk.refTitle": "Look at this lesson for help",
   "qk.refLesson": "Open the lesson",
-  "qk.refNote": "When you are done, “Back to the test” at the top brings you back to this problem. The time does not stop."
+  "qk.refNote": "When you are done, “Back to the test” at the top brings you back to this problem. The time does not stop.",
+  /* ---- the order of a quick test ---- */
+  "tc.qs.orderTip": "Order in the test (the order you clicked)",
+  "tc.qs.dragTip": "Drag to change the order",
+  "tc.qs.dragNote": "Drag ⋮⋮ to change the order of the problems (or ↑ ↓ on the keyboard).",
+  "tc.qs.clearAll": "Remove all",
+  "tc.qs.clearConfirm": "Remove all the chosen lessons and problems?"
 };

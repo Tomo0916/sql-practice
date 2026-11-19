@@ -1643,5 +1643,11 @@ export default {
   /* ---- looking things up in a quick test ---- */
   "qk.refTitle": "Lihat pelajaran ini sebagai bantuan",
   "qk.refLesson": "Buka pelajaran",
-  "qk.refNote": "Setelah selesai, tombol kembali ke tes cepat di atas membawa Anda ke soal ini lagi. Waktu tidak berhenti."
+  "qk.refNote": "Setelah selesai, tombol kembali ke tes cepat di atas membawa Anda ke soal ini lagi. Waktu tidak berhenti.",
+  /* ---- the order of a quick test ---- */
+  "tc.qs.orderTip": "Urutan di tes (urutan klik)",
+  "tc.qs.dragTip": "Seret untuk mengubah urutan",
+  "tc.qs.dragNote": "Seret ⋮⋮ untuk mengubah urutan soal (atau ↑ ↓ di keyboard).",
+  "tc.qs.clearAll": "Hapus semua",
+  "tc.qs.clearConfirm": "Hapus semua pelajaran dan soal yang dipilih?"
 };

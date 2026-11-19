@@ -1643,5 +1643,11 @@ export default {
   /* ---- looking things up in a quick test ---- */
   "qk.refTitle": "看看这一课来参考",
   "qk.refLesson": "打开这一课",
-  "qk.refNote": "看完后，用上方的“返回快速测验”回到这道题。时间不会暂停。"
+  "qk.refNote": "看完后，用上方的“返回快速测验”回到这道题。时间不会暂停。",
+  /* ---- the order of a quick test ---- */
+  "tc.qs.orderTip": "出题顺序（点击的顺序）",
+  "tc.qs.dragTip": "拖动以改变顺序",
+  "tc.qs.dragNote": "拖动 ⋮⋮ 可以改变出题顺序（也可用键盘 ↑ ↓）。",
+  "tc.qs.clearAll": "全部删除",
+  "tc.qs.clearConfirm": "要删除所有选中的课程和题目吗？"
 };

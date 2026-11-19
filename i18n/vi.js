@@ -1643,5 +1643,11 @@ export default {
   /* ---- looking things up in a quick test ---- */
   "qk.refTitle": "Xem bài học này để tham khảo",
   "qk.refLesson": "Mở bài học",
-  "qk.refNote": "Xem xong, nút quay lại bài kiểm tra nhanh ở trên sẽ đưa bạn về bài này. Thời gian không dừng."
+  "qk.refNote": "Xem xong, nút quay lại bài kiểm tra nhanh ở trên sẽ đưa bạn về bài này. Thời gian không dừng.",
+  /* ---- the order of a quick test ---- */
+  "tc.qs.orderTip": "Thứ tự trong bài kiểm tra (thứ tự nhấp)",
+  "tc.qs.dragTip": "Kéo để đổi thứ tự",
+  "tc.qs.dragNote": "Kéo ⋮⋮ để đổi thứ tự các bài (hoặc ↑ ↓ trên bàn phím).",
+  "tc.qs.clearAll": "Xóa tất cả",
+  "tc.qs.clearConfirm": "Xóa tất cả bài học và bài tập đã chọn?"
 };

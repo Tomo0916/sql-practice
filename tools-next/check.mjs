@@ -706,7 +706,8 @@ console.log('15b. Counts by difficulty');
   for (const cnt of [{ write: [2, 1, 1] }, { order1: [0, 2, 0], write: [1, 1, 0] }, { fill: [1, 0, 0], order2: [1, 1, 0], write: [0, 0, 2] }]) {
     const g = Q.spreadGrid(eng, ls, K(cnt), ''), slots = Q.gridSlots(eng, g, ls, 'CHK', '');
     Q.QK.forEach(st => [1, 2, 3].forEach(b => { const want = (cnt[st] || [0, 0, 0])[b - 1], got = slots.filter(x => x.st === st && x.bd === b).length; if (got !== want) err(`gridSlots ${JSON.stringify(cnt)}: ${got} ${st} problems of band ${b}, not ${want}`); }));
-    if (slots.some((x, i) => i && x.bd < slots[i - 1].bd)) err('gridSlots: the easier problems should come first');
+    if (slots.some((x, i) => i && ls.indexOf(x.k) < ls.indexOf(slots[i - 1].k))) err('gridSlots: the lessons should come in the chosen order');
+    if (slots.some((x, i) => i && x.k === slots[i - 1].k && x.bd < slots[i - 1].bd)) err('gridSlots: in a lesson the easier problems should come first');
     const per = ls.map(k => slots.filter(x => x.k === k).length); if (Math.max(...per) - Math.min(...per) > 1) err(`spreadGrid ${JSON.stringify(cnt)}: uneven ${per}`);
     const probs = Q.slotProblems(eng, 'CHK', slots, ''); if (probs.length !== slots.length) err('gridSlots: a slot has no problem');
     probs.forEach((p, i) => { const want = slots[i].st.startsWith('order') ? 'order' : slots[i].st; if (p.stage !== want) err(`gridSlots: slot ${slots[i].st} gives a ${p.stage} problem`); });

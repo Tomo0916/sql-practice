@@ -148,10 +148,10 @@ export function spreadGrid(engine, lessons, cnt, tb) {
     [0, 1, 2].forEach(b => { for (let n = 0; n < ((cnt[st] || [])[b] || 0); n++) { const k = ok.reduce((a, x) => (used[x] < used[a] ? x : a), ok[0]); g[k][st][b]++; used[k]++; } }); });
   return g;
 }
-/** a test from counts per lesson, kind and band: easier first; within a band fill-ins, then orderings, then writing */
+/** a test from counts per lesson, kind and band: the lessons in the teacher's order; in a lesson easier first, fill-ins, then orderings, then writing */
 export function gridSlots(engine, grid, order, seed, tb) {
   const out = [];
-  for (let b = 1; b <= 3; b++) for (const st of QK) for (const k of order) {
+  for (const k of order) for (let b = 1; b <= 3; b++) for (const st of QK) {
     const n = (((grid[k] || {})[st]) || [])[b - 1] || 0;
     if (!n || !kindsOf(k, engine, tb).includes(st)) continue;
     for (let w = 0; w < n; w++) {
