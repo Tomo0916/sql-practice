@@ -8,7 +8,7 @@ import { th, t, esc, rubyHTML, raw } from './i18n.js';
 import { gridHTML, highlightPy, pyDescHTML } from './ui.js';
 import { createEditor } from './editor.js';
 import { PD_LESSONS, PD_BY_KEY, PD_N, pdSet, pdTables, pdColumns, pdSame, pdDiff } from './pandas.js';
-import { pyRun, pyWarm, pyPlotWarm, pyState, onPyState } from './pyrun.js';
+import { pyRun, pyWarm, pyPlotWarm, pyPkgWarm, pyState, onPyState } from './pyrun.js';
 import { PE_N, PE_TYPES, peSet, peNeed, peTraceback, cleanTb } from './pyerrors.js';
 
 let C = null;   // { S, L, save, render }
@@ -60,7 +60,7 @@ function statusHTML() {
   const s = pyState();
   if (s === 'ready' || s === 'idle') return '<div id="py-status"></div>';
   if (s === 'failed') return `<div id="py-status" class="py-status bad">${H('pd.failed')} <button class="btn btn-ghost btn-sm" data-act="pyRetry">${H('pd.retry')}</button></div>`;
-  return `<div id="py-status" class="py-status"><i class="spin" aria-hidden="true"></i>${H(s === 'pandas' ? 'pd.loadingPandas' : 'pd.loading')}</div>`;
+  return `<div id="py-status" class="py-status"><i class="spin" aria-hidden="true"></i>${H(s === 'pandas' ? 'pd.loadingPandas' : s === 'stats' ? 'pd.loadingStats' : 'pd.loading')}</div>`;
 }
 
 /* ---------- a lesson ---------- */
@@ -81,6 +81,13 @@ const SNIPS = {
   pd_pivot: [['pd.pivot_table()', 1], [', '], ['index='], ['values='], ['aggfunc='], ['"mean"'], ['"sum"'], ['"max"'], ['"min"'], ['[]', 1], ['pd.crosstab()', 1], ['>=']],
   pd_concat: [['pd.concat([])', 2], ['[]', 1], [', '], ['>='], ['=='], ['.drop_duplicates()'], ['.head()', 1], ['.tail()', 1]],
   pd_how: [['pd.merge()', 1], [', '], ['left_on='], ['right_on='], ['how='], ['"left"'], ['"outer"'], ['m = '], ['.isna()']],
+  pd_desc: [['[]', 1], ['.describe()'], ['.median()'], ['.quantile()', 1], ['.std()'], ['.var()']],
+  pd_rel: [['[]', 1], ['[[]]', 2], ['.corr()', 1], [', '], ['.mean()'], ['.std()'], ['-'], ['/'], ['()', 1], [' = '], ['.value_counts(normalize=True)']],
+  st_ci: [['from scipy import stats'], ['[]', 1], ['.mean()'], ['.sem()'], ['stats.t.interval()', 1], ['df='], ['loc='], ['scale='], ['len()', 1], [' - 1'], ['low'], ['high']],
+  st_ttest: [['from scipy import stats'], ['[]', 1], ['=='], [' = '], ['stats.ttest_ind()', 1], ['stats.ttest_1samp()', 1], [', '], ['equal_var=False'], ['.pvalue'], [' < 0.05']],
+  st_chi2: [['from scipy import stats'], ['pd.crosstab()', 1], ['[]', 1], [', '], ['>='], [' = '], ['stats.chi2_contingency()', 1], ['.pvalue'], ['.statistic'], ['.dof'], [' < 0.05']],
+  st_reg: [['from scipy import stats'], ['r = '], ['stats.linregress()', 1], ['[]', 1], [', '], ['r.slope'], ['r.intercept'], ['r.rvalue ** 2'], [' + '], [' * ']],
+  st_mreg: [['import statsmodels.formula.api as smf'], ['m = '], ['smf.ols("", data=)', 2], [' ~ '], [' + '], ['.fit()'], ['m.params'], ['m.rsquared'], ['[]', 1]],
   pd_plot: [['.plot.bar()', 1], ['.plot.hist()', 1], ['.plot.scatter()', 1], ['x='], ['y='], ['bins='], [', '], ['.groupby()', 1], ['[]', 1], ['.mean()'], ['.sum()'], ['.max()']]
 };
 const chip = (text, back, cls) => `<button class="kw-chip ${cls || ''}" data-act="pyIns" data-text="${esc(text)}" data-back="${back || 0}">${esc(text)}</button>`;
@@ -143,6 +150,7 @@ export function pyMount() {
   if (!el) return;
   const prob = curProb(), d = C.S.progress.drafts || {};
   if (prob.plot) pyPlotWarm().catch(() => {});   // the chart lesson: load matplotlib while the student reads
+  if (prob.pkgs && prob.pkgs.length) pyPkgWarm(prob.pkgs).catch(() => {});   // statistics: scipy / statsmodels
   let timer;
   ed = createEditor(el, {
     lang: 'python', doc: d[prob.id] !== undefined ? d[prob.id] : '', label: 'Python', placeholder: '# Python',

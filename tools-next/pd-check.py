@@ -22,7 +22,7 @@ def norm(x):
     if isinstance(x, (np.ndarray, pd.api.extensions.ExtensionArray)) and x.ndim == 1: x = pd.Series(list(x))   # .unique() …
     if isinstance(x, pd.Series): x = x.to_frame(x.name if x.name is not None else 'value')
     if isinstance(x, pd.DataFrame):
-        keep = isinstance(x.index, pd.MultiIndex) or x.index.name is not None
+        keep = isinstance(x.index, pd.MultiIndex) or x.index.name is not None or pd.api.types.is_object_dtype(x.index) or pd.api.types.is_string_dtype(x.index)   # labels (describe, corr, params) stay
         df = x.reset_index() if keep else x.reset_index(drop=True)
         df.columns = [str(c) for c in df.columns]
         return {'kind': 'table', 'columns': list(df.columns), 'rows': [[cell(v) for v in r] for r in df.itertuples(index=False, name=None)]}

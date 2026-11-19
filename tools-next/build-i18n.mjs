@@ -44,7 +44,11 @@ export function usedKeys() {
   ['goalQuick', 'goalLevel', 'goalShape'].forEach(k => keys.add('tc.qs.' + k));
   // the Python course (pandas.js): lesson titles, points, problem texts and the feedback
   ['pd_head', 'pd_cols', 'pd_num', 'pd_text', 'pd_andor', 'pd_loc', 'pd_sort', 'pd_top', 'pd_agg', 'pd_group', 'pd_count', 'pd_merge',
-    'pd_na', 'pd_newcol', 'pd_str', 'pd_date', 'pd_dup', 'pd_pivot', 'pd_concat', 'pd_how', 'pd_plot'].forEach(k => { keys.add('pd.t.' + k); keys.add('pd.p.' + k); });
+    'pd_na', 'pd_newcol', 'pd_str', 'pd_date', 'pd_dup', 'pd_pivot', 'pd_concat', 'pd_how', 'pd_plot',
+    'pd_desc', 'pd_rel', 'st_ci', 'st_ttest', 'st_chi2', 'st_reg', 'st_mreg'].forEach(k => { keys.add('pd.t.' + k); keys.add('pd.p.' + k); });
+  keys.add('pd.loadingStats');
+  ['desc_describe', 'desc_median', 'desc_quantile', 'desc_std', 'desc_var', 'rel_corr', 'rel_matrix', 'rel_z', 'rel_share', 'ci_sem', 'ci_low', 'ci_high', 'ci_width',
+    't_ind', 't_welch', 't_one', 't_sig', 'chi_p', 'chi_stat', 'chi_dof', 'chi_sig', 'reg_slope', 'reg_intercept', 'reg_r2', 'reg_pred', 'mreg_params', 'mreg_r2', 'mreg_coef'].forEach(k => keys.add('pd.d.' + k));
   ['head', 'cols', 'filter', 'and', 'or', 'loc', 'sortAsc', 'sortDesc', 'topAsc', 'topDesc', 'agg', 'group', 'count', 'merge',
     'na_rows', 'na_notna', 'na_count', 'na_fill', 'new_tax', 'new_ratio', 'new_apply', 'str_contains', 'str_upper', 'str_len', 'str_starts',
     'date_month', 'date_bymonth', 'date_resample', 'dup_unique', 'dup_first', 'dup_last', 'dup_nunique', 'pivot', 'pivot_two', 'pivot_cross',

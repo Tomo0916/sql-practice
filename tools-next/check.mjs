@@ -850,7 +850,8 @@ console.log('17. Python lectures');
     checks.forEach(c => {
       if (c.wrong) { const w = res[c.wrong], r = res[c.right]; if (!w.error && P.pdSame(w, r, true)) err(`python lecture ${c.key} ${c.at}: the wrong code gives the right result`); return; }
       const got = res[c.id], rows = c.st.rows.filter(r => !c.pass || r.cls === 'pass');
-      const shown = { kind: 'table', columns: c.st.cols, rows: rows.map(r => r.cells) };
+      const one = got && got.kind === 'value' && rows.length === 1 && rows[0].cells.length === 1;   // a p-value … shown as one cell
+      const shown = one ? { kind: 'value', value: rows[0].cells[0] } : { kind: 'table', columns: c.st.cols, rows: rows.map(r => r.cells) };
       if (!got.error && !P.pdSame(got, shown, c.ordered)) err(`python lecture ${c.key} ${c.at}: the table is not what pandas gives (${JSON.stringify(got).slice(0, 160)})`);
     });
   }
