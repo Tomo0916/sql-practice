@@ -210,6 +210,27 @@ const RULES = [
 ];
 export const ALT_RULES = RULES.map(r => r[0]);
 
+/**
+ * The shorter ways to write a JOIN, step by step, each one graded against the original (only the ones that give the same result):
+ * [{ step: 'long' | 'alias' (FROM customers AS c) | 'omit' (no AS, no INNER) | 'bare' (no table name where the column is only in one table), sql }]
+ */
+export function shortForms(engine, sql, ordered, names) {
+  const rule = k => RULES.find(r => r[0] === k)[1];
+  const { s, unmask } = mask(String(sql).replace(/\s+/g, ' ').trim());
+  if (!/\bJOIN\b/.test(s)) return [];
+  let exp = null; try { exp = engine.exec(sql); } catch (e) { return []; }
+  const ok = x => { try { return !!x && grade(engine.runUser(x), exp, ordered, x, names).ok; } catch (e) { return false; } };
+  const alias = rule('tableAlias')(s); if (!alias) return [];
+  const withAs = alias.replace(/FROM (\w+) (\w+) /, 'FROM $1 AS $2 ').replace(/JOIN (\w+) (\w+) ON/, 'JOIN $1 AS $2 ON');
+  const omit = alias.replace('INNER JOIN', 'JOIN');
+  const u = rule('unqualify')(s), bare = u ? (rule('tableAlias')(u) || u).replace('INNER JOIN', 'JOIN') : null;
+  const out = [{ step: 'long', sql: s }, { step: 'alias', sql: withAs }, { step: 'omit', sql: omit }, ...(bare && bare !== omit ? [{ step: 'bare', sql: bare }] : [])]
+    .map(x => Object.assign(x, { sql: unmask(x.sql) }));
+  return out.every(x => ok(x.sql)) ? out : out.filter(x => ok(x.sql));
+}
+/** a one-line SQL on several lines (FROM, JOIN, ON, WHERE … at the start of a line), for showing */
+export const sqlLines = q => String(q).replace(/ (FROM|INNER JOIN|LEFT JOIN|JOIN|ON|WHERE|GROUP BY|ORDER BY|LIMIT) /g, '\n$1 ');
+
 const cache = new Map();
 /**
  * other answers the app would also mark correct: [{ sql, rule }] (at most `max`)

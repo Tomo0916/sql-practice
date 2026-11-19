@@ -1650,5 +1650,15 @@ export default {
   "tc.qs.dragTip": "ドラッグして {順番|じゅんばん}を かえる",
   "tc.qs.dragNote": "⋮⋮ を ドラッグすると {順番|じゅんばん}を かえられます。",
   "tc.qs.clearAll": "ぜんぶ {消|け}す",
-  "tc.qs.clearConfirm": "{選|えら}んだ レッスンと {問題|もんだい}を ぜんぶ {消|け}しますか？"
+  "tc.qs.clearConfirm": "{選|えら}んだ レッスンと {問題|もんだい}を ぜんぶ {消|け}しますか？",
+  /* ---- writing a join shorter ---- */
+  "short.title": "みじかく {書|か}く ほうほう",
+  "short.eg": "{例|れい}：customers と orders を つなぐ とき（どれも おなじ {結果|けっか}）",
+  "short.long": "ふつうの {書|か}きかた（{表|ひょう}.{列|れつ}）",
+  "short.alias": "{表|ひょう}に みじかい {名前|なまえ}を つける（AS）",
+  "short.omit": "AS と INNER は はぶける",
+  "short.omitLeft": "AS は はぶける（LEFT は はぶかない）",
+  "short.bare": "かたほうの {表|ひょう}にしか ない {列|れつ}は「c.」も はぶける",
+  "short.rule": "みじかい {名前|なまえ}を つけたら、ずっと その {名前|なまえ}で {書|か}きます。",
+  "short.ok": "どの {書|か}きかたでも せいかいです。"
 };

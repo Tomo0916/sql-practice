@@ -1649,5 +1649,15 @@ export default {
   "tc.qs.dragTip": "Seret untuk mengubah urutan",
   "tc.qs.dragNote": "Seret ⋮⋮ untuk mengubah urutan soal (atau ↑ ↓ di keyboard).",
   "tc.qs.clearAll": "Hapus semua",
-  "tc.qs.clearConfirm": "Hapus semua pelajaran dan soal yang dipilih?"
+  "tc.qs.clearConfirm": "Hapus semua pelajaran dan soal yang dipilih?",
+  /* ---- writing a join shorter ---- */
+  "short.title": "Cara menulis lebih singkat",
+  "short.eg": "Contoh: menggabungkan customers dan orders (hasilnya sama)",
+  "short.long": "Cara biasa (tabel.kolom)",
+  "short.alias": "Beri nama pendek pada tabel (FROM tabel AS nama)",
+  "short.omit": "AS dan INNER boleh dihilangkan",
+  "short.omitLeft": "AS boleh dihilangkan (LEFT tetap ditulis)",
+  "short.bare": "Kolom yang hanya ada di satu tabel tidak perlu nama tabel",
+  "short.rule": "Setelah tabel diberi nama pendek, pakai nama itu di seluruh query (customers.name menjadi error).",
+  "short.ok": "Semua cara ini dianggap benar."
 };

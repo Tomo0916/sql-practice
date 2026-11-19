@@ -1649,5 +1649,15 @@ export default {
   "tc.qs.dragTip": "拖动以改变顺序",
   "tc.qs.dragNote": "拖动 ⋮⋮ 可以改变出题顺序（也可用键盘 ↑ ↓）。",
   "tc.qs.clearAll": "全部删除",
-  "tc.qs.clearConfirm": "要删除所有选中的课程和题目吗？"
+  "tc.qs.clearConfirm": "要删除所有选中的课程和题目吗？",
+  /* ---- writing a join shorter ---- */
+  "short.title": "简短的写法",
+  "short.eg": "例：连接 customers 和 orders（结果都相同）",
+  "short.long": "普通写法（表名.列名）",
+  "short.alias": "给表起别名（FROM 表名 AS 别名）",
+  "short.omit": "AS 和 INNER 可以省略",
+  "short.omitLeft": "AS 可以省略（LEFT 不省略）",
+  "short.bare": "只在一张表中的列可以省略表名",
+  "short.rule": "起了别名后，整个 SQL 中都要用别名（写 customers.name 会出错）。",
+  "short.ok": "用哪种写法回答都算正确。"
 };

@@ -42,7 +42,7 @@ export function usedKeys() {
   ['head', 'cols', 'filter', 'and', 'or', 'loc', 'sortAsc', 'sortDesc', 'topAsc', 'topDesc', 'agg', 'group', 'count', 'merge'].forEach(k => keys.add('pd.d.' + k));
   ['kind', 'columns', 'rows', 'order', 'values'].forEach(k => keys.add('pd.ng.' + k));
   // the count tables (問題の組み立て): difficulty notes and presets
-  [1, 2, 3].forEach(b => keys.add(`dif.${b}s`)); ['write', 'order', 'ow', 'all'].forEach(v => keys.add('tc.qs.kp.' + v)); ['basic', 'easy', 'even', 'hard'].forEach(v => keys.add('dif.p.' + v));
+  [1, 2, 3].forEach(b => keys.add(`dif.${b}s`)); ['long', 'alias', 'omit', 'omitLeft', 'bare'].forEach(k => keys.add('short.' + k)); ['write', 'order', 'ow', 'all'].forEach(v => keys.add('tc.qs.kp.' + v)); ['basic', 'easy', 'even', 'hard'].forEach(v => keys.add('dif.p.' + v));
   // reading Python errors (pyerrors.js): meanings, explanations, the error types of the cheat sheet
   ['key', 'list', 'name', 'str', 'attr', 'eq', 'close', 'quote', 'op', 'and', 'merge'].forEach(k => { keys.add('pe.m.' + k); keys.add('pe.x.' + k); });
   ['KeyError', 'NameError', 'AttributeError', 'SyntaxError', 'ValueError', 'TypeError'].forEach(k => keys.add('pe.k.' + k));

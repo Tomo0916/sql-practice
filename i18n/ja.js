@@ -1650,5 +1650,15 @@ export default {
   "tc.qs.dragTip": "ドラッグして順番を変える",
   "tc.qs.dragNote": "⋮⋮ をドラッグすると出題の順番を変えられます（キーボードでは ↑ ↓）。",
   "tc.qs.clearAll": "すべて削除",
-  "tc.qs.clearConfirm": "選んだレッスンと問題をすべて削除しますか？"
+  "tc.qs.clearConfirm": "選んだレッスンと問題をすべて削除しますか？",
+  /* ---- writing a join shorter ---- */
+  "short.title": "短く書く方法",
+  "short.eg": "例：customers と orders をつなぐ場合（どれも同じ結果になります）",
+  "short.long": "ふつうの書き方（表名.列名）",
+  "short.alias": "表に別名を付ける（FROM 表名 AS 別名）",
+  "short.omit": "AS と INNER は省略できる",
+  "short.omitLeft": "AS は省略できる（LEFT は省略しない）",
+  "short.bare": "片方の表にしかない列は「別名.」も省略できる",
+  "short.rule": "別名を付けたら、その SQL の中ではずっと別名で書きます（customers.name と書くとエラー）。",
+  "short.ok": "どの書き方で答えても正解になります。"
 };

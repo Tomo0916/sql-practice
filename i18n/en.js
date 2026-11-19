@@ -1650,5 +1650,15 @@ export default {
   "tc.qs.dragTip": "Drag to change the order",
   "tc.qs.dragNote": "Drag ⋮⋮ to change the order of the problems (or ↑ ↓ on the keyboard).",
   "tc.qs.clearAll": "Remove all",
-  "tc.qs.clearConfirm": "Remove all the chosen lessons and problems?"
+  "tc.qs.clearConfirm": "Remove all the chosen lessons and problems?",
+  /* ---- writing a join shorter ---- */
+  "short.title": "Shorter ways to write it",
+  "short.eg": "Example: joining customers and orders (all give the same result)",
+  "short.long": "The usual way (table.column)",
+  "short.alias": "Give the tables short names (FROM table AS name)",
+  "short.omit": "AS and INNER can be left out",
+  "short.omitLeft": "AS can be left out (keep LEFT)",
+  "short.bare": "A column in only one table needs no table name",
+  "short.rule": "Once a table has a short name, use that name everywhere in the query (customers.name gives an error).",
+  "short.ok": "Any of these ways counts as correct."
 };
