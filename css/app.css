@@ -1338,3 +1338,54 @@ body.pj-open { overflow: hidden; }
 .py-value { font: 700 1.4rem/1.2 var(--mono); padding: 12px 14px; background: var(--surface-2); border-radius: 10px; }
 .py-done { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--ok-soft); border-color: transparent; }
 .py-done b { color: var(--ok); }
+
+.py-head-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.py-list li { display: flex; align-items: center; gap: 6px; }
+.py-list li .lesson-link { flex: 1; min-width: 0; }
+.py-list .lec-link { padding: 6px 8px; text-decoration: none; border-radius: 8px; }
+.py-list .lec-link:hover { background: var(--surface-2); }
+
+/* ---------- reading Python errors ---------- */
+.pe-card { display: flex; align-items: center; gap: 14px; padding: 14px 18px; text-decoration: none; color: inherit; border-color: color-mix(in srgb, var(--bad) 30%, var(--line)); }
+.pe-card > span:nth-child(2) { display: grid; gap: 2px; flex: 1; }
+.pe-ic { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font: 800 1.2rem/1 var(--mono); background: var(--bad-soft); color: var(--bad); flex: none; }
+.pe-guide { padding: 14px 18px; }
+.pe-guide summary { cursor: pointer; }
+.pe-guide-body { margin-top: 12px; display: grid; gap: 10px; }
+.pe-guide h3 { margin: 6px 0 0; font-size: 1rem; }
+.pe-anno { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 760px) { .pe-anno { grid-template-columns: minmax(0, 1fr); } }
+.pe-steps { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; line-height: 1.6; }
+.pe-cheat { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; }
+.pe-cheat dt code { font-weight: 800; color: var(--bad); }
+.pe-cheat dd { margin: 0; color: var(--ink-2); }
+.pe-tb { margin: 6px 0 0; padding: 12px 14px; border-radius: 10px; background: #1e2230; color: #d7dae3; font: .86rem/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.pe-tb .pe-last { color: #ff9b9b; }
+.pe-tb .pe-last b { color: #ff6b6b; }
+.pe-tb .pe-line { color: #ffd479; font-weight: 700; }
+.pe-tb .pe-caret { color: #ff6b6b; font-weight: 800; }
+.pe-q { padding: 18px 20px; display: grid; gap: 14px; }
+.pe-q.is-demo { border-color: color-mix(in srgb, #e0a100 45%, transparent); }
+.pe-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.pe-two > div { min-width: 0; }
+.pe-code { margin: 6px 0 0; padding: 10px 12px; list-style: none; background: var(--code-bg); border-radius: 10px; font: .92rem/1.7 var(--mono); }
+.pe-code.nums { list-style: decimal; padding-left: 2.4em; }
+.pe-code li { white-space: pre-wrap; overflow-wrap: anywhere; }
+.pe-code li.at { background: color-mix(in srgb, var(--bad) 12%, transparent); border-radius: 4px; }
+.pe-code code { background: none; padding: 0; }
+.pe-step { border-top: 1px solid var(--line); padding-top: 12px; }
+.pe-step h2 { font-size: 1.05rem; margin: 0 0 10px; }
+.pe-choices { display: grid; gap: 8px; }
+.pe-choice { text-align: left; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; line-height: 1.5; }
+.pe-choice:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.pe-choice:disabled { cursor: default; opacity: .75; }
+.pe-choice.ok { opacity: 1; border-color: var(--ok); background: var(--ok-soft); color: var(--ok); font-weight: 700; }
+.pe-choice.bad { opacity: 1; border-color: var(--bad); background: var(--bad-soft); color: var(--bad); }
+.pe-choices.code .pe-choice code { font: .9rem/1.5 var(--mono); background: none; color: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pe-fb { font-weight: 800; margin: 10px 0 4px; }
+.pe-fb.ok { color: var(--ok); } .pe-fb.bad { color: var(--bad); }
+.pe-why { background: var(--surface-2); border-radius: 10px; padding: 10px 14px; line-height: 1.7; }
+.pe-why p { margin: 4px 0; }
+.pe-why code { font-family: var(--mono); background: var(--code-bg); color: var(--code-ink); border-radius: 6px; padding: 1px 5px; overflow-wrap: anywhere; }
+.pe-done { color: var(--ok); }
+.py-pill.half { background: color-mix(in srgb, #e0a100 18%, transparent); border-color: transparent; color: #8a5d00; }

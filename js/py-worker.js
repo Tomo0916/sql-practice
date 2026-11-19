@@ -75,7 +75,9 @@ self.onmessage = async e => {
       // the last line of a Python error is the useful one: "KeyError: 'prise'"
       const last = lines.filter(l => /^\w+(Error|Exception|Warning)\b|^\w+:/.test(l)).pop() || lines.pop();
       const line = (/File "<answer>", line (\d+)/.exec(msg) || [])[1];
-      self.postMessage({ id: m.id, ok: false, error: last, line: line ? +line : null });
+      // the traceback from the student's code on (pyerrors.js cleanTb makes it short)
+      const at = msg.indexOf('  File "<answer>"'), full = at < 0 ? null : msg.slice(at).trim();
+      self.postMessage({ id: m.id, ok: false, error: last, line: line ? +line : null, full });
     }
   }
 };

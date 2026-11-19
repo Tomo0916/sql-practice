@@ -21,7 +21,7 @@ import { createEditor } from './editor.js';
 import { textbookPage } from './book.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
-import { hasLecture, LECTURES } from './lectures.js';
+import { hasLecture, lectureOf } from './lectures.js';
 import { lectureSteps, lectureStepHTML, paintStep, quizPick } from './lecture-ui.js';
 import { altAnswers } from './alt.js';
 import { decodeCheck, encodeCheck, buildCheck, checkCounts } from './check.js';
@@ -33,7 +33,7 @@ import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, 
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, slotProblems, kindsOf, levelFor } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { installPy, pyRoute, pyHTML, pyMount, pyActions } from './py-ui.js';
-import { PD_LESSONS } from './pandas.js';
+import { PD_LESSONS, PD_BY_KEY } from './pandas.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
 
 const S = {
@@ -1363,17 +1363,19 @@ function liveViewHTML() {
 
 /* ---------- lecture: slides with animated tables, for each lesson ---------- */
 const lec = { key: null, i: 0, auto: null };
+/** the lesson a lecture belongs to: an SQL lesson, or a lesson of the Python course */
+const lecLesson = key => LESSON_BY_KEY[key] || (PD_BY_KEY[key] ? { key, no: PD_BY_KEY[key].no, py: true } : null);
 function lectureHTML() {
-  const lesson = LESSON_BY_KEY[S.route.key];
+  const lesson = lecLesson(S.route.key);
   if (lec.key !== lesson.key) { lec.key = lesson.key; lec.i = 0; stopAuto(); }
   const steps = lectureSteps(lesson.key), st = steps[lec.i];
-  document.title = `${T('lec.title')} · ${lessonTitle(lesson, L())} · SQL Practice`;
-  const slides = LECTURES[lesson.key].slides;
+  document.title = `${T('lec.title')} · ${lesson.py ? T('pd.t.' + lesson.key) : lessonTitle(lesson, L())} · SQL Practice`;
+  const slides = lectureOf(lesson.key).slides, title = lesson.py ? rubyHTML(raw('pd.t.' + lesson.key, L())) : lessonTitleHTML(lesson, L());
   return `<main class="wrap lec-wrap">
-    <div class="crumbs"><a href="#/l/${lesson.key}/0">Lesson ${lesson.no} · ${lessonTitleHTML(lesson, L())}</a><span>›</span><span>📽 ${H('lec.title')}</span></div>
+    <div class="crumbs"><a href="${lesson.py ? `#/py/${lesson.key}/0` : `#/l/${lesson.key}/0`}">${lesson.py ? 'Python' : 'Lesson'} ${lesson.no} · ${title}</a><span>›</span><span>📽 ${H('lec.title')}</span></div>
     ${['ja', 'easy', 'en'].includes(L()) ? '' : `<p class="muted small">${H('lec.langNote')}</p>`}
     <section class="card lec-card">
-      <div class="lec-top"><h1>${lessonTitleHTML(lesson, L())}</h1>
+      <div class="lec-top"><h1>${title}</h1>
         <div class="lec-dots">${slides.map((sl, i) => `<button class="${i === st.slide ? 'on' : i < st.slide ? 'done' : ''}" data-act="lecGo" data-s="${i}" aria-label="${i + 1}"></button>`).join('')}</div></div>
       <div id="lec-box" class="lec-box">${lectureStepHTML(lesson, st, S.engine, L())}</div>
       <div class="lec-ctl">
@@ -1387,11 +1389,11 @@ function lectureHTML() {
   </main>`;
 }
 function lecMove(to) {
-  const lesson = LESSON_BY_KEY[lec.key], steps = lectureSteps(lec.key);
+  const lesson = lecLesson(lec.key), steps = lectureSteps(lec.key);
   to = Math.max(0, Math.min(steps.length - 1, to));
   if (to === lec.i) { stopAuto(); return; }
   const from = steps[lec.i], st = steps[to];
-  const f = LECTURES[lec.key].slides[st.slide].frames;
+  const f = lectureOf(lec.key).slides[st.slide].frames;
   const same = from.slide === st.slide && !!f;
   lec.i = to;
   const box = document.getElementById('lec-box');

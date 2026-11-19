@@ -57,6 +57,8 @@ export function mergeProgress(stored, mine) {
   new Set([...Object.keys(stored.py || {}), ...Object.keys(mine.py || {})]).forEach(k => { const a = (stored.py || {})[k], b = (mine.py || {})[k];
     if (!a || !b) { out.py[k] = a || b; return; }
     out.py[k] = { seed: b.seed, ok: b.seed === a.seed ? [...new Set([...(a.ok || []), ...(b.ok || [])])] : b.ok || [], n: Math.max(a.n || 0, b.n || 0), clear: !!(a.clear || b.clear) }; });
+  { const a = stored.pyErr, b = mine.pyErr;   // reading errors: the same rule as the Python lessons
+    out.pyErr = !a || !b ? a || b : { seed: b.seed, ok: b.seed === a.seed ? [...new Set([...(a.ok || []), ...(b.ok || [])])] : b.ok || [], done: b.seed === a.seed ? [...new Set([...(a.done || []), ...(b.done || [])])] : b.done || [] }; }
   out.drafts = mine.drafts || {};   // drafts belong to the tab (a removed draft must not come back)
   return out;
 }

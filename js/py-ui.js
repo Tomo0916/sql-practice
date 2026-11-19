@@ -5,10 +5,11 @@
  * Progress: S.progress.py[lesson] = { seed, ok: [problem ids solved], n (solved in all), clear }
  * ========================================================= */
 import { th, t, esc, rubyHTML, raw } from './i18n.js';
-import { gridHTML } from './ui.js';
+import { gridHTML, highlightPy } from './ui.js';
 import { createEditor } from './editor.js';
 import { PD_LESSONS, PD_BY_KEY, PD_N, pdSet, pdTables, pdColumns, pdSame, pdDiff } from './pandas.js';
 import { pyRun, pyWarm, pyState, onPyState } from './pyrun.js';
+import { PE_N, PE_TYPES, peSet, peNeed, peTraceback, cleanTb } from './pyerrors.js';
 
 let C = null;   // { S, L, save, render }
 const want = new Map();   // problem id → the reference answer's result
@@ -20,7 +21,9 @@ const H = (k, v) => `<span class="tx">${th(k, L(), v && Object.fromEntries(Objec
 const P = k => rubyHTML(raw(k, L())).replace(/`([^`]+)`/g, '<code>$1</code>');
 
 export function installPy(ctx) { C = ctx; }
-export const pyRoute = h => (h[0] === 'py' ? { view: 'py', key: PD_BY_KEY[h[1]] ? h[1] : null, idx: Math.min(PD_N, Math.max(0, parseInt(h[2], 10) || 0)) } : null);
+export const pyRoute = h => (h[0] !== 'py' ? null
+  : h[1] === 'errors' ? { view: 'py', key: null, err: true, idx: Math.min(PE_N, Math.max(0, parseInt(h[2], 10) || 0)) }
+    : { view: 'py', key: PD_BY_KEY[h[1]] ? h[1] : null, idx: Math.min(PD_N, Math.max(0, parseInt(h[2], 10) || 0)) });
 
 const rec = key => { const p = C.S.progress.py = C.S.progress.py || {}; return (p[key] = Object.assign({ seed: '1', ok: [], n: 0, clear: false }, p[key])); };
 const setOf = key => pdSet(key, rec(key).seed);
@@ -42,11 +45,14 @@ function hubHTML() {
       <div class="bar"><i style="width:${Math.round(done / PD_LESSONS.length * 100)}%"></i></div>
       <p class="muted small">${done} / ${PD_LESSONS.length}</p></div></section>
     ${statusHTML()}
+    <a class="card pe-card" href="#/py/errors/0"><span class="pe-ic" aria-hidden="true">!</span><span><b>${H('pe.title')}</b><span class="muted small">${H('pe.homeSub')}</span></span>
+      <span class="tag">${peRec().ok.length} / ${PE_N}</span></a>
     <ul class="lesson-list py-list card">${PD_LESSONS.map(l => {
       const r = rec(l.key), set = setOf(l.key), n = set.items.filter(p => r.ok.includes(p.id)).length;
       return `<li><a class="lesson-link ${r.clear ? 'done' : ''}" href="#/py/${l.key}/0">
         <span class="lesson-num">${r.clear ? '✓' : l.no}</span><span class="lesson-name">${rubyHTML(raw('pd.t.' + l.key, L()))}</span>
-        <span class="dots" aria-label="${n}/${PD_N}">${set.items.map(p => `<i class="${r.ok.includes(p.id) ? 'on' : ''}"></i>`).join('')}</span></a></li>`;
+        <span class="dots" aria-label="${n}/${PD_N}">${set.items.map(p => `<i class="${r.ok.includes(p.id) ? 'on' : ''}"></i>`).join('')}</span></a>
+        <a class="lec-link" href="#/lecture/${l.key}" title="${esc(T('lec.open'))}">📽</a></li>`;
     }).join('')}</ul></main>`;
 }
 function statusHTML() {
@@ -87,7 +93,7 @@ function lessonHTML() {
   const pill = (j, label, on) => `<a class="py-pill ${j === idx ? 'cur' : ''} ${on ? 'on' : ''} ${j === 0 ? 'demo' : ''}" href="#/py/${key}/${j}">${label}</a>`;
   return `<main class="wrap py-page">
     <div class="py-crumb"><a href="#/py">← ${H('pd.lessons')}</a></div>
-    <section class="card py-head"><small class="muted">Python · ${lesson.no}</small><h1>${rubyHTML(raw('pd.t.' + key, L()))}</h1><p class="py-point">${P('pd.p.' + key)}</p></section>
+    <section class="card py-head"><div class="py-head-top"><small class="muted">Python · ${lesson.no}</small><a class="btn btn-ghost btn-sm lec-open" href="#/lecture/${key}">📽 ${H('lec.open')}</a></div><h1>${rubyHTML(raw('pd.t.' + key, L()))}</h1><p class="py-point">${P('pd.p.' + key)}</p></section>
     ${statusHTML()}
     <nav class="py-pills" aria-label="${esc(T('pd.practice'))}">${pill(0, `★ ${esc(T('pd.example'))}`, false)}<span class="py-sep">${H('pd.practice')}</span>
       ${set.items.map((p, j) => pill(j + 1, String(j + 1), r.ok.includes(p.id))).join('')}
@@ -113,8 +119,8 @@ function lessonHTML() {
 }
 
 export function pyHTML() {
-  document.title = `${T('pd.title')} · SQL Practice`;
-  return C.S.route.key ? lessonHTML() : hubHTML();
+  document.title = `${T(C.S.route.err ? 'pe.title' : 'pd.title')} · SQL Practice`;
+  return C.S.route.err ? errHTML() : C.S.route.key ? lessonHTML() : hubHTML();
 }
 /** after render: the editor, the loading state */
 export function pyMount() {
@@ -150,7 +156,7 @@ async function run() {
   const ok = got.ok && exp.ok && pdSame(got.result, exp.result, prob.ordered);
   let head;
   if (got.timeout) head = `<div class="py-verdict bad">${H('pd.timeout')}</div>`;
-  else if (!got.ok) head = `<div class="py-verdict bad"><b>${H('pd.err')}</b>${got.line ? ` <span class="muted">(${H('pd.errLine', { n: got.line })})</span>` : ''}<pre class="py-err">${esc(got.error)}</pre></div>`;
+  else if (!got.ok) head = `<div class="py-verdict bad"><b>${H('pd.err')}</b>${got.line ? ` <span class="muted">(${H('pd.errLine', { n: got.line })})</span>` : ''}${tbHTML(got.full ? cleanTb(got.full, code) : got.error)}<a class="small" href="#/py/errors/0">${H('pe.howTo')} →</a></div>`;
   else head = ok ? `<div class="py-verdict ok">✓ ${H('pd.ok')}</div>` : `<div class="py-verdict bad">${H('pd.ng.' + pdDiff(got.result, exp.result, prob.ordered))}</div>`;
   const outTxt = got.ok && got.out ? `<div class="muted small strong">${H('pd.out')}</div><pre class="py-out">${esc(got.out)}</pre>` : '';
   out.innerHTML = `<section class="card py-res">${head}${outTxt}
@@ -175,7 +181,7 @@ export const pyActions = {
   pyIns(el) { if (ed) ed.insert(el.dataset.text, +el.dataset.back || 0); },
   pyAnswer() {
     const box = document.getElementById('py-ans'), prob = probOf(C.S.route.key, C.S.route.idx);
-    if (box) box.innerHTML = box.innerHTML ? '' : `<pre class="py-code">${esc(prob.code)}</pre><button class="btn btn-ghost btn-sm" data-act="pyUse">${H('pd.useAnswer')}</button>`;
+    if (box) box.innerHTML = box.innerHTML ? '' : `<pre class="py-code">${highlightPy(prob.code)}</pre><button class="btn btn-ghost btn-sm" data-act="pyUse">${H('pd.useAnswer')}</button>`;
   },
   pyUse() { const prob = probOf(C.S.route.key, C.S.route.idx); if (ed) { ed.set(prob.code); ed.focus(); } },
   pyNew() {
@@ -185,3 +191,86 @@ export const pyActions = {
   },
   pyRetry() { pyWarm(); const el = document.getElementById('py-status'); if (el) el.outerHTML = statusHTML(); }
 };
+
+/* ---------- reading errors: #/py/errors/<n> (0 = the example) ---------- */
+const peRec = () => (C.S.progress.pyErr = Object.assign({ seed: '1', ok: [], done: [] }, C.S.progress.pyErr));
+const peSetNow = () => peSet(peRec().seed);
+const peProbOf = i => { const s = peSetNow(); return i === 0 ? s.demo : s.items[i - 1]; };
+const peAns = new Map();   // problem id → { m: the meaning picked first, f: the fix picked first }
+/** a traceback, coloured: the error line, “line n”, the ^ marks */
+function tbHTML(text) {
+  const lines = String(text).split('\n'), lastI = lines.length - 1;
+  return `<pre class="pe-tb">${lines.map((l, i) => {
+    if (i === lastI) { const m = /^([\w.]+)(:?)(.*)$/.exec(l); return m ? `<span class="pe-last"><b>${esc(m[1])}</b>${esc(m[2] + m[3])}</span>` : esc(l); }
+    if (/^\s*\^+\s*$/.test(l)) return `<span class="pe-caret">${esc(l)}</span>`;
+    return esc(l).replace(/line (\d+)/, '<span class="pe-line">line $1</span>');
+  }).join('\n')}</pre>`;
+}
+const fill = (v) => Object.fromEntries(Object.entries(v || {}).map(([a, b]) => [a, `<code>${esc(b)}</code>`]));
+function guideHTML(open) {
+  return `<details class="card pe-guide" ${open ? 'open' : ''}><summary><b>${H('pe.guide')}</b></summary>
+    <div class="pe-guide-body"><div class="pe-anno">${tbHTML('Traceback (most recent call last):\n  File "<answer>", line 2, in <module>\n    top.sort_values("prise")\n  …\nKeyError: \'prise\'')}
+      <ol class="pe-steps"><li>${H('pe.g.last')}</li><li>${H('pe.g.line')}</li><li>${H('pe.g.dots')}</li><li>${H('pe.g.caret')}</li></ol></div>
+      <h3>${H('pe.cheat')}</h3><dl class="pe-cheat">${PE_TYPES.map(k => `<dt><code>${k}</code></dt><dd>${H('pe.k.' + k)}</dd>`).join('')}</dl></div></details>`;
+}
+function errHTML() {
+  const idx = C.S.route.idx, r = peRec(), set = peSetNow(), prob = peProbOf(idx), a = peAns.get(prob.id) || {};
+  const pill = (j, label, p) => `<a class="py-pill ${j === idx ? 'cur' : ''} ${p && r.ok.includes(p.id) ? 'on' : p && r.done.includes(p.id) ? 'half' : ''} ${j === 0 ? 'demo' : ''}" href="#/py/errors/${j}">${label}</a>`;
+  const lineNo = prob.lines.length > 1;
+  const m = a.m !== undefined, f = a.f !== undefined;
+  const choice = (act, i, label, picked, right, open) => `<button class="pe-choice ${open && i === right ? 'ok' : ''} ${open && picked === i && i !== right ? 'bad' : ''}" data-act="${act}" data-i="${i}" ${open ? 'disabled' : ''}>${label}${open && i === right ? ' ✓' : ''}</button>`;
+  const firstOk = set.items.filter(p => r.ok.includes(p.id)).length;
+  return `<main class="wrap py-page pe-page">
+    <div class="py-crumb"><a href="#/py">← ${H('pd.lessons')}</a></div>
+    <section class="card py-head"><small class="muted">Python</small><h1>${H('pe.title')}</h1><p class="py-point">${H('pe.sub')}</p></section>
+    ${guideHTML(idx === 0)}
+    <nav class="py-pills">${pill(0, `★ ${esc(T('pd.example'))}`)}<span class="py-sep">${H('pd.practice')}</span>
+      ${set.items.map((p, j) => pill(j + 1, String(j + 1), p)).join('')}
+      <button class="btn btn-ghost btn-sm py-new" data-act="peNew">↻ ${H('pd.newSet')}</button>
+      <span class="muted small">${H('pe.score', { n: firstOk, m: PE_N })}</span></nav>
+    <section class="card pe-q ${prob.demo ? 'is-demo' : ''}">
+      <div class="py-tag">${prob.demo ? `★ ${H('pd.example')}` : H('pe.problem', { n: idx })}</div>
+      <div class="pe-two">
+        <div><div class="muted small strong">${H('pe.code')}</div>
+          <ol class="pe-code ${lineNo ? 'nums' : ''}">${prob.lines.map((l, i) => `<li class="${i + 1 === prob.at ? 'at' : ''}"><code>${highlightPy(l)}</code></li>`).join('')}</ol></div>
+        <div><div class="muted small strong">${H('pe.output')}</div>${tbHTML(peTraceback(prob))}</div>
+      </div>
+      <div class="pe-step"><h2>① ${H('pe.q1')}</h2>
+        <div class="pe-choices">${prob.meanings.map((c, i) => choice('peM', i, H('pe.m.' + c), a.m, prob.meaning, m)).join('')}</div>
+        ${m ? `<p class="pe-fb ${a.m === prob.meaning ? 'ok' : 'bad'}">${a.m === prob.meaning ? '✓ ' + H('pe.ok') : H('pe.ng')}</p>
+          <div class="pe-why"><p>${th('pe.x.' + prob.cat, L(), fill(prob.v))}</p><p class="muted small"><code>${esc(prob.type)}</code>: ${H('pe.k.' + prob.type)}</p></div>` : ''}</div>
+      ${m ? `<div class="pe-step"><h2>② ${H('pe.q2')}</h2>
+        <div class="pe-choices code">${prob.fixes.map((c, i) => choice('peF', i, `<code>${highlightPy(c)}</code>`, a.f, prob.fixAt, f)).join('')}</div>
+        ${f ? `<p class="pe-fb ${a.f === prob.fixAt ? 'ok' : 'bad'}">${a.f === prob.fixAt ? '✓ ' + H('pe.ok') : H('pe.ng')}</p>
+          <div class="py-actions"><button class="btn btn-ghost btn-sm" data-act="peRun">▶ ${H('pe.tryRun')}</button>
+          ${idx < PE_N ? `<a class="btn btn-primary" href="#/py/errors/${idx + 1}">${H('pe.next')} →</a>` : `<b class="pe-done">🎉 ${H('pe.done')}</b>`}</div>
+          <div id="pe-run"></div>` : ''}</div>` : ''}
+    </section>
+  </main>`;
+}
+function peAnswer(key, i) {
+  const prob = peProbOf(C.S.route.idx), a = peAns.get(prob.id) || {};
+  if (a[key] !== undefined) return;
+  a[key] = i; peAns.set(prob.id, a);
+  if (key === 'f' && !prob.demo) {
+    const r = peRec();
+    if (!r.done.includes(prob.id)) r.done.push(prob.id);
+    if (a.m === prob.meaning && a.f === prob.fixAt && !r.ok.includes(prob.id)) r.ok.push(prob.id);
+    C.save();
+  }
+  const y = window.scrollY; C.render(); window.scrollTo(0, y);
+}
+Object.assign(pyActions, {
+  peM: el => peAnswer('m', +el.dataset.i),
+  peF: el => peAnswer('f', +el.dataset.i),
+  peNew() { const r = peRec(); r.seed = String(Date.now() % 1e9); r.ok = []; r.done = []; C.save(); if (C.S.route.idx === 1) C.render(); else location.hash = '#/py/errors/1'; },
+  async peRun() {
+    const prob = peProbOf(C.S.route.idx), box = document.getElementById('pe-run');
+    if (!box) return;
+    box.innerHTML = `<p class="muted small">${H(pyState() === 'ready' ? 'pd.run' : 'pd.notNow')}…</p>`;
+    const need = peNeed(prob), [bad, good] = [await pyRun(prob.code, need), await pyRun(prob.fixes[prob.fixAt], need)];
+    if (!document.getElementById('pe-run')) return;
+    box.innerHTML = `<div class="py-two"><div><div class="muted small strong">${H('pe.ranBad')}</div>${bad.ok ? resGrid(bad.result) : tbHTML(bad.full ? cleanTb(bad.full, prob.code) : bad.error)}</div>
+      <div><div class="muted small strong">${H('pe.ranFix')}</div>${good.ok ? resGrid(good.result) : tbHTML(good.error)}</div></div>`;
+  }
+});

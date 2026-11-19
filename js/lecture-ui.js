@@ -4,8 +4,8 @@
  * One click / → / space = next frame; ← = back; A = play by itself.
  * ========================================================= */
 import { th, esc, rubyHTML } from './i18n.js';
-import { highlightSQL, fmtCell, syntaxHint } from './ui.js';
-import { LECTURES, ltext } from './lectures.js';
+import { highlightSQL, highlightPy, fmtCell, syntaxHint } from './ui.js';
+import { lectureOf, ltext } from './lectures.js';
 import { quizAnswer } from './lecture-kit.js';
 
 const cl = lang => (['ja', 'easy', 'en'].includes(lang) ? lang : 'en');
@@ -13,7 +13,7 @@ const tx = (x, lang) => rubyHTML(ltext(x, cl(lang)));
 
 /** the slides of a lesson's lecture as a flat list of steps: [{slide, frame}] */
 export function lectureSteps(key) {
-  const L = LECTURES[key];
+  const L = lectureOf(key);
   if (!L) return [];
   return L.slides.flatMap((s, i) => (s.frames ? s.frames.map((_, f) => ({ slide: i, frame: f }))
     : s.type === 'quiz' ? [{ slide: i, frame: 0 }, { slide: i, frame: 1 }] : [{ slide: i, frame: 0 }]));
@@ -22,11 +22,11 @@ export function lectureSteps(key) {
 const picks = new Map();
 export const quizPick = (key, slide, i) => { if (i === undefined) return picks.get(`${key}|${slide}`); picks.set(`${key}|${slide}`, i); return i; };
 
-function sqlHTML(sql, mark) {
+function sqlHTML(sql, mark, hl = highlightSQL) {
   // mark the part in the SQL text (not in the coloured HTML, where a short mark like = would hit a tag)
   const i = mark ? sql.indexOf(mark) : -1;
-  const h = i < 0 ? highlightSQL(sql) : `${highlightSQL(sql.slice(0, i))}<mark>${highlightSQL(mark)}</mark>${highlightSQL(sql.slice(i + mark.length))}`;
-  return `<pre class="sql lec-sql">${h}</pre>`;
+  const h = i < 0 ? hl(sql) : `${hl(sql.slice(0, i))}<mark>${hl(mark)}</mark>${hl(sql.slice(i + mark.length))}`;
+  return `<pre class="sql lec-sql ${hl === highlightPy ? 'py' : ''}">${h}</pre>`;
 }
 export function tableHTML(st) {
   const tmpl = st.cols.map(c => (/name/.test(c) ? 'minmax(150px, 2fr)' : 'minmax(70px, 1fr)')).join(' ');
@@ -43,10 +43,11 @@ const sideHTML = (side, engine) => (side ? `<div class="lec-side">${side.map(fn 
 
 /** the HTML of one step (the frame of a slide) */
 export function lectureStepHTML(lesson, step, engine, lang) {
-  const L = LECTURES[lesson.key], s = L.slides[step.slide];
+  const L = lectureOf(lesson.key), s = L.slides[step.slide], hl = L.py ? highlightPy : highlightSQL;
+  const code = x => (x.code || x.sql);   // Python lectures show `code`, SQL ones `sql`
   if (s.type === 'syntax') {
     return `<div class="lec-slide lec-syntax"><h2>${th('lec.syntax', lang)}</h2>
-      <pre class="sql lec-big">${highlightSQL(syntaxHint(lesson, lang))}</pre>
+      <pre class="sql lec-big ${L.py ? 'py' : ''}">${s.code ? hl(s.code) : highlightSQL(syntaxHint(lesson, lang))}</pre>
       <ul class="lec-notes">${s.notes.map(n => `<li>${tx(n, lang)}</li>`).join('')}</ul></div>`;
   }
   if (s.type === 'scene') {
@@ -59,7 +60,7 @@ export function lectureStepHTML(lesson, step, engine, lang) {
     const ans = quizAnswer(s, engine), pick = quizPick(lesson.key, step.slide), open = step.frame === 1;
     const label = c => (typeof c === 'string' ? esc(c) : tx(c, lang));
     return `<div class="lec-slide lec-quiz"><h2>${th('lec.quiz', lang)}</h2>
-      <div class="lec-grid"><div class="lec-left">${s.sql ? sqlHTML(s.sql, s.mark) : ''}<p class="lec-cap">${tx(s.q, lang)}</p>
+      <div class="lec-grid"><div class="lec-left">${code(s) ? sqlHTML(code(s), s.mark, hl) : ''}<p class="lec-cap">${tx(s.q, lang)}</p>
         <div class="lec-choices">${s.choices.map((c, i) => `<button class="lec-choice ${open && i === ans ? 'ok' : ''} ${open && pick === i && i !== ans ? 'bad' : ''} ${!open && pick === i ? 'picked' : ''}" data-act="lecPick" data-i="${i}" ${open ? 'disabled' : ''}>${label(c)}${open && i === ans ? ' ✓' : ''}</button>`).join('')}</div>
         ${open ? `<p class="lec-why">${tx(s.why, lang)}</p>` : `<p class="muted small">${th('lec.quizHint', lang)}</p>`}</div>
       <div class="lec-table">${sideHTML(s.side, engine)}${open && s.table ? tableHTML(s.table(engine)) : s.before ? tableHTML(s.before(engine)) : ''}</div></div></div>`;
@@ -68,18 +69,18 @@ export function lectureStepHTML(lesson, step, engine, lang) {
     const f = s.frames[step.frame];
     return `<div class="lec-slide lec-anim"><h2>${s.cases ? th('lec.cases', lang) : tx(s.title, lang)}<small class="muted">${step.frame + 1} / ${s.frames.length}</small></h2>
       ${s.cases ? `<div class="lec-chips">${s.frames.map((x, i) => `<span class="${i === step.frame ? 'on' : i < step.frame ? 'done' : ''}">${x.label ? tx(x.label, lang) : i + 1}</span>`).join('')}</div>` : ''}
-      <div class="lec-grid"><div class="lec-left">${f.sql ? sqlHTML(f.sql, f.mark) : ''}<p class="lec-cap">${tx(f.cap, lang)}</p></div>
+      <div class="lec-grid"><div class="lec-left">${code(f) ? sqlHTML(code(f), f.mark, hl) : ''}<p class="lec-cap">${tx(f.cap, lang)}</p></div>
       ${f.side ? `<div class="lec-table">${sideHTML(f.side, engine)}<div data-anim>${tableHTML(f.table(engine))}</div></div>` : `<div class="lec-table" data-anim>${tableHTML(f.table(engine))}</div>`}</div></div>`;
   }
   if (s.type === 'points') return `<div class="lec-slide"><h2>${th('lesson.point', lang)}</h2><ol class="lec-points">${s.items.map(n => `<li>${tx(n, lang)}</li>`).join('')}</ol></div>`;
   if (s.type === 'mistake') {
     return `<div class="lec-slide"><h2>${th('lec.mistake', lang)}${s.title ? `<small class="muted">${tx(s.title, lang)}</small>` : ''}</h2>
-      <div class="lec-mx"><span class="x">✕</span><pre class="sql wrong">${highlightSQL(s.wrong)}</pre></div>
+      <div class="lec-mx"><span class="x">✕</span><pre class="sql wrong">${hl(s.wrong)}</pre></div>
       <p class="lec-why">${tx(s.why, lang)}</p>
-      <div class="lec-mx"><span class="o">○</span><pre class="sql">${highlightSQL(s.right)}</pre></div></div>`;
+      <div class="lec-mx"><span class="o">○</span><pre class="sql">${hl(s.right)}</pre></div></div>`;
   }
   if (s.type === 'practice') return `<div class="lec-slide lec-end"><div class="empty-icon">✓</div><h2>${th('lec.practiceTitle', lang)}</h2><p class="muted">${tx(L.goal, lang)}</p>
-    <a class="btn btn-primary" href="#/l/${lesson.key}/0">${th('lec.toPractice', lang)}</a></div>`;
+    <a class="btn btn-primary" href="${L.py ? `#/py/${lesson.key}/0` : `#/l/${lesson.key}/0`}">${th('lec.toPractice', lang)}</a></div>`;
   return '';
 }
 
