@@ -200,6 +200,31 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 /* ---------- choosing how many problems (the same everywhere: practice, quick test, assignment) ----------
  * the usual numbers as big buttons, − / + for any other number in [min, max], and how long it takes
  * opts: { act, k (data-k), value, presets, min, max, secEach (seconds a problem, for the estimate), lang } */
+/**
+ * A table of counts (問題の組み立て): rows × columns with − / + in each cell, the totals, a bar of the mix and presets.
+ * o = { act, rows: [{ id, label }], cols: [{ id, label, sub, tone }], get(rowId, colId) → number | null (no such cell),
+ *       max (a cell), totalMax, secEach (for the time estimate), lang, presets: [{ v, label }], presetAct, presetOn, note }
+ * Clicks: data-act=act data-r=row data-c=col data-d=±1; a preset: data-act=presetAct data-v.
+ */
+export function composeHTML(o) {
+  const val = (r, c) => o.get(r.id, c.id), colSum = c => o.rows.reduce((a, r) => a + (val(r, c) || 0), 0);
+  const sums = o.cols.map(colSum), total = sums.reduce((a, b) => a + b, 0), many = o.rows.length > 1, cols = o.cols.length > 1;
+  const full = o.totalMax && total >= o.totalMax;
+  const cell = (r, c) => { const v = val(r, c); if (v === null || v === undefined) return '<td class="cmp-na" aria-hidden="true">—</td>';
+    return `<td class="${v ? 'on ' + (c.tone || '') : ''}"><span class="cmp-st"><button type="button" data-act="${o.act}" data-r="${r.id}" data-c="${c.id}" data-d="-1" aria-label="${esc(String(r.text || ''))} ${esc(String(c.text || ''))} −" ${v <= 0 ? 'disabled' : ''}>−</button><b>${v}</b><button type="button" data-act="${o.act}" data-r="${r.id}" data-c="${c.id}" data-d="1" aria-label="${esc(String(r.text || ''))} ${esc(String(c.text || ''))} +" ${v >= o.max || full ? 'disabled' : ''}>+</button></span></td>`; };
+  const rowSum = r => o.cols.reduce((a, c) => a + (val(r, c) || 0), 0), min = Math.max(1, Math.round((o.secEach || 60) * total / 60));
+  return `<div class="cmp">
+    ${o.presets && o.presets.length ? `<div class="cmp-presets">${o.presets.map(p => `<button type="button" class="cmp-p ${o.presetOn === p.v ? 'on' : ''}" data-act="${o.presetAct}" data-v="${p.v}" aria-pressed="${o.presetOn === p.v}">${p.label}</button>`).join('')}</div>` : ''}
+    <div class="cmp-wrap"><table class="cmp-t ${many ? 'many' : ''}">
+      <thead><tr><th class="cmp-rh">${o.corner || ''}</th>${o.cols.map(c => `<th class="cmp-ch ${c.tone || ''}"><b>${c.label}</b>${c.sub ? `<small>${c.sub}</small>` : ''}</th>`).join('')}${cols ? `<th class="cmp-sum">${th('cmp.sum', o.lang)}</th>` : ''}</tr></thead>
+      <tbody>${o.rows.map(r => `<tr><th class="cmp-rh">${r.label}</th>${o.cols.map(c => cell(r, c)).join('')}${cols ? `<td class="cmp-sum"><b>${rowSum(r)}</b></td>` : ''}</tr>`).join('')}</tbody>
+      ${many && cols ? `<tfoot><tr><th class="cmp-rh">${th('cmp.sum', o.lang)}</th>${sums.map((n, i) => `<td class="${o.cols[i].tone || ''}"><b>${n}</b></td>`).join('')}<td class="cmp-sum"><b>${total}</b></td></tr></tfoot>` : ''}
+    </table></div>
+    ${cols && total ? `<div class="cmp-bar" aria-hidden="true">${o.cols.map((c, i) => (sums[i] ? `<i class="${c.tone || ''}" style="flex:${sums[i]}"></i>` : '')).join('')}</div>` : ''}
+    ${o.hideTotal ? '' : `<div class="cmp-total"><b>${th('cnt.sum', o.lang, { n: total, m: min })}</b>${cols && total ? `<span class="muted">${o.cols.map((c, i) => (sums[i] ? `<span class="cmp-lg ${c.tone || ''}"><i></i>${c.label} ${sums[i]}</span>` : '')).join('')}</span>` : ''}</div>`}
+    ${!total && !o.hideTotal ? `<p class="err small">${th('cmp.empty', o.lang)}</p>` : ''}${o.note ? `<p class="muted small">${o.note}</p>` : ''}
+  </div>`;
+}
 export function countPickHTML(o) {
   const v = o.value, btn = n => `<button type="button" class="cp-n ${n === v ? 'on' : ''}" data-act="${o.act}" data-k="${o.k}" data-v="${n}" aria-pressed="${n === v}"><b>${n}</b></button>`;
   const off = !o.presets.includes(v), min = Math.round((o.secEach || 60) * v / 60);

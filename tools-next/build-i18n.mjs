@@ -41,6 +41,8 @@ export function usedKeys() {
   ['pd_head', 'pd_cols', 'pd_num', 'pd_text', 'pd_andor', 'pd_loc', 'pd_sort', 'pd_top', 'pd_agg', 'pd_group', 'pd_count', 'pd_merge'].forEach(k => { keys.add('pd.t.' + k); keys.add('pd.p.' + k); });
   ['head', 'cols', 'filter', 'and', 'or', 'loc', 'sortAsc', 'sortDesc', 'topAsc', 'topDesc', 'agg', 'group', 'count', 'merge'].forEach(k => keys.add('pd.d.' + k));
   ['kind', 'columns', 'rows', 'order', 'values'].forEach(k => keys.add('pd.ng.' + k));
+  // the count tables (問題の組み立て): difficulty notes and presets
+  [1, 2, 3].forEach(b => keys.add(`dif.${b}s`)); ['basic', 'easy', 'even', 'hard'].forEach(v => keys.add('dif.p.' + v));
   // reading Python errors (pyerrors.js): meanings, explanations, the error types of the cheat sheet
   ['key', 'list', 'name', 'str', 'attr', 'eq', 'close', 'quote', 'op', 'and', 'merge'].forEach(k => { keys.add('pe.m.' + k); keys.add('pe.x.' + k); });
   ['KeyError', 'NameError', 'AttributeError', 'SyntaxError', 'ValueError', 'TypeError'].forEach(k => keys.add('pe.k.' + k));

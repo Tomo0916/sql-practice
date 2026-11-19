@@ -119,6 +119,52 @@ export function simpleSlots(engine, lessons, n, kind, seed, tb, lv) {
   }
   return out;
 }
+/** n split by ratios, whole numbers that add up to n (the largest remainders get the rest) */
+export function splitBy(n, ratios) {
+  const sum = ratios.reduce((a, b) => a + b, 0) || 1, raw = ratios.map(r => (n * r) / sum), out = raw.map(Math.floor);
+  let left = n - out.reduce((a, b) => a + b, 0);
+  raw.map((x, i) => [x - Math.floor(x), i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).forEach(([, i]) => { if (left > 0) { out[i]++; left--; } });
+  return out;
+}
+/* ---------- counts by difficulty (問題の組み立て): [基本, 標準, 発展] ---------- */
+export const DIF_RATIOS = { basic: [1, 0, 0], easy: [3, 2, 0], even: [1, 1, 1], hard: [1, 2, 2] };
+/** counts per band spread over the lessons in turn → { lesson: [n1, n2, n3] } (a lesson does not get two in a row while others have none) */
+export function spreadGrid(lessons, cnt) {
+  const g = {}; lessons.forEach(k => { g[k] = [0, 0, 0]; });
+  if (!lessons.length) return g;
+  let j = 0; cnt.forEach((n, b) => { for (let i = 0; i < n; i++, j++) g[lessons[j % lessons.length]][b]++; });
+  return g;
+}
+/** a test from counts per lesson and band: the easier problems first, the kinds of the preset in turn */
+export function gridSlots(engine, grid, order, kind, seed, tb) {
+  const kinds = SIMPLE_KINDS[kind] || SIMPLE_KINDS.write, out = [];
+  let j = 0;
+  for (let b = 1; b <= 3; b++) for (const k of order) {
+    const ks = kindsOf(k, engine, tb), n = ((grid[k] || [])[b - 1]) || 0;
+    if (!ks.length) continue;
+    for (let w = 0; w < n; w++, j++) {
+      const st0 = kinds[j % kinds.length], st = ks.includes(st0) ? st0 : ks.includes('write') ? 'write' : ks[0];
+      const x = { k, st, lv: levelFor(k, b), bd: b }, i = freeIndex(engine, x, seed, out, 0, -1, tb);
+      if (i !== null) out.push(Object.assign(x, { i }));
+    }
+  }
+  return out;
+}
+/** a shape test from counts per kind [fill, order, write]: the shapes in turn, fill-ins first */
+export function shapeCountSlots(engine, shapes, cnt, seed) {
+  shapes = makeRng(`shapes|${seed}`).shuffle(shapes.filter(b => BASIC_BY_KEY[b])); const out = [];
+  if (!shapes.length) return out;
+  let j = 0;
+  ['afill', 'aorder', 'awrite'].forEach((want, f) => {
+    for (let w = 0, tries = 0; w < (cnt[f] || 0) && tries < shapes.length * 4; tries++, j++) {
+      const b = shapes[j % shapes.length], x = { b, k: BASIC_BY_KEY[b].lesson, st: shapeKind(b, want) }, i = freeIndex(engine, x, seed, out, 0, -1, '');
+      if (i !== null) { out.push(Object.assign(x, { i })); w++; }
+    }
+  });
+  return out;
+}
+/** the counts of an older set-up (n problems of one kind, 'mix' = the three in turn) */
+export const shapeCountsOf = (n, kind) => (kind === 'afill' ? [n, 0, 0] : kind === 'aorder' ? [0, n, 0] : kind === 'awrite' ? [0, 0, n] : [Math.ceil(n / 3), Math.ceil((n - Math.ceil(n / 3)) / 2), n - Math.ceil(n / 3) - Math.ceil((n - Math.ceil(n / 3)) / 2)]);
 /** a shape-mix test: n problems over the shapes, each shape in turn; kind 'mix' = fill-in → ordering → write in turn */
 export const SHAPE_KINDS = ['mix', 'afill', 'aorder', 'awrite'];
 export const SHAPE_COUNTS = [3, 5, 8, 10, 15];

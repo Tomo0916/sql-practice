@@ -17,7 +17,7 @@ import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
-import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS } from './quick.js';
+import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS, DIF_RATIOS, splitBy, spreadGrid, gridSlots, shapeCountSlots, shapeCountsOf } from './quick.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_BY_KEY } from './basics.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
@@ -25,7 +25,7 @@ import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
 import * as backend from './backend.js';
-import { countPickHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
+import { composeHTML, countPickHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -212,6 +212,15 @@ function classHTML() {
  * then start: the students see a countdown and begin together. */
 const QDRAFT = 'sqln.quickDraft';
 const KIND_LABEL = { fill: 'tc.fmtFill', order1: 'tc.fmtOrder1', order2: 'tc.fmtOrder2', write: 'tc.fmtWrite' };
+const CMP_CELL = 10, CMP_CELL_L = 5, CMP_TOTAL = 20;   // the most problems in one cell (all lessons / one lesson), in a test
+const cnt3 = (a, max) => (Array.isArray(a) && a.length === 3 && a.every(x => Number.isInteger(x) && x >= 0 && x <= max) ? a.slice() : null);
+const sum3 = a => a.reduce((x, y) => x + y, 0);
+/** the difficulty columns of the count tables, and the presets */
+const difCols = () => [1, 2, 3].map(b => ({ id: b, label: H('dif.' + b), sub: H(`dif.${b}s`), tone: 'd' + b, text: T('dif.' + b) }));
+const DIF_PRESETS = ['basic', 'easy', 'even', 'hard'];
+const presetOf = (rows, ps) => ps.find(v => rows.every(r => sum3(r) === 0 || splitBy(sum3(r), DIF_RATIOS[v]).every((x, i) => x === r[i]))) || null;
+/** the counts of a whole quick test (by difficulty) */
+const quickCounts = d => (d.mode === 'detail' ? d.lessons.reduce((a, k) => a.map((x, i) => x + d.grid[k][i]), [0, 0, 0]) : d.cnt);
 function quickDraft(c) {
   const d = Store.get(QDRAFT, null) || {};
   if (!d.seed) { d.seed = randomCode(4); Store.set(QDRAFT, d); }   // the preview stays the same until the teacher asks for new problems
@@ -220,7 +229,13 @@ function quickDraft(c) {
   const tb = d.tb && S.engine && tableSets(S.engine).some(x => x.key === d.tb) ? d.tb : '';
   const per = {};
   lessons.forEach(k => { const o = (d.per || {})[k] || { write: 1 }; per[k] = {}; KINDS.forEach(st => { per[k][st] = kindsOf(k).includes(st) ? Math.max(0, Math.min(FORMAT_MAX, +o[st] || 0)) : 0; }); });
-  return { mode: d.mode === 'detail' ? 'detail' : 'simple', lessons, n: Number.isInteger(d.n) && d.n >= 1 && d.n <= 10 ? d.n : 3, kind: QUICK_PRESETS.includes(d.kind) ? d.kind : 'write', per,
+  // counts by difficulty [基本, 標準, 発展]: all lessons together (cnt), or per lesson (grid); older drafts: n problems of one difficulty
+  const n0 = Number.isInteger(d.n) && d.n >= 1 && d.n <= 10 ? d.n : 3, dif0 = [1, 2, 3].includes(d.dif) ? d.dif : 0;
+  const cnt = cnt3(d.cnt, CMP_CELL) || (dif0 ? [0, 0, 0].map((x, i) => (i === dif0 - 1 ? n0 : 0)) : splitBy(n0, [1, 1, 1]));
+  const usable = lessons.filter(k => kindsOf(k, S.engine, tb).length), spread = d.grid ? null : spreadGrid(usable, cnt), grid = {};
+  lessons.forEach(k => { grid[k] = cnt3((d.grid || {})[k], CMP_CELL_L) || (spread && spread[k]) || [1, 0, 0]; });
+  const sn0 = Number.isInteger(d.sn) && d.sn >= 1 && d.sn <= 20 ? d.sn : 5;
+  return { mode: d.mode === 'detail' ? 'detail' : 'simple', lessons, cnt, grid, sc: cnt3(d.sc, CMP_CELL) || shapeCountsOf(sn0, SHAPE_KINDS.includes(d.sk) ? d.sk : 'mix'), n: Number.isInteger(d.n) && d.n >= 1 && d.n <= 10 ? d.n : 3, kind: QUICK_PRESETS.includes(d.kind) ? d.kind : 'write', per,
     pass: Number.isInteger(d.pass) && d.pass >= 1 ? d.pass : null, limitSec: Number.isInteger(d.limitSec) && d.limitSec >= 0 && d.limitSec <= QUICK_MAX_SEC ? d.limitSec : Number.isInteger(d.limit) && d.limit >= 0 && d.limit <= 120 ? d.limit * 60 : 300,
     goal: d.goal === 'level' || d.goal === 'shape' ? d.goal : 'quick',   // 'level' = a level test: chosen chapters, first answer only; 'shape' = the shape mix (型ミックス)
     dif: [0, 1, 2, 3].includes(d.dif) ? d.dif : 0,   // difficulty: 0 = any (the lessons' own mix), 1 基本 · 2 標準 · 3 発展
@@ -262,9 +277,10 @@ const mmssOf = ms => { const s = Math.max(0, Math.round(ms / 1000)); return `${M
 /** the draft's test: one slot per problem (easy or detailed set-up), with the teacher's swaps */
 function draftSlots(d) {
   if (d.goal === 'level' && !d.fixed) return d.lv.length ? levelSlots(S.engine, d.lv, d.seed, d.tb) : [];
-  if (d.goal === 'shape') return applySwaps(S.engine, d.fixed ? d.fixed.slots : shapeSlots(S.engine, d.shapes, d.sn, d.sk, d.seed), d.swaps, d.seed, '');
+  if (d.goal === 'shape') return applySwaps(S.engine, d.fixed ? d.fixed.slots : shapeCountSlots(S.engine, d.shapes, d.sc, d.seed), d.swaps, d.seed, '');
   if (!d.lessons.length && !d.fixed) return [];
-  const base = d.fixed ? d.fixed.slots : d.mode === 'detail' ? detailSlots(S.engine, d.per, d.lessons, d.seed, d.tb, d.dif) : simpleSlots(S.engine, d.lessons, d.n, d.kind, d.seed, d.tb, d.dif);
+  const usable = d.lessons.filter(k => kindsOf(k, S.engine, d.tb).length);
+  const base = d.fixed ? d.fixed.slots : gridSlots(S.engine, d.mode === 'detail' ? d.grid : spreadGrid(usable, d.cnt), d.lessons, d.kind, d.seed, d.tb);
   return applySwaps(S.engine, base, d.swaps, d.seed, d.tb);
 }
 /* ---------- the basic shapes (基礎の型): names and a picker, for the shape-mix quick test and assignment ---------- */
@@ -319,18 +335,21 @@ function quickHTML(c) {
   const lvPick = `<div class="qs-quickbtns"><button class="btn btn-ghost btn-xs" data-act="quickLv" data-v="all">${H('tc.quick.lvAll')}</button><span class="muted small">${H('tc.quick.lvNote')}</span></div>
     <div class="qs-chs">${LV_CHAPTERS.map((k, i) => { const on = d.lv.includes(i); return `<button class="qs-chb wide ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="quickLv" data-v="${i}" aria-pressed="${on}">${i + 1}. ${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}</div>`;
   const s2 = lvMode ? lvPick : shMode ? shapePickHTML(d.shapes, 'quickShape') : lessonsPick;
-  // 3. how many problems, and of which kind
-  const per = !d.lessons.length ? '' : `<div class="q-table-wrap"><table class="q-table"><thead><tr><th>${H('tc.quick.lessonCol')}</th>${KINDS.map(st => `<th>${H(KIND_LABEL[st])}</th>`).join('')}<th class="n">${H('tc.quick.sum')}</th></tr></thead>
-      <tbody>${d.lessons.map(k => { const l = LESSON_BY_KEY[k], kinds = kindsOf(k, S.engine, d.tb), row = d.per[k]; return `<tr><th>${l.no}. ${lessonTitleHTML(l, L())}</th>${KINDS.map(st => kinds.includes(st)
-        ? `<td><span class="stepper"><button class="btn btn-ghost btn-xs" data-act="quickPer" data-l="${k}" data-st="${st}" data-d="-1" aria-label="−" ${row[st] <= 0 ? 'disabled' : ''}>−</button><b class="ck-num">${row[st]}</b><button class="btn btn-ghost btn-xs" data-act="quickPer" data-l="${k}" data-st="${st}" data-d="1" aria-label="+" ${row[st] >= FORMAT_MAX ? 'disabled' : ''}>+</button></span></td>`
-        : `<td class="muted center" title="${esc(T('tc.quick.noKind'))}">—</td>`).join('')}<td class="n"><b>${slots.filter(x => x.k === k).length}</b></td></tr>`; }).join('')}</tbody></table></div>
-      <div class="row-btns left"><span class="muted small">${H('tc.quick.allTo')}</span>${KINDS.map(st => `<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="${st}">${H(KIND_LABEL[st])} ×1</button>`).join('')}<button class="btn btn-ghost btn-xs" data-act="quickAll" data-st="">${H('tc.quick.clear')}</button></div>`;
+  // 3. how many problems of each difficulty (all lessons together, or per lesson), and of which kind
+  const detail = d.mode === 'detail';
+  const modeSeg = `<div class="seg">${['simple', 'detail'].map(v => `<button class="seg-b ${d.mode === v ? 'on' : ''}" data-act="quickSet" data-k="mode" data-v="${v}" aria-pressed="${d.mode === v}">${H(v === 'simple' ? 'cmp.together' : 'cmp.perLesson')}</button>`).join('')}</div>`;
+  const qRows = detail ? d.lessons.map(k => { const l = LESSON_BY_KEY[k]; return { id: k, label: `<b>${l.no}</b> ${lessonTitleHTML(l, L())}`, text: `${l.no}` }; })
+    : [{ id: '@all', label: `${H('cmp.all')}<small>${H('cmp.allSub', { n: d.lessons.length })}</small>`, text: T('cmp.all') }];
+  const difTable = !d.lessons.length ? `<p class="muted small">${H('tc.qs.pickHint')}</p>` : composeHTML({ act: 'quickCmp', rows: qRows, cols: difCols(), get: (r, b) => (detail ? d.grid[r][b - 1] : d.cnt[b - 1]),
+    max: detail ? CMP_CELL_L : CMP_CELL, totalMax: CMP_TOTAL, secEach: d.kind === 'write' ? 120 : 80, lang: L(),
+    presets: DIF_PRESETS.map(v => ({ v, label: H('dif.p.' + v) })), presetAct: 'quickDifP', presetOn: presetOf(detail ? d.lessons.map(k => d.grid[k]) : [d.cnt], DIF_PRESETS), note: H('dif.note') });
+  const shCols = [['stage.fill', 's1'], ['stage.order', 's2'], ['rv.write', 's3']].map(([k, tone], i) => ({ id: i, label: H(k), tone, text: T(k) }));
+  const shTable = (act, pAct, sc) => composeHTML({ act, rows: [{ id: '@all', label: H('tc.shape.row'), text: '' }], cols: shCols, get: (r, i) => sc[i], max: CMP_CELL, totalMax: 30, secEach: 40, lang: L(),
+    presets: ['easy', 'even', 'hard'].map(v => ({ v, label: H('dif.p.' + v) })), presetAct: pAct, presetOn: presetOf([sc], ['easy', 'even', 'hard']), note: H('tc.shape.cmpNote') });
   const s3 = lvMode ? `<p class="muted small">${H('tc.qs.levelFixed', { n })}</p>`
-    : shMode ? `<div class="qs-row"><div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'quickSet', k: 'sn', value: d.sn, presets: SHAPE_COUNTS, min: 1, max: 20, secEach: 40, lang: L() })}</div><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('sk', SHAPE_KINDS, d.sk, shapeKindH)}</div></div>`
-    : `<div class="qs-row">${d.mode === 'detail' ? '' : `<div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'quickSet', k: 'n', value: d.n, presets: QUICK_COUNTS, min: 1, max: 10, secEach: d.kind === 'write' ? 120 : 80, lang: L() })}</div><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', QUICK_PRESETS, d.kind, v => H('tc.quick.k.' + v))}</div>`}
-        <div class="fld"><span>${H('dif.title')}</span>${seg('dif', [0, 1, 2, 3], d.dif, v => H('dif.' + (v || 'any')))}</div></div>
-      ${d.dif ? `<p class="muted small">${H('dif.note')}</p>` : ''}
-      <details class="qs-more" ${d.mode === 'detail' ? 'open' : ''}><summary data-act="quickSet" data-k="mode" data-v="${d.mode === 'detail' ? 'simple' : 'detail'}">${H('tc.quick.perLesson')}</summary>${d.mode === 'detail' ? per : ''}</details>`;
+    : shMode ? shTable('quickShCmp', 'quickShP', d.sc)
+    : `<div class="fld"><div class="cmp-head"><span>${H('tc.qs.byDif')}</span>${d.lessons.length > 1 ? modeSeg : ''}</div>${difTable}</div>
+      <div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', QUICK_PRESETS, d.kind, v => H('tc.quick.k.' + v))}</div>`;
   // 4. pass line and time
   const passSel = `<select class="select" data-qsel="pass" aria-label="${esc(T('tc.quick.pass'))}">${[null, ...Array.from({ length: Math.max(0, n - 1) }, (_, i) => n - 1 - i)].map(v => `<option value="${v === null ? '' : v}" ${pass === v ? 'selected' : ''}>${esc(v === null ? T('tc.quick.passAll') : T('tc.quick.passN', { n: v }))}</option>`).join('')}</select>`;
   const time = `<div class="q-limit">${seg('limitBy', ['len', 'end'], d.limitBy, v => H(v === 'len' ? 'tc.live.byLen' : 'tc.live.byEnd'))}
@@ -347,9 +366,9 @@ function quickHTML(c) {
   const s4 = `<div class="qs-row">${lvMode ? '' : `<div class="fld"><span>${H('tc.quick.pass')}</span>${passSel}</div>`}<div class="fld"><span>${H('tc.quick.limit')}</span>${time}</div></div>
     ${tableSel ? `<details class="qs-more" ${d.tb ? 'open' : ''}><summary>${H('tc.qs.more')}</summary>${tableSel}</details>` : ''}`;
   // the test as it will be
-  const wanted = d.goal === 'quick' && d.mode === 'detail' ? d.lessons.reduce((a, k) => a + KINDS.reduce((b, st) => b + d.per[k][st], 0), 0) : d.goal === 'quick' ? d.n : shMode ? d.sn : n;
+  const wanted = d.goal === 'quick' ? sum3(quickCounts(d)) : shMode ? sum3(d.sc) : n;
   const short = h => { const t = String(h).replace(/<rt>[^<]*<\/rt>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); return esc(t.length > 54 ? t.slice(0, 52) + '…' : t); };
-  const pv = probs.map((p, j) => `<details class="qs-pv"><summary><b>Q${j + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span><span class="qs-pv-t"><small class="muted">${p.basic ? '🧱' : `L${LESSON_BY_KEY[p.lesson].no}${p.lv ? `·Lv${p.lv}` : ''}`}</small> ${short(probTextH(p))}</span>
+  const pv = probs.map((p, j) => `<details class="qs-pv"><summary><b>Q${j + 1}</b><span class="tag st-${p.stage}">${stageNameH(p)}</span>${slots[j] && slots[j].bd ? `<span class="bd d${slots[j].bd}">${H('dif.' + slots[j].bd)}</span>` : ''}<span class="qs-pv-t"><small class="muted">${p.basic ? '🧱' : `L${LESSON_BY_KEY[p.lesson].no}`}</small> ${short(probTextH(p))}</span>
       <button class="btn btn-ghost btn-xs" data-act="quickSwap" data-k="${j}" ${nextFree(S.engine, slots, j, d.seed, d.goal === 'shape' ? '' : d.tb) === null ? 'disabled' : ''} title="${esc(T('tc.quick.swapTip'))}">${I.repeat}</button></summary>
       <div class="qs-pv-b"><p class="prob-text">${probTextH(p)}</p><div class="muted small">${H('hint.answer')}</div>${probAnsH(p)}</div></details>`).join('');
   const ready = n && draftLimit(d) !== null;
@@ -364,7 +383,7 @@ function quickHTML(c) {
   return `<div class="qs-wrap"><div class="qs-main">
       ${step(1, H('tc.qs.s1'), s1)}
       ${step(2, H('tc.qs.s2'), s2)}
-      ${step(3, H('tc.qs.s3'), s3)}
+      ${step(3, H(lvMode ? 'tc.qs.s3' : 'tc.qs.s3dif'), s3)}
       ${step(4, H('tc.qs.s4'), s4)}
     </div>${side}</div>
     ${quickHistoryHTML(c)}`;
@@ -563,7 +582,7 @@ function assignHTML(c) {
     <div class="fld"><span>${H('tc.previewTitle')}</span><small class="muted">${H('tc.previewTip')}</small>
       <div class="preview-list">${(c.lessons || []).filter(k => LESSON_BY_KEY[k]).map(k => {
         const l = LESSON_BY_KEY[k];
-        return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code, c.format).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span> ${problemHTML(p, L())}${answerHTML(p)}</div>`).join('')}</details>`;
+        return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code, c.format).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span>${p.bd ? `<span class="bd d${p.bd}">${H('dif.' + p.bd)}</span>` : ''} ${problemHTML(p, L())}${answerHTML(p)}</div>`).join('')}</details>`;
       }).join('') || `<p class="muted">${H('tc.noLessons')}</p>`}</div></div>
   </form>
   ${taskHTML(c)}`;
@@ -575,7 +594,13 @@ const TDRAFT = 'sqln.taskDraft';
 const redrawTask = () => { const el = document.querySelector('.task-card'); if (el && S.klass) el.outerHTML = taskHTML(S.klass); };
 const isTaskRow = a => /^task:/.test(a.problem_id || '');
 const tasksInDb = c => Object.prototype.hasOwnProperty.call(c, 'tasks');
-function taskDraft() { const d = Store.get(TDRAFT, null) || {}; return { shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), kind: SHAPE_KINDS.includes(d.kind) ? d.kind : 'mix', n: Number.isInteger(d.n) && d.n >= 1 && d.n <= 30 ? d.n : 10 }; }
+function taskDraft() {
+  const d = Store.get(TDRAFT, null) || {}, kind = SHAPE_KINDS.includes(d.kind) ? d.kind : 'mix', n = Number.isInteger(d.n) && d.n >= 1 && d.n <= 30 ? d.n : 10;
+  return { shapes: Array.isArray(d.shapes) ? d.shapes.filter(k => BASIC_BY_KEY[k]) : BASIC_CORE.map(x => x.key), sc: cnt3(d.sc, CMP_CELL) || shapeCountsOf(n, kind) };   // sc: fill-ins, orderings, writing
+}
+/** what a given task asks: the counts of each kind (older tasks: n of one kind or of all in turn) */
+const taskCounts = t => (cnt3(t.cnt, 30) || shapeCountsOf(t.n, t.kind));
+const taskCountsH = t => { const c = taskCounts(t); return [['stage.fill', c[0]], ['stage.order', c[1]], ['rv.write', c[2]]].filter(x => x[1]).map(([k, n]) => `${H(k)} ${n}`).join(' · '); };
 /** each student's result: { m, ok (problems solved), tried, last } */
 function taskRows(t) {
   const pre = `task:${t.id}:`, rows = (S.tAtt || []).filter(a => a.problem_id.startsWith(pre));
@@ -584,8 +609,7 @@ function taskRows(t) {
 }
 function taskHTML(c) {
   const t = c.tasks && c.tasks.mix, d = taskDraft();
-  const seg = (k, vals, cur, label) => `<div class="seg">${vals.map(v => `<button type="button" class="seg-b ${cur === v ? 'on' : ''}" data-act="taskSet" data-k="${k}" data-v="${v}" aria-pressed="${cur === v}">${label(v)}</button>`).join('')}</div>`;
-  const now = t ? `<div class="task-now"><div class="task-now-h"><b>📌 ${H('tc.task.now')}</b><span class="muted small">${fmtTime(t.at)} · ${H('tc.task.what', { n: t.n })} · ${shapeKindH(t.kind)}</span>
+    const now = t ? `<div class="task-now"><div class="task-now-h"><b>📌 ${H('tc.task.now')}</b><span class="muted small">${fmtTime(t.at)} · ${H('tc.task.what', { n: t.n })} · ${taskCountsH(t)}</span>
       <button type="button" class="btn btn-ghost btn-xs" data-act="taskClear">${H('tc.task.clear')}</button></div>
       <div class="q-chips">${t.shapes.filter(k => BASIC_BY_KEY[k]).map(k => `<span class="q-chip">${shapeNameH(k)}</span>`).join('')}</div>
       <div class="q-table-wrap"><table class="q-table task-tbl"><thead><tr><th>${H('class.nickname')}</th><th>${H('tc.task.solved')}</th><th>${H('tc.task.tried')}</th><th>${H('tc.task.last')}</th></tr></thead>
@@ -593,9 +617,9 @@ function taskHTML(c) {
   return `<section class="card task-card"><h2>🧱 ${H('tc.task.title')}</h2><p class="muted">${H('tc.task.sub')}</p>
     ${now}
     ${shapePickHTML(d.shapes, 'taskShape')}
-    <div class="q-row"><div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'taskSet', k: 'n', value: d.n, presets: SHAPE_COUNTS, min: 1, max: 30, secEach: 40, lang: L() })}</div>
-      <div class="fld"><span>${H('tc.quick.kind')}</span>${seg('kind', SHAPE_KINDS, d.kind, shapeKindH)}</div></div>
-    <div class="actions"><button type="button" class="btn btn-primary" data-act="taskSave" ${d.shapes.length ? '' : 'disabled'}>📌 ${H(t ? 'tc.task.replace' : 'tc.task.give')}</button><span class="muted small">${H('tc.task.note')}</span></div>
+    <div class="fld"><span>${H('tc.qs.byKind')}</span>${composeHTML({ act: 'taskCmp', rows: [{ id: '@all', label: H('tc.shape.row'), text: '' }], cols: [['stage.fill', 's1'], ['stage.order', 's2'], ['rv.write', 's3']].map(([k, tone], i) => ({ id: i, label: H(k), tone, text: T(k) })),
+      get: (r, i) => d.sc[i], max: CMP_CELL, totalMax: 30, secEach: 40, lang: L(), presets: ['easy', 'even', 'hard'].map(v => ({ v, label: H('dif.p.' + v) })), presetAct: 'taskP', presetOn: presetOf([d.sc], ['easy', 'even', 'hard']), note: H('tc.shape.cmpNote') })}</div>
+    <div class="actions"><button type="button" class="btn btn-primary" data-act="taskSave" ${d.shapes.length && sum3(d.sc) ? '' : 'disabled'}>📌 ${H(t ? 'tc.task.replace' : 'tc.task.give')}</button><span class="muted small">${H('tc.task.note')}</span></div>
   </section>`;
 }
 /* ---------- the class's problem format: how many problems of each kind per lesson ---------- */
@@ -606,38 +630,30 @@ const FORMAT_PRESETS = {
   writeMain: { demo: true, fill: 0, order1: 0, order2: 0, write: 3 }
 };
 const FMT_LABEL = { fill: 'tc.fmtFill', order1: 'tc.fmtOrder1', order2: 'tc.fmtOrder2', write: 'tc.fmtWrite' };
+/* the format being set on the assignment page (saved with the assignment): { cid, f } */
+let fmtD = null;
+const fmtOf = c => { if (!fmtD || fmtD.cid !== c.id) fmtD = { cid: c.id, f: Object.assign({ dif: 0 }, normFormat(c.format) || STANDARD_FORMAT) }; return fmtD.f; };
+const redrawFormat = () => { const el = document.querySelector('.fmt-fld'); if (el && S.klass) el.outerHTML = formatFieldHTML(S.klass); };
+const FMT_TONE = { fill: 's1', order1: 's2', order2: 's2', write: 's3' };
 function formatFieldHTML(c) {
-  const f = normFormat(c.format) || STANDARD_FORMAT;
+  const f = fmtOf(c), dif = f.dif || 0;
+  const table = composeHTML({ act: 'fmtCmp', rows: [{ id: 'n', label: `${H('tc.fmt.perLesson')}${f.demo ? `<small>＋ ${H('tc.fmtDemo')}</small>` : ''}`, text: '' }],
+    cols: FORMAT_KEYS.map(k => ({ id: k, label: H(FMT_LABEL[k]), tone: FMT_TONE[k], text: T(FMT_LABEL[k]) })), get: (r, k) => f[k], max: FORMAT_MAX, lang: L(), hideTotal: true,
+    presets: Object.keys(FORMAT_PRESETS).map(k => ({ v: k, label: H('tc.fmtP.' + k) })), presetAct: 'fmtPreset',
+    presetOn: Object.keys(FORMAT_PRESETS).find(k => FORMAT_KEYS.every(x => FORMAT_PRESETS[k][x] === f[x]) && FORMAT_PRESETS[k].demo === f.demo) || null });
   return `<div class="fld fmt-fld"><span>${H('tc.format')}</span><small class="muted">${H('tc.formatTip')}</small>
-    <div class="fmt-presets"><b class="small">${H('tc.fmtPresets')}</b>${Object.keys(FORMAT_PRESETS).map(k => `<button type="button" class="btn btn-ghost btn-xs" data-act="fmtPreset" data-v="${k}">${H('tc.fmtP.' + k)}</button>`).join('')}</div>
-    <div class="fmt-grid">
-      <label class="chk fmt-demo"><input type="checkbox" name="fmt_demo" data-fmt ${f.demo ? 'checked' : ''}><span>${H('tc.fmtDemo')}</span></label>
-      ${FORMAT_KEYS.map(k => `<label class="fmt-n"><span>${H(FMT_LABEL[k])}</span><span class="stepper"><button type="button" class="btn btn-ghost btn-xs" data-act="fmtStep" data-k="${k}" data-d="-1" aria-label="−">−</button><input type="number" name="fmt_${k}" data-fmt min="0" max="${FORMAT_MAX}" value="${f[k]}" inputmode="numeric"><button type="button" class="btn btn-ghost btn-xs" data-act="fmtStep" data-k="${k}" data-d="1" aria-label="+">+</button></span></label>`).join('')}
-    </div>
+    <button type="button" class="fmt-demo-b ${f.demo ? 'on' : ''}" data-act="fmtDemo" aria-pressed="${f.demo}"><i>${f.demo ? '✓' : ''}</i>${H('tc.fmtDemo')}</button>
+    ${table}
+    <div class="fmt-dif"><b class="small">${H('dif.title')}</b><div class="seg">${[0, 1, 2, 3, 4].map(v => `<button type="button" class="seg-b ${dif === v ? 'on' : ''} ${v && v < 4 ? 'd' + v : ''}" data-act="fmtDif" data-v="${v}" aria-pressed="${dif === v}">${H(v === 4 ? 'dif.rise' : 'dif.' + (v || 'any'))}</button>`).join('')}</div>
+      <small class="muted">${H(dif === 4 ? 'tc.fmt.riseNote' : dif ? 'dif.note' : 'tc.fmt.anyNote')}</small></div>
     <p class="fmt-sum" id="fmt-sum">${formatSummary(f)}</p>
     <small class="muted">${H('tc.fmtNote')}</small></div>`;
 }
-function readFormat(form) {
-  const fd = new FormData(form);
-  const f = { demo: !!fd.get('fmt_demo') };
-  FORMAT_KEYS.forEach(k => { f[k] = +fd.get('fmt_' + k) || 0; });
-  return f;
-}
+function readFormat() { return Object.assign({}, fmtD ? fmtD.f : STANDARD_FORMAT); }
 function formatSummary(f) {
   const n = stagesFor(LESSON_BY_KEY.where, f).length;
   const parts = [f.demo ? T('tc.fmtDemo') : null, ...FORMAT_KEYS.filter(k => f[k]).map(k => `${T(FMT_LABEL[k])} ×${f[k]}`)].filter(Boolean);
-  return `${H('tc.fmtTotal', { n })}<span class="muted"> = ${esc(parts.join(' ＋ '))}</span>`;
-}
-function setFormatFields(f) {
-  const form = document.querySelector('[data-form="assign"]');
-  if (!form) return;
-  form.querySelector('[name="fmt_demo"]').checked = f.demo;
-  FORMAT_KEYS.forEach(k => { form.querySelector(`[name="fmt_${k}"]`).value = f[k]; });
-  updateFormatSummary();
-}
-function updateFormatSummary() {
-  const form = document.querySelector('[data-form="assign"]'), out = document.getElementById('fmt-sum');
-  if (form && out) out.innerHTML = formatSummary(normFormat(readFormat(form)) || STANDARD_FORMAT);
+  return `${H('tc.fmtTotal', { n })}<span class="muted"> = ${esc(parts.join(' ＋ '))}${f.dif ? ` · ${esc(T(f.dif === 4 ? 'dif.rise' : 'dif.' + f.dif))}` : ''}</span>`;
 }
 
 function stageName(p) { return (p.stage === 'write' || p.stage === 'quiz' ? T('stage.' + p.stage, { n: p.wn }) : p.stage === 'order' && p.of > 1 ? T('stage.orderN', { n: p.wn }) : T('stage.' + p.stage)) + (p.stage === 'order' && p.level === 2 && p.fmt ? ' · ' + T('drill.lv2') : ''); }
@@ -1157,6 +1173,10 @@ function timerError(e) {
 const actions = {
   quickSet(el) {
     const d = quickDraft(S.klass), k = el.dataset.k, v = el.dataset.v;
+    if (k === 'mode' && v !== d.mode) {   // keep what was set: the totals become the rows, or the rows add up
+      if (v === 'detail') d.grid = spreadGrid(d.lessons.filter(x => kindsOf(x, S.engine, d.tb).length), d.cnt);
+      else { const t = quickCounts(d); if (sum3(t)) d.cnt = t.map(x => Math.min(CMP_CELL, x)); }
+    }
     if (k === 'n') d.n = +v;
     else if (k === 'sn') { d.sn = +v; d.swaps = {}; }
     else if (k === 'dif') { d.dif = +v; d.swaps = {}; }
@@ -1176,7 +1196,8 @@ const actions = {
     const c = S.klass, d = taskDraft(); if (!d.shapes.length) return;
     if (c.tasks && c.tasks.mix && !confirm(T('tc.task.replaceConfirm'))) return;
     el.disabled = true;
-    const mix = { id: randomCode(5), shapes: d.shapes, kind: d.kind, n: d.n, seed: randomCode(4), at: new Date(nowMs()).toISOString() };
+    if (!sum3(d.sc)) return;
+    const mix = { id: randomCode(5), shapes: d.shapes, cnt: d.sc, kind: 'mix', n: sum3(d.sc), seed: randomCode(4), at: new Date(nowMs()).toISOString() };
     try { S.klass = await backend.updateClass(c.id, { tasks: Object.assign({}, c.tasks || {}, { mix }) }); redrawTask(); toast(T('tc.task.given')); }
     catch (e) { console.error(e); el.disabled = false; toast(T(tasksInDb(c) ? 'class.netError' : 'tc.task.schema')); }
   },
@@ -1185,6 +1206,23 @@ const actions = {
     try { const tasks = Object.assign({}, c.tasks); delete tasks.mix; S.klass = await backend.updateClass(c.id, { tasks: Object.keys(tasks).length ? tasks : null }); redrawTask(); }
     catch (e) { console.error(e); toast(T('class.netError')); }
   },
+  quickCmp(el) {   // one more / one less in a cell of the difficulty table
+    const d = quickDraft(S.klass), b = +el.dataset.c - 1, dd = +el.dataset.d, row = d.mode === 'detail' ? d.grid[el.dataset.r] : d.cnt;
+    if (!row) return;
+    const max = d.mode === 'detail' ? CMP_CELL_L : CMP_CELL;
+    if (dd > 0 && sum3(quickCounts(d)) >= CMP_TOTAL) return;
+    row[b] = Math.max(0, Math.min(max, row[b] + dd)); d.swaps = {}; saveQDraft(d); refreshTab();
+  },
+  quickDifP(el) {   // a preset: the same number of problems, split by the preset (per lesson in the per-lesson table)
+    const d = quickDraft(S.klass), r = DIF_RATIOS[el.dataset.v]; if (!r) return;
+    if (d.mode === 'detail') d.lessons.forEach(k => { d.grid[k] = splitBy(sum3(d.grid[k]) || 1, r).map(x => Math.min(CMP_CELL_L, x)); });
+    else d.cnt = splitBy(sum3(d.cnt) || 3, r).map(x => Math.min(CMP_CELL, x));
+    d.swaps = {}; saveQDraft(d); refreshTab();
+  },
+  quickShCmp(el) { const d = quickDraft(S.klass), i = +el.dataset.c; if (+el.dataset.d > 0 && sum3(d.sc) >= 30) return; d.sc[i] = Math.max(0, Math.min(CMP_CELL, d.sc[i] + +el.dataset.d)); d.swaps = {}; saveQDraft(d); refreshTab(); },
+  quickShP(el) { const d = quickDraft(S.klass), r = DIF_RATIOS[el.dataset.v]; if (!r) return; d.sc = splitBy(sum3(d.sc) || 5, r).map(x => Math.min(CMP_CELL, x)); d.swaps = {}; saveQDraft(d); refreshTab(); },
+  taskCmp(el) { const d = taskDraft(), i = +el.dataset.c; if (+el.dataset.d > 0 && sum3(d.sc) >= 30) return; d.sc[i] = Math.max(0, Math.min(CMP_CELL, d.sc[i] + +el.dataset.d)); Store.set(TDRAFT, d); redrawTask(); },
+  taskP(el) { const d = taskDraft(), r = DIF_RATIOS[el.dataset.v]; if (!r) return; d.sc = splitBy(sum3(d.sc) || 10, r).map(x => Math.min(CMP_CELL, x)); Store.set(TDRAFT, d); redrawTask(); },
   quickShape(el) { const d = quickDraft(S.klass); d.shapes = shapeToggle(d.shapes, el.dataset.v); d.swaps = {}; saveQDraft(d); refreshTab(); },
   quickLv(el) {   // the chapters of a level test
     const d = quickDraft(S.klass), v = el.dataset.v;
@@ -1334,12 +1372,16 @@ const actions = {
     shownState = null; tickTeacherTimer();
   },
   async toggleOpen() { try { S.klass = await backend.updateClass(S.klass.id, { open: !S.klass.open }); render(); } catch (e) { toast(T('class.netError')); } },
-  fmtPreset(el) { setFormatFields(FORMAT_PRESETS[el.dataset.v]); },
-  fmtStep(el) {
-    const inp = document.querySelector(`[name="fmt_${el.dataset.k}"]`);
-    inp.value = Math.max(0, Math.min(FORMAT_MAX, (+inp.value || 0) + +el.dataset.d));
-    updateFormatSummary();
+  fmtPreset(el) { const p = FORMAT_PRESETS[el.dataset.v]; if (!p || !S.klass) return; const f = fmtOf(S.klass); Object.assign(f, p, { dif: f.dif }); redrawFormat(); },
+  fmtCmp(el) {   // one more / one less of a kind per lesson
+    if (!S.klass) return; const f = fmtOf(S.klass), k = el.dataset.c;
+    f[k] = Math.max(0, Math.min(FORMAT_MAX, f[k] + +el.dataset.d));
+    if (!f.demo && FORMAT_KEYS.every(x => !f[x])) f[k] = 1;   // never an empty lesson
+    redrawFormat();
   },
+  fmtDemo() { if (!S.klass) return; const f = fmtOf(S.klass); f.demo = !f.demo; if (!f.demo && FORMAT_KEYS.every(x => !f[x])) f.write = 1; redrawFormat(); },
+  fmtDif(el) { if (!S.klass) return; fmtOf(S.klass).dif = +el.dataset.v; redrawFormat(); },
+
   setToday() { document.querySelector('[name="set_code"]').value = todayCode(); },
   setRandom() { document.querySelector('[name="set_code"]').value = randomCode(); },
   async reload() { await reloadClassData(); refreshTab(); toast(T('tc.reloaded')); },
@@ -1434,8 +1476,6 @@ document.addEventListener('change', async e => {
 });
 // open / closed cards (details with data-toggle) are remembered
 document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.toggle) { S[d.dataset.toggle] = d.open; saveView(); } }, true);
-document.addEventListener('input', e => { if (e.target.dataset && 'fmt' in e.target.dataset) updateFormatSummary(); });
-document.addEventListener('change', e => { if (e.target.dataset && 'fmt' in e.target.dataset) updateFormatSummary(); });
 document.addEventListener('input', e => {
   if (e.target.dataset.tk === 'title') { S.test.title = e.target.value; rerenderPaper(); }
 });
@@ -1460,7 +1500,7 @@ document.addEventListener('submit', async e => {
       location.hash = `#/c/${c.id}/assign`;
     } else if (kind === 'assign') {
       const patch = { lessons: LESSONS.map(l => l.key).filter(k => fd.getAll('lesson').includes(k)), set_code: normCode(fd.get('set_code')) || todayCode(), answer_policy: fd.get('policy') || 'after2' };
-      const fmt = normFormat(readFormat(f));   // null = the usual set
+      const fmt = normFormat(readFormat());   // null = the usual set
       const removed = (S.klass.lessons || []).some(k => !patch.lessons.includes(k));
       if (liveOn(S.klass) && (patch.set_code !== S.klass.set_code || formatKey(fmt) !== formatKey(S.klass.format) || removed) && !confirm(T('tc.live.changeConfirm'))) { if (btn) btn.disabled = false; return; }
       if (fmt || S.klass.format) patch.format = fmt;   // old databases without the column keep working with the usual set

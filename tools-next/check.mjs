@@ -696,6 +696,36 @@ console.log('15. Difficulty levels (難易度)');
 }
 function makeProbe(l, p) { try { return eng.buildProblem(l, p, 'write', 0, 'chk'); } catch (e) { return null; } }
 
+/* ---------- 15b. the count tables: problems by difficulty, the class format's difficulty ---------- */
+console.log('15b. Counts by difficulty');
+{
+  const Q = await import('../js/quick.js'), E = await import('../js/engine.js'), { splitBy } = Q;
+  [[5, [1, 1, 1]], [7, [3, 2, 0]], [1, [1, 2, 2]], [10, [1, 0, 0]]].forEach(([n, r]) => { const x = splitBy(n, r); if (x.reduce((a, b) => a + b, 0) !== n || x.some((v, i) => !r[i] && v)) err(`splitBy(${n}, ${r}) = ${x}`); });
+  const ls = ['where', 'orderby', 'groupby'];
+  for (const cnt of [[2, 1, 1], [0, 3, 0], [1, 0, 4]]) {
+    const g = Q.spreadGrid(ls, cnt), slots = Q.gridSlots(eng, g, ls, 'mix', 'CHK', '');
+    [1, 2, 3].forEach(b => { if (slots.filter(x => x.bd === b).length !== cnt[b - 1]) err(`gridSlots ${cnt}: ${slots.filter(x => x.bd === b).length} problems of band ${b}`); });
+    if (slots.some((x, i) => i && x.bd < slots[i - 1].bd)) err('gridSlots: the easier problems should come first');
+    const per = ls.map(k => slots.filter(x => x.k === k).length); if (Math.max(...per) - Math.min(...per) > 1) err(`spreadGrid ${cnt}: uneven ${per}`);
+    const probs = Q.slotProblems(eng, 'CHK', slots, ''); if (probs.length !== slots.length) err('gridSlots: a slot has no problem');
+  }
+  const { BASIC_CORE } = await import('../js/basics.js'), sh = Q.shapeCountSlots(eng, BASIC_CORE.map(x => x.key), [2, 1, 3], 'CHK');
+  if (sh.length !== 6 || ['afill', 'aorder', 'awrite'].some((st, i) => sh.filter(x => x.st === st).length !== [2, 1, 3][i])) err(`shapeCountSlots: wrong counts ${sh.map(x => x.st)}`);
+  for (const dif of [1, 3, 4]) {
+    const f = { demo: true, fill: 1, order1: 1, order2: 0, write: 3, dif }, key = E.formatKey(f);
+    if (E.formatKey(E.formatFromKey(key)) !== key) err(`format key ${key} does not come back`);
+    for (const k of ['select', 'where', 'orderby', 'groupby', 'inner']) {
+      const L = E.LESSON_BY_KEY[k], pr = eng.lessonProblems(L, 'CHKD', f).filter(p => p.kind !== 'demo');
+      if (pr.length !== 5) err(`format dif ${dif}: ${k} has ${pr.length} problems`);
+      const want = pr.map((p, j) => E.bandOf(dif, j, pr.length));
+      pr.forEach((p, j) => { if (p.bd && p.bd !== want[j]) err(`format dif ${dif}: ${k} problem ${j + 1} is band ${p.bd}`); });
+      if (!pr.some(p => p.bd)) warn(`format dif ${dif}: ${k} has no levels`);
+    }
+  }
+  if (E.normFormat({ demo: true, fill: 1, order1: 1, order2: 1, write: 2, dif: 0 }) !== null) err('the usual format with no difficulty should be null');
+  console.log('   counts, order and class-format difficulty checked');
+}
+
 /* ---------- 16. the Python course (pandas) ---------- */
 console.log('16. Python course (pandas)');
 {

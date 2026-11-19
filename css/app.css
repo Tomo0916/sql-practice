@@ -1389,3 +1389,61 @@ body.pj-open { overflow: hidden; }
 .pe-why code { font-family: var(--mono); background: var(--code-bg); color: var(--code-ink); border-radius: 6px; padding: 1px 5px; overflow-wrap: anywhere; }
 .pe-done { color: var(--ok); }
 .py-pill.half { background: color-mix(in srgb, #e0a100 18%, transparent); border-color: transparent; color: #8a5d00; }
+
+/* ---------- the count tables (問題の組み立て): rows × difficulty or kind, with totals and a bar ---------- */
+.d1, .s1 { --tone: #10956a; --tone-soft: color-mix(in srgb, #10956a 13%, transparent); }
+.d2, .s2 { --tone: #3a63d8; --tone-soft: color-mix(in srgb, #3a63d8 13%, transparent); }
+.d3, .s3 { --tone: #c2620a; --tone-soft: color-mix(in srgb, #c2620a 14%, transparent); }
+.bd { display: inline-block; padding: 1px 7px; border-radius: 99px; font-size: .72rem; font-weight: 800; color: var(--tone, var(--ink-2)); background: var(--tone-soft, var(--surface-2)); white-space: nowrap; }
+.cmp { display: grid; gap: 10px; min-width: 0; }
+.cmp-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.cmp-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.cmp-p { padding: 5px 12px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
+.cmp-p:hover { border-color: var(--accent); color: var(--accent); }
+.cmp-p.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cmp-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.cmp-t { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.cmp-t th, .cmp-t td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: center; vertical-align: middle; }
+.cmp-t tbody tr:last-child > *, .cmp-t tfoot tr > * { border-bottom: 0; }
+.cmp-t thead th { background: var(--surface-2); font-weight: 700; }
+.cmp-ch b { display: block; color: var(--tone, var(--ink)); font-size: .95rem; }
+.cmp-ch small { display: block; color: var(--ink-3); font-weight: 500; font-size: .72rem; line-height: 1.3; margin-top: 2px; }
+.cmp-ch { border-top: 3px solid var(--tone, transparent); }
+.cmp-rh { text-align: left !important; font-weight: 600; min-width: 9em; }
+.cmp-rh small { display: block; color: var(--ink-3); font-weight: 400; font-size: .75rem; }
+.cmp-rh b { color: var(--ink-3); margin-right: 4px; }
+.cmp-t td.on { background: var(--tone-soft); }
+.cmp-st { display: inline-flex; align-items: center; gap: 2px; }
+.cmp-st button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font: 700 1rem/1 var(--sans, inherit); cursor: pointer; display: grid; place-items: center; }
+.cmp-st button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.cmp-st button:disabled { opacity: .3; cursor: default; }
+.cmp-st b { min-width: 1.8em; font: 800 1.15rem/1 var(--mono); color: var(--ink-3); }
+.cmp-t td.on .cmp-st b { color: var(--tone, var(--ink)); }
+.cmp-na { color: var(--ink-3); }
+.cmp-sum { background: var(--surface-2); font-family: var(--mono); width: 3.5em; }
+.cmp-t tfoot td, .cmp-t tfoot th { background: var(--surface-2); border-top: 1px solid var(--line-2); }
+.cmp-t tfoot td b { color: var(--tone, var(--ink)); font-family: var(--mono); }
+.cmp-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; gap: 2px; background: var(--surface-2); }
+.cmp-bar i { background: var(--tone); }
+.cmp-total { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: .92rem; }
+.cmp-total > .muted { display: inline-flex; flex-wrap: wrap; gap: 4px 12px; }
+.cmp-lg { display: inline-flex; align-items: center; gap: 5px; color: var(--tone); font-weight: 700; }
+.cmp-lg i { width: 10px; height: 10px; border-radius: 3px; background: var(--tone); }
+.fmt-demo-b { justify-self: start; display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.fmt-demo-b i { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--line-2); display: grid; place-items: center; font-style: normal; font-size: .75rem; color: #fff; }
+.fmt-demo-b.on i { background: var(--accent); border-color: var(--accent); }
+.fmt-dif { display: grid; gap: 6px; justify-items: start; }
+.seg-b.d1.on, .seg-b.d2.on, .seg-b.d3.on { color: var(--tone); }
+@media (max-width: 560px) { .cmp-t th, .cmp-t td { padding: 6px 4px; } .cmp-rh { min-width: 6em; } .cmp-st button { width: 26px; height: 26px; } .cmp-ch small { display: none; } }
+.fmt-demo-b { align-self: flex-start; width: auto; }
+.fmt-dif .seg { flex-wrap: wrap; }
+.fmt-dif .seg-b, .cmp-head .seg-b { white-space: nowrap; }
+.fld .cmp, .fmt-fld, .fmt-fld > * { min-width: 0; max-width: 100%; }
+@media (max-width: 560px) {
+  .cmp-st { flex-direction: column-reverse; gap: 3px; }
+  .cmp-st b { font-size: 1.05rem; }
+  .cmp-t th, .cmp-t td { padding: 6px 3px; }
+  .cmp-ch b { font-size: .8rem; line-height: 1.25; }
+  .cmp-rh { min-width: 0; font-size: .82rem; }
+  .cmp-sum { width: 2.4em; }
+}
