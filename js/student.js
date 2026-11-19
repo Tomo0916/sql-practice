@@ -1221,7 +1221,20 @@ function quickBannerHTML() {
       ? `<div class="live-banner quick-banner ended"><span>⚡ ${H('qk.ended')}</span><a class="btn btn-ghost btn-sm" href="#/quick">${H('qk.seeResult')}${I.next}</a></div>` : '';
   }
   if (!quickOn(S.klass) || S.route.view === 'quick' || qFinished() || qPhaseNow() === 'up') return '';
-  return `<div class="live-banner quick-banner"><span>⚡ ${H('qk.banner')}</span><a class="btn btn-ok btn-sm" href="#/quick">${H('qk.back')}${I.next}</a></div>`;
+  const back = qBack !== null && qItems()[qBack] ? `#/quick/${qBack}` : '#/quick';   // back to the problem the student went to look up
+  return `<div class="live-banner quick-banner"><span>⚡ ${H('qk.banner')}</span><a class="btn btn-ok btn-sm" href="${back}">${H('qk.back')}${I.next}</a></div>`;
+}
+/** after a wrong answer in a quick test: the problem's lesson (and its lecture) to look at, then back to this problem */
+let qBack = null;   // the quick test's problem to come back to
+function qRefHTML(prob) {
+  if (!prob || !prob.quick || qOnce() || qPhaseNow() !== 'run') return '';
+  const py = !!PD_BY_KEY[prob.lesson], lesson = py ? null : LESSON_BY_KEY[prob.lesson];
+  if (!py && !lesson) return '';
+  const name = py ? `Python ${PD_BY_KEY[prob.lesson].no} · ${rubyHTML(raw('pd.t.' + prob.lesson, L()))}` : `Lesson ${lesson.no} · ${lessonTitleHTML(lesson, L())}`;
+  const go = (href, label) => `<a class="btn btn-ghost btn-sm" href="${href}" data-act="qRef" data-qn="${prob.qn}">${label}</a>`;
+  return `<div class="qk-ref"><span>📖 ${H('qk.refTitle')}</span><span class="muted small">${name}</span>
+    <span class="qk-ref-b">${go(py ? `#/py/${prob.lesson}/0` : `#/l/${prob.lesson}/0`, H('qk.refLesson'))}${hasLecture(prob.lesson) ? go(`#/lecture/${prob.lesson}`, '📽 ' + H('lec.open')) : ''}</span>
+    <small class="muted">${H('qk.refNote')}</small></div>`;
 }
 const qRuleHTML = q => H('qk.ruleLine', { n: q.n, pass: passOf(q), t: q.end ? spanText(limitSecOf(q), n => T('qk.minutes', { n })) : T('qk.noLimit') });
 function quickViewHTML() {
@@ -1759,7 +1772,7 @@ function feedbackHTML(prob) {
   const skip = qn ? `<a class="btn ${qOnce() ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" href="#/quick/${qn.qn}">${qOnce() ? H('btn.next') + I.next : H('qk.other')}</a>` : S.route.view === 'quick' && qOnce() ? `<a class="btn btn-primary fb-next" href="#/quick/done">${H('qk.finish')}</a>` : S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
   const back = stepForMistake(prob, run.sql, run.dx);
   const backHTML = back ? `<div class="bs-back"><span>🧱 ${H('bs.backTitle')}</span><span class="muted small">${bsName(back)}</span><a class="btn btn-ghost btn-sm" href="#/basics/${back}">${H('bs.backGo')}${I.next}</a></div>` : '';
-  return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${backHTML}${run.error && !run.quiet && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
+  return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${backHTML}${S.route.view === 'quick' ? qRefHTML(prob) : ''}${run.error && !run.quiet && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
 }
 
 /* ---------- results ---------- */
@@ -1959,6 +1972,7 @@ function checkOrder() {
  * EVENTS
  * ========================================================= */
 const actions = {
+  qRef(el) { qBack = +el.dataset.qn; saveDraft(); location.hash = el.getAttribute('href'); },   // remember the problem, then open the lesson
   ...pyActions,
   lang: null,
   settings() { openSettings(); },
@@ -2442,6 +2456,7 @@ window.addEventListener('storage', e => {
   installPy({ S, L, save, render,
     // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)
     quickAnswer: (prob, ok, code, reason) => { if (qPhaseNow() !== 'run') { render(); return false; } record(prob, ok, { grade: { reason } }, code); return true; },
+    quickRef: prob => qRefHTML(prob),
     quickNext: prob => { const n = qNext(prob); return n ? `<a class="btn btn-ok fb-next" href="#/quick/${n.qn}">${H('btn.next')}${I.next}</a>` : `<a class="btn btn-ok fb-next" href="#/quick/done">${H('qk.finish')}${I.next}</a>`; } });
   installCheckUI({ mode: 'student', lang: L, engine: () => S.engine, assigned: () => (S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k] && LESSON_BY_KEY[k].kind !== 'quiz') : []),
     onStart(cfg) { const code = encodeCheck(cfg); startCheck(code, cfg); if (location.hash === '#/check/' + code) render(); else location.hash = '#/check/' + code; } });

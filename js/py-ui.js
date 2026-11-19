@@ -164,9 +164,10 @@ async function run() {
   // a quick test: the answer counts like any other (the student page records it); no correct result before the end
   const counted = quick && C.quickAnswer ? C.quickAnswer(prob, ok, code, ok ? null : got.ok ? pdDiff(got.result, exp.result, prob.ordered) : got.timeout ? 'timeout' : 'error') : true;
   const next = quick && ok && C.quickNext ? C.quickNext(prob) : '';
+  const ref = quick && !ok && C.quickRef ? C.quickRef(prob) : '';   // a wrong answer: the lesson to look at
   const html = `<section class="card py-res">${head}${outTxt}
     <div class="py-two">${got.ok ? `<div><div class="muted small strong">${H('pd.yourResult')}</div>${resGrid(got.result)}</div>` : ''}
-    ${!quick && !ok && exp.ok && (got.ok || prob.demo) ? `<div><div class="muted small strong">${H('pd.wantResult')}</div>${resGrid(exp.result)}</div>` : ''}</div>${next}</section>`;
+    ${!quick && !ok && exp.ok && (got.ok || prob.demo) ? `<div><div class="muted small strong">${H('pd.wantResult')}</div>${resGrid(exp.result)}</div>` : ''}</div>${ref}${next}</section>`;
   pyLast.set(prob.id, html);
   if (quick) { if (counted !== false) C.render(); return; }
   out.innerHTML = html;

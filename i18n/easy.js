@@ -1640,5 +1640,9 @@ export default {
   "tc.qs.kp.all": "ぜんぶの {形式|けいしき}",
   /* ---- kinds in the quick test ---- */
   "tc.qs.s3kind": "{問題|もんだい}の {数|かず}・{形式|けいしき}・むずかしさ",
-  "tc.qs.pyNoDif": "Python の {問題|もんだい}は むずかしさの ちがいが ありません。"
+  "tc.qs.pyNoDif": "Python の {問題|もんだい}は むずかしさの ちがいが ありません。",
+  /* ---- looking things up in a quick test ---- */
+  "qk.refTitle": "この レッスンを {見|み}て かんがえよう",
+  "qk.refLesson": "レッスンを {見|み}る",
+  "qk.refNote": "{見|み}おわったら、{上|うえ}の ボタンで この {問題|もんだい}に もどれます。{時間|じかん}は とまりません。"
 };

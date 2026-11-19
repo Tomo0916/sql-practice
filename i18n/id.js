@@ -1639,5 +1639,9 @@ export default {
   "tc.qs.kp.all": "Semua jenis",
   /* ---- kinds in the quick test ---- */
   "tc.qs.s3kind": "Jumlah, jenis, dan kesulitan",
-  "tc.qs.pyNoDif": "Soal Python tidak punya tingkat kesulitan (kolom mana pun memberi jenis soal yang sama)."
+  "tc.qs.pyNoDif": "Soal Python tidak punya tingkat kesulitan (kolom mana pun memberi jenis soal yang sama).",
+  /* ---- looking things up in a quick test ---- */
+  "qk.refTitle": "Lihat pelajaran ini sebagai bantuan",
+  "qk.refLesson": "Buka pelajaran",
+  "qk.refNote": "Setelah selesai, tombol kembali ke tes cepat di atas membawa Anda ke soal ini lagi. Waktu tidak berhenti."
 };

@@ -1639,5 +1639,9 @@ export default {
   "tc.qs.kp.all": "Mọi dạng",
   /* ---- kinds in the quick test ---- */
   "tc.qs.s3kind": "Số bài, dạng và độ khó",
-  "tc.qs.pyNoDif": "Bài Python không chia độ khó (cột nào cũng cho cùng loại bài)."
+  "tc.qs.pyNoDif": "Bài Python không chia độ khó (cột nào cũng cho cùng loại bài).",
+  /* ---- looking things up in a quick test ---- */
+  "qk.refTitle": "Xem bài học này để tham khảo",
+  "qk.refLesson": "Mở bài học",
+  "qk.refNote": "Xem xong, nút quay lại bài kiểm tra nhanh ở trên sẽ đưa bạn về bài này. Thời gian không dừng."
 };

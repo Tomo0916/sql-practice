@@ -1639,5 +1639,9 @@ export default {
   "tc.qs.kp.all": "全部形式",
   /* ---- kinds in the quick test ---- */
   "tc.qs.s3kind": "题数、形式与难度",
-  "tc.qs.pyNoDif": "Python 题目不分难度（放在哪一列都是同类题目）。"
+  "tc.qs.pyNoDif": "Python 题目不分难度（放在哪一列都是同类题目）。",
+  /* ---- looking things up in a quick test ---- */
+  "qk.refTitle": "看看这一课来参考",
+  "qk.refLesson": "打开这一课",
+  "qk.refNote": "看完后，用上方的“返回快速测验”回到这道题。时间不会暂停。"
 };

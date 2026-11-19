@@ -1640,5 +1640,9 @@ export default {
   "tc.qs.kp.all": "全部の形式",
   /* ---- kinds in the quick test ---- */
   "tc.qs.s3kind": "問題の数・形式・難易度",
-  "tc.qs.pyNoDif": "Python の問題は難易度の区別がありません（どの列に入れても同じ種類の問題です）。"
+  "tc.qs.pyNoDif": "Python の問題は難易度の区別がありません（どの列に入れても同じ種類の問題です）。",
+  /* ---- looking things up in a quick test ---- */
+  "qk.refTitle": "このレッスンを見て考えよう",
+  "qk.refLesson": "レッスンを見る",
+  "qk.refNote": "見終わったら、上の「テストにもどる」でこの問題に戻れます。時間は止まりません。"
 };

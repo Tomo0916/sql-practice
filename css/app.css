@@ -1452,3 +1452,8 @@ body.pj-open { overflow: hidden; }
 .cmp-pl { font-size: .78rem; font-weight: 800; color: var(--ink-3); margin-right: 2px; align-self: center; min-width: 3.5em; }
 .kd { font-weight: 700; }
 .kd.k-fill { color: #10956a; } .kd.k-order1, .kd.k-order2 { color: #7a4fd6; } .kd.k-write { color: var(--ink); }
+
+/* a wrong answer in a quick test: the lesson to look at */
+.qk-ref { display: grid; gap: 4px; margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent); }
+.qk-ref > span:first-child { font-weight: 800; }
+.qk-ref-b { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
