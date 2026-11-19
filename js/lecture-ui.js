@@ -70,7 +70,8 @@ export function lectureStepHTML(lesson, step, engine, lang) {
     return `<div class="lec-slide lec-anim"><h2>${s.cases ? th('lec.cases', lang) : tx(s.title, lang)}<small class="muted">${step.frame + 1} / ${s.frames.length}</small></h2>
       ${s.cases ? `<div class="lec-chips">${s.frames.map((x, i) => `<span class="${i === step.frame ? 'on' : i < step.frame ? 'done' : ''}">${x.label ? tx(x.label, lang) : i + 1}</span>`).join('')}</div>` : ''}
       <div class="lec-grid"><div class="lec-left">${code(f) ? sqlHTML(code(f), f.mark, hl) : ''}<p class="lec-cap">${tx(f.cap, lang)}</p></div>
-      ${f.side ? `<div class="lec-table">${sideHTML(f.side, engine)}<div data-anim>${tableHTML(f.table(engine))}</div></div>` : `<div class="lec-table" data-anim>${tableHTML(f.table(engine))}</div>`}</div></div>`;
+      ${f.chart ? `<div class="lec-table lec-chart">${f.table ? tableHTML(f.table(engine)) : ''}${f.chart(engine)}</div>`   // a chart (Python Lesson 21): the data and the picture
+        : f.side ? `<div class="lec-table">${sideHTML(f.side, engine)}<div data-anim>${tableHTML(f.table(engine))}</div></div>` : `<div class="lec-table" data-anim>${tableHTML(f.table(engine))}</div>`}</div></div>`;
   }
   if (s.type === 'points') return `<div class="lec-slide"><h2>${th('lesson.point', lang)}</h2><ol class="lec-points">${s.items.map(n => `<li>${tx(n, lang)}</li>`).join('')}</ol></div>`;
   if (s.type === 'mistake') {

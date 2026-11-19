@@ -797,7 +797,7 @@ console.log('17. Python lectures');
   const P = await import('../js/pandas.js'), { PY_LECTURES, pyTopics } = await import('../js/lectures-py.js');
   const { quizAnswer } = await import('../js/lecture-kit.js'), { execFileSync } = await import('node:child_process');
   const runs = [], checks = [];
-  const need = code => ['books', 'customers', 'orders'].filter(t => new RegExp(`\\b${t}\\b`).test(code));
+  const need = code => Object.keys(P.pdAllTables()).filter(t => new RegExp(`\\b${t}\\b`).test(code));
   const run = (id, code) => { runs.push({ id, code, need: need(code) }); return id; };
   for (const l of P.PD_LESSONS) {
     const key = l.key, L = PY_LECTURES[key];
@@ -832,7 +832,8 @@ console.log('17. Python lectures');
         (f.covers || []).forEach(c => covered.add(c));
         if (!f.code) { err(`python lecture ${key} ${fat}: no code`); return; }
         if (f.mark && !f.code.includes(f.mark)) err(`python lecture ${key} ${fat}: “${f.mark}” is not in the code`);
-        const id = run(`${key}|${fat}`, f.code), st = table(fat, f.table);
+        if (f.chart) { try { if (!/<svg/.test(f.chart(eng))) err(`python lecture ${key} ${fat}: no chart`); } catch (e) { err(`python lecture ${key} ${fat}: the chart fails: ${e.message}`); } }
+        const id = run(`${key}|${fat}`, f.code), st = f.table ? table(fat, f.table) : null;
         if (st && f.res) checks.push({ key, at: fat, id, st, pass: f.res === 'pass', ordered: true });
       });
     });

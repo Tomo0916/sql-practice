@@ -490,6 +490,11 @@ body.presenter table.grid { font-size: 1rem; }
 .formula { font-family: var(--mono); background: var(--code-bg); color: var(--code-ink); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 8px 0; overflow-x: auto; white-space: pre-wrap; }
 .stat-fig { padding: 6px 18px 18px; }
 .res-chart { padding: 8px 12px 14px; border-top: 1px solid var(--line); }
+/* a chart drawn by Python (Lesson 21), and one in a lecture slide */
+.py-plot { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 8px; display: inline-block; max-width: 100%; }
+.py-plot img { display: block; max-width: 100%; height: auto; }
+.lec-chart { display: grid; gap: 10px; }
+.lec-chart .lt { max-height: 220px; overflow: auto; }
 svg.chart { width: 100%; height: auto; max-height: 280px; display: block; font: 11px var(--sans, sans-serif); }
 .chart text { fill: var(--ink-3); }
 .chart .ch-grid line { stroke: var(--line); }

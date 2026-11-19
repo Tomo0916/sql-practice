@@ -43,9 +43,13 @@ export function usedKeys() {
   ['L.more', 'L.moreAgg', 'list.two', 'dif.any', 'dif.1', 'dif.2', 'dif.3', 'dif.about.1', 'dif.about.2', 'dif.about.3', 'bs.all.title', 'dif.more', 'dif.moreAgg', 'cnt.sum'].forEach(k => keys.add(k));
   ['goalQuick', 'goalLevel', 'goalShape'].forEach(k => keys.add('tc.qs.' + k));
   // the Python course (pandas.js): lesson titles, points, problem texts and the feedback
-  ['pd_head', 'pd_cols', 'pd_num', 'pd_text', 'pd_andor', 'pd_loc', 'pd_sort', 'pd_top', 'pd_agg', 'pd_group', 'pd_count', 'pd_merge'].forEach(k => { keys.add('pd.t.' + k); keys.add('pd.p.' + k); });
-  ['head', 'cols', 'filter', 'and', 'or', 'loc', 'sortAsc', 'sortDesc', 'topAsc', 'topDesc', 'agg', 'group', 'count', 'merge'].forEach(k => keys.add('pd.d.' + k));
-  ['kind', 'columns', 'rows', 'order', 'values'].forEach(k => keys.add('pd.ng.' + k));
+  ['pd_head', 'pd_cols', 'pd_num', 'pd_text', 'pd_andor', 'pd_loc', 'pd_sort', 'pd_top', 'pd_agg', 'pd_group', 'pd_count', 'pd_merge',
+    'pd_na', 'pd_newcol', 'pd_str', 'pd_date', 'pd_dup', 'pd_pivot', 'pd_concat', 'pd_how', 'pd_plot'].forEach(k => { keys.add('pd.t.' + k); keys.add('pd.p.' + k); });
+  ['head', 'cols', 'filter', 'and', 'or', 'loc', 'sortAsc', 'sortDesc', 'topAsc', 'topDesc', 'agg', 'group', 'count', 'merge',
+    'na_rows', 'na_notna', 'na_count', 'na_fill', 'new_tax', 'new_ratio', 'new_apply', 'str_contains', 'str_upper', 'str_len', 'str_starts',
+    'date_month', 'date_bymonth', 'date_resample', 'dup_unique', 'dup_first', 'dup_last', 'dup_nunique', 'pivot', 'pivot_two', 'pivot_cross',
+    'concat_all', 'concat_union', 'concat_headtail', 'how_left', 'how_outer', 'how_anti', 'plot_bar', 'plot_group', 'plot_hist', 'plot_scatter'].forEach(k => keys.add('pd.d.' + k));
+  ['kind', 'columns', 'rows', 'order', 'values', 'noplot', 'plot'].forEach(k => keys.add('pd.ng.' + k));
   // the count tables (問題の組み立て): difficulty notes and presets
   [1, 2, 3].forEach(b => keys.add(`dif.${b}s`)); ['long', 'alias', 'omit', 'omitLeft', 'bare'].forEach(k => keys.add('short.' + k)); ['write', 'order', 'ow', 'all'].forEach(v => keys.add('tc.qs.kp.' + v)); ['basic', 'easy', 'even', 'hard'].forEach(v => keys.add('dif.p.' + v));
   // reading Python errors (pyerrors.js): meanings, explanations, the error types of the cheat sheet

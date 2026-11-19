@@ -8,7 +8,7 @@ import { th, t, esc, rubyHTML, raw } from './i18n.js';
 import { gridHTML, highlightPy, pyDescHTML } from './ui.js';
 import { createEditor } from './editor.js';
 import { PD_LESSONS, PD_BY_KEY, PD_N, pdSet, pdTables, pdColumns, pdSame, pdDiff } from './pandas.js';
-import { pyRun, pyWarm, pyState, onPyState } from './pyrun.js';
+import { pyRun, pyWarm, pyPlotWarm, pyState, onPyState } from './pyrun.js';
 import { PE_N, PE_TYPES, peSet, peNeed, peTraceback, cleanTb } from './pyerrors.js';
 
 let C = null;   // { S, L, save, render }
@@ -72,12 +72,21 @@ const SNIPS = {
   pd_sort: [['.sort_values()', 1], [', ascending=False']], pd_top: [['.sort_values()', 1], [', ascending=False'], ['.head()', 1]],
   pd_agg: [['[]', 1], ['.mean()'], ['.sum()'], ['.max()'], ['.min()']],
   pd_group: [['.groupby()', 1], ['[]', 1], ['.mean()'], ['.sum()'], ['.max()'], ['.min()']],
-  pd_count: [['[]', 1], ['.value_counts()']], pd_merge: [['pd.merge()', 1], [', '], ['left_on='], ['right_on=']]
+  pd_count: [['[]', 1], ['.value_counts()']], pd_merge: [['pd.merge()', 1], [', '], ['left_on='], ['right_on=']],
+  pd_na: [['[]', 1], ['.isna()'], ['.notna()'], ['.sum()'], ['.fillna({})', 2], [': ']],
+  pd_newcol: [['[]', 1], [' = '], ['[[]]', 2], ['*'], ['/'], ['1.1'], ['.apply()', 1], ['lambda x: '], ['"high" if x >= '], [' else "low"']],
+  pd_str: [['[]', 1], ['.str.contains()', 1], ['.str.startswith()', 1], ['.str.len()'], ['.str.upper()'], ['>=']],
+  pd_date: [['pd.to_datetime()', 1], ['[]', 1], [' = '], ['.dt.month'], ['=='], ['.groupby()', 1], ['.sum()'], ['.resample("MS", on=)', 1]],
+  pd_dup: [['[]', 1], ['.drop_duplicates()', 1], ['subset=[]', 1], [', keep="last"'], ['.nunique()']],
+  pd_pivot: [['pd.pivot_table()', 1], [', '], ['index='], ['values='], ['aggfunc='], ['"mean"'], ['"sum"'], ['"max"'], ['"min"'], ['[]', 1], ['pd.crosstab()', 1], ['>=']],
+  pd_concat: [['pd.concat([])', 2], ['[]', 1], [', '], ['>='], ['=='], ['.drop_duplicates()'], ['.head()', 1], ['.tail()', 1]],
+  pd_how: [['pd.merge()', 1], [', '], ['left_on='], ['right_on='], ['how='], ['"left"'], ['"outer"'], ['m = '], ['.isna()']],
+  pd_plot: [['.plot.bar()', 1], ['.plot.hist()', 1], ['.plot.scatter()', 1], ['x='], ['y='], ['bins='], [', '], ['.groupby()', 1], ['[]', 1], ['.mean()'], ['.sum()'], ['.max()']]
 };
 const chip = (text, back, cls) => `<button class="kw-chip ${cls || ''}" data-act="pyIns" data-text="${esc(text)}" data-back="${back || 0}">${esc(text)}</button>`;
 function chipsHTML(prob) {
-  const tabs = pdColumns(prob), vals = [];
-  ['v', 'w', 'n'].forEach(k => { const v = prob.p[k]; if (v !== undefined && typeof v !== 'boolean') vals.push(typeof v === 'number' ? String(v) : JSON.stringify(v)); });
+  const tabs = pdColumns(prob), lesson = PD_BY_KEY[prob.lesson], vals = [];
+  (lesson.vals ? lesson.vals(prob.p) : ['v', 'w', 'n'].map(k => prob.p[k])).forEach(v => { if (v !== undefined && v !== null && typeof v !== 'boolean') vals.push(typeof v === 'number' ? String(v) : JSON.stringify(v)); });
   return `<div class="kwbar"><span>${H('pd.kw')}</span>${(SNIPS[prob.lesson] || []).map(([s, b]) => chip(s, b)).join('')}</div>
     <div class="kwbar names"><span>${H('order.g.table')}</span>${tabs.map(x => chip(x.t, 0, 'nm tb')).join('')}</div>
     ${tabs.map(x => `<div class="kwbar names"><span>${tabs.length > 1 ? `${esc(x.t)} · ` : ''}${H('order.g.col')}</span>${x.cols.map(c => chip(JSON.stringify(c), 0, 'nm cl')).join('')}</div>`).join('')}
@@ -133,6 +142,7 @@ export function pyMount() {
   const el = document.getElementById('py-editor');
   if (!el) return;
   const prob = curProb(), d = C.S.progress.drafts || {};
+  if (prob.plot) pyPlotWarm().catch(() => {});   // the chart lesson: load matplotlib while the student reads
   let timer;
   ed = createEditor(el, {
     lang: 'python', doc: d[prob.id] !== undefined ? d[prob.id] : '', label: 'Python', placeholder: '# Python',
@@ -144,7 +154,7 @@ export function pyMount() {
 }
 
 /* ---------- running ---------- */
-const resGrid = r => (r.kind === 'table' ? `<div class="data-box">${gridHTML({ columns: r.columns, values: r.rows }, { rowNums: r.rows.length > 3 })}</div>` : r.kind === 'value' ? `<div class="py-value">${esc(r.value)}</div>` : `<div class="res-empty">${H('pd.none')}</div>`);
+const resGrid = r => (r.kind === 'plot' ? `<div class="py-plot"><img src="data:image/png;base64,${r.img}" alt="${esc(T('pd.chart'))}"></div>` : r.kind === 'table' ? `<div class="data-box">${gridHTML({ columns: r.columns, values: r.rows }, { rowNums: r.rows.length > 3 })}</div>` : r.kind === 'value' ? `<div class="py-value">${esc(r.value)}</div>` : `<div class="res-empty">${H('pd.none')}</div>`);
 async function run() {
   const prob = curProb(), key = prob && prob.lesson, quick = isQuick(), out = document.getElementById('py-res');
   if (!ed || !out || !prob) return;
