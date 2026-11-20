@@ -8,10 +8,11 @@ import { pdAllTables } from './pandas.js';
 export const PY_BASE = 'https://cdn.jsdelivr.net/pyodide/v0.27.2/full/';
 const LIMIT_MS = 8000;
 let worker = null, state = 'idle', readyP = null, plotP = null, seq = 0;
+let pkgP = {};   // package → the promise of loading it in this worker
 const waiting = new Map(), listeners = new Set();
 const tell = () => listeners.forEach(f => f(state));
 
-/** 'idle' | 'loading' | 'pandas' | 'ready' | 'failed' */
+/** 'idle' | 'loading' | 'pandas' | 'ready' | 'failed' | 'stats' (loading scipy / statsmodels) */
 export const pyState = () => state;
 export const onPyState = f => { listeners.add(f); return () => listeners.delete(f); };
 
@@ -47,6 +48,24 @@ export function pyPlotWarm() {
   }
   return plotP;
 }
+/** the extra packages some code needs (statistics, Lessons 24–28) */
+export const needsPkgs = code => [...(/scipy|\bstats\./.test(code) || /statsmodels|\bsmf\./.test(code) ? ['scipy'] : []), ...(/statsmodels|\bsmf\./.test(code) ? ['statsmodels'] : [])];
+/** load packages (once per worker), without the time limit; the state is 'stats' meanwhile */
+export function pyPkgWarm(pkgs) {
+  pyWarm();
+  const w = worker, todo = pkgs.filter(p => !pkgP[p]);
+  if (todo.length) {
+    const pr = readyP.then(() => new Promise((resolve, reject) => {
+      const id = ++seq;
+      state = 'stats'; tell();
+      waiting.set(id, { resolve: m => { if (state === 'stats' && w === worker) { state = 'ready'; tell(); } return m.ok ? resolve() : reject(new Error(m.error)); }, timer: null });
+      w.postMessage({ type: 'load', id, pkgs: todo });
+    }));
+    todo.forEach(p => { pkgP[p] = pr; });
+    pr.catch(() => todo.forEach(p => { delete pkgP[p]; }));
+  }
+  return Promise.all(pkgs.map(p => pkgP[p]));
+}
 /** load Python in the background (does nothing when it is loading or loaded) */
 export function pyWarm() { if (!worker || state === 'failed') start(); return readyP; }
 /** run code; need = the table names it may use → { ok, result, out, error, line, timeout } */
@@ -54,10 +73,12 @@ export async function pyRun(code, need) {
   pyWarm();
   await readyP;
   if (drawsChart(code)) { try { await pyPlotWarm(); } catch (e) { return { ok: false, error: String(e && e.message || e) }; } }
+  const pkgs = needsPkgs(code);
+  if (pkgs.length) { try { await pyPkgWarm(pkgs); } catch (e) { return { ok: false, error: String(e && e.message || e) }; } }
   const id = ++seq;
   return new Promise(resolve => {
     const timer = setTimeout(() => {   // too long (an endless loop …): stop the worker, start a new one
-      waiting.delete(id); worker.terminate(); worker = null; plotP = null; state = 'idle'; pyWarm();
+      waiting.delete(id); worker.terminate(); worker = null; plotP = null; pkgP = {}; state = 'idle'; pyWarm();
       resolve({ ok: false, timeout: true, error: 'timeout' });
     }, LIMIT_MS);
     waiting.set(id, { resolve, timer });

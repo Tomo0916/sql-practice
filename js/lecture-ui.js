@@ -28,13 +28,15 @@ function sqlHTML(sql, mark, hl = highlightSQL) {
   const h = i < 0 ? hl(sql) : `${hl(sql.slice(0, i))}<mark>${hl(mark)}</mark>${hl(sql.slice(i + mark.length))}`;
   return `<pre class="sql lec-sql ${hl === highlightPy ? 'py' : ''}">${h}</pre>`;
 }
+/** a number with 4 significant digits (statistics: p-values such as 0.0003 stay readable) */
+const fmtSig = v => (Math.abs(v) >= 1e4 ? String(Math.round(v * 100) / 100) : String(Number(v.toPrecision(4))));
 export function tableHTML(st) {
   const tmpl = st.cols.map(c => (/name/.test(c) ? 'minmax(150px, 2fr)' : 'minmax(70px, 1fr)')).join(' ');
   const hl = new Set(st.hl);
   const ccls = c => (hl.has(c) ? 'hl' : st.dim && hl.size ? 'dim' : '');
   return `<div class="lt ${st.nohead ? 'lt-nohead' : ''}" style="--cols:${tmpl}">
     ${st.title ? `<div class="lt-title">${esc(st.title)}</div>` : ''}<div class="lt-head">${st.cols.map(c => `<span class="${ccls(c)}">${esc(c)}</span>`).join('')}</div>
-    <div class="lt-body">${st.rows.map(r => `<div class="lt-row ${r.cls || ''}" data-k="${esc(r.k)}">${r.idx ? `<b class="lt-idx">${r.idx}</b>` : ''}${r.cells.map((v, i) => `<span class="${ccls(st.cols[i])} ${typeof v === 'number' ? 'num' : ''}">${fmtCell(v)}</span>`).join('')}${r.cls === 'skip' ? '<i class="lt-mark">↷</i>' : r.cls === 'cut' ? '<i class="lt-mark">✂</i>' : r.cls === 'pass' ? '<i class="lt-mark">✓</i>' : r.cls === 'fail' ? '<i class="lt-mark">✕</i>' : ''}</div>`).join('')}</div>
+    <div class="lt-body">${st.rows.map(r => `<div class="lt-row ${r.cls || ''}" data-k="${esc(r.k)}">${r.idx ? `<b class="lt-idx">${r.idx}</b>` : ''}${r.cells.map((v, i) => `<span class="${ccls(st.cols[i])} ${typeof v === 'number' ? 'num' : ''}">${st.sig && typeof v === 'number' && !Number.isInteger(v) ? fmtSig(v) : fmtCell(v)}</span>`).join('')}${r.cls === 'skip' ? '<i class="lt-mark">↷</i>' : r.cls === 'cut' ? '<i class="lt-mark">✂</i>' : r.cls === 'pass' ? '<i class="lt-mark">✓</i>' : r.cls === 'fail' ? '<i class="lt-mark">✕</i>' : ''}</div>`).join('')}</div>
     <div class="lt-foot">${st.rows.filter(r => r.cls !== 'skip' && r.cls !== 'cut').length} rows</div></div>`;
 }
 

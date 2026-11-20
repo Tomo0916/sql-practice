@@ -3,6 +3,7 @@
  * program never freezes the page (pyrun.js stops the worker after a time limit).
  *   { type: 'init', base, tables }  → load Pyodide from `base`, pandas, and the tables
  *   { type: 'plot', id }            → load matplotlib (once; Lesson 21), reply { id, ok }
+ *   { type: 'load', id, pkgs }      → load more packages (scipy, statsmodels: Lessons 24–28), reply { id, ok }
  *   { type: 'run', id, code, need } → run the code in a fresh namespace with copies of the tables;
  *                                      reply { id, ok, result, out, error }
  * result: { kind: 'table', columns, rows } | { kind: 'value', value } | { kind: 'none' }
@@ -33,7 +34,7 @@ def _norm(x):
     if isinstance(x, pd.Series):
         x = x.to_frame(x.name if x.name is not None else 'value')
     if isinstance(x, pd.DataFrame):
-        keep = isinstance(x.index, pd.MultiIndex) or x.index.name is not None
+        keep = isinstance(x.index, pd.MultiIndex) or x.index.name is not None or pd.api.types.is_object_dtype(x.index) or pd.api.types.is_string_dtype(x.index)   # labels (describe, corr, params) stay
         df = x.reset_index() if keep else x.reset_index(drop=True)
         df.columns = [str(c) for c in df.columns]
         return {'kind': 'table', 'columns': list(df.columns), 'rows': [[_cell(v) for v in row] for row in df.itertuples(index=False, name=None)][:500]}
@@ -122,6 +123,11 @@ self.onmessage = async e => {
       py.globals.get('_load')(JSON.stringify(m.tables));
     })();
     try { await ready; self.postMessage({ type: 'ready' }); } catch (err) { self.postMessage({ type: 'failed', error: String(err && err.message || err) }); }
+    return;
+  }
+  if (m.type === 'load') {
+    try { await ready; await py.loadPackage(m.pkgs); self.postMessage({ id: m.id, ok: true }); }
+    catch (err) { self.postMessage({ id: m.id, ok: false, error: String(err && err.message || err) }); }
     return;
   }
   if (m.type === 'plot') {
