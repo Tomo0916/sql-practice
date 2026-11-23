@@ -352,7 +352,7 @@ function homeHTML() {
       <a class="btn btn-ghost" href="#/practice">${H('pr.open')}</a>
     </section>
     <section class="card mixcard drillcard rkcard">
-      <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.values(S.progress.rank || {}).filter(r => r.best).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
+      <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.best).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/rank">${H('rk.open')}</a>
     </section>
     <section class="card mixcard drillcard lvcard">
@@ -1463,6 +1463,8 @@ document.addEventListener('keydown', e => {
 
 
 /* ---------- rank tests (#/rank, #/rank/<subject>/<tier>): how many ordering problems within a time limit, like e-typing's level check ---------- */
+/** records of the first version (one test per tier, a different score) are dropped */
+const rkClean = () => { const r = S.progress.rank, old = Object.keys(r || {}).filter(k => !rankParse(k)); if (old.length) { old.forEach(k => delete r[k]); save(); } };
 const rkRec = t => ((S.progress.rank = S.progress.rank || {})[t] = S.progress.rank[t] || { best: 0, hist: [] });
 let rkTick = null;
 function rkStopTick() { clearInterval(rkTick); rkTick = null; }
@@ -1521,6 +1523,7 @@ function rkFinish() {
 }
 const rkName = ses => `${chName(ses.ch)} · ${H('rk.tier.' + ses.tier)}`;
 function rankHubHTML() {
+  rkClean();
   return `<main class="wrap rk-page">
     <section class="card rk-head"><h1>🏅 ${H('rk.title')}</h1><p class="muted">${H('rk.sub', { n: RK_N })}</p>
       <ul class="rk-rules"><li>${H('rk.rule1')}</li><li>${H('rk.rule2')}</li><li>${H('rk.rule3')}</li><li>${H('rk.rule4')}</li></ul></section>
