@@ -10,7 +10,7 @@
  * ========================================================= */
 import { LANGS, LANG_CODES, loadLang, hasLang, detectLang, htmlLang, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { SqlEngine, LESSON_BY_KEY, STAGES, stagesOf, formatKey, grade, checkAnswer, todayCode, randomCode, normCode, makeRng } from './engine.js';
-import { LESSONS, CHAPTERS, levelsOf, levelInfo } from './lessons.js';
+import { LESSONS, CHAPTERS, BOOK_CHAPTERS, levelsOf, levelInfo } from './lessons.js';
 import { ALL_TABLES, JOIN_DATASETS } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
@@ -241,6 +241,47 @@ function footerHTML() {
 }
 
 /* ---------- home ---------- */
+/** one lesson in a chapter card of the home page */
+function lessonLinkHTML(l) {
+  const st = stateOf(l);
+  return `<li><a class="lesson-link ${st.done ? 'done' : ''}" href="#/l/${l.key}/0">
+    <span class="lesson-num">${st.done ? '✓' : l.no}</span>
+    <span class="lesson-name">${lessonTitleHTML(l, L())}</span>
+    <span class="dots" aria-label="${st.count}/${st.solved.length}">${problemsOf(l).map((p, i) => `<i class="${p.stage === 'demo' ? 'demo ' : ''}${st.solved[i] ? 'on' : ''}"></i>`).join('')}</span>
+  </a></li>`;
+}
+/**
+ * The lesson list of the home page: by the app's chapters, or in the order of the textbook
+ * (スッキリわかるSQL入門 第4版, chapters 1–8, then the rest). The choice is kept in the settings (order: 'book').
+ */
+function chaptersHTML() {
+  const book = S.settings.order === 'book';
+  const toggle = `<div class="order-bar"><span class="muted">${H('home.orderLabel')}</span><div class="seg">${['app', 'book'].map(v => `<button class="${(v === 'book') === book ? 'on' : ''}" data-act="homeOrder" data-v="${v}" aria-pressed="${(v === 'book') === book}">${H('home.order.' + v)}</button>`).join('')}</div></div>`;
+  if (!book) return `${toggle}<section class="chapters">
+      ${CHAPTERS.map((ch, ci) => {
+        const ls = LESSONS.filter(l => l.ch === ch.key);
+        return `<article class="card chapter" style="--cc:var(--c-${ch.key})">
+          <div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div>
+            <small>${H('home.chapter', { n: ci + 1 })}</small>
+            <h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2><p>${rubyHTML(raw('ch.' + ch.key + '.desc', L()))}</p></div></div>
+          ${chShapesHTML(ch.key)}
+          <ul class="lesson-list">${ls.map(lessonLinkHTML).join('')}</ul>${chQuizHTML(ch.key)}</article>`;
+      }).join('')}
+    </section>`;
+  const inBook = new Set(BOOK_CHAPTERS.flatMap(b => b.lessons || []));
+  return `${toggle}<p class="muted order-note">${H('book.note')}</p><section class="chapters">
+      ${BOOK_CHAPTERS.map((b, bi) => {
+        const ls = b.more ? LESSONS.filter(l => !inBook.has(l.key)) : b.lessons.map(k => LESSON_BY_KEY[k]).filter(Boolean);
+        if (!ls.length) return '';
+        return `<article class="card chapter book-ch" style="--cc:var(--c-${ls[0].ch})">
+          <div class="chapter-head"><div class="chapter-icon">${b.more ? '＋' : bi + 1}</div><div>
+            <small>${H(b.more ? 'book.moreTag' : 'book.tag')}</small>
+            <h2>${rubyHTML(raw('book.' + b.key, L()))}</h2><p>${rubyHTML(raw('book.' + b.key + '.desc', L()))}</p></div></div>
+          <ul class="lesson-list">${ls.map(lessonLinkHTML).join('')}</ul></article>`;
+      }).join('')}
+    </section>`;
+}
+
 function homeHTML() {
   const allDone = LESSONS.filter(l => S.progress.lessons[l.key] && S.progress.lessons[l.key].done).length;
   const solved = Object.keys(S.progress.solved).length;
@@ -289,24 +330,7 @@ function homeHTML() {
       </div>
     </section>
     ${assign}${taskCard}
-    <section class="chapters">
-      ${CHAPTERS.map((ch, ci) => {
-        const ls = LESSONS.filter(l => l.ch === ch.key);
-        return `<article class="card chapter" style="--cc:var(--c-${ch.key})">
-          <div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div>
-            <small>${H('home.chapter', { n: ci + 1 })}</small>
-            <h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2><p>${rubyHTML(raw('ch.' + ch.key + '.desc', L()))}</p></div></div>
-          ${chShapesHTML(ch.key)}
-          <ul class="lesson-list">${ls.map(l => {
-            const st = stateOf(l);
-            return `<li><a class="lesson-link ${st.done ? 'done' : ''}" href="#/l/${l.key}/0">
-              <span class="lesson-num">${st.done ? '✓' : l.no}</span>
-              <span class="lesson-name">${lessonTitleHTML(l, L())}</span>
-              <span class="dots" aria-label="${st.count}/${st.solved.length}">${problemsOf(l).map((p, i) => `<i class="${p.stage === 'demo' ? 'demo ' : ''}${st.solved[i] ? 'on' : ''}"></i>`).join('')}</span>
-            </a></li>`;
-          }).join('')}</ul>${chQuizHTML(ch.key)}</article>`;
-      }).join('')}
-    </section>
+    ${chaptersHTML()}
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_CORE.filter(x => bsState(x.key).clear).length} / ${BASIC_CORE.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/basics">${H('bs.open')}</a>
@@ -1989,6 +2013,7 @@ function checkOrder() {
  * EVENTS
  * ========================================================= */
 const actions = {
+  homeOrder(el) { S.settings.order = el.dataset.v === 'book' ? 'book' : 'app'; saveSettings(S.settings); render(); },   // the home page: the app's chapters or the textbook's order
   qRef(el) { qBack = +el.dataset.qn; saveDraft(); location.hash = el.getAttribute('href'); },   // remember the problem, then open the lesson
   ...pyActions,
   lang: null,
