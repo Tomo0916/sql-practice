@@ -1868,13 +1868,13 @@ export default {
   "book.more.desc": "Khóa A: thống kê và phân tích dữ liệu bằng SQL",
   /* ---- the rank tests ---- */
   "rk.title": "Bài kiểm tra xếp hạng",
-  "rk.homeSub": "Giải bài sắp xếp có tính giờ và nhận hạng theo tốc độ và độ chính xác",
+  "rk.homeSub": "Giải được bao nhiêu bài sắp xếp trong thời gian giới hạn? Điều đó quyết định hạng của bạn",
   "rk.open": "Làm bài",
-  "rk.sub": "Mỗi chủ đề có ba cấp. Giải bài sắp xếp nhanh và chính xác nhất có thể; thời gian và số lỗi quyết định điểm và hạng (E đến SS).",
-  "rk.rule1": "Có {n} bài, từ dễ đến khó.",
-  "rk.rule2": "Sắp các mảnh theo đúng thứ tự rồi kiểm tra. Trả lời sai tính là một lỗi; bạn có thể sắp lại và kiểm tra lại.",
-  "rk.rule3": "Nếu không biết, bạn có thể bỏ qua. Bỏ qua không tính lỗi nhưng không được điểm.",
-  "rk.rule4": "Đồng hồ chạy đến khi xong bài cuối.",
+  "rk.sub": "Mỗi chủ đề có ba cấp. Điểm và hạng (E đến SS) dựa trên số bài sắp xếp giải được trong thời gian giới hạn.",
+  "rk.rule1": "Thời gian: Sơ cấp 2 phút, Trung cấp 3 phút, Cao cấp 4 phút. Bài cứ tiếp tục ra cho đến khi hết giờ.",
+  "rk.rule2": "Xếp các mảnh đúng thứ tự rồi kiểm tra. Sai một lần tính một lỗi; bạn có thể sửa và kiểm tra lại.",
+  "rk.rule3": "Bài không biết có thể bỏ qua. Bỏ qua không tính lỗi nhưng không được điểm.",
+  "rk.rule4": "Hết giờ là bài kiểm tra kết thúc ngay. Bài đang làm dở không được tính.",
   "rk.tierN": "Cấp {n}",
   "rk.tier.beginner": "Sơ cấp",
   "rk.tier.intermediate": "Trung cấp",
@@ -1889,7 +1889,7 @@ export default {
   "rk.never": "Chưa làm.",
   "rk.start": "Làm bài này",
   "rk.ranks": "Các hạng",
-  "rk.formula": "Điểm = 10 × tốc độ (số mảnh của bài đúng mỗi phút) × độ chính xác³ (lỗi làm giảm điểm nhiều)",
+  "rk.formula": "Điểm = số bài đúng × 10 − số lỗi × 3",
   "rk.go": "Bắt đầu",
   "rk.back": "Về danh sách bài kiểm tra",
   "rk.readySub": "Chuẩn bị…",
@@ -1928,5 +1928,8 @@ export default {
   "rk.byLesson": "Theo bài học",
   "rk.lesson": "Bài học",
   "rk.taken": "{n} / {m} bài kiểm tra",
-  "rk.readyAbout": "{n} bài về “{c}”."
+  "rk.readyAbout": "Chủ đề: “{c}”. Thời gian: {m} phút.",
+  "rk.left": "Còn",
+  "rk.limit": "{m} phút",
+  "rk.timeUp": "Hết giờ"
 };
