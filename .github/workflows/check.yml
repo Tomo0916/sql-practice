@@ -1,0 +1,23 @@
+# Runs the app's self-check (tools-next/check.mjs) on every pull request and on pushes to main.
+# A red ✗ on the pull request means something is broken: open "Details" to see which lesson / text.
+name: check
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools-next/package-lock.json
+      - run: npm ci
+        working-directory: tools-next
+      - run: node check.mjs
+        working-directory: tools-next

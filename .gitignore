@@ -1,2 +1,4 @@
 tools/node_modules/
 .DS_Store
+__pycache__/
+tools-next/node_modules/
