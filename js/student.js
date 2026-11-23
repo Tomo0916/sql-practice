@@ -18,7 +18,9 @@ import * as backend from './backend.js';
 import { RK_N, RK_SEC, RK_TIERS, RK_CHAPTERS, RK_RANKS, RK_FROM, rankKey, rankParse, rankOf, rankToNext, rankProblems, rankScore, rankRow, rankBetter } from './rank.js';
 import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
-import { createEditor } from './editor.js';
+/* the code editor (CodeMirror, ~420 KB) is loaded when a page needs it, not on the home page */
+let createEditor = null;
+const loadEditor = () => import('./editor.js').then(m => { createEditor = m.createEditor; });
 import { textbookPage } from './book.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
@@ -1985,6 +1987,7 @@ function mountWorkspace() {
   if (!c) return;
   const el = document.getElementById('editor');
   if (!el) return;
+  if (!createEditor) { loadEditor().then(() => { if (document.getElementById('editor') === el && el.isConnected) mountWorkspace(); }); return; }
   const prob = c.prob;
   const schema = {};
   prob.tables.forEach(n => { schema[n] = ALL_TABLES[n].columns.map(x => x[0]); });
@@ -2659,6 +2662,7 @@ window.addEventListener('storage', e => {
     return;
   }
   render();
+  setTimeout(() => loadEditor().catch(() => {}), 1500);   // ready before the first lesson is opened
   const q = new URLSearchParams(location.search).get('class');
   if (q && backend.enabled && (!S.klass || S.klass.code !== normCode(q))) openJoin(normCode(q));
   watchKlass();

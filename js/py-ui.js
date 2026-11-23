@@ -6,7 +6,7 @@
  * ========================================================= */
 import { th, t, esc, rubyHTML, raw } from './i18n.js';
 import { gridHTML, highlightPy, pyDescHTML } from './ui.js';
-import { createEditor } from './editor.js';
+let createEditor = null;   // loaded when the Python editor is first needed
 import { PD_LESSONS, PD_BY_KEY, PD_N, pdSet, pdTables, pdColumns, pdSame, pdDiff } from './pandas.js';
 import { pyRun, pyWarm, pyPlotWarm, pyPkgWarm, pyState, onPyState } from './pyrun.js';
 import { PE_N, PE_TYPES, peSet, peNeed, peTraceback, cleanTb } from './pyerrors.js';
@@ -148,6 +148,7 @@ export function pyMount() {
   unsub = onPyState(() => { const el = document.getElementById('py-status'); if (el) el.outerHTML = statusHTML(); });
   const el = document.getElementById('py-editor');
   if (!el) return;
+  if (!createEditor) { import('./editor.js').then(m => { createEditor = m.createEditor; if (el.isConnected) pyMount(); }); return; }
   const prob = curProb(), d = C.S.progress.drafts || {};
   if (prob.plot) pyPlotWarm().catch(() => {});   // the chart lesson: load matplotlib while the student reads
   if (prob.pkgs && prob.pkgs.length) pyPkgWarm(prob.pkgs).catch(() => {});   // statistics: scipy / statsmodels
