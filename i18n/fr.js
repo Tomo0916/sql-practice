@@ -1873,7 +1873,7 @@ export default {
   "rk.sub": "Un test par thème, en trois niveaux. Le score et le rang (E à SS) dépendent du nombre de problèmes de remise en ordre résolus dans le temps imparti.",
   "rk.rule1": "Temps : Débutant 2 min, Intermédiaire 3 min, Avancé 4 min. Les problèmes s’enchaînent jusqu’à la fin du temps.",
   "rk.rule2": "Remettez les morceaux dans l’ordre et vérifiez. Une erreur compte pour une faute ; vous pouvez corriger et revérifier.",
-  "rk.rule3": "Si vous ne savez pas, vous pouvez passer. Passer n’est pas une faute, mais ne rapporte aucun point.",
+  "rk.rule3": "Si vous ne savez pas, vous pouvez passer. Passer ne change pas le score, mais un seul passage ajoute « (avec passes) » au rang.",
   "rk.rule4": "Le test s’arrête dès que le temps est écoulé. Le problème en cours ne compte pas.",
   "rk.tierN": "Niveau {n}",
   "rk.tier.beginner": "Débutant",
@@ -1931,5 +1931,7 @@ export default {
   "rk.readyAbout": "Thème : « {c} ». Temps : {m} min.",
   "rk.left": "Reste",
   "rk.limit": "{m} min",
-  "rk.timeUp": "Temps écoulé"
+  "rk.timeUp": "Temps écoulé",
+  "rk.withPass": " (avec passes)",
+  "rk.passNote": "Vous avez passé des problèmes : c’est donc « {r} (avec passes) ». Le score ne change pas ; résolvez tout sans passer pour retirer « avec passes »."
 };

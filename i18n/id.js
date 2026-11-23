@@ -1873,7 +1873,7 @@ export default {
   "rk.sub": "Tes untuk setiap topik, dalam tiga tingkat. Skor dan peringkat (E sampai SS) ditentukan oleh jumlah soal menyusun urutan yang selesai dalam batas waktu.",
   "rk.rule1": "Batas waktu: Dasar 2 menit, Menengah 3 menit, Mahir 4 menit. Soal terus muncul sampai waktu habis.",
   "rk.rule2": "Susun potongan dengan urutan yang benar lalu periksa. Jawaban salah dihitung satu kesalahan; Anda bisa memperbaiki dan memeriksa lagi.",
-  "rk.rule3": "Soal yang tidak Anda ketahui bisa dilewati. Melewati bukan kesalahan, tetapi tidak mendapat poin.",
+  "rk.rule3": "Soal yang tidak Anda ketahui bisa dilewati. Melewati tidak mengubah skor, tetapi satu kali saja menambahkan “(ada lewati)” pada peringkat.",
   "rk.rule4": "Tes berakhir saat waktu habis. Soal yang sedang dikerjakan tidak dihitung.",
   "rk.tierN": "Level {n}",
   "rk.tier.beginner": "Dasar",
@@ -1931,5 +1931,7 @@ export default {
   "rk.readyAbout": "Topik: “{c}”. Batas waktu: {m} menit.",
   "rk.left": "Sisa",
   "rk.limit": "{m} mnt",
-  "rk.timeUp": "Waktu habis"
+  "rk.timeUp": "Waktu habis",
+  "rk.withPass": " (ada lewati)",
+  "rk.passNote": "Ada soal yang Anda lewati, jadi ini “{r} (ada lewati)”. Skornya tetap; selesaikan semua tanpa melewati agar tanda “ada lewati” hilang."
 };

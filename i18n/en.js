@@ -1874,7 +1874,7 @@ export default {
   "rk.sub": "A test for each topic, in three tiers. Your score and rank (E to SS) come from how many ordering problems you solve within the time limit.",
   "rk.rule1": "Time limit: Basic 2 min, Intermediate 3 min, Advanced 4 min. Problems keep coming until the time is up.",
   "rk.rule2": "Put the pieces in the right order and check. A wrong answer counts as one miss; you can fix it and check again.",
-  "rk.rule3": "If you don't know a problem, you can pass it. A pass is not a miss, but it scores no points.",
+  "rk.rule3": "If you don't know a problem, you can pass it. Passing does not change the score, but even one pass adds “(with passes)” to your rank.",
   "rk.rule4": "The test ends the moment time is up. The problem you were on does not count.",
   "rk.tierN": "Level {n}",
   "rk.tier.beginner": "Basic",
@@ -1932,5 +1932,7 @@ export default {
   "rk.readyAbout": "Topic: “{c}”. Time limit: {m} min.",
   "rk.left": "Left",
   "rk.limit": "{m} min",
-  "rk.timeUp": "Time up"
+  "rk.timeUp": "Time up",
+  "rk.withPass": " (with passes)",
+  "rk.passNote": "You passed some problems, so this is “{r} (with passes)”. The score is the same; solve every problem without passing to drop “with passes”."
 };
