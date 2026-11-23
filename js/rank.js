@@ -82,12 +82,14 @@ export function rankFromRow(a) {
   let d = {}; try { d = JSON.parse(a.sql || '{}'); } catch (e) { /* an old row */ }
   return { test, score: +score, rank, acc: d.acc, solved: d.ok, passed: d.pass, misses: d.miss, ms: d.ms, at: a.created_at, user: a.user_id };
 }
-/** the class ranking of one test ('join-advanced'): each student's best, high to low (ties: the earlier one first) */
+/** is result a better than result b? the higher score; at the same score, one without passes ("A" beats "A (with passes)") */
+export const rankBetter = (a, b) => !b || a.score > b.score || (a.score === b.score && !a.passed && !!b.passed);
+/** the class ranking of one test ('join-advanced'): each student's best, high to low (ties: without passes first, then the earlier one) */
 export function classRanking(rows, test) {
   const best = {};
   rows.filter(isRankRow).map(rankFromRow).filter(r => r.test === test).forEach(r => {
     const b = best[r.user];
-    if (!b || r.score > b.score || (r.score === b.score && r.at < b.at)) best[r.user] = r;
+    if (rankBetter(r, b) || (!rankBetter(b, r) && r.at < b.at)) best[r.user] = r;
   });
-  return Object.values(best).sort((a, b) => b.score - a.score || (a.at < b.at ? -1 : 1));
+  return Object.values(best).sort((a, b) => b.score - a.score || (!!a.passed - !!b.passed) || (a.at < b.at ? -1 : 1));
 }

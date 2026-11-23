@@ -1873,7 +1873,7 @@ export default {
   "rk.sub": "Mỗi chủ đề có ba cấp. Điểm và hạng (E đến SS) dựa trên số bài sắp xếp giải được trong thời gian giới hạn.",
   "rk.rule1": "Thời gian: Sơ cấp 2 phút, Trung cấp 3 phút, Cao cấp 4 phút. Bài cứ tiếp tục ra cho đến khi hết giờ.",
   "rk.rule2": "Xếp các mảnh đúng thứ tự rồi kiểm tra. Sai một lần tính một lỗi; bạn có thể sửa và kiểm tra lại.",
-  "rk.rule3": "Bài không biết có thể bỏ qua. Bỏ qua không tính lỗi nhưng không được điểm.",
+  "rk.rule3": "Bài không biết có thể bỏ qua. Bỏ qua không ảnh hưởng điểm, nhưng chỉ cần một lần là hạng có thêm “(có bỏ qua)”.",
   "rk.rule4": "Hết giờ là bài kiểm tra kết thúc ngay. Bài đang làm dở không được tính.",
   "rk.tierN": "Cấp {n}",
   "rk.tier.beginner": "Sơ cấp",
@@ -1931,5 +1931,7 @@ export default {
   "rk.readyAbout": "Chủ đề: “{c}”. Thời gian: {m} phút.",
   "rk.left": "Còn",
   "rk.limit": "{m} phút",
-  "rk.timeUp": "Hết giờ"
+  "rk.timeUp": "Hết giờ",
+  "rk.withPass": " (có bỏ qua)",
+  "rk.passNote": "Bạn đã bỏ qua một số bài nên kết quả là “{r} (có bỏ qua)”. Điểm không đổi; giải hết mà không bỏ qua để mất dấu “có bỏ qua”."
 };

@@ -15,7 +15,7 @@ import { ALL_TABLES, JOIN_DATASETS } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
-import { RK_N, RK_SEC, RK_TIERS, RK_CHAPTERS, RK_RANKS, RK_FROM, rankKey, rankParse, rankOf, rankToNext, rankProblems, rankScore, rankRow } from './rank.js';
+import { RK_N, RK_SEC, RK_TIERS, RK_CHAPTERS, RK_RANKS, RK_FROM, rankKey, rankParse, rankOf, rankToNext, rankProblems, rankScore, rankRow, rankBetter } from './rank.js';
 import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
@@ -352,7 +352,7 @@ function homeHTML() {
       <a class="btn btn-ghost" href="#/practice">${H('pr.open')}</a>
     </section>
     <section class="card mixcard drillcard rkcard">
-      <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.best).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
+      <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.hist && r.hist.length).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/rank">${H('rk.open')}</a>
     </section>
     <section class="card mixcard drillcard lvcard">
@@ -1465,6 +1465,8 @@ document.addEventListener('keydown', e => {
 /* ---------- rank tests (#/rank, #/rank/<subject>/<tier>): how many ordering problems within a time limit, like e-typing's level check ---------- */
 /** records of the first version (one test per tier, a different score) are dropped */
 const rkClean = () => { const r = S.progress.rank, old = Object.keys(r || {}).filter(k => !rankParse(k)); if (old.length) { old.forEach(k => delete r[k]); save(); } };
+/** a rank badge; passes add "(with passes)": the rank is not complete */
+const rkBadge = (rank, passed, size = 'sm') => `<span class="rk-badge ${size} r-${rank}">${rank}</span>${passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''}`;
 const rkRec = t => ((S.progress.rank = S.progress.rank || {})[t] = S.progress.rank[t] || { best: 0, hist: [] });
 let rkTick = null;
 function rkStopTick() { clearInterval(rkTick); rkTick = null; }
@@ -1514,8 +1516,9 @@ function rkFinish() {
   const solved = ses.items.filter(p => ses.done[p.id]).length;
   const misses = Object.values(ses.miss).reduce((s, n) => s + n, 0), passed = ses.items.filter(p => ses.pass[p.id]).length;
   const r = Object.assign(rankScore(solved, misses), { test: ses.test, solved, passed, misses, ms: ses.limit, at: Date.now() });
-  const rec = rkRec(ses.test); r.newBest = rec.best > 0 && r.score > rec.best;
-  rec.best = Math.max(rec.best, r.score);
+  const rec = rkRec(ses.test), prev = rec.hist.length ? { score: rec.best, passed: rec.bestP || 0 } : null;
+  r.newBest = !!prev && rankBetter(r, prev);
+  if (!prev || r.newBest) { rec.best = r.score; rec.bestP = r.passed; }
   rec.hist = [{ s: r.score, r: r.rank, acc: r.acc, ok: r.solved, miss: r.misses, pass: r.passed, at: r.at }, ...rec.hist].slice(0, 10);
   save();
   if (S.klass && backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, rankRow(r)));
@@ -1529,7 +1532,7 @@ function rankHubHTML() {
       <ul class="rk-rules"><li>${H('rk.rule1')}</li><li>${H('rk.rule2')}</li><li>${H('rk.rule3')}</li><li>${H('rk.rule4')}</li></ul></section>
     <section class="card rk-grid-card"><table class="rk-grid"><thead><tr><th>${H('rk.chapter')}</th>${RK_TIERS.map((t, i) => `<th class="t${i}">${H('rk.tier.' + t)} <span class="tag">⏱ ${H('rk.limit', { m: rkMin(t) })}</span><small>${H('rk.tierDesc.' + t)}</small></th>`).join('')}</tr></thead><tbody>
       ${RK_CHAPTERS.map((ch, ci) => `<tr style="--cc:var(--c-${ch})"><th><span class="rk-chdot"></span>${H('home.chapter', { n: ci + 1 })} ${chName(ch)}</th>${RK_TIERS.map(t => { const rec = rkRec(rankKey(ch, t));
-        return `<td><a class="rk-cell" href="#/rank/${ch}/${t}">${rec.best ? `<span class="rk-badge sm r-${rankOf(rec.best)}">${rankOf(rec.best)}</span><b>${rec.best}</b>` : `<span class="muted">${H('rk.start')}</span>`}</a></td>`; }).join('')}</tr>`).join('')}
+        return `<td><a class="rk-cell" href="#/rank/${ch}/${t}">${rec.hist.length ? `<span>${rkBadge(rankOf(rec.best), rec.bestP)}</span><b>${rec.best}</b>` : `<span class="muted">${H('rk.start')}</span>`}</a></td>`; }).join('')}</tr>`).join('')}
     </tbody></table></section>
     <section class="card"><h3>${H('rk.ranks')}</h3><div class="rk-scale">${RK_RANKS.map((r, i) => `<span><span class="rk-badge r-${r}">${r}</span><small>${RK_FROM[i]}${i + 1 < RK_RANKS.length ? '–' + (RK_FROM[i + 1] - 1) : '+'}</small></span>`).join('')}</div><p class="muted small">${H('rk.formula')}</p></section>
   </main>`;
@@ -1564,7 +1567,8 @@ function rankDoneHTML(ses) {
   return `<main class="wrap rk-page">
     <section class="card rk-result">
       <small class="muted">${rkName(ses)}</small>
-      <div class="rk-main"><span class="rk-badge big r-${r.rank}">${r.rank}</span><div><small>${H('rk.score')}</small><b class="rk-score">${r.score}</b>${r.newBest ? `<span class="tag ok">${H('rk.newBest')}</span>` : ''}</div></div>
+      <div class="rk-main"><span class="rk-badge big r-${r.rank}">${r.rank}</span>${r.passed ? `<span class="rk-withpass big">${H('rk.withPass')}</span>` : ''}<div><small>${H('rk.score')}</small><b class="rk-score">${r.score}</b>${r.newBest ? `<span class="tag ok">${H('rk.newBest')}</span>` : ''}</div></div>
+      ${r.passed ? `<p class="rk-passnote">${H('rk.passNote', { r: r.rank })}</p>` : ''}
       <p class="muted">${next === null ? H('rk.top') : H('rk.toNext', { n: next, r: RK_RANKS[RK_RANKS.indexOf(r.rank) + 1] })}</p>
       <div class="rk-figs"><span><small>${H('rk.solved')}</small><b>${r.solved}</b></span><span><small>${H('rk.acc')}</small><b>${r.acc}%</b></span><span><small>${H('rk.time')}</small><b>${fmtMs(r.ms)}</b></span><span><small>${H('rk.passed')}</small><b>${r.passed}</b></span><span><small>${H('rk.misses')}</small><b>${r.misses}</b></span></div>
       <p class="muted small">${H('rk.formula')}</p>
@@ -1576,7 +1580,7 @@ function rankDoneHTML(ses) {
         ${chs.map(c => { const b = byCh[c]; return `<tr><td><a href="#/lecture/${c}">${lessonTitleHTML(LESSON_BY_KEY[c], L())}</a></td><td class="n">${b.ok}/${b.n}</td><td class="n">${b.pass}</td><td class="n">${b.miss}</td><td class="n">${Math.round(b.ms / b.n / 1000)}s</td><td>${good(c) ? `<span class="tag ok">${H('rk.strong')}</span>` : weak(c) ? `<span class="tag bad">${H('rk.weak')}</span>` : ''}</td></tr>`; }).join('')}
       </tbody></table>
       ${weakLessons.length ? `<p class="small"><b>${H('rk.study')}</b> ${weakLessons.map(k => `<a href="#/lecture/${k}">${lessonTitleHTML(LESSON_BY_KEY[k], L())}</a>`).join('、')}</p>` : `<p class="muted small">${H('rk.noWeak')}</p>`}</section>
-      <section class="card"><h3>${H('rk.history')}</h3>${rec.hist.length ? `<table class="wtable"><thead><tr><th>${H('rk.when')}</th><th>${H('rk.rank')}</th><th class="n">${H('rk.score')}</th><th class="n">${H('rk.solved')}</th><th class="n">${H('rk.misses')}</th></tr></thead><tbody>${rec.hist.map(h => `<tr><td class="muted small">${esc(new Date(h.at).toLocaleString(htmlLang(L())))}</td><td><span class="rk-badge sm r-${h.r}">${h.r}</span></td><td class="n"><b>${h.s}</b></td><td class="n">${h.ok ?? ''}</td><td class="n">${h.miss ?? ''}</td></tr>`).join('')}</tbody></table>` : ''}</section>
+      <section class="card"><h3>${H('rk.history')}</h3>${rec.hist.length ? `<table class="wtable"><thead><tr><th>${H('rk.when')}</th><th>${H('rk.rank')}</th><th class="n">${H('rk.score')}</th><th class="n">${H('rk.solved')}</th><th class="n">${H('rk.misses')}</th></tr></thead><tbody>${rec.hist.map(h => `<tr><td class="muted small">${esc(new Date(h.at).toLocaleString(htmlLang(L())))}</td><td>${rkBadge(h.r, h.pass)}</td><td class="n"><b>${h.s}</b></td><td class="n">${h.ok ?? ''}</td><td class="n">${h.miss ?? ''}</td></tr>`).join('')}</tbody></table>` : ''}</section>
     </div>
     <h2 class="bs-h2">${H('rk.review')}</h2>
     ${ses.items.map((p, i) => { const ok = !!ses.done[p.id], l = LESSON_BY_KEY[p.lesson];

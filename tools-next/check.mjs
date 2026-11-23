@@ -791,6 +791,9 @@ console.log('15c. Shorter joins');
   const rb = RK.rankRow(Object.assign({}, b, { test: 'join-advanced', solved: 12, misses: 4 }));
   const board = RK.classRanking([{ ...row, user_id: 'u1', created_at: '1' }, { ...rb, user_id: 'u2', created_at: '2' }, { ...rb, user_id: 'u1', created_at: '3' }], 'join-advanced');
   if (board.length !== 2 || board[0].user !== 'u1' || board[0].score !== 120) err('rank: the class ranking is wrong');
+  { const pr = r => ({ problem_id: `rk:sort-basic:${r.s}:A`, sql: JSON.stringify({ pass: r.p }), user_id: r.u, created_at: r.t });
+    const bd = RK.classRanking([pr({ s: 90, p: 2, u: 'a', t: '1' }), pr({ s: 90, p: 0, u: 'b', t: '2' }), pr({ s: 90, p: 0, u: 'a', t: '3' }), pr({ s: 95, p: 3, u: 'c', t: '4' })].map(r => ({ ...r, problem_id: r.problem_id.replace('sort-basic', 'sort-beginner') })), 'sort-beginner');
+    if (bd.map(r => r.user + r.passed).join() !== 'c3,b0,a0' || !RK.rankBetter({ score: 9, passed: 0 }, { score: 9, passed: 1 }) || RK.rankBetter({ score: 9, passed: 1 }, { score: 9, passed: 0 })) err('rank: passes do not order ties (' + bd.map(r => r.user + r.passed).join() + ')'); }
   console.log(`   rank tests: ${RK.RK_CHAPTERS.length} subjects × ${RK.RK_TIERS.length} tiers, problems until the time is up`);
 }
 
