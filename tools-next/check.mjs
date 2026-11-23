@@ -763,6 +763,22 @@ console.log('15c. Shorter joins');
   console.log(`   ${n} problems: every short form gives the same result`);
 }
 
+/* ---------- 15d. the typing test: phrases, scores, levels ---------- */
+{
+  const TY = await import('../js/typing.js');
+  for (const c of TY.TY_COURSES) {
+    const pool = TY.typingPool(c, eng);
+    if (pool.length < 40) err(`typing ${c}: only ${pool.length} phrases`);
+    pool.forEach(x => { if (!/^[\x20-\x7e]+$/.test(x) || /\s{2}|^\s|\s$/.test(x)) err(`typing ${c}: a phrase that cannot be typed as shown: ${JSON.stringify(x)}`); });
+  }
+  const sc = TY.typingScore(200, 0), sc2 = TY.typingScore(200, 20);
+  if (sc.score !== 200 || sc2.score >= sc.score || TY.typingLevel(0) !== 1 || TY.typingLevel(10000) !== TY.TY_LEVELS.length) err('typing: scores / levels are wrong');
+  if (TY.TY_LEVELS.some((t, i) => i && t <= TY.TY_LEVELS[i - 1])) err('typing: levels must go up');
+  const row = TY.typingRow({ course: 'sql', score: 512, kpm: 530, acc: 98.7, misses: 7, correct: 530, weak: [['(', 3]] });
+  if (row.problem_id.length > 80 || row.reason.length > 40 || row.lesson.length > 40 || !TY.isTypingRow(row) || TY.typingFromRow(row).score !== 512) err('typing: the class log row is wrong');
+  console.log(`   typing: ${TY.TY_COURSES.map(c => c + ' ' + TY.typingPool(c, eng).length).join(', ')} phrases`);
+}
+
 /* ---------- 16. the Python course (pandas) ---------- */
 console.log('16. Python course (pandas)');
 {

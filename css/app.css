@@ -1475,3 +1475,46 @@ body.pj-open { overflow: hidden; }
 .short-step.long b { color: var(--ink-3); }
 .short-step pre.sql { margin: 0; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .short-rule { color: var(--warn); }
+
+/* ---------- typing test ---------- */
+.ty-page { display: grid; gap: 14px; }
+.ty-page > .card, .ty-side > .card { padding: 20px 22px; }
+.ty-side h3 { margin: 0 0 10px; }
+.ty-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.ty-head h1 { margin: 0 0 4px; font-size: 1.5rem; }
+.ty-best { text-align: right; display: grid; justify-items: end; gap: 2px; }
+.ty-best b { font-size: 1.8rem; }
+.ty-courses { max-width: 560px; }
+.ty-courses button { padding: 8px 12px; border: 0; background: transparent; border-radius: 8px; cursor: pointer; font: inherit; color: var(--muted); }
+.ty-courses button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); font-weight: 600; }
+.ty-stage { min-height: 300px; display: grid; align-content: center; gap: 14px; padding: 28px; }
+.ty-idle { text-align: center; display: grid; gap: 10px; justify-items: center; }
+.ty-rules { text-align: left; margin: 0 auto 8px; line-height: 1.8; }
+.ty-countdown { font-size: 5rem; font-weight: 800; text-align: center; color: var(--accent); }
+.center { text-align: center; }
+.ty-timer { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.ty-timer i { display: block; height: 100%; background: var(--accent); transition: width .1s linear; }
+.ty-stats { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; color: var(--muted); }
+.ty-stats b { color: var(--text); font-size: 1.15rem; }
+.ty-line { font-family: var(--mono, ui-monospace, monospace); font-size: clamp(1.2rem, 2.6vw, 1.9rem); text-align: center; white-space: pre-wrap; word-break: normal; overflow-wrap: anywhere; padding: 18px 10px; border-radius: 12px; background: var(--surface-2); line-height: 1.6; }
+.ty-line span { color: var(--muted); }
+.ty-line span.d { color: var(--ok, #16a34a); }
+.ty-line span.c { color: var(--text); background: color-mix(in srgb, var(--accent) 22%, transparent); border-bottom: 3px solid var(--accent); }
+.ty-line span.sp.c { min-width: .6em; display: inline-block; }
+.ty-line.miss { animation: tymiss .25s; }
+@keyframes tymiss { 0%, 100% { transform: none; } 30% { transform: translateX(-6px); background: color-mix(in srgb, var(--bad, #dc2626) 18%, var(--surface-2)); } 60% { transform: translateX(5px); } }
+.ty-next { text-align: center; color: var(--muted); font-family: var(--mono, ui-monospace, monospace); }
+.ty-ime { text-align: center; color: var(--bad, #dc2626); font-weight: 600; }
+.ty-result { display: grid; gap: 14px; justify-items: center; text-align: center; }
+.ty-score { display: grid; justify-items: center; gap: 4px; }
+.ty-score b { font-size: 3.4rem; line-height: 1; }
+.ty-lv { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.ty-lv b { font-size: 1.2rem; }
+.ty-figs { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
+.ty-figs span { display: grid; }
+.ty-figs b { font-size: 1.3rem; }
+.ty-weak .kbd { display: inline-block; min-width: 1.6em; padding: 2px 6px; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 6px; font-family: var(--mono, ui-monospace, monospace); background: var(--surface); }
+.ty-side { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ty-levels tr.on td { background: color-mix(in srgb, var(--accent) 14%, transparent); font-weight: 700; }
+@media (max-width: 760px) { .ty-side { grid-template-columns: 1fr; } }
+.ty-chip { display: inline-flex; gap: 4px; align-items: baseline; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); margin: 1px 0; white-space: nowrap; }

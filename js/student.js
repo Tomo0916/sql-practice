@@ -15,6 +15,7 @@ import { ALL_TABLES, JOIN_DATASETS } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
+import { TY_SECONDS, TY_COURSES, TY_LEVELS, typingPool, typingDeck, typingScore, typingLevel, typingBand, typingToNext, weakKeys, typingRow } from './typing.js';
 import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 import { createEditor } from './editor.js';
@@ -139,6 +140,7 @@ function parseRoute() {
   if (h[0] === 'mastery') return { view: 'mastery' };
   if (h[0] === 'clauses') return { view: 'clauses', set: CQ_SETS.includes(h[1]) ? h[1] : null };
   if (h[0] === 'tables') return { view: 'tables' };
+  if (h[0] === 'typing') return { view: 'typing' };
   if (h[0] === 'check') return { view: 'session', kind: 'check', code: h.slice(1).join('/') || null };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
   if (h[0] === 'quick') return { view: 'quick', idx: h[1] === 'done' ? -1 : Math.max(0, parseInt(h[1], 10) || 0), raw: h[1] || '' };
@@ -195,6 +197,7 @@ function saveDraft() {
 function render() {
   applySettings(S.settings, htmlLang(L()));
   if (S.editor) { S.editor.destroy(); S.editor = null; }
+  if (S.route.view !== 'typing' && (ty.timer || ty.count)) { tyStop(); ty.phase = 'idle'; }   // left the typing test in the middle
   const head = headerHTML();
   if (!S.engine) { app.innerHTML = head + `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`; return; }
   const r = S.route;
@@ -209,6 +212,7 @@ function render() {
   else if (r.view === 'clauses') body = clausesHTML();
   else if (r.view === 'lecture') body = lectureHTML();
   else if (r.view === 'py') body = pyHTML();
+  else if (r.view === 'typing') body = typingHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
   app.innerHTML = head + quickBannerHTML() + liveBannerHTML() + body + footerHTML();
@@ -346,6 +350,10 @@ function homeHTML() {
     <section class="card mixcard drillcard prcard">
       <div><span class="drill-ic">🎚</span><div><b>${H('pr.title')}</b><p class="muted">${H('pr.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/practice">${H('pr.open')}</a>
+    </section>
+    <section class="card mixcard drillcard tycard">
+      <div><span class="drill-ic">⌨</span><div><b>${H('ty.title')}${S.progress.typing && S.progress.typing.sql && S.progress.typing.sql.best ? ` <span class="tag">Lv.${typingLevel(S.progress.typing.sql.best)}</span>` : ''}</b><p class="muted">${H('ty.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/typing">${H('ty.open')}</a>
     </section>
     <section class="card mixcard drillcard lvcard">
       <div><span class="drill-ic">🎯</span><div><b>${H('lv.title')}${lvState() ? ` <span class="tag">Lv.${lvState().lv}</span>` : ''}</b><p class="muted">${H('lv.homeSub')}</p></div></div>
@@ -1452,6 +1460,112 @@ document.addEventListener('keydown', e => {
   if (e.key === 'a' || e.key === 'A') actions.lecAuto();
 });
 
+
+/* ---------- typing test (#/typing): 60 seconds, speed × accuracy³ → a level, like e-typing ---------- */
+const ty = { course: 'sql', phase: 'idle', deck: [], di: 0, ci: 0, correct: 0, misses: 0, missed: {}, start: 0, timer: null, count: null, res: null, ime: false };
+const tyPools = {};
+const tyPool = c => (tyPools[c] = tyPools[c] || typingPool(c, S.engine));
+const tyRec = c => ((S.progress.typing = S.progress.typing || {})[c] = S.progress.typing[c] || { best: 0, hist: [] });
+const tyKey = k => (k === ' ' ? '␣' : k);
+function tyStop() { clearInterval(ty.timer); clearInterval(ty.count); ty.timer = ty.count = null; }
+/** the phrase being typed: done / now / rest, one span per character */
+function tyLineHTML() {
+  const p = ty.deck[ty.di] || '';
+  return [...p].map((ch, i) => `<span class="${i < ty.ci ? 'd' : i === ty.ci ? 'c' : ''}${ch === ' ' ? ' sp' : ''}">${esc(ch)}</span>`).join('');
+}
+function tyLive() {
+  const el = s => document.getElementById(s);
+  if (!el('ty-line')) return;
+  const sec = Math.min(TY_SECONDS, (Date.now() - ty.start) / 1000), r = typingScore(ty.correct, ty.misses, Math.max(sec, 1));
+  el('ty-line').innerHTML = tyLineHTML();
+  el('ty-next').textContent = ty.deck[ty.di + 1] || '';
+  el('ty-bar').style.width = `${Math.max(0, 100 - sec / TY_SECONDS * 100)}%`;
+  el('ty-left').textContent = Math.ceil(TY_SECONDS - sec);
+  el('ty-kpm').textContent = sec < 3 ? '—' : r.kpm; el('ty-acc').textContent = ty.correct + ty.misses ? r.acc : '—'; el('ty-miss').textContent = ty.misses;
+  el('ty-ime').hidden = !ty.ime;
+}
+function tyBegin() {
+  tyStop();
+  Object.assign(ty, { phase: 'count', deck: typingDeck(tyPool(ty.course)), di: 0, ci: 0, correct: 0, misses: 0, missed: {}, res: null, ime: false, n: 3 });
+  render();
+  ty.count = setInterval(() => {
+    ty.n -= 1;
+    if (ty.n > 0) { const c = document.getElementById('ty-count'); if (c) c.textContent = ty.n; return; }
+    clearInterval(ty.count); ty.count = null;
+    ty.phase = 'run'; ty.start = Date.now(); render();
+    ty.timer = setInterval(() => { if (Date.now() - ty.start >= TY_SECONDS * 1000) tyFinish(true); else tyLive(); }, 100);
+  }, 800);
+}
+function tyFinish(full) {
+  tyStop();
+  if (!full) { ty.phase = 'idle'; render(); return; }   // stopped with Esc: not recorded
+  const r = Object.assign(typingScore(ty.correct, ty.misses), { course: ty.course, correct: ty.correct, misses: ty.misses, weak: weakKeys(ty.missed), at: Date.now() });
+  const rec = tyRec(ty.course), prevBest = rec.best;
+  rec.best = Math.max(rec.best, r.score);
+  rec.hist = [{ s: r.score, kpm: r.kpm, acc: r.acc, at: r.at }, ...rec.hist].slice(0, 10);
+  save();
+  if (S.klass && backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, typingRow(r)));
+  ty.res = Object.assign(r, { best: r.score > prevBest && prevBest > 0 });
+  ty.phase = 'done'; render();
+}
+function tyKeydown(e) {
+  if (S.route.view !== 'typing' || document.getElementById('modal') || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+  if (ty.phase === 'idle' || ty.phase === 'done') { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); tyBegin(); } return; }
+  if (ty.phase === 'count') { if (e.key === ' ') e.preventDefault(); return; }
+  if (e.key === 'Escape') { tyFinish(false); return; }
+  if (e.isComposing || e.key === 'Process' || e.keyCode === 229) { ty.ime = true; tyLive(); return; }   // Japanese input is on
+  if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+  e.preventDefault();
+  ty.ime = false;
+  const want = ty.deck[ty.di][ty.ci];
+  if (e.key === want) {
+    ty.correct += 1; ty.ci += 1;
+    if (ty.ci >= ty.deck[ty.di].length) { ty.di += 1; ty.ci = 0; }
+  } else {
+    ty.misses += 1; ty.missed[want] = (ty.missed[want] || 0) + 1;
+    const l = document.getElementById('ty-line'); if (l) { l.classList.remove('miss'); void l.offsetWidth; l.classList.add('miss'); }
+  }
+  tyLive();
+}
+document.addEventListener('keydown', tyKeydown);
+
+function typingHTML() {
+  document.title = `${T('ty.title')} · SQL Practice`;
+  const courseSeg = `<div class="seg ty-courses">${TY_COURSES.map(c => `<button class="${c === ty.course ? 'on' : ''}" data-act="tyCourse" data-v="${c}" ${ty.phase === 'run' || ty.phase === 'count' ? 'disabled' : ''}>${H('ty.course.' + c)}</button>`).join('')}</div>`;
+  const rec = tyRec(ty.course), bestLv = rec.best ? typingLevel(rec.best) : 0;
+  let stage;
+  if (ty.phase === 'count') stage = `<div class="ty-countdown" id="ty-count">${ty.n}</div><p class="muted center">${H('ty.ready')}</p>`;
+  else if (ty.phase === 'run') stage = `<div class="ty-timer"><i id="ty-bar" style="width:100%"></i></div>
+      <div class="ty-stats"><span>${H('ty.left')} <b id="ty-left">${TY_SECONDS}</b>s</span><span>${H('ty.kpm')} <b id="ty-kpm">0</b></span><span>${H('ty.acc')} <b id="ty-acc">0</b>%</span><span>${H('ty.misses')} <b id="ty-miss">0</b></span></div>
+      <div class="ty-line" id="ty-line">${tyLineHTML()}</div>
+      <div class="ty-next"><small>${H('ty.next')}</small> <span id="ty-next">${esc(ty.deck[1] || '')}</span></div>
+      <p class="ty-ime" id="ty-ime" hidden>⚠ ${H('ty.ime')}</p>
+      <p class="muted small center">${H('ty.escHint')}</p>`;
+  else if (ty.phase === 'done' && ty.res) {
+    const r = ty.res, lv = typingLevel(r.score), next = typingToNext(r.score);
+    stage = `<div class="ty-result">
+      <div class="ty-score"><small>${H('ty.score')}</small><b>${r.score}</b>${r.best ? `<span class="tag ok">${H('ty.newBest')}</span>` : ''}</div>
+      <div class="ty-lv"><span class="lv-chip">Lv.${lv}</span><b>${H('ty.band.' + typingBand(lv))}</b><small class="muted">${next === null ? H('ty.max') : H('ty.toNext', { n: next })}</small></div>
+      <div class="ty-figs"><span><small>${H('ty.kpm')}</small><b>${r.kpm}</b></span><span><small>${H('ty.acc')}</small><b>${r.acc}%</b></span><span><small>${H('ty.correct')}</small><b>${r.correct}</b></span><span><small>${H('ty.misses')}</small><b>${r.misses}</b></span></div>
+      <div class="ty-weak"><small>${H('ty.weak')}</small> ${r.weak.length ? r.weak.map(([k, n]) => `<span class="kbd">${esc(tyKey(k))}</span><small>×${n}</small>`).join(' ') : `<span class="muted">${H('ty.noWeak')}</span>`}</div>
+      <p class="muted small">${H('ty.formula')}</p>
+      <button class="btn btn-primary" data-act="tyStart">${I.repeat}${H('ty.again')}</button>
+      ${S.klass ? `<p class="muted small">${H('ty.sent')}</p>` : ''}
+    </div>`;
+  } else stage = `<div class="ty-idle"><ul class="ty-rules"><li>${H('ty.rule1', { n: TY_SECONDS })}</li><li>${H('ty.rule2')}</li><li>${H('ty.rule3')}</li></ul>
+      <button class="btn btn-primary btn-lg" data-act="tyStart">${H('ty.startBtn')}</button><p class="muted small">${H('ty.spaceHint')}</p><p class="muted small">${H('ty.keyboard')}</p></div>`;
+  const lvNow = ty.phase === 'done' && ty.res ? typingLevel(ty.res.score) : bestLv;
+  const table = `<table class="wtable ty-levels"><thead><tr><th>${H('ty.level')}</th><th>${H('ty.band')}</th><th class="n">${H('ty.score')}</th></tr></thead><tbody>${TY_LEVELS.map((t, i) => `<tr class="${i + 1 === lvNow ? 'on' : ''}"><td>Lv.${i + 1}</td><td>${H('ty.band.' + typingBand(i + 1))}</td><td class="n">${t}${i + 1 < TY_LEVELS.length ? '–' + (TY_LEVELS[i + 1] - 1) : '+'}</td></tr>`).join('')}</tbody></table>`;
+  const hist = rec.hist.length ? `<table class="wtable"><thead><tr><th>${H('ty.when')}</th><th class="n">${H('ty.score')}</th><th class="n">${H('ty.kpm')}</th><th class="n">${H('ty.acc')}</th></tr></thead><tbody>${rec.hist.map(h => `<tr><td class="muted small">${esc(new Date(h.at).toLocaleString(htmlLang(L())))}</td><td class="n"><b>${h.s}</b> <small class="muted">Lv.${typingLevel(h.s)}</small></td><td class="n">${h.kpm}</td><td class="n">${h.acc}%</td></tr>`).join('')}</tbody></table>` : `<p class="muted">${H('ty.never')}</p>`;
+  return `<main class="wrap ty-page">
+    <section class="card ty-head"><div><h1>⌨ ${H('ty.title')}</h1><p class="muted">${H('ty.sub')}</p></div>
+      <div class="ty-best"><small>${H('ty.best')}</small><b>${rec.best || '—'}</b>${rec.best ? `<span class="lv-chip">Lv.${bestLv}</span>` : ''}</div></section>
+    ${courseSeg}
+    <section class="card ty-stage">${stage}</section>
+    <div class="ty-side"><section class="card"><h3>${H('ty.levels')}</h3>${table}</section><section class="card"><h3>${H('ty.history')}</h3>${hist}</section></div>
+  </main>`;
+}
+
 /* ---------- glossary ---------- */
 function wordsHTML() {
   document.title = `${T('nav.words')} · SQL Practice`;
@@ -2014,6 +2128,8 @@ function checkOrder() {
  * ========================================================= */
 const actions = {
   homeOrder(el) { S.settings.order = el.dataset.v === 'book' ? 'book' : 'app'; saveSettings(S.settings); render(); },   // the home page: the app's chapters or the textbook's order
+  tyStart() { tyBegin(); },
+  tyCourse(el) { if (ty.phase === 'run' || ty.phase === 'count') return; ty.course = TY_COURSES.includes(el.dataset.v) ? el.dataset.v : 'sql'; ty.phase = 'idle'; ty.res = null; render(); },
   qRef(el) { qBack = +el.dataset.qn; saveDraft(); location.hash = el.getAttribute('href'); },   // remember the problem, then open the lesson
   ...pyActions,
   lang: null,

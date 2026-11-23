@@ -49,6 +49,7 @@ export function usedKeys() {
   keys.add('pd.loadingStats');
   ['app', 'book'].forEach(k => keys.add('home.order.' + k));   // the home page: textbook order
   ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'more'].forEach(k => { keys.add('book.' + k); keys.add(`book.${k}.desc`); });
+  ['kw', 'sql', 'py'].forEach(k => keys.add('ty.course.' + k)); [1, 2, 3, 4, 5].forEach(n => keys.add('ty.band.' + n));   // the typing test
   ['desc_describe', 'desc_median', 'desc_quantile', 'desc_std', 'desc_var', 'rel_corr', 'rel_matrix', 'rel_z', 'rel_share', 'ci_sem', 'ci_low', 'ci_high', 'ci_width',
     't_ind', 't_welch', 't_one', 't_sig', 'chi_p', 'chi_stat', 'chi_dof', 'chi_sig', 'reg_slope', 'reg_intercept', 'reg_r2', 'reg_pred', 'mreg_params', 'mreg_r2', 'mreg_coef'].forEach(k => keys.add('pd.d.' + k));
   ['head', 'cols', 'filter', 'and', 'or', 'loc', 'sortAsc', 'sortDesc', 'topAsc', 'topDesc', 'agg', 'group', 'count', 'merge',
