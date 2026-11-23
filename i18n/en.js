@@ -1934,5 +1934,19 @@ export default {
   "rk.limit": "{m} min",
   "rk.timeUp": "Time up",
   "rk.withPass": " (with passes)",
-  "rk.passNote": "You passed some problems, so this is “{r} (with passes)”. The score is the same; solve every problem without passing to drop “with passes”."
+  "rk.passNote": "You passed some problems, so this is “{r} (with passes)”. The score is the same; solve every problem without passing to drop “with passes”.",
+  "hm.learn": "Learn",
+  "hm.practice": "Practise",
+  "hm.test": "Test yourself",
+  "hm.python": "Data analysis with Python",
+  "bk.title": "Back up your records",
+  "bk.sub": "Save your progress to a file and load it on another device or browser.",
+  "bk.save": "Save to a file",
+  "bk.load": "Load from a file",
+  "bk.saved": "Your records were saved to a file.",
+  "bk.bad": "This file cannot be loaded (it is not a SQL Practice records file).",
+  "bk.confirm": "Load these records? They are combined with the records on this device (problems solved on either one are kept).",
+  "rk.statN": "{n} students",
+  "rk.avg": "Average",
+  "rk.median": "Median"
 };

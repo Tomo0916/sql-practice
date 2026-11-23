@@ -260,14 +260,16 @@ function lessonLinkHTML(l) {
  * The lesson list of the home page: by the app's chapters, or in the order of the textbook
  * (スッキリわかるSQL入門 第4版, chapters 1–8, then the rest). The choice is kept in the settings (order: 'book').
  */
+/** phones show a chapter's lessons only when it is open: the chapter of the last lesson, or the first one */
+const chOpen = ls => { const k = (S.progress.last && S.progress.last.key) || LESSONS[0].key; return ls.some(l => l.key === k); };
 function chaptersHTML() {
   const book = S.settings.order === 'book';
   const toggle = `<div class="order-bar"><span class="muted">${H('home.orderLabel')}</span><div class="seg">${['app', 'book'].map(v => `<button class="${(v === 'book') === book ? 'on' : ''}" data-act="homeOrder" data-v="${v}" aria-pressed="${(v === 'book') === book}">${H('home.order.' + v)}</button>`).join('')}</div></div>`;
   if (!book) return `${toggle}<section class="chapters">
       ${CHAPTERS.map((ch, ci) => {
         const ls = LESSONS.filter(l => l.ch === ch.key);
-        return `<article class="card chapter" style="--cc:var(--c-${ch.key})">
-          <div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div>
+        return `<article class="card chapter ${chOpen(ls) ? 'open' : ''}" style="--cc:var(--c-${ch.key})">
+          <div class="chapter-head" data-act="chToggle"><div class="chapter-icon">${esc(ch.icon)}</div><div>
             <small>${H('home.chapter', { n: ci + 1 })}</small>
             <h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2><p>${rubyHTML(raw('ch.' + ch.key + '.desc', L()))}</p></div></div>
           ${chShapesHTML(ch.key)}
@@ -279,8 +281,8 @@ function chaptersHTML() {
       ${BOOK_CHAPTERS.map((b, bi) => {
         const ls = b.more ? LESSONS.filter(l => !inBook.has(l.key)) : b.lessons.map(k => LESSON_BY_KEY[k]).filter(Boolean);
         if (!ls.length) return '';
-        return `<article class="card chapter book-ch" style="--cc:var(--c-${ls[0].ch})">
-          <div class="chapter-head"><div class="chapter-icon">${b.more ? '＋' : bi + 1}</div><div>
+        return `<article class="card chapter book-ch ${chOpen(ls) ? 'open' : ''}" style="--cc:var(--c-${ls[0].ch})">
+          <div class="chapter-head" data-act="chToggle"><div class="chapter-icon">${b.more ? '＋' : bi + 1}</div><div>
             <small>${H(b.more ? 'book.moreTag' : 'book.tag')}</small>
             <h2>${rubyHTML(raw('book.' + b.key, L()))}</h2><p>${rubyHTML(raw('book.' + b.key + '.desc', L()))}</p></div></div>
           <ul class="lesson-list">${ls.map(lessonLinkHTML).join('')}</ul></article>`;
@@ -336,14 +338,13 @@ function homeHTML() {
       </div>
     </section>
     ${assign}${taskCard}
+    ${S.pinNeeded ? `<section class="card mixcard pincard"><div><span class="drill-ic">🔢</span><div><b>${H('pin.setTitle')}</b><p class="muted">${H('pin.setSub')}</p></div></div><button class="btn btn-ok" data-act="setPin">${H('pin.setNow')}</button></section>` : ''}
+    <section class="home-group"><h2 class="home-h">${H('hm.learn')}</h2></section>
     ${chaptersHTML()}
+    <section class="home-group"><h2 class="home-h">${H('hm.practice')}</h2><div class="home-grid">
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_CORE.filter(x => bsState(x.key).clear).length} / ${BASIC_CORE.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/basics">${H('bs.open')}</a>
-    </section>
-    <section class="card mixcard drillcard pycard">
-      <div><span class="drill-ic py-ic">pd</span><div><b>${H('pd.title')} <span class="tag">${PD_LESSONS.filter(l => ((S.progress.py || {})[l.key] || {}).clear).length} / ${PD_LESSONS.length}</span></b><p class="muted">${H('pd.homeSub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/py">${H('pd.open')}</a>
     </section>
     <section class="card mixcard drillcard cqcard">
       <div><span class="drill-ic">🧩</span><div><b>${H('cq.title')} <span class="tag">${CQ_SETS.filter(k => cqRec(k).best === CQ_N).length} / ${CQ_SETS.length}</span></b><p class="muted">${H('cq.homeSub')}</p></div></div>
@@ -353,32 +354,36 @@ function homeHTML() {
       <div><span class="drill-ic">🎚</span><div><b>${H('pr.title')}</b><p class="muted">${H('pr.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/practice">${H('pr.open')}</a>
     </section>
-    <section class="card mixcard drillcard rkcard">
-      <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.hist && r.hist.length).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/rank">${H('rk.open')}</a>
-    </section>
-    <section class="card mixcard drillcard lvcard">
-      <div><span class="drill-ic">🎯</span><div><b>${H('lv.title')}${lvState() ? ` <span class="tag">Lv.${lvState().lv}</span>` : ''}</b><p class="muted">${H('lv.homeSub')}</p></div></div>
-      <a class="btn ${lvState() ? 'btn-ghost' : 'btn-primary'}" href="${lvState() ? '#/level' : '#/level'}">${H(lvState() ? 'lv.open' : 'lv.startTest')}</a>
-    </section>
     <section class="card mixcard drillcard">
-      <div><span class="drill-ic">🗂</span><div><b>${H('tp.title')}</b><p class="muted">${H('tp.homeSub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/table">${H('tp.open')}</a>
+      <div><span class="drill-ic">⇅</span><div><b>${H('drill.title')}</b><p class="muted">${H('drill.sub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/drill">${H('drill.start')}</a>
     </section>
     <section class="card mixcard">
       <div>${I.shuffle}<div><b>${H('mix.title')}</b><p class="muted">${H('mix.sub')}</p></div></div>
       <a class="btn btn-ghost" href="#/mix">${H('mix.start')}</a>
     </section>
-    ${S.pinNeeded ? `<section class="card mixcard pincard"><div><span class="drill-ic">🔢</span><div><b>${H('pin.setTitle')}</b><p class="muted">${H('pin.setSub')}</p></div></div><button class="btn btn-ok" data-act="setPin">${H('pin.setNow')}</button></section>` : ''}
     <section class="card mixcard drillcard solvedcard"><div><span class="drill-ic">✓</span><div><b>${H('mine.title')}</b><p class="muted">${H('mine.sub')}</p></div></div><a class="btn btn-ghost" href="#/solved">${H('mine.open')}</a></section>
+    <section class="card mixcard drillcard">
+      <div><span class="drill-ic">🗂</span><div><b>${H('tp.title')}</b><p class="muted">${H('tp.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/table">${H('tp.open')}</a>
+    </section>
+    </div></section>
+    <section class="home-group"><h2 class="home-h">${H('hm.test')}</h2><div class="home-grid">
+    <section class="card mixcard drillcard rkcard">
+      <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.hist && r.hist.length).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/rank">${H('rk.open')}</a>
+    </section>
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">📝</span><div><b>${H('ck.title')}</b><p class="muted">${H('ck.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/check">${H('ck.open2')}</a>
     </section>
-    <section class="card mixcard drillcard">
-      <div><span class="drill-ic">⇅</span><div><b>${H('drill.title')}</b><p class="muted">${H('drill.sub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/drill">${H('drill.start')}</a>
+    </div></section>
+    <section class="home-group"><h2 class="home-h">${H('hm.python')}</h2><div class="home-grid">
+    <section class="card mixcard drillcard pycard">
+      <div><span class="drill-ic py-ic">pd</span><div><b>${H('pd.title')} <span class="tag">${PD_LESSONS.filter(l => ((S.progress.py || {})[l.key] || {}).clear).length} / ${PD_LESSONS.length}</span></b><p class="muted">${H('pd.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/py">${H('pd.open')}</a>
     </section>
+    </div></section>
   </main>`;
 }
 function setBoxHTML() {
@@ -1422,7 +1427,7 @@ function lectureHTML() {
   const slides = lectureOf(lesson.key).slides, title = lesson.py ? rubyHTML(raw('pd.t.' + lesson.key, L())) : lessonTitleHTML(lesson, L());
   return `<main class="wrap lec-wrap">
     <div class="crumbs"><a href="${lesson.py ? `#/py/${lesson.key}/0` : `#/l/${lesson.key}/0`}">${lesson.py ? 'Python' : 'Lesson'} ${lesson.no} · ${title}</a><span>›</span><span>📽 ${H('lec.title')}</span></div>
-    ${['ja', 'easy', 'en'].includes(L()) ? '' : `<p class="muted small">${H('lec.langNote')}</p>`}
+    ${['ja', 'easy', 'en'].includes(L()) ? '' : `<p class="lec-lang-note">🌐 ${H('lec.langNote')}</p>`}
     <section class="card lec-card">
       <div class="lec-top"><h1>${title}</h1>
         <div class="lec-dots">${slides.map((sl, i) => `<button class="${i === st.slide ? 'on' : i < st.slide ? 'done' : ''}" data-act="lecGo" data-s="${i}" aria-label="${i + 1}"></button>`).join('')}</div></div>
@@ -2380,6 +2385,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const el = e.target;
   if (el.matches('[data-act="lang"]')) { setLang(el.value); return; }
+  if (el.dataset.file === 'backup') { backupLoad(el); return; }
   if (el.dataset.setting) {
     const k = el.dataset.setting;
     S.settings[k] = el.type === 'checkbox' ? el.checked : el.value === '' ? null : el.value;
@@ -2438,10 +2444,36 @@ function openSettings() {
       <div class="fld"><span>${H('set.theme')}</span><div class="seg">${radio('theme', 'auto', T('set.themeAuto'))}${radio('theme', 'light', T('set.themeLight'))}${radio('theme', 'dark', T('set.themeDark'))}</div></div>
       <div class="fld"><span>${H('set.size')}</span><div class="seg">${radio('size', 's', 'A')}${radio('size', 'm', 'A+')}${radio('size', 'l', 'A++')}</div></div>
       <label class="chk"><input type="checkbox" data-setting="presenter" ${s.presenter ? 'checked' : ''}><span>${H('pres.on')}<small class="muted"> — ${H('pres.onTip')}</small></span></label>
+      <hr><div class="fld"><span>${H('bk.title')}</span><small class="muted">${H('bk.sub')}</small>
+        <div class="row-btns"><button class="btn btn-ghost btn-sm" data-act="backupSave">⬇ ${H('bk.save')}</button><label class="btn btn-ghost btn-sm">⬆ ${H('bk.load')}<input type="file" accept=".json,application/json" data-file="backup" hidden></label></div></div>
       <hr><button class="linkbtn danger" data-act="resetProgress">${H('prog.reset')}</button>
     </div>`);
 }
 actions.closeModal = closeModal;
+actions.chToggle = el => { if (matchMedia('(max-width: 720px)').matches) el.closest('.chapter').classList.toggle('open'); };
+/* ---------- backup: the records of this browser as a file, to move to another device ---------- */
+const BK_SKIP = new Set(['sqln.auth', 'sqln.teacher', 'sqln.tcView']);   // sign-ins and the teacher page stay on this device
+actions.backupSave = () => {
+  save();
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('sqln.') && !BK_SKIP.has(k)) data[k] = localStorage.getItem(k); }
+  const blob = new Blob([JSON.stringify({ app: 'sql-practice', v: 1, at: new Date().toISOString(), data })], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `sql-practice-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(T('bk.saved'));
+};
+const backupLoad = el => {
+  const f = el.files && el.files[0]; if (!f) return;
+  f.text().then(txt => {
+    let j; try { j = JSON.parse(txt); } catch (e) { j = null; }
+    if (!j || j.app !== 'sql-practice' || !j.data) { alert(T('bk.bad')); return; }
+    if (!confirm(T('bk.confirm'))) return;
+    const mine = loadProgress(), theirs = (() => { try { return JSON.parse(j.data['sqln.progress'] || '{}'); } catch (e) { return {}; } })();
+    Object.entries(j.data).forEach(([k, v]) => { if (k.startsWith('sqln.') && !BK_SKIP.has(k) && k !== 'sqln.progress') localStorage.setItem(k, v); });
+    Store.set(KEYS.progress, mergeProgress(theirs, mine));   // nothing solved on this device is lost
+    location.reload();
+  });
+};
 actions.resetProgress = () => {
   if (!confirm(T('prog.confirm'))) return;
   Store.del(KEYS.progress);   // a fresh start: nothing to merge with

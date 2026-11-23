@@ -1553,3 +1553,27 @@ body.pj-open { overflow: hidden; }
   .kwref { min-height: 32px; min-width: 32px; }
   .crumbs a { padding: 8px 2px; }
 }
+/* home: 学ぶ / 練習する / 腕試し / Python */
+.home-group { margin-top: 26px; }
+.home-h { font-size: 1.05rem; margin: 0 0 10px; color: var(--muted, #6b7280); letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+.home-h::after { content: ""; flex: 1; height: 1px; background: var(--line, #e5e7eb); }
+.home-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.home-grid > .card { margin: 0; }
+@media (max-width: 720px) {
+  .home-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .home-grid > .mixcard { padding: 12px 14px; }
+  .home-grid > .mixcard p.muted { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; margin: 2px 0 0; }
+}
+.home-grid > .mixcard { flex-wrap: nowrap; }
+.home-grid > .mixcard > .btn { flex: none; }
+@media (max-width: 720px) {
+  .chapter .chapter-head { cursor: pointer; position: relative; padding-right: 26px; }
+  .chapter .chapter-head::after { content: "▾"; position: absolute; right: 4px; top: 50%; transform: translateY(-50%); color: var(--muted, #6b7280); transition: transform .15s; }
+  .chapter.open .chapter-head::after { transform: translateY(-50%) rotate(180deg); }
+  .chapter:not(.open) > :not(.chapter-head) { display: none; }
+  .chapter-head p { display: none; }
+  .chapters { gap: 8px; }
+  .chapter { padding-top: 12px; padding-bottom: 12px; }
+}
+@media (max-width: 720px) { .chapter:not(.open) .chapter-head { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; } }
+.lec-lang-note { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 8px; padding: 6px 10px; font-size: .88rem; margin: 0 0 10px; }
