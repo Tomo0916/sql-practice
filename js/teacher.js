@@ -18,6 +18,7 @@ import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
+import { RK_TIERS, isRankRow, classRanking } from './rank.js';
 import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS, DIF_RATIOS, KIND_RATIOS, QK, splitBy, spreadGrid, gridSlots, shapeCountSlots, shapeCountsOf } from './quick.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_BY_KEY } from './basics.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
@@ -1000,12 +1001,18 @@ function membersHTML(c) {
   const lv = levelsFromLog(S.lvAtt || []), counts = Array.from({ length: LV_MAX + 1 }, (_, i) => S.members.filter(m => lv.has(m.user_id) && lv.get(m.user_id).lv === i).length);
   const lvCell = m => { const x = lv.get(m.user_id); if (!x) return '<span class="muted">—</span>';
     return `<span class="lv-chip">Lv.${x.lv}</span><span class="lv-dots" title="${esc(LV_CHAPTERS.map((k, i) => `${T('ch.' + k).replace(/\{([^|}]+)\|[^}]+\}/g, '$1')}: ${x.prof[i] === null || x.prof[i] === undefined ? '–' : Math.min(LV_PER, x.prof[i]) + '/' + LV_PER}`).join('\n'))}">${LV_CHAPTERS.map((k, i) => `<i class="${i < x.lv || passed(x.prof[i]) ? 'ok' : x.prof[i] === null || x.prof[i] === undefined ? '' : 'bad'}"></i>`).join('')}</span>`; };
-  return `<section class="card members">
+  // the rank tests: each student's best per test, and the class ranking of each test
+  const nick = Object.fromEntries((S.members || []).map(m => [m.user_id, m.nickname]));
+  const boards = RK_TIERS.map(t => classRanking(S.rkAtt || [], t));
+  const rkCell = m => { const cells = RK_TIERS.map((t, i) => { const r = boards[i].find(x => x.user === m.user_id); return r ? `<span class="rk-chip" title="${esc(T('rk.tier.' + t))}"><small>${H('rk.tierShort.' + t)}</small> <span class="rk-badge sm r-${r.rank}">${r.rank}</span> <span class="muted">${r.score}</span></span>` : ''; }).filter(Boolean);
+    return cells.length ? cells.join(' ') : '<span class="muted">—</span>'; };
+  const board = boards.some(b => b.length) ? `<div class="rk-board">${RK_TIERS.map((t, i) => `<div class="card"><h3>🏅 ${H('rk.tier.' + t)}</h3>${boards[i].length ? `<ol>${boards[i].map(r => `<li><b>${esc(nick[r.user] || '?')}</b> <span class="rk-badge sm r-${r.rank}">${r.rank}</span> ${r.score} <small class="muted">${r.acc}% · ${Math.round((r.ms || 0) / 1000)}s</small></li>`).join('')}</ol>` : `<p class="muted small">${H('rk.boardNone')}</p>`}</div>`).join('')}</div>` : '';
+  return `${board ? `<section class="card rk-sec"><h2>${H('rk.board')}</h2><p class="muted small">${H('rk.boardSub')}</p>${board}</section>` : ''}<section class="card members">
     ${lv.size ? `<div class="lv-dist"><b>${H('lv.title')}</b>${counts.map((n, i) => `<span class="${n ? '' : 'zero'}"><small>Lv.${i}</small><b>${n}</b></span>`).join('')}<span class="zero"><small>${H('lv.notTaken')}</small><b>${S.members.filter(m => !lv.has(m.user_id)).length}</b></span></div>` : `<p class="muted small">${H('lv.teacherNote')}</p>`}
-    <table class="wtable"><thead><tr><th>${H('class.nickname')}</th><th>${H('lv.title')}</th><th>${H('tc.joined')}</th><th>${H('tc.lastActive')}</th><th class="n">${H('home.solved')}</th><th>${H('tc.pin')}</th><th></th></tr></thead>
-    <tbody>${S.members.map(m => `<tr><td><b>${esc(m.nickname)}</b></td><td>${lvCell(m)}</td><td class="muted small">${esc(fmtTime(m.joined_at))}</td><td class="muted small">${last[m.user_id] ? esc(fmtTime(last[m.user_id])) : '—'}</td><td class="n">${(solved[m.user_id] || new Set()).size}</td>
+    <table class="wtable"><thead><tr><th>${H('class.nickname')}</th><th>${H('lv.title')}</th><th>${H('rk.title')}</th><th>${H('tc.joined')}</th><th>${H('tc.lastActive')}</th><th class="n">${H('home.solved')}</th><th>${H('tc.pin')}</th><th></th></tr></thead>
+    <tbody>${S.members.map(m => `<tr><td><b>${esc(m.nickname)}</b></td><td>${lvCell(m)}</td><td class="small">${rkCell(m)}</td><td class="muted small">${esc(fmtTime(m.joined_at))}</td><td class="muted small">${last[m.user_id] ? esc(fmtTime(last[m.user_id])) : '—'}</td><td class="n">${(solved[m.user_id] || new Set()).size}</td>
       <td class="small">${pinCellHTML(m)}</td>
-      <td><button class="btn btn-ghost btn-xs" data-act="removeMember" data-u="${m.user_id}">${I.trash}${H('tc.remove')}</button></td></tr>`).join('') || `<tr><td colspan="7" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody></table>
+      <td><button class="btn btn-ghost btn-xs" data-act="removeMember" data-u="${m.user_id}">${I.trash}${H('tc.remove')}</button></td></tr>`).join('') || `<tr><td colspan="8" class="res-empty">${H('tc.noMembers')}</td></tr>`}</tbody></table>
     <p class="muted small">${H('tc.pinNote')}</p>
     <div class="danger-zone"><b>${H('tc.danger')}</b>
       <button class="btn btn-ghost btn-sm" data-act="clearAttempts">${I.trash}${H('tc.clearAttempts')}</button>
@@ -1126,7 +1133,7 @@ async function load() {
 async function reloadClassData() {
   const c = S.klass;
   const [m, a, p] = await Promise.all([backend.members(c.id), backend.attempts(c.id), backend.pinStatus(c.id).catch(() => [])]);
-  S.members = m; S.attempts = a.filter(x => x.stage !== 'quick' && !isLevelRow(x) && !isTaskRow(x)); S.qAtt = a.filter(x => x.stage === 'quick'); S.tAtt = a.filter(isTaskRow); S.lvAtt = a.filter(isLevelRow); S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
+  S.members = m; S.attempts = a.filter(x => x.stage !== 'quick' && !isLevelRow(x) && !isTaskRow(x) && !isRankRow(x)); S.rkAtt = a.filter(isRankRow); S.qAtt = a.filter(x => x.stage === 'quick'); S.tAtt = a.filter(isTaskRow); S.lvAtt = a.filter(isLevelRow); S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
 }
 /* live connection: shown in the class header; when it drops, it reconnects by itself and
  * reloads the answers so nothing sent in the meantime is missed */
@@ -1149,7 +1156,7 @@ async function startWatch() {
   const id = S.klass.id, gen = ++watchGen;
   let wasLost = S.conn === 'lost';
   setConn('connecting');
-  S.unwatch = await backend.watchDashboard(id, row => { const list = row.stage === 'quick' ? (S.qAtt = S.qAtt || []) : isTaskRow(row) ? (S.tAtt = S.tAtt || []) : isLevelRow(row) ? (S.lvAtt = S.lvAtt || []) : S.attempts; if (!list.some(a => a.id === row.id)) list.push(row); soonRefresh(); },
+  S.unwatch = await backend.watchDashboard(id, row => { const list = isRankRow(row) ? (S.rkAtt = S.rkAtt || []) : row.stage === 'quick' ? (S.qAtt = S.qAtt || []) : isTaskRow(row) ? (S.tAtt = S.tAtt || []) : isLevelRow(row) ? (S.lvAtt = S.lvAtt || []) : S.attempts; if (!list.some(a => a.id === row.id)) list.push(row); soonRefresh(); },
     async () => { try { await reloadClassData(); } catch (e) { S.members = await backend.members(id); } soonRefresh(); },   // a student who came back on another device brings their answers along
     async status => {
       if (gen !== watchGen) return;   // an old connection
@@ -1474,7 +1481,7 @@ const actions = {
   },
   async clearAttempts() {
     if (!confirm(T('tc.clearConfirm'))) return;
-    try { await backend.clearAttempts(S.klass.id); S.attempts = []; S.qAtt = []; S.lvAtt = []; S.tAtt = []; refreshTab(); toast(T('tc.cleared')); } catch (e) { toast(T('class.netError')); }
+    try { await backend.clearAttempts(S.klass.id); S.attempts = []; S.qAtt = []; S.lvAtt = []; S.tAtt = []; S.rkAtt = []; refreshTab(); toast(T('tc.cleared')); } catch (e) { toast(T('class.netError')); }
   },
   async deleteClass() {
     if (prompt(T('tc.deleteConfirm', { n: S.klass.name })) !== S.klass.name) return;

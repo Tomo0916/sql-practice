@@ -1475,3 +1475,54 @@ body.pj-open { overflow: hidden; }
 .short-step.long b { color: var(--ink-3); }
 .short-step pre.sql { margin: 0; font-size: .8rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .short-rule { color: var(--warn); }
+
+/* ---------- rank tests ---------- */
+.rk-page { display: grid; gap: 14px; }
+.rk-page > .card, .rk-page .rk-side > .card, .rk-ready, .rk-head { padding: 20px 22px; }
+.rk-head h1 { margin: 0 0 6px; }
+.rk-rules { line-height: 1.8; margin: 8px 0; }
+.rk-tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.rk-tier { padding: 20px; display: grid; gap: 8px; align-content: start; border-top: 4px solid var(--accent); }
+.rk-tier.t0 { border-top-color: #16a34a; } .rk-tier.t1 { border-top-color: #2563eb; } .rk-tier.t2 { border-top-color: #9333ea; }
+.rk-tier h2 { margin: 0; }
+.rk-best { display: flex; gap: 10px; align-items: center; min-height: 44px; }
+.rk-best b { display: block; font-size: 1.3rem; }
+.rk-badge { display: inline-grid; place-items: center; min-width: 2.2em; height: 2.2em; padding: 0 .4em; border-radius: 10px; font-weight: 800; color: #fff; background: #64748b; }
+.rk-badge.sm { min-width: 1.7em; height: 1.7em; font-size: .8rem; border-radius: 7px; }
+.rk-badge.big { min-width: 2.2em; height: 2.2em; font-size: 2.6rem; border-radius: 18px; }
+.rk-badge.r-E { background: #94a3b8; } .rk-badge.r-D { background: #64748b; } .rk-badge.r-C { background: #0ea5e9; } .rk-badge.r-B { background: #16a34a; }
+.rk-badge.r-A { background: #f59e0b; } .rk-badge.r-S { background: #e11d48; } .rk-badge.r-SS { background: linear-gradient(135deg, #7c3aed, #e11d48); }
+.rk-scale { display: flex; gap: 14px; flex-wrap: wrap; margin: 6px 0 10px; }
+.rk-scale > span { display: grid; justify-items: center; gap: 4px; }
+.rk-bar { flex-wrap: wrap; gap: 14px; }
+.rk-time { font-size: 1.1rem; margin-left: auto; }
+.rk-time b { font-variant-numeric: tabular-nums; }
+.rk-dots { display: flex; gap: 5px; align-items: center; }
+.rk-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--line); }
+.rk-dots i.now { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 25%, transparent); }
+.rk-dots i.ok { background: #16a34a; border-color: #16a34a; }
+.rk-dots i.ps { background: #94a3b8; border-color: #94a3b8; }
+.rk-dots i.ms { box-shadow: 0 0 0 2px #dc2626; }
+.rk-qn { font-size: 1.6rem; font-weight: 800; } .rk-qn small { font-size: .9rem; color: var(--muted); font-weight: 400; }
+.rk-misscount { color: #dc2626; font-weight: 600; }
+.rk-ready { display: grid; gap: 12px; }
+.rk-result { display: grid; gap: 12px; justify-items: center; text-align: center; }
+.rk-main { display: flex; gap: 18px; align-items: center; }
+.rk-main > div { display: grid; text-align: left; }
+.rk-score { font-size: 3.2rem; line-height: 1; }
+.rk-chdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--cc); margin-right: 6px; }
+.rk-chip { display: inline-flex; gap: 4px; align-items: center; padding: 1px 6px; border-radius: 99px; background: var(--surface-2); margin: 1px 0; white-space: nowrap; }
+.rk-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+.rk-board ol { margin: 6px 0 0; padding-left: 1.4em; }
+.rk-board li { margin: 3px 0; }
+@media (max-width: 860px) { .rk-tiers, .rk-board { grid-template-columns: 1fr; } }
+.rk-countdown { font-size: 5rem; font-weight: 800; text-align: center; color: var(--accent); }
+.center { text-align: center; }
+.rk-figs { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
+.rk-figs span { display: grid; }
+.rk-figs b { font-size: 1.3rem; }
+.rk-side { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.rk-side h3 { margin: 0 0 10px; }
+@media (max-width: 860px) { .rk-side { grid-template-columns: 1fr; } }
+.rk-side th, .rk-side .tag { white-space: nowrap; }
+.rk-sec { padding: 20px 22px; margin-bottom: 14px; } .rk-sec h2 { margin: 0 0 4px; } .rk-board > .card { padding: 14px 16px; } .rk-board h3 { margin: 0; font-size: 1rem; }
