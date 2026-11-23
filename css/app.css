@@ -1526,3 +1526,12 @@ body.pj-open { overflow: hidden; }
 @media (max-width: 860px) { .rk-side { grid-template-columns: 1fr; } }
 .rk-side th, .rk-side .tag { white-space: nowrap; }
 .rk-sec { padding: 20px 22px; margin-bottom: 14px; } .rk-sec h2 { margin: 0 0 4px; } .rk-board > .card { padding: 14px 16px; } .rk-board h3 { margin: 0; font-size: 1rem; }
+/* rank tests: subject × tier grid */
+.rk-grid-card { overflow-x: auto; }
+.rk-grid { width: 100%; border-collapse: collapse; }
+.rk-grid th, .rk-grid td { padding: 8px 10px; border-bottom: 1px solid var(--line, #e5e7eb); text-align: center; vertical-align: middle; }
+.rk-grid th:first-child, .rk-grid td:first-child { text-align: left; white-space: nowrap; }
+.rk-grid th small { display: block; font-weight: 400; color: var(--muted, #6b7280); font-size: .78em; white-space: normal; }
+.rk-cell { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 88px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line, #e5e7eb); text-decoration: none; color: inherit; }
+.rk-cell:hover { border-color: var(--accent, #2563eb); background: rgba(37, 99, 235, .06); }
+.rk-cell .muted { font-size: .85em; }

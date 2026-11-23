@@ -1870,7 +1870,7 @@ export default {
   "rk.title": "段位测试",
   "rk.homeSub": "计时解答排序题，根据速度和准确率判定段位",
   "rk.open": "参加测试",
-  "rk.sub": "尽量快速准确地解答 {n} 道排序题。用时和错误次数决定分数和段位（E〜SS）。",
+  "rk.sub": "按领域分为三个段位等级的测试。尽量快速准确地解答排序题，根据用时和错误决定分数和段位（E〜SS）。",
   "rk.rule1": "共 {n} 题，从易到难。",
   "rk.rule2": "把词块排成正确顺序后点“检查”。答错记一次错误，可以重新排列再检查。",
   "rk.rule3": "不会的题可以“跳过”。跳过不算错误，但也不得分。",
@@ -1882,9 +1882,9 @@ export default {
   "rk.tierShort.beginner": "初",
   "rk.tierShort.intermediate": "中",
   "rk.tierShort.advanced": "高",
-  "rk.tierDesc.beginner": "SELECT、WHERE、ORDER BY、DISTINCT、LIMIT（课程 1–11）",
-  "rk.tierDesc.intermediate": "INSERT、UPDATE、DELETE、聚合、GROUP BY、表达式与函数、UNION 等",
-  "rk.tierDesc.advanced": "子查询、WITH、窗口函数、JOIN（课程 24–35）",
+  "rk.tierDesc.beginner": "较简单的题，没有干扰词块",
+  "rk.tierDesc.intermediate": "标准难度，有时有干扰词块",
+  "rk.tierDesc.advanced": "最难最长的题，有干扰词块",
   "rk.best": "个人最佳",
   "rk.never": "还没有参加。",
   "rk.start": "参加此测试",
@@ -1924,5 +1924,9 @@ export default {
   "rk.review": "题目回顾",
   "rk.board": "班级排名",
   "rk.boardSub": "每位学生个人最佳的排名（仅限本班）。",
-  "rk.boardNone": "还没有人参加。"
+  "rk.boardNone": "还没有人参加。",
+  "rk.byLesson": "各课程结果",
+  "rk.lesson": "课程",
+  "rk.taken": "{n} / {m} 项测试",
+  "rk.readyAbout": "从“{c}”出 {n} 题。"
 };

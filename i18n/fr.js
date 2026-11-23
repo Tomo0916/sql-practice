@@ -1870,7 +1870,7 @@ export default {
   "rk.title": "Test de rang",
   "rk.homeSub": "Résolvez des problèmes de remise en ordre contre la montre et obtenez un rang selon votre vitesse et votre précision",
   "rk.open": "Passer un test",
-  "rk.sub": "Résolvez {n} problèmes de remise en ordre aussi vite et aussi juste que possible. Le temps et les erreurs donnent un score et un rang (E à SS).",
+  "rk.sub": "Un test par thème, en trois niveaux. Résolvez les problèmes de remise en ordre aussi vite et juste que possible ; temps et erreurs donnent un score et un rang (E à SS).",
   "rk.rule1": "Il y a {n} problèmes, du plus facile au plus difficile.",
   "rk.rule2": "Mettez les morceaux dans le bon ordre et vérifiez. Une mauvaise réponse compte comme une erreur ; vous pouvez réordonner et revérifier.",
   "rk.rule3": "Si vous ne savez pas, vous pouvez passer. Passer n'est pas une erreur, mais ne rapporte aucun point.",
@@ -1882,9 +1882,9 @@ export default {
   "rk.tierShort.beginner": "Déb.",
   "rk.tierShort.intermediate": "Int.",
   "rk.tierShort.advanced": "Av.",
-  "rk.tierDesc.beginner": "SELECT, WHERE, ORDER BY, DISTINCT, LIMIT (leçons 1–11)",
-  "rk.tierDesc.intermediate": "INSERT, UPDATE, DELETE, agrégats, GROUP BY, expressions et fonctions, UNION …",
-  "rk.tierDesc.advanced": "Sous-requêtes, WITH, fonctions de fenêtre, JOIN (leçons 24–35)",
+  "rk.tierDesc.beginner": "Problèmes plus faciles, sans morceau piège",
+  "rk.tierDesc.intermediate": "Problèmes standard, parfois un morceau piège",
+  "rk.tierDesc.advanced": "Les problèmes les plus longs et difficiles, avec morceaux pièges",
   "rk.best": "Record personnel",
   "rk.never": "Pas encore passé.",
   "rk.start": "Passer ce test",
@@ -1924,5 +1924,9 @@ export default {
   "rk.review": "Retour sur les problèmes",
   "rk.board": "Classement de la classe",
   "rk.boardSub": "Le record personnel de chaque élève, classé (cette classe seulement).",
-  "rk.boardNone": "Personne ne l'a encore passé."
+  "rk.boardNone": "Personne ne l'a encore passé.",
+  "rk.byLesson": "Par leçon",
+  "rk.lesson": "Leçon",
+  "rk.taken": "{n} / {m} tests",
+  "rk.readyAbout": "{n} problèmes sur « {c} »."
 };

@@ -18,7 +18,7 @@ import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
-import { RK_TIERS, isRankRow, classRanking } from './rank.js';
+import { RK_TIERS, RK_CHAPTERS, rankKey, rankParse, isRankRow, rankFromRow, classRanking } from './rank.js';
 import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS, DIF_RATIOS, KIND_RATIOS, QK, splitBy, spreadGrid, gridSlots, shapeCountSlots, shapeCountsOf } from './quick.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_BY_KEY } from './basics.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
@@ -1001,12 +1001,14 @@ function membersHTML(c) {
   const lv = levelsFromLog(S.lvAtt || []), counts = Array.from({ length: LV_MAX + 1 }, (_, i) => S.members.filter(m => lv.has(m.user_id) && lv.get(m.user_id).lv === i).length);
   const lvCell = m => { const x = lv.get(m.user_id); if (!x) return '<span class="muted">—</span>';
     return `<span class="lv-chip">Lv.${x.lv}</span><span class="lv-dots" title="${esc(LV_CHAPTERS.map((k, i) => `${T('ch.' + k).replace(/\{([^|}]+)\|[^}]+\}/g, '$1')}: ${x.prof[i] === null || x.prof[i] === undefined ? '–' : Math.min(LV_PER, x.prof[i]) + '/' + LV_PER}`).join('\n'))}">${LV_CHAPTERS.map((k, i) => `<i class="${i < x.lv || passed(x.prof[i]) ? 'ok' : x.prof[i] === null || x.prof[i] === undefined ? '' : 'bad'}"></i>`).join('')}</span>`; };
-  // the rank tests: each student's best per test, and the class ranking of each test
+  // the rank tests (subject × tier): the class ranking of each test taken, and each student's best ranks
   const nick = Object.fromEntries((S.members || []).map(m => [m.user_id, m.nickname]));
-  const boards = RK_TIERS.map(t => classRanking(S.rkAtt || [], t));
-  const rkCell = m => { const cells = RK_TIERS.map((t, i) => { const r = boards[i].find(x => x.user === m.user_id); return r ? `<span class="rk-chip" title="${esc(T('rk.tier.' + t))}"><small>${H('rk.tierShort.' + t)}</small> <span class="rk-badge sm r-${r.rank}">${r.rank}</span> <span class="muted">${r.score}</span></span>` : ''; }).filter(Boolean);
+  const tests = RK_CHAPTERS.flatMap(ch => RK_TIERS.map(t => rankKey(ch, t))).filter(k => (S.rkAtt || []).some(a => rankFromRow(a).test === k));
+  const boards = Object.fromEntries(tests.map(k => [k, classRanking(S.rkAtt || [], k)]));
+  const testName = k => { const t = rankParse(k); return `${rubyHTML(raw('ch.' + t.ch, L()))} · ${H('rk.tierShort.' + t.tier)}`; };
+  const rkCell = m => { const cells = tests.map(k => { const r = boards[k].find(x => x.user === m.user_id); return r ? `<span class="rk-chip"><small>${testName(k)}</small> <span class="rk-badge sm r-${r.rank}">${r.rank}</span></span>` : ''; }).filter(Boolean);
     return cells.length ? cells.join(' ') : '<span class="muted">—</span>'; };
-  const board = boards.some(b => b.length) ? `<div class="rk-board">${RK_TIERS.map((t, i) => `<div class="card"><h3>🏅 ${H('rk.tier.' + t)}</h3>${boards[i].length ? `<ol>${boards[i].map(r => `<li><b>${esc(nick[r.user] || '?')}</b> <span class="rk-badge sm r-${r.rank}">${r.rank}</span> ${r.score} <small class="muted">${r.acc}% · ${Math.round((r.ms || 0) / 1000)}s</small></li>`).join('')}</ol>` : `<p class="muted small">${H('rk.boardNone')}</p>`}</div>`).join('')}</div>` : '';
+  const board = tests.length ? `<div class="rk-board">${tests.map(k => `<div class="card"><h3>🏅 ${testName(k)}</h3><ol>${boards[k].map(r => `<li><b>${esc(nick[r.user] || '?')}</b> <span class="rk-badge sm r-${r.rank}">${r.rank}</span> ${r.score} <small class="muted">${r.acc}% · ${Math.round((r.ms || 0) / 1000)}s</small></li>`).join('')}</ol></div>`).join('')}</div>` : '';
   return `${board ? `<section class="card rk-sec"><h2>${H('rk.board')}</h2><p class="muted small">${H('rk.boardSub')}</p>${board}</section>` : ''}<section class="card members">
     ${lv.size ? `<div class="lv-dist"><b>${H('lv.title')}</b>${counts.map((n, i) => `<span class="${n ? '' : 'zero'}"><small>Lv.${i}</small><b>${n}</b></span>`).join('')}<span class="zero"><small>${H('lv.notTaken')}</small><b>${S.members.filter(m => !lv.has(m.user_id)).length}</b></span></div>` : `<p class="muted small">${H('lv.teacherNote')}</p>`}
     <table class="wtable"><thead><tr><th>${H('class.nickname')}</th><th>${H('lv.title')}</th><th>${H('rk.title')}</th><th>${H('tc.joined')}</th><th>${H('tc.lastActive')}</th><th class="n">${H('home.solved')}</th><th>${H('tc.pin')}</th><th></th></tr></thead>
