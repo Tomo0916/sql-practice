@@ -1497,12 +1497,12 @@ body.pj-open { overflow: hidden; }
 .rk-bar { flex-wrap: wrap; gap: 14px; }
 .rk-time { font-size: 1.1rem; margin-left: auto; }
 .rk-time b { font-variant-numeric: tabular-nums; }
-.rk-dots { display: flex; gap: 5px; align-items: center; }
-.rk-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--line); }
-.rk-dots i.now { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 25%, transparent); }
-.rk-dots i.ok { background: #16a34a; border-color: #16a34a; }
-.rk-dots i.ps { background: #94a3b8; border-color: #94a3b8; }
-.rk-dots i.ms { box-shadow: 0 0 0 2px #dc2626; }
+.rk-counts { display: flex; gap: 14px; align-items: center; font-size: .95rem; }
+.rk-counts b { font-variant-numeric: tabular-nums; font-size: 1.1rem; }
+.rk-counts .ok b { color: #16a34a; }
+.rk-counts .ms b { color: #dc2626; }
+.rk-time.low { color: #dc2626; animation: rk-pulse 1s infinite; }
+@keyframes rk-pulse { 50% { opacity: .55; } }
 .rk-qn { font-size: 1.6rem; font-weight: 800; } .rk-qn small { font-size: .9rem; color: var(--muted); font-weight: 400; }
 .rk-misscount { color: #dc2626; font-weight: 600; }
 .rk-ready { display: grid; gap: 12px; }
@@ -1526,3 +1526,12 @@ body.pj-open { overflow: hidden; }
 @media (max-width: 860px) { .rk-side { grid-template-columns: 1fr; } }
 .rk-side th, .rk-side .tag { white-space: nowrap; }
 .rk-sec { padding: 20px 22px; margin-bottom: 14px; } .rk-sec h2 { margin: 0 0 4px; } .rk-board > .card { padding: 14px 16px; } .rk-board h3 { margin: 0; font-size: 1rem; }
+/* rank tests: subject × tier grid */
+.rk-grid-card { overflow-x: auto; }
+.rk-grid { width: 100%; border-collapse: collapse; }
+.rk-grid th, .rk-grid td { padding: 8px 10px; border-bottom: 1px solid var(--line, #e5e7eb); text-align: center; vertical-align: middle; }
+.rk-grid th:first-child, .rk-grid td:first-child { text-align: left; white-space: nowrap; }
+.rk-grid th small { display: block; font-weight: 400; color: var(--muted, #6b7280); font-size: .78em; white-space: normal; }
+.rk-cell { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 88px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line, #e5e7eb); text-decoration: none; color: inherit; }
+.rk-cell:hover { border-color: var(--accent, #2563eb); background: rgba(37, 99, 235, .06); }
+.rk-cell .muted { font-size: .85em; }

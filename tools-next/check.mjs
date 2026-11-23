@@ -763,24 +763,35 @@ console.log('15c. Shorter joins');
   console.log(`   ${n} problems: every short form gives the same result`);
 }
 
-/* ---------- 15d. the rank tests: problems, scores, ranks, the class log ---------- */
+/* ---------- 15d. the rank tests: problems (subject × tier), scores, ranks, the class log ---------- */
 {
   const RK = await import('../js/rank.js');
-  for (const t of RK.RK_TIERS) for (const code of ['A1', 'B2', 'C3', 'Z9']) {
-    const ps = RK.rankProblems(eng, t, code);
-    if (ps.length !== RK.RK_N) err(`rank ${t} ${code}: ${ps.length} problems, want ${RK.RK_N}`);
-    ps.forEach(p => { const task = eng.orderTask(p); if (!task || !task.fine) err(`rank ${t} ${code}: no ordering task for ${p.id}`);
-      else { const byId = Object.fromEntries(task.chunks.map(c => [c.id, c])); const sql = task.answer.map(id => byId[id].text).join(' ') + ';';
-        try { if (!grade(eng.runUser(sql), eng.exec(p.sql), p.ordered).ok) err(`rank ${t}: the right order is not right: ${p.sql}`); } catch (e) { err(`rank ${t}: the right order fails: ${p.sql}`); } } });
-    if (new Set(ps.map(p => p.sql)).size !== ps.length) err(`rank ${t} ${code}: the same problem twice`);
+  for (const ch of RK.RK_CHAPTERS) {
+    const avg = {};
+    for (const t of RK.RK_TIERS) for (const code of ['A1', 'Z9']) {
+      const seen = new Set(), ps = RK.rankProblems(eng, ch, t, code, 20, 0, seen);   // more than anyone solves in the time
+      const more = RK.rankProblems(eng, ch, t, code, 5, ps[ps.length - 1].rn + 1, seen);
+      if (ps.length !== 20 || more.length !== 5) err(`rank ${ch}-${t} ${code}: ${ps.length}+${more.length} problems, want 20+5`);
+      const all = ps.concat(more);
+      if (new Set(all.map(p => p.sql)).size !== all.length) err(`rank ${ch}-${t} ${code}: the same problem twice`);
+      all.forEach(p => { const task = eng.orderTask(p); if (!task || !task.fine) { err(`rank ${ch}-${t}: no ordering task for ${p.id}`); return; }
+        if (t === 'beginner' && task.chunks.some(c => c.distractor)) err(`rank ${ch}-beginner: a trap piece`);
+        const byId = Object.fromEntries(task.chunks.map(c => [c.id, c])); const sql = task.answer.map(id => byId[id].text).join(' ') + ';';
+        try { if (!grade(eng.runUser(sql), eng.exec(p.sql), p.ordered).ok) err(`rank ${ch}-${t}: the right order is not right: ${p.sql}`); } catch (e) { err(`rank ${ch}-${t}: the right order fails: ${p.sql}`); } });
+      avg[t] = (avg[t] || 0) + ps.reduce((s, p) => s + eng.orderTask(p).answer.length, 0);
+    }
+    if (!(avg.beginner < avg.intermediate && avg.intermediate < avg.advanced)) err(`rank ${ch}: the tiers do not get harder (${JSON.stringify(avg)})`);
   }
-  const a = RK.rankScore(120, 12, 0, 300000), b = RK.rankScore(120, 12, 4, 300000), c = RK.rankScore(120, 12, 0, 600000);
-  if (!(a.score > b.score && a.score > c.score) || a.score !== 240 || RK.rankOf(0) !== 'E' || RK.rankOf(100000) !== 'SS') err('rank: scores / ranks are wrong');
-  const row = RK.rankRow(Object.assign(a, { tier: 'advanced', solved: 12, passed: 0, misses: 0, ms: 300000 }));
-  if (row.problem_id.length > 80 || row.reason.length > 40 || !RK.isRankRow(row) || RK.rankFromRow(row).score !== 240) err('rank: the class log row is wrong');
-  const board = RK.classRanking([{ ...row, user_id: 'u1', created_at: '1' }, { ...RK.rankRow(Object.assign({}, b, { tier: 'advanced' })), user_id: 'u2', created_at: '2' }, { ...RK.rankRow(Object.assign({}, b, { tier: 'advanced' })), user_id: 'u1', created_at: '3' }], 'advanced');
-  if (board.length !== 2 || board[0].user !== 'u1' || board[0].score !== 240) err('rank: the class ranking is wrong');
-  console.log('   rank tests: 3 tiers × 4 sets of ' + RK.RK_N + ' problems');
+  if (!RK.rankParse('join-advanced') || RK.rankParse('analysis-beginner') || RK.rankParse('join-easy')) err('rank: test keys are wrong');
+  if (!(RK.RK_SEC.beginner < RK.RK_SEC.intermediate && RK.RK_SEC.intermediate < RK.RK_SEC.advanced)) err('rank: time limits are wrong');
+  const a = RK.rankScore(12, 0), b = RK.rankScore(12, 4), z = RK.rankScore(0, 5);
+  if (a.score !== 120 || b.score !== 108 || z.score !== 0 || a.acc !== 100 || RK.rankOf(0) !== 'E' || RK.rankOf(100000) !== 'SS') err('rank: scores / ranks are wrong');
+  const row = RK.rankRow(Object.assign({}, a, { test: 'join-advanced', solved: 12, passed: 0, misses: 0, ms: 240000 }));
+  if (row.problem_id.length > 80 || row.reason.length > 40 || !RK.isRankRow(row) || RK.rankFromRow(row).score !== 120 || RK.rankFromRow(row).test !== 'join-advanced' || RK.rankFromRow(row).solved !== 12) err('rank: the class log row is wrong');
+  const rb = RK.rankRow(Object.assign({}, b, { test: 'join-advanced', solved: 12, misses: 4 }));
+  const board = RK.classRanking([{ ...row, user_id: 'u1', created_at: '1' }, { ...rb, user_id: 'u2', created_at: '2' }, { ...rb, user_id: 'u1', created_at: '3' }], 'join-advanced');
+  if (board.length !== 2 || board[0].user !== 'u1' || board[0].score !== 120) err('rank: the class ranking is wrong');
+  console.log(`   rank tests: ${RK.RK_CHAPTERS.length} subjects × ${RK.RK_TIERS.length} tiers, problems until the time is up`);
 }
 
 /* ---------- 16. the Python course (pandas) ---------- */
