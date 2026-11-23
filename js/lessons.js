@@ -57,6 +57,22 @@ export const DEMO_JOIN_PAIR = {
   right: { table: 'table_b', roles: { key: 'id', text: 'column_b1', num: 'column_b2' } }
 };
 
+/**
+ * The order of the textbook “スッキリわかるSQL入門 第4版” (chapters 1–8), for the lesson list's “textbook order” view.
+ * Each lesson appears once; 'more' = beyond the book (data analysis).
+ */
+export const BOOK_CHAPTERS = [
+  { key: 'b1', lessons: ['intro', 'select', 'types'] },
+  { key: 'b2', lessons: ['insert', 'update', 'delete'] },
+  { key: 'b3', lessons: ['where', 'andor', 'between', 'like', 'null'] },
+  { key: 'b4', lessons: ['distinct', 'orderby', 'limit', 'setops'] },
+  { key: 'b5', lessons: ['alias', 'case', 'calc', 'coalesce', 'strfn', 'dates'] },
+  { key: 'b6', lessons: ['aggfn', 'groupby', 'having', 'wherehaving'] },
+  { key: 'b7', lessons: ['sub1', 'subin', 'subfrom', 'with', 'window'] },
+  { key: 'b8', lessons: ['inner', 'innercols', 'innerwhere', 'left', 'antijoin', 'leftorder', 'join3'] },
+  { key: 'more', more: true }   // the rest (data analysis)
+];
+
 export const CHAPTERS = [
   { key: 'basics', icon: 'S' },
   { key: 'filter', icon: 'W' },
