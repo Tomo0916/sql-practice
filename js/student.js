@@ -17,6 +17,7 @@ import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, me
 import * as backend from './backend.js';
 import { RK_TIERS, RK_CHAPTERS, RK_SEC, rankKey, rankParse } from './rank.js';
 import { FEATURES } from './features.js';
+import { exOf, exLesson, exTitleHTML } from './explain.js';
 import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
@@ -149,6 +150,7 @@ function parseRoute() {
   if (h[0] === 'tables') return { view: 'tables' };
   if (h[0] === 'check') return { view: 'session', kind: 'check', code: h.slice(1).join('/') || null };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
+  if (h[0] === 'explain') return { view: 'explain' };
   if (h[0] === 'quick') return { view: 'quick', idx: h[1] === 'done' ? -1 : Math.max(0, parseInt(h[1], 10) || 0), raw: h[1] || '' };
   if (h[0] === 'live') return { view: 'live', key: LESSON_BY_KEY[h[1]] ? h[1] : h[1] === 'done' ? 'done' : null, idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };
   return { view: 'home' };
@@ -157,6 +159,7 @@ window.addEventListener('hashchange', () => {
   saveDraft(); stopAuto(); closeProjector();
   S.route = parseRoute(); S.step = null; S.tab = 'user';
   if (S.route.view !== 'session') S.session = null;
+  exFollow(S.route.view === 'explain');   // leaving the teacher's slides, or coming back
   render(); window.scrollTo(0, 0);
 });
 
@@ -220,10 +223,11 @@ function render() {
   else if (r.view === 'mastery') body = masteryHTML();
   else if (r.view === 'clauses') body = clausesHTML();
   else if (r.view === 'lecture') body = lectureHTML();
+  else if (r.view === 'explain') body = explainViewHTML();
   else if (r.view === 'py') body = pyHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
-  app.innerHTML = head + quickBannerHTML() + liveBannerHTML() + body + footerHTML();
+  app.innerHTML = head + quickBannerHTML() + liveBannerHTML() + body + exBackHTML() + footerHTML();
   mountWorkspace();
   pyMount();
   drawJoinLines(app);
@@ -1576,6 +1580,59 @@ document.addEventListener('keydown', e => {
 });
 
 
+/* ---------- 説明モード (explain.js): the teacher's slides on this screen (同期), leaving and coming back ---------- */
+const EX = { follow: true, sig: null, on: false, pres: null, presOn: false, last: null };
+const exBusy = () => (S.session && ['rank', 'check', 'level'].includes(S.session.kind) && !S.session.end && S.session.phase !== 'done');
+/** following the teacher or not (leaving = going to another page; coming back = opening #/explain) */
+function exFollow(on) { if (!EX.on || EX.follow === on) return; EX.follow = on; exTrack(); }
+function exTrack() {
+  if (!EX.on || !S.klass || !backend.enabled) { if (EX.pres) { const p = EX.pres; EX.pres = null; p.then(x => x && x.leave()); } return; }
+  if (!EX.pres) EX.pres = backend.explainPresence(S.klass.id, Math.random().toString(36).slice(2, 10), null).catch(() => null);
+  EX.pres.then(x => x && x.track({ f: EX.follow }));
+}
+/** the class row changed: start, follow, or end the teacher's slides */
+function exApply() {
+  const e = exOf(S.klass), sig = e ? `${e.key}|${e.i}` : null, was = EX.on;
+  if (sig === EX.sig && !!e === was) return;
+  EX.sig = sig; EX.on = !!e;
+  if (e && !was) {   // the teacher started: go to the slides unless a test is running
+    EX.follow = !exBusy(); EX.last = null; exTrack();
+    if (EX.follow && S.route.view !== 'explain') { saveDraft(); history.pushState(null, '', '#/explain'); S.route = parseRoute(); S.session = null; render(); window.scrollTo(0, 0); }
+    else render();
+    toast(T('ex.started'));
+    return;
+  }
+  if (!e && was) { exTrack(); if (S.route.view === 'explain') { history.pushState(null, '', '#/'); S.route = parseRoute(); } render(); toast(T('ex.ended')); return; }
+  if (e && S.route.view === 'explain') exPaint(e);
+}
+/** the next slide: animate inside the same slide, as the lecture page does */
+function exPaint(e) {
+  const box = document.getElementById('ex-box'), lesson = exLesson(e.key), steps = lectureSteps(e.key), st = steps[Math.min(e.i, steps.length - 1)];
+  if (!box || !st || !EX.last || EX.last.key !== e.key) { render(); return; }
+  const from = steps[EX.last.i], f = lectureOf(e.key).slides[st.slide].frames, same = from && from.slide === st.slide && !!f;
+  paintStep(box, lectureStepHTML(lesson, st, S.engine, L()), same, same && f[st.frame].merge ? f[st.frame].merge(S.engine) : null);
+  const pos = document.getElementById('ex-pos'); if (pos) pos.textContent = `${e.i + 1} / ${steps.length}`;
+  document.querySelectorAll('.ex-dots i').forEach((b, k) => { b.className = k === st.slide ? 'on' : k < st.slide ? 'done' : ''; });
+  EX.last = { key: e.key, i: e.i };
+}
+function explainViewHTML() {
+  const e = exOf(S.klass);
+  document.title = `${T('ex.title')} · SQL Practice`;
+  if (!e) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">📽</div><h1>${H('ex.title')}</h1><p class="muted">${H('ex.none')}</p><a class="btn btn-primary" href="#/">${H('nav.home')}</a></section></main>`;
+  const lesson = exLesson(e.key), steps = lectureSteps(e.key), st = steps[Math.min(e.i, steps.length - 1)], slides = lectureOf(e.key).slides;
+  EX.last = { key: e.key, i: e.i };
+  return `<main class="wrap lec-wrap ex-view">
+    <div class="ex-bar"><span class="ex-live">📽 ${H('ex.following')}</span><b>${exTitleHTML(e.key, L())}</b><span class="muted small" id="ex-pos">${e.i + 1} / ${steps.length}</span>
+      <a class="btn btn-ghost btn-sm" href="#/">${H('ex.leave')}</a></div>
+    ${['ja', 'easy', 'en'].includes(L()) ? '' : `<p class="lec-lang-note">🌐 ${H('lec.langNote')}</p>`}
+    <section class="card lec-card"><div class="ex-dots">${slides.map((x, k) => `<i class="${k === st.slide ? 'on' : k < st.slide ? 'done' : ''}"></i>`).join('')}</div>
+      <div id="ex-box" class="lec-box">${lectureStepHTML(lesson, st, S.engine, L())}</div></section>
+    <p class="muted small center">${H('ex.leaveNote')}</p>
+  </main>`;
+}
+/** on every other page while the teacher explains: the way back */
+const exBackHTML = () => (EX.on && S.route.view !== 'explain' && exOf(S.klass) ? `<a class="ex-back" href="#/explain">📽 ${H('ex.back')}</a>` : '');
+
 /* ---------- glossary ---------- */
 function wordsHTML() {
   document.title = `${T('nav.words')} · SQL Practice`;
@@ -2641,6 +2698,7 @@ function applyClassRow(c, live) {
     if (!busy) render();
     if (fresh) toast(T('as.new', { a: T('nav.assign').replace(/\{([^|}]+)\|[^}]+\}/g, '$1') }));
   }
+  exApply();
 }
 
 /** the class live started or ended: open the assignment, or say it has ended */

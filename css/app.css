@@ -1613,3 +1613,32 @@ body.pj-open { overflow: hidden; }
 .rk-cell.locked { color: #9ca3af; background: #f3f4f6; cursor: not-allowed; justify-content: center; }
 .rk-cell.cleared { border-color: #86efac; background: #f0fdf4; }
 .rk-ok { color: #16a34a; font-style: normal; font-weight: 700; }
+/* 説明モード */
+.ex-tc-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.ex-tc-top h2 { margin: 0; flex: 1; }
+.ex-sync { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 10px; border: 2px solid #93c5fd; border-radius: 999px; background: #eff6ff; cursor: pointer; }
+.ex-tc-grid { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; margin-top: 10px; }
+.ex-side h3 { font-size: .95rem; margin: 12px 0 6px; }
+.ex-flow { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; }
+.ex-flow li { display: flex; align-items: center; gap: 4px; }
+.ex-flow li.on > .linkbtn { font-weight: 700; color: var(--accent, #2563eb); }
+.ex-flow .linkbtn { flex: 1; text-align: left; }
+.ex-flow-btn { display: inline-flex; gap: 2px; }
+.ex-plans { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ex-plans select, .ex-q { padding: 6px 8px; border: 1px solid var(--line, #d1d5db); border-radius: 8px; font: inherit; width: 100%; }
+.ex-cat { list-style: none; margin: 6px 0 0; padding: 0; max-height: 420px; overflow-y: auto; display: grid; gap: 2px; font-size: .92rem; }
+.ex-cat .linkbtn { text-align: left; }
+.ex-stage { min-width: 0; background: #fff; border: 1px solid var(--line, #e5e7eb); border-radius: 12px; padding: 14px; }
+.ex-stage-top { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; margin-bottom: 6px; }
+.ex-stage:fullscreen { padding: 28px 48px; overflow: auto; font-size: 1.35rem; background: #fff; }
+.ex-stage:fullscreen .lec-box { min-height: 70vh; }
+.ex-view .ex-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ex-view .ex-bar b { flex: 1; }
+.ex-live { background: #dc2626; color: #fff; border-radius: 999px; padding: 3px 10px; font-size: .85rem; font-weight: 700; }
+.ex-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; }
+.ex-dots i { width: 10px; height: 10px; border-radius: 50%; background: #e5e7eb; }
+.ex-dots i.done { background: #93c5fd; }
+.ex-dots i.on { background: var(--accent, #2563eb); }
+.ex-back { position: fixed; right: 16px; bottom: 16px; z-index: 50; background: #dc2626; color: #fff; padding: 12px 18px; border-radius: 999px; font-weight: 700; text-decoration: none; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+@media (max-width: 860px) { .ex-tc-grid { grid-template-columns: minmax(0, 1fr); } .ex-cat { max-height: 220px; } }
+.card.ex-tc { padding: 20px 22px; }
