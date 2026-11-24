@@ -2013,5 +2013,9 @@ export default {
   "as.ru.tcNote": "Les élèves commencent au niveau Débutant et montent en obtenant {r} ou mieux sans passe. Sinon, ils peuvent repasser le même niveau autant de fois que voulu.",
   "as.tc.ruCount": "Avancé validé {d} / {n}",
   "as.ru.again": "chaque niveau se repasse jusqu’à validation",
-  "as.new": "📬 Nouvel envoi de l’enseignant (à ouvrir depuis « {a} »)"
+  "as.new": "📬 Nouvel envoi de l’enseignant (à ouvrir depuis « {a} »)",
+  "rk.self.rule": "Progressez Débutant → Intermédiaire → Avancé. Obtenez {r} ou mieux sans passe pour ouvrir le niveau suivant.",
+  "rk.self.locked": "S’ouvre quand vous obtenez {r} ou mieux (sans passe) en {t}.",
+  "rk.self.unlock": "Validé ! {t} est ouvert.",
+  "rk.self.need": "Obtenez {r} ou mieux sans passe pour ouvrir {t}. Vous pouvez réessayer."
 };

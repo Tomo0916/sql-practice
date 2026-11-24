@@ -2013,5 +2013,9 @@ export default {
   "as.ru.tcNote": "Học viên bắt đầu từ Sơ cấp và lên cấp khi đạt {r} trở lên mà không bỏ qua. Nếu chưa đạt, có thể làm lại cấp đó nhiều lần.",
   "as.tc.ruCount": "Qua Cao cấp {d} / {n}",
   "as.ru.again": "làm lại mỗi cấp đến khi qua",
-  "as.new": "📬 Giáo viên vừa gửi nội dung mới (mở từ “{a}”)"
+  "as.new": "📬 Giáo viên vừa gửi nội dung mới (mở từ “{a}”)",
+  "rk.self.rule": "Đi theo Sơ cấp → Trung cấp → Cao cấp. Đạt {r} trở lên mà không bỏ qua để mở cấp tiếp theo.",
+  "rk.self.locked": "Mở khi đạt {r} trở lên (không bỏ qua) ở {t}.",
+  "rk.self.unlock": "Đã qua! {t} đã mở.",
+  "rk.self.need": "Đạt {r} trở lên mà không bỏ qua để mở {t}. Bạn có thể thử lại."
 };
