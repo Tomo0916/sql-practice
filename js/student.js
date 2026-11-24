@@ -17,6 +17,7 @@ import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, me
 import * as backend from './backend.js';
 import { RK_TIERS, RK_CHAPTERS, rankKey, rankParse } from './rank.js';
 import { FEATURES } from './features.js';
+import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
 import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
@@ -202,6 +203,8 @@ function saveDraft() {
  * ========================================================= */
 function render() {
   applySettings(S.settings, htmlLang(L()));
+  if (S.asgRun && !location.hash.startsWith(S.asgRun.prefix)) S.asgRun = null;   // left the page of a sent item
+  if (S.klass) asgSync();
   if (S.editor) { S.editor.destroy(); S.editor = null; }
   if (!(S.route.view === 'session' && S.route.kind === 'rank' && S.route.test) && rkTicking()) { rkStopTick(); if (S.session && S.session.kind === 'rank') S.session = null; }   // left a rank test
   const head = headerHTML();
@@ -233,7 +236,7 @@ function headerHTML() {
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
     <nav class="topnav">
       <a href="#/" class="${v === 'home' || v === 'lesson' ? 'on' : ''}">${I.book}<span>${H('nav.home')}</span></a>
-      ${S.klass && (S.klass.lessons || []).length ? `<a href="#/live" class="${v === 'live' ? 'on' : ''}">${liveOn(S.klass) ? '<i class="live-dot"></i>' : I.users}<span>${H('nav.assign')}</span></a>` : ''}
+      ${S.klass && ((S.klass.lessons || []).length || asgList(S.klass).length) ? `<a href="#/live" class="${v === 'live' ? 'on' : ''}">${liveOn(S.klass) ? '<i class="live-dot"></i>' : I.users}<span>${H('nav.assign')}</span></a>` : ''}
       <a href="#/review" class="${v === 'session' && S.route.kind !== 'check' ? 'on' : ''}">${I.repeat}<span>${H('nav.review')}</span>${due ? `<b class="badge">${due}</b>` : ''}</a>
       <a href="#/words" class="${v === 'words' ? 'on' : ''}">${I.globe}<span>${H('nav.words')}</span></a>
       <a href="#/tables" class="${v === 'tables' ? 'on' : ''}">${I.table}<span>${H('nav.tables')}</span></a>
@@ -317,7 +320,7 @@ function homeHTML() {
       <p class="muted">${H('class.joinSub')}</p>
       <button class="btn btn-primary btn-sm" data-act="join">${H('class.join')}</button></div>`;
 
-  return `<main class="wrap">
+  return `<main class="wrap">${asgHomeHTML()}
     <section class="hero">
       <div class="hero-text">
         <h1>${rubyHTML(raw('home.title', L()))}</h1>
@@ -579,7 +582,7 @@ function levelHTML() {
   </main>`;
 }
 function levelTestDoneHTML(ses) {
-  if (!ses.saved) { ses.saved = true; levelSet(ses.T ? adaptiveResult(ses.T, Date.now()) : afterTest(ses.items, ses.done, Date.now())); }
+  if (!ses.saved) { ses.saved = true; levelSet(ses.T ? adaptiveResult(ses.T, Date.now()) : afterTest(ses.items, ses.done, Date.now())); asgHit('level', `Lv.${lvState().lv}`, { lv: lvState().lv }); }
   const st = lvState(), ch = targetChapter(st), asked = ses.items.filter(p => ses.done[p.id] !== undefined);
   return `<main class="wrap narrow lv-hub"><section class="card empty lv-hero"><div class="empty-icon">🎯</div><h1>${H('lv.result')}</h1>
       <p class="lv-big">Lv.${st.lv}<small> / ${LV_MAX}</small></p>
@@ -676,6 +679,7 @@ function basicsHTML() {
     const p = basicProblem(S.engine, key, bsState(key).f, `${ses.seed}|${ses.items.length}`); if (p) ses.items.push(p);
   }
   if (ses.i >= ses.items.length) {
+    asgHit('basics');
     const ok = ses.items.filter(p => !p.bsIntro && ses.done[p.id]).length, x = bsState(key), nk = nextStep(S.progress.basics);
     return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${x.clear ? '🎉' : '🧱'}</div><h1>${H(x.clear ? 'bs.cleared' : 'review.finished')}</h1>
       <p class="muted">${bsName(key)}</p><p class="big-score">${ok} / ${ses.items.length - ses.intro}</p>${bsLadderHTML(x, step)}<p class="muted small">${bsNeed(x, step)}</p>
@@ -871,6 +875,7 @@ function clausesHTML() {
   if (!S.cq || S.cq.set !== set) S.cq = { set, items: cqQuiz(set, `${Date.now()}|${Math.random()}`), i: 0, picks: [] };
   const q = S.cq, n = q.items.length;
   if (q.i >= n) {   // the result
+    asgHit('clauses');
     const ok = q.items.filter((x, i) => q.picks[i] === x.answer).length, missed = q.items.filter((x, i) => q.picks[i] !== x.answer);
     const idx = CQ_SETS.indexOf(set), next = CQ_SETS[idx + 1];
     return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${ok === n ? '🎉' : '🧩'}</div><h1>${H(ok === n ? 'cq.perfect' : 'cq.done')}</h1>
@@ -936,6 +941,7 @@ function oneTableHTML() {
   const ses = S.session, names = set.tables.map(t => `<span class="mono">${esc(t)}</span>`).join(' + ');
   if (!ses.items.length) return `<main class="wrap narrow"><section class="card empty"><h1>${H('tp.title')}</h1><p class="muted">${H('tp.none')}</p><a class="btn btn-primary" href="#/table">${H('tp.other')}</a></section></main>`;
   if (ses.i >= ses.items.length) {
+    asgHit('table');
     const ok = Object.values(ses.done).filter(Boolean).length;
     return `<main class="wrap narrow"><section class="card empty">
       <div class="empty-icon">${I.fire}</div><h1>${H('review.finished')}</h1><p class="muted">${names}</p><p class="big-score">${ok} / ${ses.items.length}</p>
@@ -1016,6 +1022,7 @@ function pracHTML() {
   const ses = S.session, n = ses.items.length, top = ses.one ? levelsOf(ses.one).length : 3, at = ses.one ? ses.fine : ses.band;
   const what = ses.one ? `Lv${ses.fine} / ${top}` : H('dif.' + ses.band);
   if (ses.i >= n) {
+    asgHit('practice');
     const ok = ses.items.filter(p => ses.done[p.id]).length, up = ok === n && at < top;
     return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">🎚</div><h1>${H('review.finished')}</h1><p class="muted">${what}</p><p class="big-score">${ok} / ${n}</p>
       ${up ? `<p class="qk-break">${H('pr.upNext')}</p>` : ''}
@@ -1111,7 +1118,7 @@ function checkHTML() {
   const answered = Object.keys(ses.done).length;
   return `<main class="wrap">
     <div class="session-head">
-      <h1>📝 ${H('ck.title')}</h1>
+      <h1>📝 ${H('ck.title')}</h1>${asgClockHTML('check')}
       <div class="session-progress"><span>${ses.i + 1} / ${ses.items.length}</span><div class="bar"><i style="width:${Math.round(answered / ses.items.length * 100)}%"></i></div></div>
       <button class="btn btn-ghost btn-sm" data-act="checkQuit">${H('ck.quit')}</button>
     </div>
@@ -1126,6 +1133,7 @@ function checkHTML() {
 function checkResultHTML(ses) {
   if (!ses.end) {
     ses.end = Date.now();
+    { const ok = Object.values(ses.done).filter(Boolean).length; asgHit('check', `${ok}/${ses.items.length}`, { ok, n: ses.items.length }); }
     const h = checkHistory();
     h.push({ at: ses.end, code: ses.code, n: ses.items.length, ok: Object.values(ses.done).filter(Boolean).length, l: ses.cfg.lessons.length });
     Store.set(CHECK_HISTORY, h.slice(-30));
@@ -1141,8 +1149,8 @@ function checkResultHTML(ses) {
       <p class="big-score">${ok} / ${n}</p>
       <div class="ck-meter"><i style="width:${n ? Math.round(ok / n * 100) : 0}%"></i></div>
       <p class="muted">${H('ck.time', { t: time })}</p>
-      <div class="row-btns">${wrong ? `<button class="btn btn-primary" data-act="checkRetry">${I.repeat}${H('ck.retryWrong', { n: wrong })}</button>` : ''}
-        <button class="btn btn-ghost" data-act="checkAgain">${I.shuffle}${H(ses.cfg.seed ? 'ck.retrySame' : 'ck.again')}</button><a class="btn btn-ghost" href="#/check">${H('ck.change')}</a></div>
+      ${ses.asg ? `<div class="row-btns"><a class="btn btn-primary" href="#/live">📬 ${H('as.back')}</a></div>` : `<div class="row-btns">${wrong ? `<button class="btn btn-primary" data-act="checkRetry">${I.repeat}${H('ck.retryWrong', { n: wrong })}</button>` : ''}
+        <button class="btn btn-ghost" data-act="checkAgain">${I.shuffle}${H(ses.cfg.seed ? 'ck.retrySame' : 'ck.again')}</button><a class="btn btn-ghost" href="#/check">${H('ck.change')}</a></div>`}
     </section>
     <section class="card ck-by"><h2>${H('ck.byLesson')}</h2>
       ${by.map(x => `<div class="ck-by-row"><span><span class="lesson-num">${x.l.no}</span>${lessonTitleHTML(x.l, L())}</span><span class="ck-by-bar"><i style="width:${Math.round(x.ok / x.n * 100)}%"></i></span><b>${x.ok} / ${x.n}</b></div>`).join('')}</section>
@@ -1163,6 +1171,7 @@ function drillHTML(ses) {
   const back = one ? `<a class="btn btn-ghost" href="#/l/${one.key}/0">${H('drill.back')}</a>` : `<a class="btn btn-ghost" href="#/">${H('nav.home')}</a>`;
   if (!ses.items.length) return `<main class="wrap narrow"><section class="card empty"><h1>${H('drill.title')}</h1><p class="muted">${H('drill.none')}</p><div class="row-btns">${back}</div></section></main>`;
   if (ses.i >= ses.items.length) {
+    asgHit('drill');
     const ok = Object.values(ses.done).filter(Boolean).length;
     return `<main class="wrap narrow"><section class="card empty">
       <div class="empty-icon">${I.fire}</div><h1>${H('drill.finished')}</h1><p class="big-score">${ok} / ${ses.items.length}</p>
@@ -1387,10 +1396,72 @@ function liveBannerHTML() {
   if (!liveOn(S.klass) || S.route.view === 'live' || !(S.klass.lessons || []).length) return '';
   return `<div class="live-banner"><span><i class="live-dot"></i>${H('live.banner')}</span><a class="btn btn-ok btn-sm" href="#/live">${H('live.back')}${I.next}</a></div>`;
 }
+/* ---------- things the teacher sent (配信, assign.js): the list on the 課題 page, starting one, finishing one ---------- */
+const asgRec = id => ((S.progress.asg || {})[id] || null);
+const asgSet = (id, v) => { const a = S.progress.asg = S.progress.asg || {}; a[id] = Object.assign({}, a[id], v); save(); };
+let asgSynced = null, asgTick = null;
+/** my records on the server: a test started on another device cannot be started again */
+function asgSync() {
+  if (!backend.enabled || asgSynced === S.klass.id || !asgList(S.klass).length) return;
+  asgSynced = S.klass.id;
+  backend.myAsgRows(S.klass.id).then(rows => {
+    let changed = false;
+    rows.map(asParse).filter(Boolean).forEach(x => { const r = asgRec(x.id) || {};
+      if (x.kind === 'start' && !r.s) { asgSet(x.id, { s: Date.parse(x.at) || 1 }); changed = true; }
+      if (x.kind === 'done' && !r.d) { asgSet(x.id, { s: r.s || 1, d: Date.parse(x.at) || 1, r: x.reason, x: x.d }); changed = true; } });
+    if (changed && (S.route.view === 'live' || S.route.view === 'home')) render();
+  }, () => { asgSynced = null; });
+}
+const asgTodo = () => (S.klass ? asgOpen(S.klass).filter(it => !(asgRec(it.id) || {}).s) : []);
+const asgPrefix = (it, h) => { const p = h.split('/'); return it.type === 'rank' || it.type === 'check' ? h : it.type === 'practice' || it.type === 'level' ? p.slice(0, 2).join('/') : p.slice(0, 3).join('/'); };
+/** a finished sent item (called where each kind of page ends): the record here and in the class log */
+function asgHit(type, reason = '', d = null) {
+  const r = S.asgRun; if (!r || r.type !== type || !S.klass) return;
+  S.asgRun = null;
+  const it = asgById(S.klass, r.id); if (!it) return;
+  asgSet(it.id, { s: (asgRec(it.id) || {}).s || Date.now(), d: Date.now(), r: reason, x: d });
+  if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'done', reason, d)));
+}
+/** the time left of a sent test with a limit (the check test; the rank test has its own clock) */
+const asgLeft = () => (S.asgRun && S.asgRun.limit ? S.asgRun.t0 + S.asgRun.limit * 1000 - Date.now() : null);
+const fmtLeft = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+function asgClockHTML(type) { const left = S.asgRun && S.asgRun.type === type ? asgLeft() : null; return left === null ? '' : `<span class="rk-time as-time">⏱ ${H('rk.left')} <b id="as-time">${fmtLeft(left)}</b></span>`; }
+function asgClock() {
+  clearInterval(asgTick);
+  asgTick = setInterval(() => {
+    const left = asgLeft(); if (left === null) { clearInterval(asgTick); asgTick = null; return; }
+    const el = document.getElementById('as-time'); if (el) { el.textContent = fmtLeft(left); el.parentNode.classList.toggle('low', left <= 15000); }
+    if (left <= 0) { clearInterval(asgTick); asgTick = null; const ses = S.session; if (ses && ses.kind === 'check' && ses.i < ses.items.length) { ses.i = ses.items.length; render(); window.scrollTo(0, 0); } }
+  }, 250);
+}
+function asgResultHTML(it, rec) {
+  if (it.type === 'rank' && rec.x && rec.x.rank) return `<span class="rk-badge sm r-${esc(rec.x.rank)}">${esc(rec.x.rank)}</span>${rec.x.passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''} <b>${esc(String(rec.x.score))}</b>`;
+  return rec.r ? `<b>${esc(rec.r)}</b>` : '';
+}
+function asgItemHTML(it) {
+  const rec = asgRec(it.id) || {}, test = ASG_TEST.has(it.type), closed = it.open === false, lim = asgLimit(it);
+  let right;
+  if (rec.d) right = `<span class="as-done">✓ ${H('as.done')}</span>${asgResultHTML(it, rec)}${test || closed ? '' : `<button class="btn btn-ghost btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H('as.again')}</button>`}`;
+  else if (test && rec.s) right = `<span class="tag">${H('as.quit')}</span>`;
+  else if (closed) right = `<span class="tag">${H('as.closedTag')}</span>`;
+  else right = `<button class="btn btn-primary btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H(test ? 'as.start' : 'as.open')}</button>`;
+  return `<li class="as-item ${rec.d ? 'done' : ''} ${closed ? 'closed' : ''}"><span class="as-ic">${ASG_ICON[it.type] || '•'}</span>
+    <div class="as-what"><small class="muted">${H('as.type.' + it.type)}${test ? ` · ${lim ? H('as.limit', { m: Math.round(lim / 60) }) : H('as.noLimit')} · ${H('as.onceTag')}` : ''}</small><b>${asgLabelHTML(it, L())}</b></div>
+    <div class="as-right">${right}</div></li>`;
+}
+function asgListHTML() {
+  const items = asgList(S.klass).filter(it => it.open !== false || (asgRec(it.id) || {}).s); if (!items.length) return '';
+  return `<section class="card as-card"><h2>📬 ${H('as.title')}</h2><p class="muted small">${H('as.sub')}</p><ul class="as-list">${items.map(asgItemHTML).join('')}</ul></section>`;
+}
+function asgHomeHTML() {
+  const n = asgTodo().length; if (!n) return '';
+  return `<a class="card as-home" href="#/live"><span class="as-ic">📬</span><b>${H('as.home', { n })}</b><span class="btn btn-primary btn-sm">${H('as.see')}</span></a>`;
+}
 function liveViewHTML() {
   const groups = assignedGroups();
   const live = liveOn(S.klass);
   document.title = `${T('nav.assign')} · SQL Practice`;
+  if (S.klass && !groups.length && asgList(S.klass).length) return `<main class="wrap narrow">${asgListHTML()}</main>`;
   if (!S.klass || !groups.length) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${I.users}</div><h1>${H('nav.assign')}</h1><p class="muted">${H('live.none')}</p><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></section></main>`;
   const seq = groups.flatMap(g => g.probs), solved = seq.filter(p => isSolved(p.id)).length;
   const c = current();
@@ -1410,13 +1481,13 @@ function liveViewHTML() {
     </div></aside>`;
   if (!c) {   // everything solved (or #/live/done)
     const left = seq.find(p => !isSolved(p.id));
-    return `<main class="wrap"><div class="lesson-layout">${side}<div class="main"><section class="card empty">
+    return `<main class="wrap">${S.route.key ? '' : asgListHTML()}<div class="lesson-layout">${side}<div class="main"><section class="card empty">
       <div class="empty-icon">${left ? I.check : I.fire}</div><h1>${H(left ? 'live.notYet' : 'live.doneTitle')}</h1><p class="muted">${H(left ? 'live.notYetSub' : 'live.doneSub')}</p>
       <div class="row-btns">${left ? `<a class="btn btn-primary" href="${liveHash(left)}">${H('live.back')}${I.next}</a>` : groups.filter(g => S.engine.drillLessons().has(g.lesson.key)).slice(0, 3).map(g => `<a class="btn btn-ghost" href="#/drill/${g.lesson.key}">⇅ Lesson ${g.lesson.no}</a>`).join('')}</div>
     </section></div></div></main>`;
   }
   const { lesson, prob } = c;
-  return `<main class="wrap">
+  return `<main class="wrap">${S.route.key ? '' : asgListHTML()}
     <div class="crumbs"><a href="#/live">${H('nav.assign')}</a><span>›</span><span>Lesson ${lesson.no} · ${lessonTitleHTML(lesson, L())}</span><span>›</span><span>${stageLabelH(prob)}</span></div>
     <div class="lesson-layout">${side}<div class="main" id="ws">${workspaceHTML(prob)}</div></div>
   </main>`;
@@ -1453,6 +1524,7 @@ function lecMove(to) {
   const lesson = lecLesson(lec.key), steps = lectureSteps(lec.key);
   to = Math.max(0, Math.min(steps.length - 1, to));
   if (to === lec.i) { stopAuto(); return; }
+  if (to === steps.length - 1) asgHit('lecture');
   const from = steps[lec.i], st = steps[to];
   const f = lectureOf(lec.key).slides[st.slide].frames;
   const same = from.slide === st.slide && !!f;
@@ -2330,6 +2402,23 @@ function openSettings() {
     </div>`);
 }
 actions.closeModal = closeModal;
+actions.asgGo = el => {
+  const it = asgById(S.klass, el.dataset.id); if (!it) return;
+  if (it.open === false) { toast(T('as.closed')); return; }
+  const rec = asgRec(it.id) || {}, lim = asgLimit(it);
+  if (ASG_TEST.has(it.type)) {
+    if (rec.s) { toast(T('as.once')); return; }
+    if (!confirm(T(lim ? 'as.confirmT' : 'as.confirm', { m: Math.round(lim / 60) }))) return;
+    asgSet(it.id, { s: Date.now() });
+    if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'start')));
+  }
+  const h = asgHash(it);
+  S.asgRun = { id: it.id, type: it.type, prefix: asgPrefix(it, h), t0: Date.now(), limit: it.type === 'check' ? lim : 0 };
+  history.pushState(null, '', h); S.route = parseRoute(); S.step = null; S.tab = 'user'; S.session = null; S.cq = null;
+  if (it.type === 'rank') { rkStart(it.ref); if (S.session) S.session.asg = it.id; }
+  else if (it.type === 'check') { const cfg = decodeCheck(it.ref); if (cfg) { startCheck(it.ref, cfg); S.session.asg = it.id; } if (S.asgRun.limit) asgClock(); }
+  render(); window.scrollTo(0, 0);
+};
 actions.chToggle = el => { if (matchMedia('(max-width: 720px)').matches) el.closest('.chapter').classList.toggle('open'); };
 /* ---------- backup: the records of this browser as a file, to move to another device ---------- */
 const BK_SKIP = new Set(['sqln.auth', 'sqln.teacher', 'sqln.tcView']);   // sign-ins and the teacher page stay on this device
@@ -2555,8 +2644,8 @@ window.addEventListener('storage', e => {
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
-  installRank({ S, render, save, chName, workspaceHTML });
-  installPy({ S, L, save, render,
+  installRank({ S, render, save, chName, workspaceHTML, asgHit });
+  installPy({ S, L, save, render, asgHit,
     // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)
     quickAnswer: (prob, ok, code, reason) => { if (qPhaseNow() !== 'run') { render(); return false; } record(prob, ok, { grade: { reason } }, code); return true; },
     quickRef: prob => qRefHTML(prob),

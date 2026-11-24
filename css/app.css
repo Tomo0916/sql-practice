@@ -1579,3 +1579,26 @@ body.pj-open { overflow: hidden; }
 .lec-lang-note { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 8px; padding: 6px 10px; font-size: .88rem; margin: 0 0 10px; }
 .rk-cboard .rk-myplace { font-weight: 700; font-size: 1.05rem; margin: 4px 0 8px; }
 .rk-cboard tr.me td { background: #fef9c3; font-weight: 600; }
+/* things sent to the class (配信) */
+.as-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.as-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line, #e5e7eb); border-radius: 10px; background: #fff; }
+.as-item.done { background: #f0fdf4; border-color: #bbf7d0; }
+.as-item.closed { opacity: .65; }
+.as-item > details { flex: 1; }
+.as-item summary { display: flex; align-items: center; gap: 12px; cursor: pointer; list-style: none; }
+.as-ic { font-size: 1.4rem; flex: none; }
+.as-what { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.as-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.as-done { color: #15803d; font-weight: 700; }
+.as-count { font-size: .9rem; white-space: nowrap; }
+.as-home { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin: 0 0 14px; text-decoration: none; color: inherit; border: 2px solid #93c5fd; background: #eff6ff; }
+.as-home b { flex: 1; }
+.as-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 4px; }
+.as-form select, .as-form input { padding: 8px 10px; border: 1px solid var(--line, #d1d5db); border-radius: 8px; font: inherit; max-width: 100%; }
+.as-form .as-what { flex: 1 1 260px; }
+.as-lim { display: inline-flex; align-items: center; gap: 8px; }
+.as-lim input { width: 80px; }
+.as-tbl { margin-top: 8px; }
+.as-tbl tr.done th { color: #15803d; }
+.as-time { margin-left: auto; }
+@media (max-width: 600px) { .as-item { flex-wrap: wrap; } .as-right { width: 100%; justify-content: flex-start; } }
