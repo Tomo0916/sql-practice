@@ -1,7 +1,7 @@
 /* Offline support. App files (pages, js, css, texts): network first, so an update shows at once;
  * vendor libraries, icons and fonts: cache first. 
  * Supabase requests are never cached. Bump VERSION when publishing big changes. */
-const VERSION = 'sqlp-77';   // rank tests step up (段階アップ)
+const VERSION = 'sqlp-78';   // sent items show up without reloading
 const CORE = ['./', 'index.html', 'teacher/', 'config.js', 'css/app.css', 'css/teacher.css', 'vendor/sql-wasm.js', 'vendor/sql-wasm.wasm', 'vendor/codemirror.js',
   'js/student.js', 'js/teacher.js', 'js/engine.js', 'js/lessons.js', 'js/datasets.js', 'js/diagnose.js', 'js/i18n.js', 'js/ui.js', 'js/viz.js', 'js/editor.js', 'js/store.js', 'js/backend.js', 'js/book.js', 'js/timer.js', 'js/analysis-data.js', 'js/analysis-content.js', 'js/analysis-ui.js', 'js/charts.js', 'js/guide.js', 'guide/', 'js/lectures.js', 'js/lectures-a.js', 'js/lectures-b.js', 'js/lectures-c.js', 'js/lectures-d.js', 'js/lecture-kit.js', 'js/lecture-topics.js', 'js/lecture-ui.js', 'js/tables-ui.js', 'js/alt.js', 'js/check.js', 'js/check-ui.js', 'js/quick.js', 'js/mastery.js', 'js/level.js', 'js/basics.js', 'js/clauses.js', 'js/pandas.js', 'js/pyrun.js', 'js/py-ui.js', 'js/py-worker.js', 'js/lectures-py.js', 'js/lectures-py2.js', 'js/lectures-py3.js', 'js/pystats.js', 'js/rank.js', 'js/rank-ui.js', 'js/features.js', 'js/assign.js', 'js/pyerrors.js',
   'i18n/ja.js', 'i18n/easy.js', 'i18n/en.js', 'icons/icon.svg', 'icons/icon-192.png', 'manifest.webmanifest'];

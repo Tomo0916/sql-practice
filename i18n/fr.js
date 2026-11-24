@@ -2012,5 +2012,6 @@ export default {
   "as.ru.passLabel": "Pour valider",
   "as.ru.tcNote": "Les élèves commencent au niveau Débutant et montent en obtenant {r} ou mieux sans passe. Sinon, ils peuvent repasser le même niveau autant de fois que voulu.",
   "as.tc.ruCount": "Avancé validé {d} / {n}",
-  "as.ru.again": "chaque niveau se repasse jusqu’à validation"
+  "as.ru.again": "chaque niveau se repasse jusqu’à validation",
+  "as.new": "📬 Nouvel envoi de l’enseignant (à ouvrir depuis « {a} »)"
 };

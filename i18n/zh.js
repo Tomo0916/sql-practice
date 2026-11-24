@@ -2012,5 +2012,6 @@ export default {
   "as.ru.passLabel": "通过标准",
   "as.ru.tcNote": "学生从初级开始，无跳过取得 {r} 以上即可进入下一级；未达到时可反复挑战同一级。",
   "as.tc.ruCount": "通过高级 {d} / {n} 人",
-  "as.ru.again": "每一级可反复挑战直到通过"
+  "as.ru.again": "每一级可反复挑战直到通过",
+  "as.new": "📬 老师发送了新内容（可从“{a}”打开）"
 };

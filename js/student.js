@@ -2623,6 +2623,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) puls
 setInterval(pulseClass, 5000);   // every 5 seconds while the page is in front: a start is never missed for long
 function applyClassRow(c, live) {
   const taskId = k => (k && k.tasks && k.tasks.mix ? k.tasks.mix.id : null), hasTasks = Object.prototype.hasOwnProperty.call(c, 'tasks');
+  const asgSig = k => JSON.stringify(asgList(k).map(it => [it.id, it.open !== false, it.pass || '']));   // the sent items (配信)
+  const before = new Set(asgOpen(S.klass).map(it => it.id)), asgChanged = hasTasks && asgSig(c) !== asgSig(S.klass);
   const changed = c.set_code !== S.klass.set_code || JSON.stringify(c.lessons) !== JSON.stringify(S.klass.lessons) || c.answer_policy !== S.klass.answer_policy || formatKey(c.format) !== formatKey(S.klass.format) || (hasTasks && taskId(c) !== taskId(S.klass));
   if (hasTasks) S.klass.tasks = c.tasks || null;   // the teacher's assignment of the shape mix (an older database has no such column)
   Object.assign(S.klass, { name: c.name, set_code: c.set_code, lessons: c.lessons || [], answer_policy: c.answer_policy, timer_end: c.timer_end || null, format: c.format || null, live_until: c.live_until || null, quick: c.quick || null });
@@ -2633,6 +2635,12 @@ function applyClassRow(c, live) {
   liveShown = isLive;
   Store.set(KEYS.klass, S.klass);
   if (changed) { saveDraft(); S.runs = {}; render(); if (live) toast(T('class.updated')); }
+  else if (asgChanged) {   // something sent or closed: show it now (a test in progress is not redrawn)
+    const fresh = asgOpen(S.klass).some(it => !before.has(it.id));
+    const busy = (S.session && ['rank', 'check', 'level'].includes(S.session.kind) && !S.session.end && S.session.phase !== 'done') || (S.route.view === 'lesson' && S.editor);
+    if (!busy) render();
+    if (fresh) toast(T('as.new', { a: T('nav.assign').replace(/\{([^|}]+)\|[^}]+\}/g, '$1') }));
+  }
 }
 
 /** the class live started or ended: open the assignment, or say it has ended */

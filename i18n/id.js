@@ -2012,5 +2012,6 @@ export default {
   "as.ru.passLabel": "Syarat lulus",
   "as.ru.tcNote": "Siswa mulai dari Dasar dan naik setelah mendapat {r} atau lebih tanpa lewati. Jika belum, tingkat yang sama boleh diulang berkali-kali.",
   "as.tc.ruCount": "Lulus Mahir {d} / {n}",
-  "as.ru.again": "setiap tingkat boleh diulang sampai lulus"
+  "as.ru.again": "setiap tingkat boleh diulang sampai lulus",
+  "as.new": "📬 Ada kiriman baru dari guru (buka dari “{a}”)"
 };

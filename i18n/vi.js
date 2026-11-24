@@ -2012,5 +2012,6 @@ export default {
   "as.ru.passLabel": "Điều kiện qua",
   "as.ru.tcNote": "Học viên bắt đầu từ Sơ cấp và lên cấp khi đạt {r} trở lên mà không bỏ qua. Nếu chưa đạt, có thể làm lại cấp đó nhiều lần.",
   "as.tc.ruCount": "Qua Cao cấp {d} / {n}",
-  "as.ru.again": "làm lại mỗi cấp đến khi qua"
+  "as.ru.again": "làm lại mỗi cấp đến khi qua",
+  "as.new": "📬 Giáo viên vừa gửi nội dung mới (mở từ “{a}”)"
 };

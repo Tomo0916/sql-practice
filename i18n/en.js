@@ -2013,5 +2013,6 @@ export default {
   "as.ru.passLabel": "To clear",
   "as.ru.tcNote": "Students start at Basic and move up when they get {r} or better without passes. Below that, they can take the same tier again and again.",
   "as.tc.ruCount": "Cleared Advanced {d} / {n}",
-  "as.ru.again": "take each tier until you clear it"
+  "as.ru.again": "take each tier until you clear it",
+  "as.new": "📬 Your teacher sent something new (open it from “{a}”)"
 };
