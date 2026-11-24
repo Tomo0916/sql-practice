@@ -1948,5 +1948,8 @@ export default {
   "bk.confirm": "この記録を読み込みますか？ この端末の記録と合わせます（どちらかで解いた問題は残ります）。",
   "rk.statN": "{n} 人",
   "rk.avg": "平均",
-  "rk.median": "中央値"
+  "rk.median": "中央値",
+  "rk.loading": "読み込み中…",
+  "rk.myPlace": "あなたはクラスで {n} 位（{m} 人中）",
+  "rk.you": "あなた"
 };

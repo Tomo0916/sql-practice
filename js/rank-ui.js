@@ -17,6 +17,27 @@ const T = (k, v) => t(k, L(), v);
 const H = (k, v) => `<span class="tx">${th(k, L(), v && Object.fromEntries(Object.entries(v).map(([a, b]) => [a, esc(b)])))}</span>`;
 export const rkTicking = () => !!rkTick;
 
+/* ---------- the class ranking for students (Supabase rank_board): on the result page ---------- */
+const boards = {};   // test → { rows } | { loading: true }
+function loadBoard(test) {
+  if (!C.S.klass || !backend.enabled) return;
+  boards[test] = { loading: true };
+  backend.rankBoard(C.S.klass.id, test).then(rows => { boards[test] = { rows }; }, () => { boards[test] = { rows: null }; })
+    .then(() => { if (C.S.session && C.S.session.test === test && C.S.session.phase === 'done') C.render(); });
+}
+function boardHTML(test) {
+  const b = boards[test];
+  if (!C.S.klass || !b || b.rows === null) return '';   // not in a class, or the database has no rank_board yet
+  if (b.loading) return `<section class="card rk-cboard"><h3>${H('rk.board')}</h3><p class="muted small">${H('rk.loading')}</p></section>`;
+  const rows = b.rows, place = []; rows.forEach((r, i) => { place[i] = i && rows[i - 1].score === r.score && !!rows[i - 1].passed === !!r.passed ? place[i - 1] : i + 1; });
+  const mi = rows.findIndex(r => r.me), show = rows.map((r, i) => i).filter(i => i < 10 || i === mi);
+  return `<section class="card rk-cboard"><h3>${H('rk.board')}</h3><p class="muted small">${H('rk.boardSub')}</p>
+    ${mi >= 0 ? `<p class="rk-myplace">${H('rk.myPlace', { n: place[mi], m: rows.length })}</p>` : ''}
+    ${rows.length ? `<table class="wtable rk-board"><tbody>${show.map(i => { const r = rows[i];
+      return `${i === mi && mi >= 10 ? '<tr><td colspan="4" class="muted">⋯</td></tr>' : ''}<tr class="${r.me ? 'me' : ''}"><td class="n">${place[i]}</td><td>${esc(r.nickname)}${r.me ? ` <span class="tag">${H('rk.you')}</span>` : ''}</td><td>${rkBadge(r.rank, r.passed)}</td><td class="n"><b>${r.score}</b></td></tr>`; }).join('')}</tbody></table>`
+      : `<p class="muted small">${H('rk.boardNone')}</p>`}</section>`;
+}
+
 /* ---------- rank tests (#/rank, #/rank/<subject>/<tier>): how many ordering problems within a time limit, like e-typing's level check ---------- */
 /** records of the first version (one test per tier, a different score) are dropped */
 const rkClean = () => { const r = C.S.progress.rank, old = Object.keys(r || {}).filter(k => !rankParse(k)); if (old.length) { old.forEach(k => delete r[k]); C.save(); } };
@@ -77,6 +98,7 @@ function rkFinish() {
   rec.hist = [{ s: r.score, r: r.rank, acc: r.acc, ok: r.solved, miss: r.misses, pass: r.passed, at: r.at }, ...rec.hist].slice(0, 10);
   C.save();
   if (C.S.klass && backend.enabled) backend.logAttempt(Object.assign({ class_id: C.S.klass.id }, rankRow(r)));
+  loadBoard(ses.test);
   ses.res = r; C.render(); window.scrollTo(0, 0);
 }
 const rkName = ses => `${C.chName(ses.ch)} · ${H('rk.tier.' + ses.tier)}`;
@@ -131,6 +153,7 @@ function rankDoneHTML(ses) {
       ${C.S.klass ? `<p class="muted small">${H('rk.sent')}</p>` : ''}
     </section>
     <div class="rk-side">
+      ${boardHTML(ses.test)}
       <section class="card"><h3>${H('rk.byLesson')}</h3><table class="wtable"><thead><tr><th>${H('rk.lesson')}</th><th class="n">${H('rk.solved')}</th><th class="n">${H('rk.passed')}</th><th class="n">${H('rk.misses')}</th><th class="n">${H('rk.perQ')}</th><th></th></tr></thead><tbody>
         ${chs.map(c => { const b = byCh[c]; return `<tr><td><a href="#/lecture/${c}">${lessonTitleHTML(LESSON_BY_KEY[c], L())}</a></td><td class="n">${b.ok}/${b.n}</td><td class="n">${b.pass}</td><td class="n">${b.miss}</td><td class="n">${Math.round(b.ms / b.n / 1000)}s</td><td>${good(c) ? `<span class="tag ok">${H('rk.strong')}</span>` : weak(c) ? `<span class="tag bad">${H('rk.weak')}</span>` : ''}</td></tr>`; }).join('')}
       </tbody></table>
@@ -144,3 +167,5 @@ function rankDoneHTML(ses) {
   </main>`;
 }
 
+/* for the checks only */
+export const _rkTest = { boardHTML, setBoard: (test, rows) => { boards[test] = { rows }; } };

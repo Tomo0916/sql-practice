@@ -1948,5 +1948,8 @@ export default {
   "bk.confirm": "Load these records? They are combined with the records on this device (problems solved on either one are kept).",
   "rk.statN": "{n} students",
   "rk.avg": "Average",
-  "rk.median": "Median"
+  "rk.median": "Median",
+  "rk.loading": "Loading…",
+  "rk.myPlace": "You are number {n} in the class (of {m})",
+  "rk.you": "you"
 };

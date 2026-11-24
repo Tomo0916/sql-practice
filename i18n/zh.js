@@ -1947,5 +1947,8 @@ export default {
   "bk.confirm": "要读取这份记录吗？将与本设备的记录合并（在任一处解答过的题目都会保留）。",
   "rk.statN": "{n} 人",
   "rk.avg": "平均",
-  "rk.median": "中位数"
+  "rk.median": "中位数",
+  "rk.loading": "加载中…",
+  "rk.myPlace": "你在班里排第 {n} 名（共 {m} 人）",
+  "rk.you": "你"
 };

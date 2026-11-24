@@ -16,6 +16,8 @@ import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
 import { RK_TIERS, RK_CHAPTERS, rankKey, rankParse } from './rank.js';
+import { FEATURES } from './features.js';
+const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
 import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
@@ -342,6 +344,7 @@ function homeHTML() {
     ${S.pinNeeded ? `<section class="card mixcard pincard"><div><span class="drill-ic">🔢</span><div><b>${H('pin.setTitle')}</b><p class="muted">${H('pin.setSub')}</p></div></div><button class="btn btn-ok" data-act="setPin">${H('pin.setNow')}</button></section>` : ''}
     <section class="home-group"><h2 class="home-h">${H('hm.learn')}</h2></section>
     ${chaptersHTML()}
+    ${PRACTICE ? `
     <section class="home-group"><h2 class="home-h">${H('hm.practice')}</h2><div class="home-grid">
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_CORE.filter(x => bsState(x.key).clear).length} / ${BASIC_CORE.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
@@ -369,6 +372,7 @@ function homeHTML() {
       <a class="btn btn-ghost" href="#/table">${H('tp.open')}</a>
     </section>
     </div></section>
+    ` : ''}
     <section class="home-group"><h2 class="home-h">${H('hm.test')}</h2><div class="home-grid">
     <section class="card mixcard drillcard rkcard">
       <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.hist && r.hist.length).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
@@ -423,8 +427,8 @@ function lessonHTML() {
         <span class="ck"></span><span class="pt"><b>${stageLabelH(p)}</b><span>${esc(p.stage === 'demo' ? T('stage.demoSub') : themeName(p, L()))}</span></span></a>`).join('')}
       ${st.done ? `<div class="done-banner">✓ ${H('lesson.done')}</div>` : `<div class="rule">${H(probs.some(p => p.fmt) ? 'lesson.ruleAll' : lesson.kind === 'quiz' ? 'lesson.ruleQuiz' : stagesOf(lesson).includes('order') ? 'lesson.rule' : 'lesson.ruleNoOrder')}</div>`}
     </nav>
-    ${levelsOf(lesson.key).length > 1 ? `<a class="card drill-link" href="#/practice/${lesson.key}"><span class="drill-ic">🎚</span><span><b>${H('pr.btn')}</b><small class="muted">${H('pr.btnSub', { n: levelsOf(lesson.key).length })}</small></span>${I.next}</a>` : ''}
-    ${S.engine.drillLessons().has(lesson.key) ? `<a class="card drill-link" href="#/drill/${lesson.key}"><span class="drill-ic">⇅</span><span><b>${H('drill.btn')}</b><small class="muted">${H('drill.count', { n: (S.progress.drill || {})[lesson.key] || 0 })}</small></span>${I.next}</a>` : ''}
+    ${PRACTICE && levelsOf(lesson.key).length > 1 ? `<a class="card drill-link" href="#/practice/${lesson.key}"><span class="drill-ic">🎚</span><span><b>${H('pr.btn')}</b><small class="muted">${H('pr.btnSub', { n: levelsOf(lesson.key).length })}</small></span>${I.next}</a>` : ''}
+    ${PRACTICE && S.engine.drillLessons().has(lesson.key) ? `<a class="card drill-link" href="#/drill/${lesson.key}"><span class="drill-ic">⇅</span><span><b>${H('drill.btn')}</b><small class="muted">${H('drill.count', { n: (S.progress.drill || {})[lesson.key] || 0 })}</small></span>${I.next}</a>` : ''}
     <div class="lesson-nav">
       ${prevL ? `<a class="btn btn-ghost btn-sm" href="#/l/${prevL.key}/0">${I.prev}${H('btn.prevLesson')}</a>` : '<span></span>'}
       ${nextL ? `<a class="btn btn-ghost btn-sm" href="#/l/${nextL.key}/0">${H('btn.nextLesson')}${I.next}</a>` : ''}
@@ -777,11 +781,13 @@ function absKeep() { const c = current(), el = absInput(); if (c && el) S.progre
 
 /* ---------- in each chapter: the shapes first, the clause quiz last ---------- */
 function chShapesHTML(ch) {
+  if (!PRACTICE) return '';
   const ks = (CHAPTER_SHAPES[ch] || []).filter(k => BASIC_BY_KEY[k]); if (!ks.length) return '';
   return `<div class="ch-extra ch-first"><span class="ch-x-h">🧱 ${H('bs.chFirst')}</span>${ks.map(k => { const x = bsState(k);
     return `<a class="ch-x ${x.clear ? 'done' : ''}" href="#/basics/${k}">${x.clear ? '✓ ' : ''}${bsName(k)}</a>`; }).join('')}</div>`;
 }
 function chQuizHTML(ch) {
+  if (!PRACTICE) return '';
   const ks = CHAPTER_QUIZ[ch] || []; if (!ks.length) return '';
   return `<div class="ch-extra ch-last"><span class="ch-x-h">🧩 ${H('cq.chLast')}</span>${ks.map(k => { const x = cqRec(k);
     return `<a class="ch-x ${x.best === CQ_N ? 'done' : ''}" href="#/clauses/${k}">${x.best === CQ_N ? '✓ ' : ''}${cqName(k)}${x.n ? ` <small class="muted">${x.best}/${CQ_N}</small>` : ''}</a>`; }).join('')}</div>`;
@@ -1397,7 +1403,7 @@ function liveViewHTML() {
       ${live ? `<div class="live-on"><i class="live-dot"></i><b>${H('live.on')}</b><span class="muted small" data-live-left>${H('live.minLeft', { n: liveMinutesLeft(S.klass) })}</span></div>` : ''}
       <h2>${H('live.title', { name: S.klass.name })}</h2>
       <div class="live-prog"><div class="bar"><i style="width:${Math.round(solved / seq.length * 100)}%"></i></div><b>${solved}/${seq.length}</b></div>
-      <a class="btn btn-ghost btn-sm" href="#/solved">✓ ${H('mine.title')}</a>
+      ${PRACTICE ? `<a class="btn btn-ghost btn-sm" href="#/solved">✓ ${H('mine.title')}</a>` : ''}
       ${S.pinNeeded ? `<button class="btn btn-ok btn-sm" data-act="setPin">🔢 ${H('pin.setNow')}</button>` : ''}
       <div class="ll-title muted small">${H('live.library')}</div>
       <div class="live-lib">${lib}</div>
@@ -1832,7 +1838,7 @@ function feedbackHTML(prob) {
   const qn = S.route.view === 'quick' ? qNext(prob) : null;
   const skip = qn ? `<a class="btn ${qOnce() ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" href="#/quick/${qn.qn}">${qOnce() ? H('btn.next') + I.next : H('qk.other')}</a>` : S.route.view === 'quick' && qOnce() ? `<a class="btn btn-primary fb-next" href="#/quick/done">${H('qk.finish')}</a>` : S.route.view === 'session' ? `<button class="btn ${tested ? 'btn-primary' : 'btn-ghost btn-sm'} fb-next" data-act="sessionNext">${tested ? H('btn.next') + I.next : H('review.skip')}</button>` : '';
   const back = stepForMistake(prob, run.sql, run.dx);
-  const backHTML = back ? `<div class="bs-back"><span>🧱 ${H('bs.backTitle')}</span><span class="muted small">${bsName(back)}</span><a class="btn btn-ghost btn-sm" href="#/basics/${back}">${H('bs.backGo')}${I.next}</a></div>` : '';
+  const backHTML = back && PRACTICE ? `<div class="bs-back"><span>🧱 ${H('bs.backTitle')}</span><span class="muted small">${bsName(back)}</span><a class="btn btn-ghost btn-sm" href="#/basics/${back}">${H('bs.backGo')}${I.next}</a></div>` : '';
   return `<div class="fb bad" role="alert"><div class="fb-icon">?</div><div class="fb-body"><h3>${esc(title)}</h3><ul class="dx">${items}</ul>${raw}${backHTML}${S.route.view === 'quick' ? qRefHTML(prob) : ''}${run.error && !run.quiet && (run.dx || []).length ? `<details class="errraw"><summary>${H('fb.rawError')}</summary><pre class="errmsg">${esc(run.error.message)}</pre></details>` : ''}</div>${skip}</div>`;
 }
 

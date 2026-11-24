@@ -1947,5 +1947,8 @@ export default {
   "bk.confirm": "Charger ces résultats ? Ils sont combinés avec ceux de cet appareil (les problèmes résolus d’un côté ou de l’autre sont conservés).",
   "rk.statN": "{n} élèves",
   "rk.avg": "Moyenne",
-  "rk.median": "Médiane"
+  "rk.median": "Médiane",
+  "rk.loading": "Chargement…",
+  "rk.myPlace": "Vous êtes n° {n} de la classe (sur {m})",
+  "rk.you": "vous"
 };
