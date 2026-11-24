@@ -9,7 +9,7 @@ import { I, highlightSQL, lessonTitleHTML, problemHTML } from './ui.js';
 import { LESSON_BY_KEY, randomCode } from './engine.js';
 import * as backend from './backend.js';
 
-/** from student.js: { S, render, save, chName, workspaceHTML } */
+/** from student.js: { S, render, save, chName, workspaceHTML, asgHit } */
 let C = null;
 export function installRank(ctx) { C = ctx; }
 const L = () => C.S.settings.lang;
@@ -99,6 +99,7 @@ function rkFinish() {
   C.save();
   if (C.S.klass && backend.enabled) backend.logAttempt(Object.assign({ class_id: C.S.klass.id }, rankRow(r)));
   loadBoard(ses.test);
+  if (ses.asg && C.asgHit) C.asgHit('rank', `${r.rank}${r.passed ? '*' : ''} ${r.score}`, { score: r.score, rank: r.rank, passed: r.passed, solved: r.solved, misses: r.misses });
   ses.res = r; C.render(); window.scrollTo(0, 0);
 }
 const rkName = ses => `${C.chName(ses.ch)} · ${H('rk.tier.' + ses.tier)}`;
@@ -149,7 +150,7 @@ function rankDoneHTML(ses) {
       <p class="muted">${next === null ? H('rk.top') : H('rk.toNext', { n: next, r: RK_RANKS[RK_RANKS.indexOf(r.rank) + 1] })}</p>
       <div class="rk-figs"><span><small>${H('rk.solved')}</small><b>${r.solved}</b></span><span><small>${H('rk.acc')}</small><b>${r.acc}%</b></span><span><small>${H('rk.time')}</small><b>${fmtMs(r.ms)}</b></span><span><small>${H('rk.passed')}</small><b>${r.passed}</b></span><span><small>${H('rk.misses')}</small><b>${r.misses}</b></span></div>
       <p class="muted small">${H('rk.formula')}</p>
-      <div class="row-btns"><button class="btn btn-primary" data-act="rkAgain">${I.repeat}${H('rk.again')}</button><a class="btn btn-ghost" href="#/rank">${H('rk.back')}</a></div>
+      ${ses.asg ? `<div class="row-btns"><a class="btn btn-primary" href="#/live">📬 ${H('as.back')}</a></div>` : `<div class="row-btns"><button class="btn btn-primary" data-act="rkAgain">${I.repeat}${H('rk.again')}</button><a class="btn btn-ghost" href="#/rank">${H('rk.back')}</a></div>`}
       ${C.S.klass ? `<p class="muted small">${H('rk.sent')}</p>` : ''}
     </section>
     <div class="rk-side">

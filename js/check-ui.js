@@ -35,6 +35,12 @@ function cfgOf(d) {
 const H = (k, v) => th(k, ctx.lang(), v);
 const T = (k, v) => t(k, ctx.lang(), v);
 
+/** the test set up on this page now, to send to a class: { code, n, lessons } or null */
+export function currentCheck() {
+  const d = D(); if (!d.lessons.length) return null;
+  const cfg = cfgOf(d);
+  return { code: encodeCheck(cfg), n: buildCheck(ctx.engine(), cfg, cfg.seed).length, lessons: d.lessons.length };
+}
 export function checkSetupHTML() { return `<div id="ck-setup">${innerHTML()}</div>`; }
 function innerHTML() {
   const d = D(), L = ctx.lang(), assigned = (ctx.assigned && ctx.assigned()) || [];

@@ -14,7 +14,9 @@ import { LESSONS, CHAPTERS } from './lessons.js';
 import { TEXTBOOKS } from './book.js';
 import { hasLecture } from './lectures.js';
 import { altAnswers } from './alt.js';
-import { checkSetupHTML, installCheckUI } from './check-ui.js';
+import { checkSetupHTML, installCheckUI, currentCheck } from './check-ui.js';
+import { ASG_TYPES, ASG_TEST, ASG_ICON, asgList, asgLabelHTML, asgLimit, isAsRow, asgResults, newAsgId } from './assign.js';
+import { CQ_SETS, KW } from './clauses.js';
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
@@ -622,8 +624,70 @@ function assignHTML(c) {
         return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code, c.format).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span>${p.bd ? `<span class="bd d${p.bd}">${H('dif.' + p.bd)}</span>` : ''} ${problemHTML(p, L())}${answerHTML(p)}</div>`).join('')}</details>`;
       }).join('') || `<p class="muted">${H('tc.noLessons')}</p>`}</div></div>
   </form>
+  ${asgPanelHTML(c)}
   ${taskHTML(c)}`;
 }
+/* ---------- sending things to the class (配信, assign.js): tests each student starts when ready, practice, lectures ----------
+ * In the class row: tasks.items. The students' records come in as as:<id>:start / as:<id>:done (S.asAtt). */
+const asD = { type: 'rank', ref: '', limit: 0 };
+const redrawAs = () => { const el = document.querySelector('.as-tc'); if (el && S.klass) el.outerHTML = asgPanelHTML(S.klass); };
+const plainT = k => String(T(k)).replace(/\{([^|}]+)\|[^}]+\}/g, '$1');
+const lessonOpt = k => `${LESSON_BY_KEY[k].no}. ${plainT(`L.${k}.title`)}`;
+/** the choices for one type: [[ref, label]] */
+function asgChoices(type) {
+  switch (type) {
+    case 'rank': return RK_CHAPTERS.flatMap(ch => RK_TIERS.map(t => [rankKey(ch, t), `${plainT('ch.' + ch)} · ${plainT('rk.tier.' + t)}`]));
+    case 'basics': return BASIC_STEPS.map(b => [b.key, b.core ? plainT('bs.s.' + b.key) : lessonOpt(b.lesson)]);
+    case 'clauses': return CQ_SETS.map(k => [k, k === 'all' ? plainT('cq.all') : KW[k] || k]);
+    case 'drill': return [...S.engine.drillLessons()].filter(k => LESSON_BY_KEY[k]).map(k => [k, lessonOpt(k)]);
+    case 'practice': return LESSONS.filter(l => l.kind !== 'quiz').map(l => [l.key, lessonOpt(l.key)]);
+    case 'table': return tableSets(S.engine).map(x => [x.key, x.tables.join(' + ')]);
+    case 'lecture': return [...LESSONS.filter(l => hasLecture(l.key)).map(l => [l.key, lessonOpt(l.key)]), ...PD_LESSONS.filter(l => hasLecture(l.key)).map(l => [l.key, `Python ${l.no}. ${plainT('pd.t.' + l.key)}`])];
+    case 'py': return PD_LESSONS.map(l => [l.key, `${l.no}. ${plainT('pd.t.' + l.key)}`]);
+    default: return [];
+  }
+}
+function asgFormHTML() {
+  const ch = asgChoices(asD.type);
+  if (ch.length && !ch.some(x => x[0] === asD.ref)) asD.ref = ch[0][0];
+  const ck = asD.type === 'check' ? currentCheck() : null;
+  let what;
+  if (asD.type === 'check') what = ck ? `<p class="small">${H('as.tc.checkNow', { l: ck.lessons, n: ck.n })} <a href="#/check">${H('as.tc.checkEdit')}</a></p>
+      <label class="as-lim"><span>${H('as.tc.limitMin')}</span><input type="number" min="0" max="180" value="${asD.limit || 0}" data-as="limit"></label>` : `<p class="small muted">${H('as.tc.checkNone')} <a href="#/check">${H('ck.title')}</a></p>`;
+  else if (asD.type === 'level') what = `<p class="small muted">${H('as.noLimit')}</p>`;
+  else what = `<select data-as="ref">${ch.map(([v, lab]) => `<option value="${esc(v)}" ${v === asD.ref ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>`;
+  const lim = asD.type === 'rank' ? asgLimit({ type: 'rank', ref: asD.ref }) : 0;
+  const ok = asD.type === 'check' ? !!ck : asD.type === 'level' || !!asD.ref;
+  return `<div class="as-form">
+      <select data-as="type">${ASG_TYPES.map(t => `<option value="${t}" ${t === asD.type ? 'selected' : ''}>${ASG_ICON[t]} ${esc(plainT('as.type.' + t))}</option>`).join('')}</select>
+      <div class="as-what">${what}</div>
+      <button type="button" class="btn btn-primary" data-act="asSend" ${ok ? '' : 'disabled'}>📬 ${H('as.tc.send')}</button></div>
+    <p class="muted small">${ASG_TEST.has(asD.type) ? `${H('as.tc.testNote')}${lim ? ` ${H('as.limit', { m: lim / 60 })}` : ''}` : H('as.tc.pracNote')}</p>`;
+}
+function asgItemTcHTML(it) {
+  const rs = asgResults(S.asAtt || [], S.members || [], it), done = rs.filter(r => r.done).length, mid = rs.filter(r => r.started && !r.done).length, test = ASG_TEST.has(it.type);
+  const res = r => { if (!r.done) return r.started ? `<span class="tag">${H('as.tc.st.started')}</span>` : `<span class="muted">${H('as.tc.st.none')}</span>`;
+    if (it.type === 'rank' && r.d && r.d.rank) return `<span class="rk-badge sm r-${esc(r.d.rank)}">${esc(r.d.rank)}</span>${r.d.passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''} <b>${esc(String(r.d.score))}</b>`;
+    return `✓ ${r.reason ? `<b>${esc(r.reason)}</b>` : H('as.done')}`; };
+  const order = rs.slice().sort((a, b) => (b.done - a.done) || (((b.d && b.d.score) || 0) - ((a.d && a.d.score) || 0)));
+  return `<li class="as-item ${it.open === false ? 'closed' : ''}"><details><summary><span class="as-ic">${ASG_ICON[it.type]}</span>
+      <span class="as-what"><small class="muted">${H('as.type.' + it.type)} · ${esc(fmtTime(it.at))} · ${H(it.open === false ? 'as.tc.closed' : 'as.tc.open')}</small><b>${asgLabelHTML(it, L())}</b></span>
+      <span class="as-count">${H('as.tc.count', { d: done, n: rs.length })}${test && mid ? ` · ${H('as.tc.mid', { n: mid })}` : ''}</span></summary>
+    <div class="row-btns left"><button type="button" class="btn btn-ghost btn-sm" data-act="asOpen" data-id="${esc(it.id)}">${H(it.open === false ? 'as.tc.reopen' : 'as.tc.close')}</button><button type="button" class="btn btn-ghost btn-sm danger" data-act="asDel" data-id="${esc(it.id)}">${H('as.tc.del')}</button></div>
+    <table class="wtable as-tbl"><tbody>${order.map(r => `<tr class="${r.done ? 'done' : ''}"><th>${esc(r.m.nickname)}</th><td>${res(r)}</td><td class="muted small">${r.at ? esc(fmtTime(r.at)) : ''}</td></tr>`).join('') || `<tr><td class="muted">${H('as.tc.noMembers')}</td></tr>`}</tbody></table></details></li>`;
+}
+function asgPanelHTML(c) {
+  const items = asgList(c);
+  return `<section class="card as-tc"><h2>📬 ${H('as.tc.title')}</h2><p class="muted">${H('as.tc.sub')}</p>
+    ${tasksInDb(c) ? asgFormHTML() : `<p class="muted small">${H('tc.task.schema')}</p>`}
+    ${items.length ? `<ul class="as-list">${items.map(asgItemTcHTML).join('')}</ul>` : `<p class="muted small">${H('as.tc.none')}</p>`}</section>`;
+}
+async function asgSave(items, msg) {
+  const c = S.klass;
+  try { S.klass = await backend.updateClass(c.id, { tasks: Object.assign({}, c.tasks || {}, { items }) }); redrawAs(); if (msg) toast(T(msg)); }
+  catch (e) { console.error(e); toast(T(tasksInDb(c) ? 'class.netError' : 'tc.task.schema')); }
+}
+
 /* ---------- the shape mix as an assignment (型ミックスの課題): in the class row, tasks.mix ----------
  * tasks = { mix: { id, shapes, kind, n, seed, at } } — every student gets the same problems
  * (shapeSlots with the seed); answers come in as problem_id task:<id>:<n>. */
@@ -1139,7 +1203,7 @@ async function load() {
 async function reloadClassData() {
   const c = S.klass;
   const [m, a, p] = await Promise.all([backend.members(c.id), backend.attempts(c.id), backend.pinStatus(c.id).catch(() => [])]);
-  S.members = m; S.attempts = a.filter(x => x.stage !== 'quick' && !isLevelRow(x) && !isTaskRow(x) && !isRankRow(x)); S.rkAtt = a.filter(isRankRow); S.qAtt = a.filter(x => x.stage === 'quick'); S.tAtt = a.filter(isTaskRow); S.lvAtt = a.filter(isLevelRow); S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
+  S.members = m; S.attempts = a.filter(x => x.stage !== 'quick' && !isLevelRow(x) && !isTaskRow(x) && !isRankRow(x) && !isAsRow(x)); S.rkAtt = a.filter(isRankRow); S.asAtt = a.filter(isAsRow); S.qAtt = a.filter(x => x.stage === 'quick'); S.tAtt = a.filter(isTaskRow); S.lvAtt = a.filter(isLevelRow); S.pins = Object.fromEntries((p || []).map(x => [x.user_id, x]));
 }
 /* live connection: shown in the class header; when it drops, it reconnects by itself and
  * reloads the answers so nothing sent in the meantime is missed */
@@ -1154,7 +1218,7 @@ function connHTML() {
   return `<span id="conn" class="conn ${k}" title="${esc(T('tc.conn.' + k))}"><i></i>${H('tc.conn.' + k)}${k === 'lost' ? ` <button class="btn btn-ghost btn-xs" data-act="reconnect">${H('tc.conn.retry')}</button>` : ''}</span>`;
 }
 const soonRefresh = (() => { let pending = null; return () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view !== 'class') return; if (['live', 'quick', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab();
-    else if (S.route.tab === 'assign') { const el = document.querySelector('.task-card'); if (el && S.klass) el.outerHTML = taskHTML(S.klass); } }, 300); }; })();
+    else if (S.route.tab === 'assign') { const el = document.querySelector('.task-card'); if (el && S.klass) el.outerHTML = taskHTML(S.klass); redrawAs(); } }, 300); }; })();
 async function startWatch() {
   stopWatch();
   clearTimeout(retryTimer);
@@ -1162,7 +1226,7 @@ async function startWatch() {
   const id = S.klass.id, gen = ++watchGen;
   let wasLost = S.conn === 'lost';
   setConn('connecting');
-  S.unwatch = await backend.watchDashboard(id, row => { const list = isRankRow(row) ? (S.rkAtt = S.rkAtt || []) : row.stage === 'quick' ? (S.qAtt = S.qAtt || []) : isTaskRow(row) ? (S.tAtt = S.tAtt || []) : isLevelRow(row) ? (S.lvAtt = S.lvAtt || []) : S.attempts; if (!list.some(a => a.id === row.id)) list.push(row); soonRefresh(); },
+  S.unwatch = await backend.watchDashboard(id, row => { const list = isAsRow(row) ? (S.asAtt = S.asAtt || []) : isRankRow(row) ? (S.rkAtt = S.rkAtt || []) : row.stage === 'quick' ? (S.qAtt = S.qAtt || []) : isTaskRow(row) ? (S.tAtt = S.tAtt || []) : isLevelRow(row) ? (S.lvAtt = S.lvAtt || []) : S.attempts; if (!list.some(a => a.id === row.id)) list.push(row); soonRefresh(); },
     async () => { try { await reloadClassData(); } catch (e) { S.members = await backend.members(id); } soonRefresh(); },   // a student who came back on another device brings their answers along
     async status => {
       if (gen !== watchGen) return;   // an old connection
@@ -1241,6 +1305,15 @@ const actions = {
   },
   taskShape(el) { const d = taskDraft(); d.shapes = shapeToggle(d.shapes, el.dataset.v); Store.set(TDRAFT, d); redrawTask(); },
   taskSet(el) { const d = taskDraft(); d[el.dataset.k] = el.dataset.k === 'n' ? +el.dataset.v : el.dataset.v; Store.set(TDRAFT, d); redrawTask(); },
+  asSend() {
+    const it = { id: newAsgId(), type: asD.type, ref: asD.ref, at: Date.now(), open: true };
+    if (asD.type === 'check') { const ck = currentCheck(); if (!ck) return; Object.assign(it, { ref: ck.code, n: ck.n, limit: Math.max(0, Math.min(180, Math.round(asD.limit) || 0)) }); }
+    if (asD.type === 'level') it.ref = '';
+    if (asD.type === 'table') { const x = tableSets(S.engine).find(t => t.key === asD.ref); if (x) it.tables = x.tables; }
+    asgSave([...asgList(S.klass), it], 'as.tc.sent');
+  },
+  asOpen(el) { asgSave(asgList(S.klass).map(it => (it.id === el.dataset.id ? Object.assign({}, it, { open: it.open === false }) : it))); },
+  asDel(el) { if (!confirm(T('as.tc.delConfirm'))) return; asgSave(asgList(S.klass).filter(it => it.id !== el.dataset.id)); },
   async taskSave(el) {
     const c = S.klass, d = taskDraft(); if (!d.shapes.length) return;
     if (c.tasks && c.tasks.mix && !confirm(T('tc.task.replaceConfirm'))) return;
@@ -1487,7 +1560,7 @@ const actions = {
   },
   async clearAttempts() {
     if (!confirm(T('tc.clearConfirm'))) return;
-    try { await backend.clearAttempts(S.klass.id); S.attempts = []; S.qAtt = []; S.lvAtt = []; S.tAtt = []; S.rkAtt = []; refreshTab(); toast(T('tc.cleared')); } catch (e) { toast(T('class.netError')); }
+    try { await backend.clearAttempts(S.klass.id); S.attempts = []; S.qAtt = []; S.lvAtt = []; S.tAtt = []; S.rkAtt = []; S.asAtt = []; refreshTab(); toast(T('tc.cleared')); } catch (e) { toast(T('class.netError')); }
   },
   async deleteClass() {
     if (prompt(T('tc.deleteConfirm', { n: S.klass.name })) !== S.klass.name) return;
@@ -1509,6 +1582,7 @@ document.addEventListener('click', e => {
 document.addEventListener('toggle', e => { if (e.target.matches && e.target.matches('details[data-qpick]')) S.qPick = e.target.open; }, true);
 document.addEventListener('change', async e => {
   const el = e.target;
+  if (el.dataset.as) { const k = el.dataset.as; asD[k] = k === 'limit' ? Math.max(0, parseInt(el.value, 10) || 0) : el.value; if (k === 'type') asD.ref = ''; redrawAs(); return; }
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }
   if (el.dataset.qlesson) { const d = quickDraft(S.klass); d.lessons = el.checked ? [...new Set([...d.lessons, el.dataset.qlesson])] : d.lessons.filter(k => k !== el.dataset.qlesson); const order = checkLessons().map(l => l.key); d.lessons = order.filter(k => d.lessons.includes(k)); d.swaps = {}; saveQDraft(d); refreshTab(); return; }

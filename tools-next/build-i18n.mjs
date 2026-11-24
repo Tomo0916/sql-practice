@@ -48,6 +48,7 @@ export function usedKeys() {
     'pd_desc', 'pd_rel', 'st_ci', 'st_ttest', 'st_chi2', 'st_reg', 'st_mreg'].forEach(k => { keys.add('pd.t.' + k); keys.add('pd.p.' + k); });
   keys.add('pd.loadingStats');
   ['app', 'book'].forEach(k => keys.add('home.order.' + k));
+  ['rank', 'check', 'level', 'basics', 'clauses', 'drill', 'practice', 'table', 'lecture', 'py'].forEach(t => keys.add('as.type.' + t));   // sent items (assign.js)
   ['beginner', 'intermediate', 'advanced'].forEach(t => ['rk.tier.', 'rk.tierDesc.', 'rk.tierShort.'].forEach(k => keys.add(k + t)));   // the rank tests   // the home page: textbook order
   ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8', 'more'].forEach(k => { keys.add('book.' + k); keys.add(`book.${k}.desc`); });
   ['desc_describe', 'desc_median', 'desc_quantile', 'desc_std', 'desc_var', 'rel_corr', 'rel_matrix', 'rel_z', 'rel_share', 'ci_sem', 'ci_low', 'ci_high', 'ci_width',

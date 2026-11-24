@@ -64,6 +64,13 @@ export async function myAttempts(classId) {
   if (!data.session) return [];
   return check(await sb.from('attempts').select('problem_id, lesson, stage, ok, sql, created_at').eq('class_id', classId).eq('user_id', data.session.user.id).order('id'));
 }
+/** the student's own records of the class's sent items (as:<id>:start|done): a test started on another device counts */
+export async function myAsgRows(classId) {
+  const sb = await client();
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return [];
+  return check(await sb.from('attempts').select('problem_id, reason, sql, created_at').eq('class_id', classId).eq('user_id', data.session.user.id).like('problem_id', 'as:%').order('id'));
+}
 export async function getClass(classId) {
   const sb = await client();
   return check(await sb.from('classes').select('*').eq('id', classId).maybeSingle());

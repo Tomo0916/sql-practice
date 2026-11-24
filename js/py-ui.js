@@ -195,7 +195,7 @@ async function run() {
     const r = rec(key);
     if (!r.ok.includes(prob.id)) {
       r.ok.push(prob.id); r.n++;
-      if (setOf(key).items.every(p => r.ok.includes(p.id))) r.clear = true;
+      if (setOf(key).items.every(p => r.ok.includes(p.id))) { r.clear = true; if (C.asgHit) C.asgHit('py'); }
       C.save();
       const pills = document.querySelector('.py-pills'), tmp = document.createElement('div');
       tmp.innerHTML = lessonHTML();
