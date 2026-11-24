@@ -1947,5 +1947,8 @@ export default {
   "bk.confirm": "Muat catatan ini? Catatan digabung dengan catatan di perangkat ini (soal yang diselesaikan di salah satunya tetap ada).",
   "rk.statN": "{n} siswa",
   "rk.avg": "Rata-rata",
-  "rk.median": "Median"
+  "rk.median": "Median",
+  "rk.loading": "Memuat…",
+  "rk.myPlace": "Anda peringkat {n} di kelas (dari {m})",
+  "rk.you": "Anda"
 };

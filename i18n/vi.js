@@ -1947,5 +1947,8 @@ export default {
   "bk.confirm": "Mở kết quả này? Kết quả sẽ được gộp với kết quả trên thiết bị này (bài đã giải ở bên nào cũng được giữ lại).",
   "rk.statN": "{n} học viên",
   "rk.avg": "Trung bình",
-  "rk.median": "Trung vị"
+  "rk.median": "Trung vị",
+  "rk.loading": "Đang tải…",
+  "rk.myPlace": "Bạn đứng thứ {n} trong lớp (trên {m})",
+  "rk.you": "bạn"
 };

@@ -1577,3 +1577,5 @@ body.pj-open { overflow: hidden; }
 }
 @media (max-width: 720px) { .chapter:not(.open) .chapter-head { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; } }
 .lec-lang-note { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 8px; padding: 6px 10px; font-size: .88rem; margin: 0 0 10px; }
+.rk-cboard .rk-myplace { font-weight: 700; font-size: 1.05rem; margin: 4px 0 8px; }
+.rk-cboard tr.me td { background: #fef9c3; font-weight: 600; }

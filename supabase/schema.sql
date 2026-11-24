@@ -464,3 +464,28 @@ alter table public.classes add column if not exists quick_log jsonb check (quick
 -- Everyone gets the same problems; the answers are logged like any other (problem_id task:<id>:<n>).
 -- The teacher sets it like any other class setting (classes_update policy); students read it with the class.
 alter table public.classes add column if not exists tasks jsonb check (tasks is null or jsonb_typeof(tasks) = 'object');
+
+-- ---------- rank tests: the class ranking for students (2026-11) ----------
+-- Each student's best result of one rank test ('join-advanced') in the class, high to low;
+-- at the same score a result without passes comes first. Only members and the teacher of the class can read it.
+-- The rows come from attempts with problem_id 'rk:<test>:<score>:<rank>' (details in sql: {"pass": n, ...}).
+create or replace function public.rank_board(p_class uuid, p_test text)
+returns table (nickname text, score integer, rank text, passed integer, at timestamptz, me boolean)
+  language sql stable security definer set search_path = public as $$
+  with r as (
+    select a.user_id, split_part(a.problem_id, ':', 3)::int as score, split_part(a.problem_id, ':', 4) as rank,
+           coalesce(case when a.sql ~ '^\s*\{' then (a.sql::jsonb ->> 'pass')::int end, 0) as passed, a.created_at
+    from public.attempts a
+    where p_test ~ '^[a-z]+-[a-z]+$'
+      and (public.is_member_of(p_class) or public.is_teacher_of(p_class))
+      and a.class_id = p_class and a.problem_id like 'rk:' || p_test || ':%'
+      and split_part(a.problem_id, ':', 3) ~ '^[0-9]+$'
+  ), best as (
+    select distinct on (user_id) * from r order by user_id, score desc, (passed > 0), created_at
+  )
+  select m.nickname, b.score, b.rank, b.passed, b.created_at, b.user_id = auth.uid()
+  from best b join public.members m on m.class_id = p_class and m.user_id = b.user_id
+  order by b.score desc, (b.passed > 0), b.created_at
+  limit 200;
+$$;
+grant execute on function public.rank_board(uuid, text) to authenticated;

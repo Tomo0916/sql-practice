@@ -95,6 +95,15 @@ export async function renameMe(classId, nickname) {   // error 'nickname_taken' 
 /* attempts are queued locally so nothing is lost when the network drops */
 const QKEY = 'sqln.queue';
 let flushing = false;
+/** the class ranking of one rank test (null if the database does not have rank_board yet) */
+export async function rankBoard(classId, test) {
+  if (!enabled) return null;
+  const sb = await client();
+  try { await flushAttempts(); } catch (e) { /* the ranking can still be read */ }
+  const { data, error } = await sb.rpc('rank_board', { p_class: classId, p_test: test });
+  if (error) return null;
+  return data || [];
+}
 export function logAttempt(row) {
   const q = Store.get(QKEY, []);
   q.push(row);
