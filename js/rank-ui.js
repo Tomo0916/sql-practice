@@ -9,7 +9,7 @@ import { I, highlightSQL, lessonTitleHTML, problemHTML } from './ui.js';
 import { LESSON_BY_KEY, randomCode } from './engine.js';
 import * as backend from './backend.js';
 
-/** from student.js: { S, render, save, chName, workspaceHTML, asgHit } */
+/** from student.js: { S, render, save, chName, workspaceHTML, asgHit, ruCleared } */
 let C = null;
 export function installRank(ctx) { C = ctx; }
 const L = () => C.S.settings.lang;
@@ -43,6 +43,14 @@ function boardHTML(test) {
 const rkClean = () => { const r = C.S.progress.rank, old = Object.keys(r || {}).filter(k => !rankParse(k)); if (old.length) { old.forEach(k => delete r[k]); C.save(); } };
 /** a rank badge; passes add "(with passes)": the rank is not complete */
 const rkBadge = (rank, passed, size = 'sm') => `<span class="rk-badge ${size} r-${rank}">${rank}</span>${passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''}`;
+/* ---------- on your own: the tiers open in turn (初級 → 中級 → 上級) at B or better without passes ---------- */
+export const SELF_PASS = 'B';
+const histOf = key => (((C.S.progress.rank || {})[key] || {}).hist || []);
+const clearsSelf = h => !h.pass && RK_RANKS.indexOf(h.r) >= RK_RANKS.indexOf(SELF_PASS);
+/** cleared: on your own, or in a step-up sent by the teacher (C.ruCleared) */
+export const tierCleared = (ch, tier) => histOf(rankKey(ch, tier)).some(clearsSelf) || !!(C.ruCleared && C.ruCleared(ch, tier));
+export const tierOpen = (ch, tier) => { const i = RK_TIERS.indexOf(tier); return i <= 0 || tierCleared(ch, RK_TIERS[i - 1]); };
+const tierName = t => T('rk.tier.' + t).replace(/\{([^|}]+)\|[^}]+\}/g, '$1');
 const rkRec = t => ((C.S.progress.rank = C.S.progress.rank || {})[t] = C.S.progress.rank[t] || { best: 0, hist: [] });
 let rkTick = null;
 export function rkStopTick() { clearInterval(rkTick); rkTick = null; }
@@ -92,6 +100,7 @@ function rkFinish() {
   const solved = ses.items.filter(p => ses.done[p.id]).length;
   const misses = Object.values(ses.miss).reduce((s, n) => s + n, 0), passed = ses.items.filter(p => ses.pass[p.id]).length;
   const r = Object.assign(rankScore(solved, misses), { test: ses.test, solved, passed, misses, ms: ses.limit, at: Date.now() });
+  const nextT = RK_TIERS[RK_TIERS.indexOf(ses.tier) + 1], wasOpen = nextT ? tierOpen(ses.ch, nextT) : true, wasClear = tierCleared(ses.ch, ses.tier);
   const rec = rkRec(ses.test), prev = rec.hist.length ? { score: rec.best, passed: rec.bestP || 0 } : null;
   r.newBest = !!prev && rankBetter(r, prev);
   if (!prev || r.newBest) { rec.best = r.score; rec.bestP = r.passed; }
@@ -99,6 +108,7 @@ function rkFinish() {
   C.save();
   if (C.S.klass && backend.enabled) backend.logAttempt(Object.assign({ class_id: C.S.klass.id }, rankRow(r)));
   loadBoard(ses.test);
+  if (!ses.asg) ses.self = { clear: !r.passed && RK_RANKS.indexOf(r.rank) >= RK_RANKS.indexOf(SELF_PASS), next: nextT || null, opened: !!nextT && !wasOpen && tierOpen(ses.ch, nextT), was: wasClear };
   if (ses.asg && C.asgHit) ses.ru = C.asgHit(ses.asgType || 'rank', `${r.rank}${r.passed ? '*' : ''} ${r.score}`, { score: r.score, rank: r.rank, passed: r.passed, solved: r.solved, misses: r.misses });
   ses.res = r; C.render(); window.scrollTo(0, 0);
 }
@@ -107,10 +117,12 @@ function rankHubHTML() {
   rkClean();
   return `<main class="wrap rk-page">
     <section class="card rk-head"><h1>🏅 ${H('rk.title')}</h1><p class="muted">${H('rk.sub', { n: RK_N })}</p>
-      <ul class="rk-rules"><li>${H('rk.rule1')}</li><li>${H('rk.rule2')}</li><li>${H('rk.rule3')}</li><li>${H('rk.rule4')}</li></ul></section>
+      <ul class="rk-rules"><li>${H('rk.rule1')}</li><li>${H('rk.rule2')}</li><li>${H('rk.rule3')}</li><li>${H('rk.rule4')}</li><li><b>${H('rk.self.rule', { r: SELF_PASS })}</b></li></ul></section>
     <section class="card rk-grid-card"><table class="rk-grid"><thead><tr><th>${H('rk.chapter')}</th>${RK_TIERS.map((t, i) => `<th class="t${i}">${H('rk.tier.' + t)} <span class="tag">⏱ ${H('rk.limit', { m: rkMin(t) })}</span><small>${H('rk.tierDesc.' + t)}</small></th>`).join('')}</tr></thead><tbody>
       ${RK_CHAPTERS.map((ch, ci) => `<tr style="--cc:var(--c-${ch})"><th><span class="rk-chdot"></span>${H('home.chapter', { n: ci + 1 })} ${C.chName(ch)}</th>${RK_TIERS.map(t => { const rec = rkRec(rankKey(ch, t));
-        return `<td><a class="rk-cell" href="#/rank/${ch}/${t}">${rec.hist.length ? `<span>${rkBadge(rankOf(rec.best), rec.bestP)}</span><b>${rec.best}</b>` : `<span class="muted">${H('rk.start')}</span>`}</a></td>`; }).join('')}</tr>`).join('')}
+        const i = RK_TIERS.indexOf(t);
+        if (!tierOpen(ch, t)) return `<td><span class="rk-cell locked" title="${esc(T('rk.self.locked', { t: tierName(RK_TIERS[i - 1]), r: SELF_PASS }))}">🔒</span></td>`;
+        return `<td><a class="rk-cell ${tierCleared(ch, t) ? 'cleared' : ''}" href="#/rank/${ch}/${t}">${tierCleared(ch, t) ? '<i class="rk-ok">✓</i>' : ''}${rec.hist.length ? `<span>${rkBadge(rankOf(rec.best), rec.bestP)}</span><b>${rec.best}</b>` : `<span class="muted">${H('rk.start')}</span>`}</a></td>`; }).join('')}</tr>`).join('')}
     </tbody></table></section>
     <section class="card"><h3>${H('rk.ranks')}</h3><div class="rk-scale">${RK_RANKS.map((r, i) => `<span><span class="rk-badge r-${r}">${r}</span><small>${RK_FROM[i]}${i + 1 < RK_RANKS.length ? '–' + (RK_FROM[i + 1] - 1) : '+'}</small></span>`).join('')}</div><p class="muted small">${H('rk.formula')}</p></section>
   </main>`;
@@ -119,7 +131,11 @@ export function rankHTML() {
   const test = C.S.route.test;
   document.title = `${T('rk.title')} · SQL Practice`;
   if (!test) { if (C.S.session && C.S.session.kind === 'rank') { rkStopTick(); C.S.session = null; } return rankHubHTML(); }
-  if (!C.S.session || C.S.session.kind !== 'rank' || C.S.session.test !== test) { rkStopTick(); C.S.session = Object.assign({ kind: 'rank', test, phase: 'ready', items: [], i: 0, done: {}, miss: {}, pass: {}, dur: {} }, rankParse(test)); }
+  const fresh = !C.S.session || C.S.session.kind !== 'rank' || C.S.session.test !== test, want = rankParse(test);
+  if (fresh && want && !tierOpen(want.ch, want.tier)) { const prev = RK_TIERS[RK_TIERS.indexOf(want.tier) - 1];
+    return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">🔒</div><h1>${C.chName(want.ch)} · ${H('rk.tier.' + want.tier)}</h1><p class="muted">${H('rk.self.locked', { t: tierName(prev), r: SELF_PASS })}</p>
+      <div class="row-btns"><a class="btn btn-primary" href="#/rank/${want.ch}/${prev}">${H('rk.tier.' + prev)}</a><a class="btn btn-ghost" href="#/rank">${H('rk.back')}</a></div></section></main>`; }
+  if (fresh) { rkStopTick(); C.S.session = Object.assign({ kind: 'rank', test, phase: 'ready', items: [], i: 0, done: {}, miss: {}, pass: {}, dur: {} }, rankParse(test)); }
   const ses = C.S.session, tier = ses.tier;
   const head = `<div class="session-head rk-bar"><h1>🏅 ${rkName(ses)}</h1>${ses.phase === 'run' ? `${rkCountsHTML(ses)}<span class="rk-time${rkLeft(ses) <= 15000 ? ' low' : ''}">⏱ ${H('rk.left')} <b id="rk-time">${fmtMs(rkLeft(ses))}</b></span>` : ''}</div>`;
   if (ses.phase === 'ready') return `<main class="wrap narrow">${head}<section class="card rk-ready"><p>${H('rk.readyAbout', { c: T('ch.' + ses.ch).replace(/\{([^|}]+)\|[^}]+\}/g, '$1'), m: rkMin(tier) })}</p><p class="muted">${H('rk.tierDesc.' + tier)}</p>
@@ -147,6 +163,7 @@ function rankDoneHTML(ses) {
       <small class="muted">${rkName(ses)}</small>
       <div class="rk-main"><span class="rk-badge big r-${r.rank}">${r.rank}</span>${r.passed ? `<span class="rk-withpass big">${H('rk.withPass')}</span>` : ''}<div><small>${H('rk.score')}</small><b class="rk-score">${r.score}</b>${r.newBest ? `<span class="tag ok">${H('rk.newBest')}</span>` : ''}</div></div>
       ${r.passed ? `<p class="rk-passnote">${H('rk.passNote', { r: r.rank })}</p>` : ''}
+      ${ses.self && (ses.self.opened || (!ses.self.was && ses.self.next && !tierOpen(ses.ch, ses.self.next)) || (ses.self.clear && !ses.self.was && !ses.self.next)) ? `<p class="ru-msg ${ses.self.clear ? 'ok' : ''}">${ses.self.opened ? `${H('rk.self.unlock', { t: tierName(ses.self.next) })} <a href="#/rank/${ses.ch}/${ses.self.next}">${H('rk.tier.' + ses.self.next)} →</a>` : ses.self.clear ? H('as.ru.allClear') : H('rk.self.need', { t: tierName(ses.self.next), r: SELF_PASS })}</p>` : ''}
       ${ses.ru ? `<p class="ru-msg ${ses.ru.clear ? 'ok' : ''}">${ses.ru.clear ? (ses.ru.next ? H('as.ru.clearNext', { t: T('rk.tier.' + ses.ru.next).replace(/\{([^|}]+)\|[^}]+\}/g, '$1') }) : H('as.ru.allClear')) : H('as.ru.notClear', { r: ses.ru.pass })}</p>` : ''}
       <p class="muted">${next === null ? H('rk.top') : H('rk.toNext', { n: next, r: RK_RANKS[RK_RANKS.indexOf(r.rank) + 1] })}</p>
       <div class="rk-figs"><span><small>${H('rk.solved')}</small><b>${r.solved}</b></span><span><small>${H('rk.acc')}</small><b>${r.acc}%</b></span><span><small>${H('rk.time')}</small><b>${fmtMs(r.ms)}</b></span><span><small>${H('rk.passed')}</small><b>${r.passed}</b></span><span><small>${H('rk.misses')}</small><b>${r.misses}</b></span></div>

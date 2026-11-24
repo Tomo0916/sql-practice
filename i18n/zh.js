@@ -2012,5 +2012,10 @@ export default {
   "as.ru.passLabel": "通过标准",
   "as.ru.tcNote": "学生从初级开始，无跳过取得 {r} 以上即可进入下一级；未达到时可反复挑战同一级。",
   "as.tc.ruCount": "通过高级 {d} / {n} 人",
-  "as.ru.again": "每一级可反复挑战直到通过"
+  "as.ru.again": "每一级可反复挑战直到通过",
+  "as.new": "📬 老师发送了新内容（可从“{a}”打开）",
+  "rk.self.rule": "按初级 → 中级 → 高级的顺序前进。无跳过取得 {r} 以上即可解锁下一级。",
+  "rk.self.locked": "在{t}无跳过取得 {r} 以上后解锁。",
+  "rk.self.unlock": "通过！{t}已解锁。",
+  "rk.self.need": "无跳过取得 {r} 以上即可解锁{t}。可以再次挑战。"
 };
