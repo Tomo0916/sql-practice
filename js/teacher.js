@@ -17,6 +17,7 @@ import { altAnswers } from './alt.js';
 import { checkSetupHTML, installCheckUI, currentCheck } from './check-ui.js';
 import { ASG_TYPES, ASG_TEST, ASG_ICON, asgList, asgLabelHTML, asgLimit, isAsRow, asgResults, ruResults, newAsgId } from './assign.js';
 import { CQ_SETS, KW } from './clauses.js';
+import { installExplain, explainTcHTML, explainActions, explainInput, explainKey, explainStop } from './explain-tc.js';
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
@@ -73,7 +74,7 @@ const joinURL = code => `${studentURL()}?class=${encodeURIComponent(code)}`;
 /* ---------- routing ---------- */
 function parseRoute() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
-  if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['assign', 'live', 'quick', 'board', 'mistakes', 'members'].includes(h[2]) ? h[2] : 'live' };
+  if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['assign', 'live', 'quick', 'board', 'mistakes', 'members', 'explain'].includes(h[2]) ? h[2] : 'live' };
   if (h[0] === 'present') return { view: 'present' };
   if (h[0] === 'test') return { view: 'test' };
   if (h[0] === 'book') return { view: 'book' };
@@ -81,7 +82,7 @@ function parseRoute() {
   if (h[0] === 'check') return { view: 'check' };
   return { view: 'home' };
 }
-window.addEventListener('hashchange', () => { closeProjector(); const prev = S.route; S.route = parseRoute(); if (prev.view === 'class' && (S.route.view !== 'class' || S.route.id !== prev.id)) stopWatch(); load(); });
+window.addEventListener('hashchange', () => { closeProjector(); const prev = S.route; S.route = parseRoute(); if (prev.tab === 'explain' && (S.route.tab !== 'explain' || S.route.id !== prev.id)) explainStop(); if (prev.view === 'class' && (S.route.view !== 'class' || S.route.id !== prev.id)) stopWatch(); load(); });
 
 /* =========================================================
  * RENDER
@@ -183,9 +184,10 @@ function classHTML() {
   if (!c) return `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   document.title = `${c.name} · SQL Practice`;
   const tab = S.route.tab;
-  const tabs = [['live', I.bolt, 'tc.tabLive'], ['quick', '⚡', 'tc.tabQuick'], ['board', I.check, 'tc.tabBoard'], ['assign', I.book, 'tc.tabAssign'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
+  const tabs = [['live', I.bolt, 'tc.tabLive'], ['quick', '⚡', 'tc.tabQuick'], ['board', I.check, 'tc.tabBoard'], ['assign', I.book, 'tc.tabAssign'], ['explain', '📽', 'ex.tc.tab'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
   let body = '';
   if (tab === 'assign') body = assignHTML(c);
+  else if (tab === 'explain') body = explainTcHTML();
   else if (tab === 'mistakes') body = mistakesHTML(c);
   else if (tab === 'members') body = membersHTML(c);
   else if (tab === 'board') body = boardHTML(c);
@@ -1298,6 +1300,7 @@ function timerError(e) {
   return `${T('tc.timerFailed')} ${e.message}`;
 }
 const actions = {
+  ...explainActions,
   quickSet(el) {
     const d = quickDraft(S.klass), k = el.dataset.k, v = el.dataset.v;
     if (k === 'mode' && v !== d.mode) {   // keep what was set: the totals become the rows, or the rows add up
@@ -1597,6 +1600,7 @@ document.addEventListener('click', e => {
 document.addEventListener('toggle', e => { if (e.target.matches && e.target.matches('details[data-qpick]')) S.qPick = e.target.open; }, true);
 document.addEventListener('change', async e => {
   const el = e.target;
+  if (el.dataset.ex && el.dataset.ex !== 'q') { explainInput(el); return; }
   if (el.dataset.as) { const k = el.dataset.as; asD[k] = k === 'limit' ? Math.max(0, parseInt(el.value, 10) || 0) : el.value; if (k === 'type') asD.ref = ''; redrawAs(); return; }
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }
@@ -1636,6 +1640,7 @@ document.addEventListener('change', async e => {
 // open / closed cards (details with data-toggle) are remembered
 document.addEventListener('toggle', e => { const d = e.target; if (d.dataset && d.dataset.toggle) { S[d.dataset.toggle] = d.open; saveView(); } }, true);
 document.addEventListener('input', e => {
+  if (e.target.dataset.ex === 'q') { explainInput(e.target); return; }
   if (e.target.dataset.tk === 'title') { S.test.title = e.target.value; rerenderPaper(); }
 });
 document.addEventListener('submit', async e => {
@@ -1683,6 +1688,7 @@ async function openQR(c) {
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
+  installExplain({ S, toast });
   installCheckUI({ mode: 'teacher', lang: L, engine: () => S.engine, assigned: () => (S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k] && LESSON_BY_KEY[k].kind !== 'quiz') : []), onStart() {} });
   S.route = parseRoute();
   await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null]);
@@ -1734,6 +1740,7 @@ document.addEventListener('pointerup', e => { if (qDrag && e.pointerId === qDrag
 document.addEventListener('pointercancel', () => qDragEnd(false));
 document.addEventListener('click', e => { if (e.target.closest('.qs-grip')) { e.preventDefault(); e.stopPropagation(); } }, true);   // the handle does not open the problem
 document.addEventListener('keydown', e => {
+  if (S.route.view === 'class' && S.route.tab === 'explain' && explainKey(e)) return;
   const g = e.target.closest && e.target.closest('.qs-grip'); if (!g) return;
   const j = +g.dataset.grip, n = document.querySelectorAll('.qs-grip').length;
   if (e.key === 'ArrowUp' && j > 0) { e.preventDefault(); quickMove(j, j - 1); }

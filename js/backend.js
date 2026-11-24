@@ -184,6 +184,14 @@ export async function createClass(name) { const sb = await client(); return chec
  * Tell the students of a class that its row has changed (a short message to everyone who is connected).
  * The students then read the row again; this does not depend on the database's own change events.
  */
+/** 説明モード: who follows the teacher's slides (Realtime presence). onSync gets [{ f }] of the students; track({ f }) sends mine. */
+export async function explainPresence(classId, me, onSync) {
+  const sb = await client(), ch = sb.channel('explain-' + classId, { config: { presence: { key: me } } });
+  let ready = false, want = null;
+  ch.on('presence', { event: 'sync' }, () => { if (onSync) onSync(Object.entries(ch.presenceState()).filter(([k]) => k !== 'teacher').map(([, v]) => v[0] || {})); });
+  ch.subscribe(st => { if (st === 'SUBSCRIBED') { ready = true; if (want) ch.track(want); } });
+  return { track: x => { want = x; if (ready) ch.track(x); }, leave: () => sb.removeChannel(ch) };
+}
 export async function pingClass(id) {
   try { const sb = await client(), ch = sb.channel('ping-' + id); await ch.send({ type: 'broadcast', event: 'changed', payload: {} }); sb.removeChannel(ch); } catch (e) { /* the students also ask by themselves */ }
 }
