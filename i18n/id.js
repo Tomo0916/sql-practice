@@ -2001,5 +2001,16 @@ export default {
   "as.tc.noMembers": "Belum ada siswa.",
   "as.tc.none": "Belum ada kiriman.",
   "as.tc.sent": "Terkirim.",
-  "as.tc.delConfirm": "Hapus kiriman ini? Daftar hasil siswa juga akan hilang."
+  "as.tc.delConfirm": "Hapus kiriman ini? Daftar hasil siswa juga akan hilang.",
+  "as.type.rankup": "Tes peringkat (naik tingkat)",
+  "as.ru.pass": "lulus dengan {r} atau lebih, tanpa lewati",
+  "as.ru.tries": "{n}×",
+  "as.ru.take": "Kerjakan {t}",
+  "as.ru.allClear": "Lulus sampai Mahir!",
+  "as.ru.clearNext": "Lulus! Berikutnya {t}; kerjakan dari daftar.",
+  "as.ru.notClear": "Belum lulus ({r} atau lebih tanpa lewati untuk lulus). Anda bisa mencoba lagi.",
+  "as.ru.passLabel": "Syarat lulus",
+  "as.ru.tcNote": "Siswa mulai dari Dasar dan naik setelah mendapat {r} atau lebih tanpa lewati. Jika belum, tingkat yang sama boleh diulang berkali-kali.",
+  "as.tc.ruCount": "Lulus Mahir {d} / {n}",
+  "as.ru.again": "setiap tingkat boleh diulang sampai lulus"
 };

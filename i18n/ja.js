@@ -2002,5 +2002,16 @@ export default {
   "as.tc.noMembers": "まだ生徒がいません。",
   "as.tc.none": "まだ配信していません。",
   "as.tc.sent": "配信しました。",
-  "as.tc.delConfirm": "この配信を削除しますか？ 生徒の結果の一覧も見られなくなります。"
+  "as.tc.delConfirm": "この配信を削除しますか？ 生徒の結果の一覧も見られなくなります。",
+  "as.type.rankup": "ランクテスト（段階アップ）",
+  "as.ru.pass": "{r} 以上（パスなし）でクリア",
+  "as.ru.tries": "{n} 回",
+  "as.ru.take": "{t}を受ける",
+  "as.ru.allClear": "上級までクリア！",
+  "as.ru.clearNext": "クリア！ 次は{t}です。課題の一覧から受けられます。",
+  "as.ru.notClear": "まだクリアしていません（{r} 以上をパスなしで取るとクリア）。もう一度挑戦できます。",
+  "as.ru.passLabel": "クリアの基準",
+  "as.ru.tcNote": "初級から始め、{r} 以上をパスなしで取ると次の段階に進めます。届かなければ同じ段階を何回でも受けられます。",
+  "as.tc.ruCount": "上級までクリア {d} / {n} 人",
+  "as.ru.again": "クリアするまで何回でも受けられます"
 };

@@ -15,12 +15,12 @@ import { TEXTBOOKS } from './book.js';
 import { hasLecture } from './lectures.js';
 import { altAnswers } from './alt.js';
 import { checkSetupHTML, installCheckUI, currentCheck } from './check-ui.js';
-import { ASG_TYPES, ASG_TEST, ASG_ICON, asgList, asgLabelHTML, asgLimit, isAsRow, asgResults, newAsgId } from './assign.js';
+import { ASG_TYPES, ASG_TEST, ASG_ICON, asgList, asgLabelHTML, asgLimit, isAsRow, asgResults, ruResults, newAsgId } from './assign.js';
 import { CQ_SETS, KW } from './clauses.js';
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
-import { RK_TIERS, RK_CHAPTERS, rankKey, rankParse, isRankRow, rankFromRow, classRanking } from './rank.js';
+import { RK_TIERS, RK_CHAPTERS, RK_RANKS, rankKey, rankParse, isRankRow, rankFromRow, classRanking } from './rank.js';
 import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS, DIF_RATIOS, KIND_RATIOS, QK, splitBy, spreadGrid, gridSlots, shapeCountSlots, shapeCountsOf } from './quick.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_BY_KEY } from './basics.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
@@ -629,13 +629,14 @@ function assignHTML(c) {
 }
 /* ---------- sending things to the class (配信, assign.js): tests each student starts when ready, practice, lectures ----------
  * In the class row: tasks.items. The students' records come in as as:<id>:start / as:<id>:done (S.asAtt). */
-const asD = { type: 'rank', ref: '', limit: 0 };
+const asD = { type: 'rankup', ref: '', limit: 0, pass: 'B' };
 const redrawAs = () => { const el = document.querySelector('.as-tc'); if (el && S.klass) el.outerHTML = asgPanelHTML(S.klass); };
 const plainT = k => String(T(k)).replace(/\{([^|}]+)\|[^}]+\}/g, '$1');
 const lessonOpt = k => `${LESSON_BY_KEY[k].no}. ${plainT(`L.${k}.title`)}`;
 /** the choices for one type: [[ref, label]] */
 function asgChoices(type) {
   switch (type) {
+    case 'rankup': return RK_CHAPTERS.map(ch => [ch, plainT('ch.' + ch)]);
     case 'rank': return RK_CHAPTERS.flatMap(ch => RK_TIERS.map(t => [rankKey(ch, t), `${plainT('ch.' + ch)} · ${plainT('rk.tier.' + t)}`]));
     case 'basics': return BASIC_STEPS.map(b => [b.key, b.core ? plainT('bs.s.' + b.key) : lessonOpt(b.lesson)]);
     case 'clauses': return CQ_SETS.map(k => [k, k === 'all' ? plainT('cq.all') : KW[k] || k]);
@@ -655,16 +656,29 @@ function asgFormHTML() {
   if (asD.type === 'check') what = ck ? `<p class="small">${H('as.tc.checkNow', { l: ck.lessons, n: ck.n })} <a href="#/check">${H('as.tc.checkEdit')}</a></p>
       <label class="as-lim"><span>${H('as.tc.limitMin')}</span><input type="number" min="0" max="180" value="${asD.limit || 0}" data-as="limit"></label>` : `<p class="small muted">${H('as.tc.checkNone')} <a href="#/check">${H('ck.title')}</a></p>`;
   else if (asD.type === 'level') what = `<p class="small muted">${H('as.noLimit')}</p>`;
-  else what = `<select data-as="ref">${ch.map(([v, lab]) => `<option value="${esc(v)}" ${v === asD.ref ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>`;
+  else what = `<select data-as="ref">${ch.map(([v, lab]) => `<option value="${esc(v)}" ${v === asD.ref ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>${asD.type === 'rankup'
+      ? ` <label class="as-lim"><span>${H('as.ru.passLabel')}</span><select data-as="pass">${RK_RANKS.slice(1).map(r => `<option value="${r}" ${r === asD.pass ? 'selected' : ''}>${r}</option>`).join('')}</select></label>` : ''}`;
   const lim = asD.type === 'rank' ? asgLimit({ type: 'rank', ref: asD.ref }) : 0;
   const ok = asD.type === 'check' ? !!ck : asD.type === 'level' || !!asD.ref;
   return `<div class="as-form">
       <select data-as="type">${ASG_TYPES.map(t => `<option value="${t}" ${t === asD.type ? 'selected' : ''}>${ASG_ICON[t]} ${esc(plainT('as.type.' + t))}</option>`).join('')}</select>
       <div class="as-what">${what}</div>
       <button type="button" class="btn btn-primary" data-act="asSend" ${ok ? '' : 'disabled'}>📬 ${H('as.tc.send')}</button></div>
-    <p class="muted small">${ASG_TEST.has(asD.type) ? `${H('as.tc.testNote')}${lim ? ` ${H('as.limit', { m: lim / 60 })}` : ''}` : H('as.tc.pracNote')}</p>`;
+    <p class="muted small">${asD.type === 'rankup' ? H('as.ru.tcNote', { r: esc(asD.pass) }) : ASG_TEST.has(asD.type) ? `${H('as.tc.testNote')}${lim ? ` ${H('as.limit', { m: lim / 60 })}` : ''}` : H('as.tc.pracNote')}</p>`;
+}
+function ruItemTcHTML(it) {
+  const rs = ruResults(S.asAtt || [], S.members || [], it), all = rs.filter(r => !r.next).length;
+  const cell = (r, t) => { const v = r.tiers[t]; if (!v) return `<td class="muted">${r.next === t ? H('as.tc.st.none') : '🔒'}</td>`;
+    return `<td>${v.clear ? '✓ ' : ''}${v.best ? `<span class="rk-badge sm r-${esc(v.best.rank)}">${esc(v.best.rank)}</span>${v.best.passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''} <b>${v.best.score}</b>` : ''} <small class="muted">${H('as.ru.tries', { n: v.n })}</small></td>`; };
+  const order = rs.slice().sort((a, b) => RK_TIERS.indexOf(b.next || 'z') - RK_TIERS.indexOf(a.next || 'z') || b.n - a.n);
+  return `<li class="as-item ${it.open === false ? 'closed' : ''}"><details><summary><span class="as-ic">${ASG_ICON.rankup}</span>
+      <span class="as-what"><small class="muted">${H('as.type.rankup')} · ${esc(fmtTime(it.at))} · ${H(it.open === false ? 'as.tc.closed' : 'as.tc.open')}</small><b>${asgLabelHTML(it, L())}</b></span>
+      <span class="as-count">${H('as.tc.ruCount', { d: all, n: rs.length })}</span></summary>
+    <div class="row-btns left"><button type="button" class="btn btn-ghost btn-sm" data-act="asOpen" data-id="${esc(it.id)}">${H(it.open === false ? 'as.tc.reopen' : 'as.tc.close')}</button><button type="button" class="btn btn-ghost btn-sm danger" data-act="asDel" data-id="${esc(it.id)}">${H('as.tc.del')}</button></div>
+    <table class="wtable as-tbl"><thead><tr><th></th>${RK_TIERS.map(t => `<th>${H('rk.tier.' + t)}</th>`).join('')}</tr></thead><tbody>${order.map(r => `<tr class="${r.next ? '' : 'done'}"><th>${esc(r.m.nickname)}</th>${RK_TIERS.map(t => cell(r, t)).join('')}</tr>`).join('') || `<tr><td class="muted">${H('as.tc.noMembers')}</td></tr>`}</tbody></table></details></li>`;
 }
 function asgItemTcHTML(it) {
+  if (it.type === 'rankup') return ruItemTcHTML(it);
   const rs = asgResults(S.asAtt || [], S.members || [], it), done = rs.filter(r => r.done).length, mid = rs.filter(r => r.started && !r.done).length, test = ASG_TEST.has(it.type);
   const res = r => { if (!r.done) return r.started ? `<span class="tag">${H('as.tc.st.started')}</span>` : `<span class="muted">${H('as.tc.st.none')}</span>`;
     if (it.type === 'rank' && r.d && r.d.rank) return `<span class="rk-badge sm r-${esc(r.d.rank)}">${esc(r.d.rank)}</span>${r.d.passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''} <b>${esc(String(r.d.score))}</b>`;
@@ -1309,6 +1323,7 @@ const actions = {
     const it = { id: newAsgId(), type: asD.type, ref: asD.ref, at: Date.now(), open: true };
     if (asD.type === 'check') { const ck = currentCheck(); if (!ck) return; Object.assign(it, { ref: ck.code, n: ck.n, limit: Math.max(0, Math.min(180, Math.round(asD.limit) || 0)) }); }
     if (asD.type === 'level') it.ref = '';
+    if (asD.type === 'rankup') it.pass = RK_RANKS.includes(asD.pass) ? asD.pass : 'B';
     if (asD.type === 'table') { const x = tableSets(S.engine).find(t => t.key === asD.ref); if (x) it.tables = x.tables; }
     asgSave([...asgList(S.klass), it], 'as.tc.sent');
   },
