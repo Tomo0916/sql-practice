@@ -1933,5 +1933,19 @@ export default {
   "rk.limit": "{m} phút",
   "rk.timeUp": "Hết giờ",
   "rk.withPass": " (có bỏ qua)",
-  "rk.passNote": "Bạn đã bỏ qua một số bài nên kết quả là “{r} (có bỏ qua)”. Điểm không đổi; giải hết mà không bỏ qua để mất dấu “có bỏ qua”."
+  "rk.passNote": "Bạn đã bỏ qua một số bài nên kết quả là “{r} (có bỏ qua)”. Điểm không đổi; giải hết mà không bỏ qua để mất dấu “có bỏ qua”.",
+  "hm.learn": "Học",
+  "hm.practice": "Luyện tập",
+  "hm.test": "Tự kiểm tra",
+  "hm.python": "Phân tích dữ liệu với Python",
+  "bk.title": "Sao lưu kết quả",
+  "bk.sub": "Lưu tiến độ vào tệp và mở lại trên thiết bị hoặc trình duyệt khác.",
+  "bk.save": "Lưu vào tệp",
+  "bk.load": "Mở từ tệp",
+  "bk.saved": "Đã lưu kết quả vào tệp.",
+  "bk.bad": "Không mở được tệp này (không phải tệp kết quả của SQL Practice).",
+  "bk.confirm": "Mở kết quả này? Kết quả sẽ được gộp với kết quả trên thiết bị này (bài đã giải ở bên nào cũng được giữ lại).",
+  "rk.statN": "{n} học viên",
+  "rk.avg": "Trung bình",
+  "rk.median": "Trung vị"
 };

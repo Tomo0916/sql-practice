@@ -1933,5 +1933,19 @@ export default {
   "rk.limit": "{m} mnt",
   "rk.timeUp": "Waktu habis",
   "rk.withPass": " (ada lewati)",
-  "rk.passNote": "Ada soal yang Anda lewati, jadi ini “{r} (ada lewati)”. Skornya tetap; selesaikan semua tanpa melewati agar tanda “ada lewati” hilang."
+  "rk.passNote": "Ada soal yang Anda lewati, jadi ini “{r} (ada lewati)”. Skornya tetap; selesaikan semua tanpa melewati agar tanda “ada lewati” hilang.",
+  "hm.learn": "Belajar",
+  "hm.practice": "Berlatih",
+  "hm.test": "Uji diri",
+  "hm.python": "Analisis data dengan Python",
+  "bk.title": "Cadangkan catatan",
+  "bk.sub": "Simpan kemajuan Anda ke file lalu muat di perangkat atau browser lain.",
+  "bk.save": "Simpan ke file",
+  "bk.load": "Muat dari file",
+  "bk.saved": "Catatan Anda sudah disimpan ke file.",
+  "bk.bad": "File ini tidak bisa dimuat (bukan file catatan SQL Practice).",
+  "bk.confirm": "Muat catatan ini? Catatan digabung dengan catatan di perangkat ini (soal yang diselesaikan di salah satunya tetap ada).",
+  "rk.statN": "{n} siswa",
+  "rk.avg": "Rata-rata",
+  "rk.median": "Median"
 };

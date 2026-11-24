@@ -15,10 +15,13 @@ import { ALL_TABLES, JOIN_DATASETS } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
-import { RK_N, RK_SEC, RK_TIERS, RK_CHAPTERS, RK_RANKS, RK_FROM, rankKey, rankParse, rankOf, rankToNext, rankProblems, rankScore, rankRow, rankBetter } from './rank.js';
+import { RK_TIERS, RK_CHAPTERS, rankKey, rankParse } from './rank.js';
+import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
 import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
-import { createEditor } from './editor.js';
+/* the code editor (CodeMirror, ~420 KB) is loaded when a page needs it, not on the home page */
+let createEditor = null;
+const loadEditor = () => import('./editor.js').then(m => { createEditor = m.createEditor; });
 import { textbookPage } from './book.js';
 import { syncClock, secondsLeft, fmtClock, timerState, liveOn, liveMinutesLeft, nowMs } from './timer.js';
 import { isAnalysis, statCardHTML, resultChartHTML, downloadCSV, toolsHTML } from './analysis-ui.js';
@@ -198,7 +201,7 @@ function saveDraft() {
 function render() {
   applySettings(S.settings, htmlLang(L()));
   if (S.editor) { S.editor.destroy(); S.editor = null; }
-  if (!(S.route.view === 'session' && S.route.kind === 'rank' && S.route.test) && rkTick) { rkStopTick(); if (S.session && S.session.kind === 'rank') S.session = null; }   // left a rank test
+  if (!(S.route.view === 'session' && S.route.kind === 'rank' && S.route.test) && rkTicking()) { rkStopTick(); if (S.session && S.session.kind === 'rank') S.session = null; }   // left a rank test
   const head = headerHTML();
   if (!S.engine) { app.innerHTML = head + `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`; return; }
   const r = S.route;
@@ -258,14 +261,16 @@ function lessonLinkHTML(l) {
  * The lesson list of the home page: by the app's chapters, or in the order of the textbook
  * (スッキリわかるSQL入門 第4版, chapters 1–8, then the rest). The choice is kept in the settings (order: 'book').
  */
+/** phones show a chapter's lessons only when it is open: the chapter of the last lesson, or the first one */
+const chOpen = ls => { const k = (S.progress.last && S.progress.last.key) || LESSONS[0].key; return ls.some(l => l.key === k); };
 function chaptersHTML() {
   const book = S.settings.order === 'book';
   const toggle = `<div class="order-bar"><span class="muted">${H('home.orderLabel')}</span><div class="seg">${['app', 'book'].map(v => `<button class="${(v === 'book') === book ? 'on' : ''}" data-act="homeOrder" data-v="${v}" aria-pressed="${(v === 'book') === book}">${H('home.order.' + v)}</button>`).join('')}</div></div>`;
   if (!book) return `${toggle}<section class="chapters">
       ${CHAPTERS.map((ch, ci) => {
         const ls = LESSONS.filter(l => l.ch === ch.key);
-        return `<article class="card chapter" style="--cc:var(--c-${ch.key})">
-          <div class="chapter-head"><div class="chapter-icon">${esc(ch.icon)}</div><div>
+        return `<article class="card chapter ${chOpen(ls) ? 'open' : ''}" style="--cc:var(--c-${ch.key})">
+          <div class="chapter-head" data-act="chToggle"><div class="chapter-icon">${esc(ch.icon)}</div><div>
             <small>${H('home.chapter', { n: ci + 1 })}</small>
             <h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2><p>${rubyHTML(raw('ch.' + ch.key + '.desc', L()))}</p></div></div>
           ${chShapesHTML(ch.key)}
@@ -277,8 +282,8 @@ function chaptersHTML() {
       ${BOOK_CHAPTERS.map((b, bi) => {
         const ls = b.more ? LESSONS.filter(l => !inBook.has(l.key)) : b.lessons.map(k => LESSON_BY_KEY[k]).filter(Boolean);
         if (!ls.length) return '';
-        return `<article class="card chapter book-ch" style="--cc:var(--c-${ls[0].ch})">
-          <div class="chapter-head"><div class="chapter-icon">${b.more ? '＋' : bi + 1}</div><div>
+        return `<article class="card chapter book-ch ${chOpen(ls) ? 'open' : ''}" style="--cc:var(--c-${ls[0].ch})">
+          <div class="chapter-head" data-act="chToggle"><div class="chapter-icon">${b.more ? '＋' : bi + 1}</div><div>
             <small>${H(b.more ? 'book.moreTag' : 'book.tag')}</small>
             <h2>${rubyHTML(raw('book.' + b.key, L()))}</h2><p>${rubyHTML(raw('book.' + b.key + '.desc', L()))}</p></div></div>
           <ul class="lesson-list">${ls.map(lessonLinkHTML).join('')}</ul></article>`;
@@ -334,14 +339,13 @@ function homeHTML() {
       </div>
     </section>
     ${assign}${taskCard}
+    ${S.pinNeeded ? `<section class="card mixcard pincard"><div><span class="drill-ic">🔢</span><div><b>${H('pin.setTitle')}</b><p class="muted">${H('pin.setSub')}</p></div></div><button class="btn btn-ok" data-act="setPin">${H('pin.setNow')}</button></section>` : ''}
+    <section class="home-group"><h2 class="home-h">${H('hm.learn')}</h2></section>
     ${chaptersHTML()}
+    <section class="home-group"><h2 class="home-h">${H('hm.practice')}</h2><div class="home-grid">
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">🧱</span><div><b>${H('bs.title')} <span class="tag">${BASIC_CORE.filter(x => bsState(x.key).clear).length} / ${BASIC_CORE.length}</span></b><p class="muted">${H('bs.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/basics">${H('bs.open')}</a>
-    </section>
-    <section class="card mixcard drillcard pycard">
-      <div><span class="drill-ic py-ic">pd</span><div><b>${H('pd.title')} <span class="tag">${PD_LESSONS.filter(l => ((S.progress.py || {})[l.key] || {}).clear).length} / ${PD_LESSONS.length}</span></b><p class="muted">${H('pd.homeSub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/py">${H('pd.open')}</a>
     </section>
     <section class="card mixcard drillcard cqcard">
       <div><span class="drill-ic">🧩</span><div><b>${H('cq.title')} <span class="tag">${CQ_SETS.filter(k => cqRec(k).best === CQ_N).length} / ${CQ_SETS.length}</span></b><p class="muted">${H('cq.homeSub')}</p></div></div>
@@ -351,32 +355,36 @@ function homeHTML() {
       <div><span class="drill-ic">🎚</span><div><b>${H('pr.title')}</b><p class="muted">${H('pr.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/practice">${H('pr.open')}</a>
     </section>
-    <section class="card mixcard drillcard rkcard">
-      <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.hist && r.hist.length).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/rank">${H('rk.open')}</a>
-    </section>
-    <section class="card mixcard drillcard lvcard">
-      <div><span class="drill-ic">🎯</span><div><b>${H('lv.title')}${lvState() ? ` <span class="tag">Lv.${lvState().lv}</span>` : ''}</b><p class="muted">${H('lv.homeSub')}</p></div></div>
-      <a class="btn ${lvState() ? 'btn-ghost' : 'btn-primary'}" href="${lvState() ? '#/level' : '#/level'}">${H(lvState() ? 'lv.open' : 'lv.startTest')}</a>
-    </section>
     <section class="card mixcard drillcard">
-      <div><span class="drill-ic">🗂</span><div><b>${H('tp.title')}</b><p class="muted">${H('tp.homeSub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/table">${H('tp.open')}</a>
+      <div><span class="drill-ic">⇅</span><div><b>${H('drill.title')}</b><p class="muted">${H('drill.sub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/drill">${H('drill.start')}</a>
     </section>
     <section class="card mixcard">
       <div>${I.shuffle}<div><b>${H('mix.title')}</b><p class="muted">${H('mix.sub')}</p></div></div>
       <a class="btn btn-ghost" href="#/mix">${H('mix.start')}</a>
     </section>
-    ${S.pinNeeded ? `<section class="card mixcard pincard"><div><span class="drill-ic">🔢</span><div><b>${H('pin.setTitle')}</b><p class="muted">${H('pin.setSub')}</p></div></div><button class="btn btn-ok" data-act="setPin">${H('pin.setNow')}</button></section>` : ''}
     <section class="card mixcard drillcard solvedcard"><div><span class="drill-ic">✓</span><div><b>${H('mine.title')}</b><p class="muted">${H('mine.sub')}</p></div></div><a class="btn btn-ghost" href="#/solved">${H('mine.open')}</a></section>
+    <section class="card mixcard drillcard">
+      <div><span class="drill-ic">🗂</span><div><b>${H('tp.title')}</b><p class="muted">${H('tp.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/table">${H('tp.open')}</a>
+    </section>
+    </div></section>
+    <section class="home-group"><h2 class="home-h">${H('hm.test')}</h2><div class="home-grid">
+    <section class="card mixcard drillcard rkcard">
+      <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.hist && r.hist.length).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/rank">${H('rk.open')}</a>
+    </section>
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">📝</span><div><b>${H('ck.title')}</b><p class="muted">${H('ck.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/check">${H('ck.open2')}</a>
     </section>
-    <section class="card mixcard drillcard">
-      <div><span class="drill-ic">⇅</span><div><b>${H('drill.title')}</b><p class="muted">${H('drill.sub')}</p></div></div>
-      <a class="btn btn-ghost" href="#/drill">${H('drill.start')}</a>
+    </div></section>
+    <section class="home-group"><h2 class="home-h">${H('hm.python')}</h2><div class="home-grid">
+    <section class="card mixcard drillcard pycard">
+      <div><span class="drill-ic py-ic">pd</span><div><b>${H('pd.title')} <span class="tag">${PD_LESSONS.filter(l => ((S.progress.py || {})[l.key] || {}).clear).length} / ${PD_LESSONS.length}</span></b><p class="muted">${H('pd.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/py">${H('pd.open')}</a>
     </section>
+    </div></section>
   </main>`;
 }
 function setBoxHTML() {
@@ -1420,7 +1428,7 @@ function lectureHTML() {
   const slides = lectureOf(lesson.key).slides, title = lesson.py ? rubyHTML(raw('pd.t.' + lesson.key, L())) : lessonTitleHTML(lesson, L());
   return `<main class="wrap lec-wrap">
     <div class="crumbs"><a href="${lesson.py ? `#/py/${lesson.key}/0` : `#/l/${lesson.key}/0`}">${lesson.py ? 'Python' : 'Lesson'} ${lesson.no} · ${title}</a><span>›</span><span>📽 ${H('lec.title')}</span></div>
-    ${['ja', 'easy', 'en'].includes(L()) ? '' : `<p class="muted small">${H('lec.langNote')}</p>`}
+    ${['ja', 'easy', 'en'].includes(L()) ? '' : `<p class="lec-lang-note">🌐 ${H('lec.langNote')}</p>`}
     <section class="card lec-card">
       <div class="lec-top"><h1>${title}</h1>
         <div class="lec-dots">${slides.map((sl, i) => `<button class="${i === st.slide ? 'on' : i < st.slide ? 'done' : ''}" data-act="lecGo" data-s="${i}" aria-label="${i + 1}"></button>`).join('')}</div></div>
@@ -1461,133 +1469,6 @@ document.addEventListener('keydown', e => {
   if (e.key === 'a' || e.key === 'A') actions.lecAuto();
 });
 
-
-/* ---------- rank tests (#/rank, #/rank/<subject>/<tier>): how many ordering problems within a time limit, like e-typing's level check ---------- */
-/** records of the first version (one test per tier, a different score) are dropped */
-const rkClean = () => { const r = S.progress.rank, old = Object.keys(r || {}).filter(k => !rankParse(k)); if (old.length) { old.forEach(k => delete r[k]); save(); } };
-/** a rank badge; passes add "(with passes)": the rank is not complete */
-const rkBadge = (rank, passed, size = 'sm') => `<span class="rk-badge ${size} r-${rank}">${rank}</span>${passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''}`;
-const rkRec = t => ((S.progress.rank = S.progress.rank || {})[t] = S.progress.rank[t] || { best: 0, hist: [] });
-let rkTick = null;
-function rkStopTick() { clearInterval(rkTick); rkTick = null; }
-const rkMs = ses => Math.min((ses.tEnd || Date.now()) - ses.t0, ses.limit);
-const rkLeft = ses => Math.max(0, ses.limit - ((ses.tEnd || Date.now()) - ses.t0));
-const rkMin = tier => RK_SEC[tier] / 60;
-const fmtMs = ms => { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-/** the counts so far: solved · misses · passed */
-const rkCountsHTML = ses => { const ok = ses.items.filter(p => ses.done[p.id]).length, ms = Object.values(ses.miss).reduce((x, n) => x + n, 0), ps = ses.items.filter(p => ses.pass[p.id]).length;
-  return `<div class="rk-counts"><span class="ok">○ ${H('rk.solved')} <b>${ok}</b></span><span class="ms">× ${H('rk.misses')} <b>${ms}</b></span><span>– ${H('rk.passed')} <b>${ps}</b></span></div>`; };
-function rkStart(test) {
-  rkStopTick();
-  const { ch, tier } = rankParse(test);
-  const seed = randomCode(5), seen = new Set();
-  S.session = { kind: 'rank', test, ch, tier, seed, seen, limit: RK_SEC[tier] * 1000, phase: 'count', n: 3, items: rankProblems(S.engine, ch, tier, seed, RK_N, 0, seen), made: 0, i: 0, done: {}, miss: {}, pass: {}, dur: {}, t0: 0, tShow: 0, tEnd: 0 };
-  S.session.made = S.session.items.length ? S.session.items[S.session.items.length - 1].rn + 1 : 0;
-  render(); window.scrollTo(0, 0);
-  const ses = S.session;
-  const tc = Date.now();
-  rkTick = setInterval(() => {
-    if (S.session !== ses) return rkStopTick();
-    if (ses.phase === 'count') {
-      const n = 3 - Math.floor((Date.now() - tc) / 800);
-      if (n > 0) { if (n !== ses.n) { ses.n = n; const c = document.getElementById('rk-count'); if (c) c.textContent = n; } return; }
-      ses.phase = 'run'; ses.t0 = ses.tShow = Date.now(); render(); return;
-    }
-    if (ses.phase !== 'run') return;
-    if (rkLeft(ses) <= 0) return rkFinish();   // time is up
-    const el = document.getElementById('rk-time'); if (el) { el.textContent = fmtMs(rkLeft(ses)); el.parentNode.classList.toggle('low', rkLeft(ses) <= 15000); }
-  }, 250);
-}
-/** to the next problem (after a right answer or a pass); more problems are made as they run out */
-function rkNext() {
-  const ses = S.session; if (!ses || ses.kind !== 'rank' || ses.phase !== 'run') return;
-  if (rkLeft(ses) <= 0) return rkFinish();
-  const p = ses.items[ses.i]; ses.dur[p.id] = Date.now() - ses.tShow;
-  if (ses.i + 3 >= ses.items.length) { const more = rankProblems(S.engine, ses.ch, ses.tier, ses.seed, 5, ses.made, ses.seen); if (more.length) { ses.items.push(...more); ses.made = more[more.length - 1].rn + 1; } }
-  if (ses.i + 1 >= ses.items.length) return rkFinish();
-  ses.i += 1; ses.tShow = Date.now(); S.tab = 'user'; render(); window.scrollTo(0, 0);
-}
-/** the end: the time is up (the problem on screen counts only if it was solved) */
-function rkFinish() {
-  const ses = S.session; if (!ses || ses.kind !== 'rank' || ses.phase !== 'run') return;
-  ses.tEnd = Date.now(); ses.phase = 'done'; rkStopTick();
-  const cur = ses.items[ses.i]; if (cur && ses.dur[cur.id] === undefined) ses.dur[cur.id] = ses.tEnd - ses.tShow;
-  ses.items = ses.items.slice(0, ses.i + 1);   // the problems that were shown
-  const solved = ses.items.filter(p => ses.done[p.id]).length;
-  const misses = Object.values(ses.miss).reduce((s, n) => s + n, 0), passed = ses.items.filter(p => ses.pass[p.id]).length;
-  const r = Object.assign(rankScore(solved, misses), { test: ses.test, solved, passed, misses, ms: ses.limit, at: Date.now() });
-  const rec = rkRec(ses.test), prev = rec.hist.length ? { score: rec.best, passed: rec.bestP || 0 } : null;
-  r.newBest = !!prev && rankBetter(r, prev);
-  if (!prev || r.newBest) { rec.best = r.score; rec.bestP = r.passed; }
-  rec.hist = [{ s: r.score, r: r.rank, acc: r.acc, ok: r.solved, miss: r.misses, pass: r.passed, at: r.at }, ...rec.hist].slice(0, 10);
-  save();
-  if (S.klass && backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, rankRow(r)));
-  ses.res = r; render(); window.scrollTo(0, 0);
-}
-const rkName = ses => `${chName(ses.ch)} · ${H('rk.tier.' + ses.tier)}`;
-function rankHubHTML() {
-  rkClean();
-  return `<main class="wrap rk-page">
-    <section class="card rk-head"><h1>🏅 ${H('rk.title')}</h1><p class="muted">${H('rk.sub', { n: RK_N })}</p>
-      <ul class="rk-rules"><li>${H('rk.rule1')}</li><li>${H('rk.rule2')}</li><li>${H('rk.rule3')}</li><li>${H('rk.rule4')}</li></ul></section>
-    <section class="card rk-grid-card"><table class="rk-grid"><thead><tr><th>${H('rk.chapter')}</th>${RK_TIERS.map((t, i) => `<th class="t${i}">${H('rk.tier.' + t)} <span class="tag">⏱ ${H('rk.limit', { m: rkMin(t) })}</span><small>${H('rk.tierDesc.' + t)}</small></th>`).join('')}</tr></thead><tbody>
-      ${RK_CHAPTERS.map((ch, ci) => `<tr style="--cc:var(--c-${ch})"><th><span class="rk-chdot"></span>${H('home.chapter', { n: ci + 1 })} ${chName(ch)}</th>${RK_TIERS.map(t => { const rec = rkRec(rankKey(ch, t));
-        return `<td><a class="rk-cell" href="#/rank/${ch}/${t}">${rec.hist.length ? `<span>${rkBadge(rankOf(rec.best), rec.bestP)}</span><b>${rec.best}</b>` : `<span class="muted">${H('rk.start')}</span>`}</a></td>`; }).join('')}</tr>`).join('')}
-    </tbody></table></section>
-    <section class="card"><h3>${H('rk.ranks')}</h3><div class="rk-scale">${RK_RANKS.map((r, i) => `<span><span class="rk-badge r-${r}">${r}</span><small>${RK_FROM[i]}${i + 1 < RK_RANKS.length ? '–' + (RK_FROM[i + 1] - 1) : '+'}</small></span>`).join('')}</div><p class="muted small">${H('rk.formula')}</p></section>
-  </main>`;
-}
-function rankHTML() {
-  const test = S.route.test;
-  document.title = `${T('rk.title')} · SQL Practice`;
-  if (!test) { if (S.session && S.session.kind === 'rank') { rkStopTick(); S.session = null; } return rankHubHTML(); }
-  if (!S.session || S.session.kind !== 'rank' || S.session.test !== test) { rkStopTick(); S.session = Object.assign({ kind: 'rank', test, phase: 'ready', items: [], i: 0, done: {}, miss: {}, pass: {}, dur: {} }, rankParse(test)); }
-  const ses = S.session, tier = ses.tier;
-  const head = `<div class="session-head rk-bar"><h1>🏅 ${rkName(ses)}</h1>${ses.phase === 'run' ? `${rkCountsHTML(ses)}<span class="rk-time${rkLeft(ses) <= 15000 ? ' low' : ''}">⏱ ${H('rk.left')} <b id="rk-time">${fmtMs(rkLeft(ses))}</b></span>` : ''}</div>`;
-  if (ses.phase === 'ready') return `<main class="wrap narrow">${head}<section class="card rk-ready"><p>${H('rk.readyAbout', { c: T('ch.' + ses.ch).replace(/\{([^|}]+)\|[^}]+\}/g, '$1'), m: rkMin(tier) })}</p><p class="muted">${H('rk.tierDesc.' + tier)}</p>
-      <ul class="rk-rules"><li>${H('rk.rule1')}</li><li>${H('rk.rule2')}</li><li>${H('rk.rule3')}</li><li>${H('rk.rule4')}</li></ul>
-      <div class="row-btns"><button class="btn btn-primary btn-lg" data-act="rkGo">${H('rk.go')}</button><a class="btn btn-ghost" href="#/rank">${H('rk.back')}</a></div></section></main>`;
-  if (ses.phase === 'count') return `<main class="wrap narrow">${head}<section class="card rk-ready"><div class="rk-countdown" id="rk-count">${ses.n}</div><p class="muted center">${H('rk.readySub')}</p></section></main>`;
-  if (ses.phase === 'done' && ses.res) return rankDoneHTML(ses);
-  const prob = ses.items[ses.i], lesson = LESSON_BY_KEY[prob.lesson];
-  return `<main class="wrap">${head}
-    <div class="session-layout">
-      <aside class="card side-card" style="--cc:var(--c-${lesson.ch})"><div class="rk-qn">Q${ses.i + 1}</div><div class="chap">${chName(lesson.ch)}</div><h2>${lessonTitleHTML(lesson, L())}</h2>
-        ${ses.miss[prob.id] ? `<p class="rk-misscount">${H('rk.missN', { n: ses.miss[prob.id] })}</p>` : ''}
-        <p class="muted small">${H('rk.passHint')}</p><button class="btn btn-ghost" data-act="rkPass">${H('rk.pass')} ⏭</button></aside>
-      <div class="main" id="ws">${workspaceHTML(prob)}</div>
-    </div></main>`;
-}
-function rankDoneHTML(ses) {
-  const r = ses.res, next = rankToNext(r.score), rec = rkRec(ses.test);
-  const byCh = {};   // by lesson (the test is one subject)
-  ses.items.forEach(p => { const ch = p.lesson, b = (byCh[ch] = byCh[ch] || { n: 0, ok: 0, pass: 0, miss: 0, ms: 0 }); b.n++; if (ses.done[p.id]) b.ok++; if (ses.pass[p.id]) b.pass++; b.miss += ses.miss[p.id] || 0; b.ms += ses.dur[p.id] || 0; });
-  const chs = Object.keys(byCh), good = c => byCh[c].ok === byCh[c].n && !byCh[c].miss, weak = c => byCh[c].pass || byCh[c].miss >= byCh[c].n;
-  const weakLessons = [...new Set(ses.items.filter(p => ses.pass[p.id] || (ses.miss[p.id] || 0) >= 2).map(p => p.lesson))];
-  return `<main class="wrap rk-page">
-    <section class="card rk-result">
-      <small class="muted">${rkName(ses)}</small>
-      <div class="rk-main"><span class="rk-badge big r-${r.rank}">${r.rank}</span>${r.passed ? `<span class="rk-withpass big">${H('rk.withPass')}</span>` : ''}<div><small>${H('rk.score')}</small><b class="rk-score">${r.score}</b>${r.newBest ? `<span class="tag ok">${H('rk.newBest')}</span>` : ''}</div></div>
-      ${r.passed ? `<p class="rk-passnote">${H('rk.passNote', { r: r.rank })}</p>` : ''}
-      <p class="muted">${next === null ? H('rk.top') : H('rk.toNext', { n: next, r: RK_RANKS[RK_RANKS.indexOf(r.rank) + 1] })}</p>
-      <div class="rk-figs"><span><small>${H('rk.solved')}</small><b>${r.solved}</b></span><span><small>${H('rk.acc')}</small><b>${r.acc}%</b></span><span><small>${H('rk.time')}</small><b>${fmtMs(r.ms)}</b></span><span><small>${H('rk.passed')}</small><b>${r.passed}</b></span><span><small>${H('rk.misses')}</small><b>${r.misses}</b></span></div>
-      <p class="muted small">${H('rk.formula')}</p>
-      <div class="row-btns"><button class="btn btn-primary" data-act="rkAgain">${I.repeat}${H('rk.again')}</button><a class="btn btn-ghost" href="#/rank">${H('rk.back')}</a></div>
-      ${S.klass ? `<p class="muted small">${H('rk.sent')}</p>` : ''}
-    </section>
-    <div class="rk-side">
-      <section class="card"><h3>${H('rk.byLesson')}</h3><table class="wtable"><thead><tr><th>${H('rk.lesson')}</th><th class="n">${H('rk.solved')}</th><th class="n">${H('rk.passed')}</th><th class="n">${H('rk.misses')}</th><th class="n">${H('rk.perQ')}</th><th></th></tr></thead><tbody>
-        ${chs.map(c => { const b = byCh[c]; return `<tr><td><a href="#/lecture/${c}">${lessonTitleHTML(LESSON_BY_KEY[c], L())}</a></td><td class="n">${b.ok}/${b.n}</td><td class="n">${b.pass}</td><td class="n">${b.miss}</td><td class="n">${Math.round(b.ms / b.n / 1000)}s</td><td>${good(c) ? `<span class="tag ok">${H('rk.strong')}</span>` : weak(c) ? `<span class="tag bad">${H('rk.weak')}</span>` : ''}</td></tr>`; }).join('')}
-      </tbody></table>
-      ${weakLessons.length ? `<p class="small"><b>${H('rk.study')}</b> ${weakLessons.map(k => `<a href="#/lecture/${k}">${lessonTitleHTML(LESSON_BY_KEY[k], L())}</a>`).join('、')}</p>` : `<p class="muted small">${H('rk.noWeak')}</p>`}</section>
-      <section class="card"><h3>${H('rk.history')}</h3>${rec.hist.length ? `<table class="wtable"><thead><tr><th>${H('rk.when')}</th><th>${H('rk.rank')}</th><th class="n">${H('rk.score')}</th><th class="n">${H('rk.solved')}</th><th class="n">${H('rk.misses')}</th></tr></thead><tbody>${rec.hist.map(h => `<tr><td class="muted small">${esc(new Date(h.at).toLocaleString(htmlLang(L())))}</td><td>${rkBadge(h.r, h.pass)}</td><td class="n"><b>${h.s}</b></td><td class="n">${h.ok ?? ''}</td><td class="n">${h.miss ?? ''}</td></tr>`).join('')}</tbody></table>` : ''}</section>
-    </div>
-    <h2 class="bs-h2">${H('rk.review')}</h2>
-    ${ses.items.map((p, i) => { const ok = !!ses.done[p.id], l = LESSON_BY_KEY[p.lesson];
-      return `<details class="card lv-rv ${ok ? 'ok' : 'ng'}"><summary><b>${ok ? '○' : '–'} Q${i + 1}</b><span style="--cc:var(--c-${l.ch})">${lessonTitleHTML(l, L())}</span><span class="muted small">${ses.pass[p.id] ? H('rk.passed') : !ok ? H('rk.timeUp') : ''} ${ses.miss[p.id] ? H('rk.missN', { n: ses.miss[p.id] }) : ''} · ${Math.round((ses.dur[p.id] || 0) / 1000)}s</span></summary>
-        <p class="prob-text">${problemHTML(p, L())}</p><div class="muted small">${H('cq.good')}</div><pre class="sql">${highlightSQL(p.sql)}</pre></details>`; }).join('')}
-  </main>`;
-}
 
 /* ---------- glossary ---------- */
 function wordsHTML() {
@@ -1985,6 +1866,7 @@ function mountWorkspace() {
   if (!c) return;
   const el = document.getElementById('editor');
   if (!el) return;
+  if (!createEditor) { loadEditor().then(() => { if (document.getElementById('editor') === el && el.isConnected) mountWorkspace(); }); return; }
   const prob = c.prob;
   const schema = {};
   prob.tables.forEach(n => { schema[n] = ALL_TABLES[n].columns.map(x => x[0]); });
@@ -2377,6 +2259,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   const el = e.target;
   if (el.matches('[data-act="lang"]')) { setLang(el.value); return; }
+  if (el.dataset.file === 'backup') { backupLoad(el); return; }
   if (el.dataset.setting) {
     const k = el.dataset.setting;
     S.settings[k] = el.type === 'checkbox' ? el.checked : el.value === '' ? null : el.value;
@@ -2435,10 +2318,36 @@ function openSettings() {
       <div class="fld"><span>${H('set.theme')}</span><div class="seg">${radio('theme', 'auto', T('set.themeAuto'))}${radio('theme', 'light', T('set.themeLight'))}${radio('theme', 'dark', T('set.themeDark'))}</div></div>
       <div class="fld"><span>${H('set.size')}</span><div class="seg">${radio('size', 's', 'A')}${radio('size', 'm', 'A+')}${radio('size', 'l', 'A++')}</div></div>
       <label class="chk"><input type="checkbox" data-setting="presenter" ${s.presenter ? 'checked' : ''}><span>${H('pres.on')}<small class="muted"> — ${H('pres.onTip')}</small></span></label>
+      <hr><div class="fld"><span>${H('bk.title')}</span><small class="muted">${H('bk.sub')}</small>
+        <div class="row-btns"><button class="btn btn-ghost btn-sm" data-act="backupSave">⬇ ${H('bk.save')}</button><label class="btn btn-ghost btn-sm">⬆ ${H('bk.load')}<input type="file" accept=".json,application/json" data-file="backup" hidden></label></div></div>
       <hr><button class="linkbtn danger" data-act="resetProgress">${H('prog.reset')}</button>
     </div>`);
 }
 actions.closeModal = closeModal;
+actions.chToggle = el => { if (matchMedia('(max-width: 720px)').matches) el.closest('.chapter').classList.toggle('open'); };
+/* ---------- backup: the records of this browser as a file, to move to another device ---------- */
+const BK_SKIP = new Set(['sqln.auth', 'sqln.teacher', 'sqln.tcView']);   // sign-ins and the teacher page stay on this device
+actions.backupSave = () => {
+  save();
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('sqln.') && !BK_SKIP.has(k)) data[k] = localStorage.getItem(k); }
+  const blob = new Blob([JSON.stringify({ app: 'sql-practice', v: 1, at: new Date().toISOString(), data })], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `sql-practice-${new Date().toLocaleDateString("sv")}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(T('bk.saved'));
+};
+const backupLoad = el => {
+  const f = el.files && el.files[0]; if (!f) return;
+  f.text().then(txt => {
+    let j; try { j = JSON.parse(txt); } catch (e) { j = null; }
+    if (!j || j.app !== 'sql-practice' || !j.data) { alert(T('bk.bad')); return; }
+    if (!confirm(T('bk.confirm'))) return;
+    const mine = loadProgress(), theirs = (() => { try { return JSON.parse(j.data['sqln.progress'] || '{}'); } catch (e) { return {}; } })();
+    Object.entries(j.data).forEach(([k, v]) => { if (k.startsWith('sqln.') && !BK_SKIP.has(k) && k !== 'sqln.progress') localStorage.setItem(k, v); });
+    Store.set(KEYS.progress, mergeProgress(theirs, mine));   // nothing solved on this device is lost
+    location.reload();
+  });
+};
 actions.resetProgress = () => {
   if (!confirm(T('prog.confirm'))) return;
   Store.del(KEYS.progress);   // a fresh start: nothing to merge with
@@ -2640,6 +2549,7 @@ window.addEventListener('storage', e => {
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
+  installRank({ S, render, save, chName, workspaceHTML });
   installPy({ S, L, save, render,
     // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)
     quickAnswer: (prob, ok, code, reason) => { if (qPhaseNow() !== 'run') { render(); return false; } record(prob, ok, { grade: { reason } }, code); return true; },
@@ -2659,6 +2569,7 @@ window.addEventListener('storage', e => {
     return;
   }
   render();
+  setTimeout(() => loadEditor().catch(() => {}), 1500);   // ready before the first lesson is opened
   const q = new URLSearchParams(location.search).get('class');
   if (q && backend.enabled && (!S.klass || S.klass.code !== normCode(q))) openJoin(normCode(q));
   watchKlass();

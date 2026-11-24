@@ -1933,5 +1933,19 @@ export default {
   "rk.limit": "{m} min",
   "rk.timeUp": "Temps écoulé",
   "rk.withPass": " (avec passes)",
-  "rk.passNote": "Vous avez passé des problèmes : c’est donc « {r} (avec passes) ». Le score ne change pas ; résolvez tout sans passer pour retirer « avec passes »."
+  "rk.passNote": "Vous avez passé des problèmes : c’est donc « {r} (avec passes) ». Le score ne change pas ; résolvez tout sans passer pour retirer « avec passes ».",
+  "hm.learn": "Apprendre",
+  "hm.practice": "S’entraîner",
+  "hm.test": "Se tester",
+  "hm.python": "Analyse de données avec Python",
+  "bk.title": "Sauvegarder vos résultats",
+  "bk.sub": "Enregistrez votre progression dans un fichier et chargez-la sur un autre appareil ou navigateur.",
+  "bk.save": "Enregistrer dans un fichier",
+  "bk.load": "Charger un fichier",
+  "bk.saved": "Vos résultats ont été enregistrés dans un fichier.",
+  "bk.bad": "Ce fichier ne peut pas être chargé (ce n’est pas un fichier de résultats SQL Practice).",
+  "bk.confirm": "Charger ces résultats ? Ils sont combinés avec ceux de cet appareil (les problèmes résolus d’un côté ou de l’autre sont conservés).",
+  "rk.statN": "{n} élèves",
+  "rk.avg": "Moyenne",
+  "rk.median": "Médiane"
 };

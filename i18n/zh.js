@@ -1933,5 +1933,19 @@ export default {
   "rk.limit": "{m} 分钟",
   "rk.timeUp": "时间到",
   "rk.withPass": "（有跳过）",
-  "rk.passNote": "有跳过的题，所以是“{r}（有跳过）”。分数不变；不跳过全部解完，“有跳过”就会去掉。"
+  "rk.passNote": "有跳过的题，所以是“{r}（有跳过）”。分数不变；不跳过全部解完，“有跳过”就会去掉。",
+  "hm.learn": "学习",
+  "hm.practice": "练习",
+  "hm.test": "测一测",
+  "hm.python": "用 Python 做数据分析",
+  "bk.title": "备份记录",
+  "bk.sub": "把学习进度保存为文件，可在其他设备或浏览器中读取。",
+  "bk.save": "保存为文件",
+  "bk.load": "从文件读取",
+  "bk.saved": "记录已保存为文件。",
+  "bk.bad": "无法读取此文件（不是 SQL Practice 的记录文件）。",
+  "bk.confirm": "要读取这份记录吗？将与本设备的记录合并（在任一处解答过的题目都会保留）。",
+  "rk.statN": "{n} 人",
+  "rk.avg": "平均",
+  "rk.median": "中位数"
 };
