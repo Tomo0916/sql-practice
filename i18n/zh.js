@@ -2001,5 +2001,16 @@ export default {
   "as.tc.noMembers": "还没有学生。",
   "as.tc.none": "还没有发送内容。",
   "as.tc.sent": "已发送。",
-  "as.tc.delConfirm": "要删除这项内容吗？学生结果列表也会一起消失。"
+  "as.tc.delConfirm": "要删除这项内容吗？学生结果列表也会一起消失。",
+  "as.type.rankup": "段位测试（逐级晋升）",
+  "as.ru.pass": "无跳过取得 {r} 以上即通过",
+  "as.ru.tries": "{n} 次",
+  "as.ru.take": "挑战{t}",
+  "as.ru.allClear": "已通过到高级！",
+  "as.ru.clearNext": "通过！下一级是{t}，可从列表开始。",
+  "as.ru.notClear": "尚未通过（无跳过取得 {r} 以上即通过）。可以再次挑战。",
+  "as.ru.passLabel": "通过标准",
+  "as.ru.tcNote": "学生从初级开始，无跳过取得 {r} 以上即可进入下一级；未达到时可反复挑战同一级。",
+  "as.tc.ruCount": "通过高级 {d} / {n} 人",
+  "as.ru.again": "每一级可反复挑战直到通过"
 };

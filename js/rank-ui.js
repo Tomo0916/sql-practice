@@ -99,7 +99,7 @@ function rkFinish() {
   C.save();
   if (C.S.klass && backend.enabled) backend.logAttempt(Object.assign({ class_id: C.S.klass.id }, rankRow(r)));
   loadBoard(ses.test);
-  if (ses.asg && C.asgHit) C.asgHit('rank', `${r.rank}${r.passed ? '*' : ''} ${r.score}`, { score: r.score, rank: r.rank, passed: r.passed, solved: r.solved, misses: r.misses });
+  if (ses.asg && C.asgHit) ses.ru = C.asgHit(ses.asgType || 'rank', `${r.rank}${r.passed ? '*' : ''} ${r.score}`, { score: r.score, rank: r.rank, passed: r.passed, solved: r.solved, misses: r.misses });
   ses.res = r; C.render(); window.scrollTo(0, 0);
 }
 const rkName = ses => `${C.chName(ses.ch)} · ${H('rk.tier.' + ses.tier)}`;
@@ -147,6 +147,7 @@ function rankDoneHTML(ses) {
       <small class="muted">${rkName(ses)}</small>
       <div class="rk-main"><span class="rk-badge big r-${r.rank}">${r.rank}</span>${r.passed ? `<span class="rk-withpass big">${H('rk.withPass')}</span>` : ''}<div><small>${H('rk.score')}</small><b class="rk-score">${r.score}</b>${r.newBest ? `<span class="tag ok">${H('rk.newBest')}</span>` : ''}</div></div>
       ${r.passed ? `<p class="rk-passnote">${H('rk.passNote', { r: r.rank })}</p>` : ''}
+      ${ses.ru ? `<p class="ru-msg ${ses.ru.clear ? 'ok' : ''}">${ses.ru.clear ? (ses.ru.next ? H('as.ru.clearNext', { t: T('rk.tier.' + ses.ru.next).replace(/\{([^|}]+)\|[^}]+\}/g, '$1') }) : H('as.ru.allClear')) : H('as.ru.notClear', { r: ses.ru.pass })}</p>` : ''}
       <p class="muted">${next === null ? H('rk.top') : H('rk.toNext', { n: next, r: RK_RANKS[RK_RANKS.indexOf(r.rank) + 1] })}</p>
       <div class="rk-figs"><span><small>${H('rk.solved')}</small><b>${r.solved}</b></span><span><small>${H('rk.acc')}</small><b>${r.acc}%</b></span><span><small>${H('rk.time')}</small><b>${fmtMs(r.ms)}</b></span><span><small>${H('rk.passed')}</small><b>${r.passed}</b></span><span><small>${H('rk.misses')}</small><b>${r.misses}</b></span></div>
       <p class="muted small">${H('rk.formula')}</p>

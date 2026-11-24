@@ -15,9 +15,9 @@ import { ALL_TABLES, JOIN_DATASETS } from './datasets.js';
 import { diagnose, findFix } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings, loadProgress, saveProgress, mergeProgress, lessonState, markLessonDone, bumpStreak, today } from './store.js';
 import * as backend from './backend.js';
-import { RK_TIERS, RK_CHAPTERS, rankKey, rankParse } from './rank.js';
+import { RK_TIERS, RK_CHAPTERS, RK_SEC, rankKey, rankParse } from './rank.js';
 import { FEATURES } from './features.js';
-import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse } from './assign.js';
+import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
 import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
@@ -1405,20 +1405,37 @@ function asgSync() {
   if (!backend.enabled || asgSynced === S.klass.id || !asgList(S.klass).length) return;
   asgSynced = S.klass.id;
   backend.myAsgRows(S.klass.id).then(rows => {
-    let changed = false;
+    let changed = false; const tries = {};
     rows.map(asParse).filter(Boolean).forEach(x => { const r = asgRec(x.id) || {};
       if (x.kind === 'start' && !r.s) { asgSet(x.id, { s: Date.parse(x.at) || 1 }); changed = true; }
-      if (x.kind === 'done' && !r.d) { asgSet(x.id, { s: r.s || 1, d: Date.parse(x.at) || 1, r: x.reason, x: x.d }); changed = true; } });
+      if (x.kind === 'done' && !r.d) { asgSet(x.id, { s: r.s || 1, d: Date.parse(x.at) || 1, r: x.reason, x: x.d }); changed = true; }
+      if (x.kind === 'try' && x.d && x.d.tier) { tries[x.id] = tries[x.id] || []; tries[x.id].push(x.d); } });
+    Object.entries(tries).forEach(([id, ds]) => { const r = asgRec(id) || {}; if ((r.tries || 0) >= ds.length) return;   // this device knows them already
+      const t = {}; ds.forEach(d => ruAdd(t, d)); asgSet(id, { t, tries: ds.length, d: ruNext(t) ? null : (r.d || 1) }); changed = true; });
     if (changed && (S.route.view === 'live' || S.route.view === 'home')) render();
   }, () => { asgSynced = null; });
 }
-const asgTodo = () => (S.klass ? asgOpen(S.klass).filter(it => !(asgRec(it.id) || {}).s) : []);
+const asgTodo = () => (S.klass ? asgOpen(S.klass).filter(it => (it.type === 'rankup' ? !(asgRec(it.id) || {}).d : !(asgRec(it.id) || {}).s)) : []);
 const asgPrefix = (it, h) => { const p = h.split('/'); return it.type === 'rank' || it.type === 'check' ? h : it.type === 'practice' || it.type === 'level' ? p.slice(0, 2).join('/') : p.slice(0, 3).join('/'); };
 /** a finished sent item (called where each kind of page ends): the record here and in the class log */
+/** rankup: one result into the tiers { beginner: { n, best, clear }, ... } */
+function ruAdd(t, d) {
+  const x = t[d.tier] = t[d.tier] || { n: 0, best: null, clear: false };
+  x.n++; if (d.clear) x.clear = true;
+  if (!x.best || d.score > x.best.score || (d.score === x.best.score && !d.passed && x.best.passed)) x.best = { score: d.score, rank: d.rank, passed: d.passed };
+}
 function asgHit(type, reason = '', d = null) {
-  const r = S.asgRun; if (!r || r.type !== type || !S.klass) return;
+  const r = S.asgRun; if (!r || r.type !== type || !S.klass) return null;
   S.asgRun = null;
-  const it = asgById(S.klass, r.id); if (!it) return;
+  const it = asgById(S.klass, r.id); if (!it) return null;
+  if (type === 'rankup') {   // one try of the current tier: cleared or not; all three cleared = done
+    const rec = asgRec(it.id) || {}, t = Object.assign({}, rec.t), dd = Object.assign({}, d, { tier: r.tier, clear: ruClears(it, d) });
+    ruAdd(t, dd);
+    const next = ruNext(t);
+    asgSet(it.id, { s: rec.s || Date.now(), t, tries: (rec.tries || 0) + 1, d: next ? null : Date.now() });
+    if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'try', `${r.tier} ${reason}`, dd)));
+    return { clear: dd.clear, next, pass: it.pass || 'B' };
+  }
   asgSet(it.id, { s: (asgRec(it.id) || {}).s || Date.now(), d: Date.now(), r: reason, x: d });
   if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'done', reason, d)));
 }
@@ -1438,7 +1455,18 @@ function asgResultHTML(it, rec) {
   if (it.type === 'rank' && rec.x && rec.x.rank) return `<span class="rk-badge sm r-${esc(rec.x.rank)}">${esc(rec.x.rank)}</span>${rec.x.passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''} <b>${esc(String(rec.x.score))}</b>`;
   return rec.r ? `<b>${esc(rec.r)}</b>` : '';
 }
+function ruItemHTML(it) {
+  const rec = asgRec(it.id) || {}, t = rec.t || {}, next = ruNext(t), closed = it.open === false;
+  const steps = RK_TIERS.map(x => { const v = t[x] || {}, st = v.clear ? 'clear' : x === next ? 'now' : 'locked';
+    return `<span class="ru-step ${st}">${st === 'clear' ? '✓' : st === 'locked' ? '🔒' : '▶'} ${H('rk.tier.' + x)}${v.best ? ` <span class="rk-badge sm r-${esc(v.best.rank)}">${esc(v.best.rank)}</span>${v.best.passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''}` : ''}${v.n ? ` <small class="muted">${H('as.ru.tries', { n: v.n })}</small>` : ''}</span>`; }).join('<i class="ru-arrow">→</i>');
+  const right = !next ? `<span class="as-done">🎉 ${H('as.ru.allClear')}</span>` : closed ? `<span class="tag">${H('as.closedTag')}</span>`
+    : `<button class="btn btn-primary btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H('as.ru.take', { t: T('rk.tier.' + next).replace(/\{([^|}]+)\|[^}]+\}/g, '$1') })} · ${H('as.limit', { m: RK_SEC[next] / 60 })}</button>`;
+  return `<li class="as-item ru ${next ? '' : 'done'} ${closed ? 'closed' : ''}"><span class="as-ic">${ASG_ICON.rankup}</span>
+    <div class="as-what"><small class="muted">${H('as.type.rankup')} · ${H('as.ru.again')}</small><b>${asgLabelHTML(it, L())}</b><div class="ru-steps">${steps}</div></div>
+    <div class="as-right">${right}</div></li>`;
+}
 function asgItemHTML(it) {
+  if (it.type === 'rankup') return ruItemHTML(it);
   const rec = asgRec(it.id) || {}, test = ASG_TEST.has(it.type), closed = it.open === false, lim = asgLimit(it);
   let right;
   if (rec.d) right = `<span class="as-done">✓ ${H('as.done')}</span>${asgResultHTML(it, rec)}${test || closed ? '' : `<button class="btn btn-ghost btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H('as.again')}</button>`}`;
@@ -2411,6 +2439,14 @@ actions.asgGo = el => {
     if (!confirm(T(lim ? 'as.confirmT' : 'as.confirm', { m: Math.round(lim / 60) }))) return;
     asgSet(it.id, { s: Date.now() });
     if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'start')));
+  }
+  if (it.type === 'rankup') {   // the tier to take now
+    const tier = ruNext(rec.t); if (!tier) return;
+    const h = `#/rank/${it.ref}/${tier}`;
+    S.asgRun = { id: it.id, type: 'rankup', tier, prefix: h, t0: Date.now(), limit: 0 };
+    history.pushState(null, '', h); S.route = parseRoute(); S.step = null; S.tab = 'user'; S.session = null;
+    rkStart(rankKey(it.ref, tier)); if (S.session) Object.assign(S.session, { asg: it.id, asgType: 'rankup' });
+    render(); window.scrollTo(0, 0); return;
   }
   const h = asgHash(it);
   S.asgRun = { id: it.id, type: it.type, prefix: asgPrefix(it, h), t0: Date.now(), limit: it.type === 'check' ? lim : 0 };

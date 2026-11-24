@@ -2002,5 +2002,16 @@ export default {
   "as.tc.noMembers": "No students yet.",
   "as.tc.none": "Nothing sent yet.",
   "as.tc.sent": "Sent.",
-  "as.tc.delConfirm": "Delete this item? The list of students' results will be gone too."
+  "as.tc.delConfirm": "Delete this item? The list of students' results will be gone too.",
+  "as.type.rankup": "Rank tests (step up)",
+  "as.ru.pass": "clear at {r} or better, no passes",
+  "as.ru.tries": "{n}×",
+  "as.ru.take": "Take {t}",
+  "as.ru.allClear": "Cleared up to Advanced!",
+  "as.ru.clearNext": "Cleared! Next is {t}; take it from the list.",
+  "as.ru.notClear": "Not cleared yet ({r} or better without passes clears it). You can try again.",
+  "as.ru.passLabel": "To clear",
+  "as.ru.tcNote": "Students start at Basic and move up when they get {r} or better without passes. Below that, they can take the same tier again and again.",
+  "as.tc.ruCount": "Cleared Advanced {d} / {n}",
+  "as.ru.again": "take each tier until you clear it"
 };

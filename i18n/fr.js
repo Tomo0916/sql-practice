@@ -2001,5 +2001,16 @@ export default {
   "as.tc.noMembers": "Pas encore d’élèves.",
   "as.tc.none": "Rien d’envoyé pour l’instant.",
   "as.tc.sent": "Envoyé.",
-  "as.tc.delConfirm": "Supprimer cet envoi ? La liste des résultats des élèves disparaîtra aussi."
+  "as.tc.delConfirm": "Supprimer cet envoi ? La liste des résultats des élèves disparaîtra aussi.",
+  "as.type.rankup": "Tests de rang (progression)",
+  "as.ru.pass": "validé à partir de {r}, sans passe",
+  "as.ru.tries": "{n}×",
+  "as.ru.take": "Passer {t}",
+  "as.ru.allClear": "Validé jusqu’à Avancé !",
+  "as.ru.clearNext": "Validé ! Ensuite : {t}, depuis la liste.",
+  "as.ru.notClear": "Pas encore validé ({r} ou mieux sans passe pour valider). Vous pouvez réessayer.",
+  "as.ru.passLabel": "Pour valider",
+  "as.ru.tcNote": "Les élèves commencent au niveau Débutant et montent en obtenant {r} ou mieux sans passe. Sinon, ils peuvent repasser le même niveau autant de fois que voulu.",
+  "as.tc.ruCount": "Avancé validé {d} / {n}",
+  "as.ru.again": "chaque niveau se repasse jusqu’à validation"
 };

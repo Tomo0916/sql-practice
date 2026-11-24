@@ -2001,5 +2001,16 @@ export default {
   "as.tc.noMembers": "Chưa có học viên.",
   "as.tc.none": "Chưa gửi gì.",
   "as.tc.sent": "Đã gửi.",
-  "as.tc.delConfirm": "Xóa mục này? Danh sách kết quả của học viên cũng sẽ mất."
+  "as.tc.delConfirm": "Xóa mục này? Danh sách kết quả của học viên cũng sẽ mất.",
+  "as.type.rankup": "Kiểm tra xếp hạng (lên cấp)",
+  "as.ru.pass": "qua khi đạt {r} trở lên, không bỏ qua",
+  "as.ru.tries": "{n} lần",
+  "as.ru.take": "Làm {t}",
+  "as.ru.allClear": "Đã qua đến Cao cấp!",
+  "as.ru.clearNext": "Đã qua! Tiếp theo là {t}; làm từ danh sách.",
+  "as.ru.notClear": "Chưa qua (đạt {r} trở lên, không bỏ qua để qua). Bạn có thể thử lại.",
+  "as.ru.passLabel": "Điều kiện qua",
+  "as.ru.tcNote": "Học viên bắt đầu từ Sơ cấp và lên cấp khi đạt {r} trở lên mà không bỏ qua. Nếu chưa đạt, có thể làm lại cấp đó nhiều lần.",
+  "as.tc.ruCount": "Qua Cao cấp {d} / {n}",
+  "as.ru.again": "làm lại mỗi cấp đến khi qua"
 };
