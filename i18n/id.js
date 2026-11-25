@@ -771,6 +771,7 @@ export default {
   "ds.gym_visits": "Kunjungan gym",
   "ds.factory_lots": "Pemeriksaan mutu pabrik",
   "nav.tables": "Tabel",
+  "nav.certs": "Panduan sertifikasi",
   "tb.title": "Semua tabel",
   "tb.sub": "Semua tabel yang dipakai dalam soal. Klik “Tampilkan besar” untuk memproyeksikannya (← → untuk berganti, A+ untuk memperbesar teks).",
   "tb.search": "Cari nama tabel atau kolom",

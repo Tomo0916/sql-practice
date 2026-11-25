@@ -771,6 +771,7 @@ export default {
   "ds.gym_visits": "Visites à la salle de sport",
   "ds.factory_lots": "Contrôle qualité en usine",
   "nav.tables": "Tables",
+  "nav.certs": "Guide des certifications",
   "tb.title": "Toutes les tables",
   "tb.sub": "Toutes les tables utilisées dans les exercices. « Afficher en grand » les projette à l’écran (← → pour changer, A+ pour agrandir le texte).",
   "tb.search": "Chercher par nom de table ou de colonne",

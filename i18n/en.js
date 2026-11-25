@@ -824,6 +824,7 @@ export default {
   "ds.factory_lots": "Factory quality check",
   "an.beyond": "+ {n} rows of {x} or more are not drawn (largest: {max}). They still count in the mean and the median.",
   "nav.tables": "Tables",
+  "nav.certs": "Certification guide",
   "tb.title": "All tables",
   "tb.sub": "Every table the problems use. Use “Show on screen” to project one (← → to switch, A+ for bigger text).",
   "tb.search": "Search by table or column name",

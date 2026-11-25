@@ -771,6 +771,7 @@ export default {
   "ds.gym_visits": "健身房到访",
   "ds.factory_lots": "工厂质量检查",
   "nav.tables": "数据表",
+  "nav.certs": "资格指南",
   "tb.title": "全部数据表",
   "tb.sub": "这里可以查看题目中用到的所有数据表。点击“投屏显示”即可投到屏幕上（← → 切换，A+ 放大文字）。",
   "tb.search": "按表名或列名搜索",

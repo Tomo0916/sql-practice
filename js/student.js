@@ -252,11 +252,12 @@ function navItems() {
     cls ? ['live', '#/live', liveOn(S.klass) ? '<i class="live-dot"></i>' : I.inbox, 'nav.assign', todo] : null,
     EX.on ? ['explain', '#/explain', '<i class="live-dot"></i>', 'ex.title'] : null,
     '-', ['review', '#/review', I.repeat, 'nav.review', due], ['mastery', '#/mastery', I.map, 'rv.map'], ['words', '#/words', I.words, 'nav.words'], ['tables', '#/tables', I.table, 'nav.tables'],
+    '-', ['certs', `https://tomo0916.github.io/ds/certs/?lang=${encodeURIComponent(L())}`, I.target, 'nav.certs'],
   ].filter(Boolean);
 }
 function headerHTML() {
   const on = navOf(S.route);
-  const item = ([k, href, ic, label, badge]) => `<a href="${href}" class="nav-i ${on === k ? 'on' : ''}">${ic}<span>${H(label)}</span>${badge ? `<b class="badge">${badge}</b>` : ''}</a>`;
+  const item = ([k, href, ic, label, badge]) => `<a href="${href}"${/^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ''} class="nav-i ${on === k ? 'on' : ''}">${ic}<span>${H(label)}</span>${badge ? `<b class="badge">${badge}</b>` : ''}</a>`;
   const side = `<aside class="side-nav" aria-label="menu">
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
     <nav>${navItems().map(x => (x === '-' ? '<hr>' : item(x))).join('')}</nav>

@@ -771,6 +771,7 @@ export default {
   "ds.gym_visits": "Lượt tập gym",
   "ds.factory_lots": "Kiểm tra chất lượng nhà máy",
   "nav.tables": "Bảng",
+  "nav.certs": "Hướng dẫn chứng chỉ",
   "tb.title": "Tất cả các bảng",
   "tb.sub": "Xem mọi bảng được dùng trong bài tập. Bấm “Chiếu lên màn hình” để trình chiếu (← → để chuyển, A+ để phóng to chữ).",
   "tb.search": "Tìm theo tên bảng hoặc tên cột",
