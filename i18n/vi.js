@@ -2061,5 +2061,6 @@ export default {
   "res.cmpCols": "Cột khác nhau (màu đỏ)",
   "res.cmpSame": "Các dòng giống nhau. Hãy kiểm tra tên và thứ tự cột",
   "ds.bike_rentals": "Thuê xe đạp (có ngày)",
-  "ds.concerts": "Buổi hòa nhạc (có ngày)"
+  "ds.concerts": "Buổi hòa nhạc (có ngày)",
+  "tc.toStudent": "Trang học viên"
 };

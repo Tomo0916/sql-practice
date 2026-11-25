@@ -104,30 +104,38 @@ function render() {
   else if (S.isTeacher === null) body = `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   else if (v === 'class') body = classHTML();
   else body = classesHTML();
-  keepView(() => { app.innerHTML = headerHTML() + body; });
+  document.body.classList.remove('nav-open');
+  keepView(() => { app.innerHTML = frame(body); });
   if (v === 'book') document.title = `${T('book.nav')} · SQL Practice`;
   if (v === 'tables') document.title = `${T('tb.title')} · SQL Practice`;
   if (v === 'check') document.title = `${T('ck.title')} · SQL Practice`;
   if (v === 'test' && S.engine) document.title = `${S.test.title || t('test.headingDefault', S.test.tlang)} (${S.test.code})`;
 }
+/* ---------- the frame: a side menu (the pages; the open class and its tabs), a top bar on phones ---------- */
+const CLASS_TABS = [['live', I.bolt, 'tc.tabLive'], ['quick', I.timer, 'tc.tabQuick'], ['board', I.check, 'tc.tabBoard'], ['assign', I.book, 'tc.tabAssign'], ['explain', I.present, 'ex.tc.tab'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
 function headerHTML() {
-  const v = S.route.view;
-  return `<header class="topbar"><div class="topbar-in">
+  const v = S.route.view, c = v === 'class' ? S.klass : null;
+  const item = (href, on, ic, label) => `<a href="${href}" class="nav-i ${on ? 'on' : ''}">${ic}<span>${H(label)}</span></a>`;
+  const side = `<aside class="side-nav" aria-label="menu">
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span><span class="brand-tag">${H('tc.badge')}</span></a>
-    <nav class="topnav">
-      <a href="#/" class="${v === 'home' || v === 'class' ? 'on' : ''}">${I.users}<span>${H('tc.classes')}</span></a>
-      <a href="#/present" class="${v === 'present' ? 'on' : ''}">${I.screen}<span>${H('tc.present')}</span></a>
-      <a href="#/test" class="${v === 'test' ? 'on' : ''}">${I.paper}<span>${H('tc.test')}</span></a>
-      <a href="#/check" class="${v === 'check' ? 'on' : ''}">${I.check}<span>${H('ck.title')}</span></a>
-      <a href="#/book" class="${v === 'book' ? 'on' : ''}">${I.book}<span>${H('book.nav')}</span></a>
-      <a href="#/tables" class="${v === 'tables' ? 'on' : ''}">${I.table}<span>${H('nav.tables')}</span></a>
+    <nav>
+      ${item('#/', v === 'home', I.users, 'tc.classes')}
+      ${c ? `<div class="side-sub"><b>${esc(c.name)}</b>${CLASS_TABS.map(([k, ic, lab]) => item(`#/c/${c.id}/${k}`, S.route.tab === k, ic, lab)).join('')}</div>` : ''}
+      <hr>
+      ${item('#/present', v === 'present', I.screen, 'tc.present')}
+      ${item('#/test', v === 'test', I.paper, 'tc.test')}
+      ${item('#/check', v === 'check', I.clip, 'ck.title')}
+      ${item('#/book', v === 'book', I.words, 'book.nav')}
+      ${item('#/tables', v === 'tables', I.table, 'nav.tables')}
     </nav>
-    <div class="topbar-right">
-      ${langSelect(L(), T('nav.language'))}
-      ${S.session ? `<button class="icon-btn" data-act="signOut" title="${esc(T('tc.signOut'))}" aria-label="${esc(T('tc.signOut'))}">${I.door}</button>` : ''}
-    </div>
-  </div></header>`;
+    <div class="side-foot">
+      <div class="side-tools">${langSelect(L(), T('nav.language'))}${S.session ? `<button class="icon-btn" data-act="signOut" title="${esc(T('tc.signOut'))}" aria-label="${esc(T('tc.signOut'))}">${I.door}</button>` : ''}</div>
+      <a class="side-teacher" href="../">${H('tc.toStudent')}</a>
+    </div></aside>`;
+  const top = `<header class="m-top"><button class="icon-btn" data-act="navMenu" aria-label="menu">${I.menu}</button><a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">${c ? esc(c.name) : 'SQL Practice'}</span></a><span></span></header>`;
+  return side + `<div class="nav-scrim" data-act="navMenu"></div>` + top;
 }
+const frame = body => `<div class="shell tc-shell">${headerHTML()}<div class="shell-main">${body}</div></div>`;
 function noBackendHTML() {
   return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${I.users}</div>
     <h1>${H('tc.noBackend')}</h1><p class="muted">${H('tc.noBackendSub')}</p>
@@ -185,7 +193,7 @@ function classHTML() {
   if (!c) return `<div class="loading"><div><div class="spinner"></div>${H('misc.loading')}</div></div>`;
   document.title = `${c.name} · SQL Practice`;
   const tab = S.route.tab;
-  const tabs = [['live', I.bolt, 'tc.tabLive'], ['quick', '⚡', 'tc.tabQuick'], ['board', I.check, 'tc.tabBoard'], ['assign', I.book, 'tc.tabAssign'], ['explain', '📽', 'ex.tc.tab'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
+  const tabs = CLASS_TABS;
   let body = '';
   if (tab === 'assign') body = assignHTML(c);
   else if (tab === 'explain') body = explainTcHTML();
@@ -1488,6 +1496,7 @@ const actions = {
   },
   quickBig() { modal(`<div class="modal-body">${quickBigHTML()}</div>`, { wide: true }); },
   closeModal,
+  navMenu() { document.body.classList.toggle('nav-open'); },
   loginMode(el) { S.loginMode = el.dataset.m; render(); },
   async signOut() { await backend.signOut(); S.session = null; S.isTeacher = null; S.classes = []; S.klass = null; stopWatch(); location.hash = '#/'; render(); },
   showQR() { openQR(S.klass); },
@@ -1695,7 +1704,7 @@ async function openQR(c) {
   await Promise.all([loadLang('en'), loadLang(L()), loadLang(S.test.tlang), S.test.bilingual ? loadLang(S.test.bilingual) : null]);
   render();
   try { S.engine = new SqlEngine(await window.initSqlJs({ locateFile: f => '../vendor/' + f })); }
-  catch (e) { console.error(e); app.innerHTML = headerHTML() + `<div class="loading"><div>${H('misc.loadError')}</div></div>`; return; }
+  catch (e) { console.error(e); app.innerHTML = frame(`<div class="loading"><div>${H('misc.loadError')}</div></div>`); return; }
   if (backend.enabled) {
     const sb = await backend.client();
     sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') { S.session = null; render(); } if (ev === 'PASSWORD_RECOVERY') { const pw = prompt(T('tc.newPassword')); if (pw) sb.auth.updateUser({ password: pw }).then(() => toast(T('tc.saved'))); } });

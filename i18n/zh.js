@@ -2061,5 +2061,6 @@ export default {
   "res.cmpCols": "列不同（红色）",
   "res.cmpSame": "行的内容相同。请检查列名和顺序",
   "ds.bike_rentals": "共享单车租借记录（含日期）",
-  "ds.concerts": "演唱会记录（含日期）"
+  "ds.concerts": "演唱会记录（含日期）",
+  "tc.toStudent": "学生页面"
 };

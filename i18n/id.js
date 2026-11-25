@@ -2061,5 +2061,6 @@ export default {
   "res.cmpCols": "Kolomnya berbeda (merah)",
   "res.cmpSame": "Isi barisnya sama. Periksa nama dan urutan kolom",
   "ds.bike_rentals": "Sewa sepeda (dengan tanggal)",
-  "ds.concerts": "Konser (dengan tanggal)"
+  "ds.concerts": "Konser (dengan tanggal)",
+  "tc.toStudent": "Halaman siswa"
 };

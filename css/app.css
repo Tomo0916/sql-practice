@@ -1764,3 +1764,10 @@ body.pj-open { overflow: hidden; }
 @media (max-width: 900px) { .cmp { grid-template-columns: minmax(0, 1fr); } }
 @media (min-width: 861px) { .side { top: 16px; } }
 .res-body .cmp, .res-body .cmp-notes { padding: 0 14px; } .res-body .cmp { padding-bottom: 14px; } .res-body .cmp-notes { padding-top: 12px; }
+/* teacher page: the open class under the classes item */
+.side-sub { display: flex; flex-direction: column; gap: 1px; margin: 4px 0 6px 14px; padding-left: 10px; border-left: 2px solid var(--line); }
+.side-sub > b { font-size: .78rem; color: var(--ink-3); padding: 4px 12px 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-sub .nav-i { padding: 7px 10px; font-size: .9rem; }
+.side-nav .brand-tag { font-size: .7rem; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+@media (min-width: 861px) { .tc-shell .tabs[role="tablist"] { display: none; } }
+@media (max-width: 860px) { .tc-shell .m-top { justify-content: flex-start; gap: 8px; } .tc-shell .shell-main { padding-bottom: 0; } }
