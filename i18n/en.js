@@ -2062,5 +2062,6 @@ export default {
   "res.cmpCols": "The columns differ (red)",
   "res.cmpSame": "The rows match. Check the column names and order",
   "ds.bike_rentals": "Bike rentals (with dates)",
-  "ds.concerts": "Concerts (with dates)"
+  "ds.concerts": "Concerts (with dates)",
+  "tc.toStudent": "Student pages"
 };

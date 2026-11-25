@@ -2061,5 +2061,6 @@ export default {
   "res.cmpCols": "Les colonnes diffèrent (en rouge)",
   "res.cmpSame": "Les lignes sont identiques. Vérifiez le nom et l’ordre des colonnes",
   "ds.bike_rentals": "Locations de vélos (avec dates)",
-  "ds.concerts": "Concerts (avec dates)"
+  "ds.concerts": "Concerts (avec dates)",
+  "tc.toStudent": "Pages des élèves"
 };
