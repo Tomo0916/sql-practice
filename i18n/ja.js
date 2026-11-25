@@ -2054,5 +2054,11 @@ export default {
   "nav.more": "その他",
   "hm.all": "すべて見る",
   "hm.learnSub": "章ごとにレッスンを選びます。講義・例題・演習の順に進みます。",
-  "nav.dash": "ホーム"
+  "nav.dash": "ホーム",
+  "res.compare": "比べる",
+  "res.cmpExtra": "あなたの結果にだけある行 {n}",
+  "res.cmpMiss": "見本にあって、あなたの結果にない行 {n}",
+  "res.cmpMoved": "順番がちがう行 {n}",
+  "res.cmpCols": "列がちがいます（赤い列）",
+  "res.cmpSame": "行の中身は同じです。列の名前や順番を確かめましょう"
 };

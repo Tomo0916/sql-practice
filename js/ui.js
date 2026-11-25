@@ -152,7 +152,8 @@ export function gridHTML(res, opts) {
   if (!res || !res.columns || !res.columns.length) return '';
   const numCol = res.columns.map((_, j) => res.values.length > 0 && res.values.every(r => r[j] === null || typeof r[j] === 'number'));
   const cls = opts.rowClass || (() => '');
-  let h = `<table class="grid"><thead><tr>${opts.rowNums ? '<th class="rn">#</th>' : ''}${res.columns.map((c, j) => `<th${numCol[j] ? ' class="n"' : ''}>${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
+  const hc = opts.headClass || (() => '');
+  let h = `<table class="grid"><thead><tr>${opts.rowNums ? '<th class="rn">#</th>' : ''}${res.columns.map((c, j) => `<th class="${numCol[j] ? 'n ' : ''}${hc(j)}">${esc(c)}</th>`).join('')}</tr></thead><tbody>`;
   res.values.forEach((r, i) => {
     h += `<tr class="${cls(r, i)}">${opts.rowNums ? `<td class="rn">${i + 1}</td>` : ''}${r.map((v, j) => `<td${numCol[j] ? ' class="n"' : ''}>${fmtCell(v)}</td>`).join('')}</tr>`;
   });

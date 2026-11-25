@@ -2029,6 +2029,29 @@ function feedbackHTML(prob) {
 }
 
 /* ---------- results ---------- */
+/** your result next to the model: rows only in yours, rows you are missing, rows in another place, columns that differ */
+function compareHTML(user, exp, ordered) {
+  // the rows are compared on the columns both have (so a wrong column does not mark every row)
+  const lc = c => String(c).toLowerCase(), common = user.columns.map(lc).filter(c => exp.columns.map(lc).includes(c));
+  const pick = (cols, r) => common.map(c => r[cols.map(lc).indexOf(c)]);
+  const keyOf = cols => r => JSON.stringify(pick(cols, r).map(v => (typeof v === 'number' ? Math.round(v * 1e6) / 1e6 : v)));
+  const ku = keyOf(user.columns), ke = keyOf(exp.columns);
+  const cnt = (rs, key) => { const m = new Map(); rs.forEach(r => m.set(key(r), (m.get(key(r)) || 0) + 1)); return m; };
+  const left = cnt(exp.values, ke), right = cnt(user.values, ku);
+  const mark = (rs, pool, other, cls, key, okey) => (!common.length ? rs.map(() => '') : rs.map((r, i) => { const k = key(r);
+    if (ordered && other[i] && okey(other[i]) === k) return '';
+    if ((pool.get(k) || 0) > 0) { pool.set(k, pool.get(k) - 1); return ordered ? 'moved' : ''; }
+    return cls; }));
+  const um = mark(user.values, left, exp.values, 'extra', ku, ke), em = mark(exp.values, right, user.values, 'miss', ke, ku);
+  const sameCols = user.columns.length === exp.columns.length && user.columns.every((c, j) => String(c).toLowerCase() === String(exp.columns[j]).toLowerCase());
+  const hcU = j => (sameCols ? '' : exp.columns.map(c => String(c).toLowerCase()).includes(String(user.columns[j]).toLowerCase()) ? '' : 'diffcol');
+  const hcE = j => (sameCols ? '' : user.columns.map(c => String(c).toLowerCase()).includes(String(exp.columns[j]).toLowerCase()) ? '' : 'diffcol');
+  const n = { extra: um.filter(x => x === 'extra').length, miss: em.filter(x => x === 'miss').length, moved: um.filter(x => x === 'moved').length };
+  const notes = [!sameCols ? `<li class="k-col">${H('res.cmpCols')}</li>` : '', n.extra ? `<li class="k-extra">${H('res.cmpExtra', { n: n.extra })}</li>` : '', n.miss ? `<li class="k-miss">${H('res.cmpMiss', { n: n.miss })}</li>` : '', n.moved ? `<li class="k-moved">${H('res.cmpMoved', { n: n.moved })}</li>` : ''].join('');
+  return `<ul class="cmp-notes">${notes || `<li>${H('res.cmpSame')}</li>`}</ul>
+    <div class="cmp"><div><h4>${H('res.yours')} <span class="count">${user.values.length}</span></h4>${user.values.length ? gridHTML(user, { rowNums: true, rowClass: (r, i) => um[i], headClass: hcU }) : `<div class="res-empty">${H('res.noRows')}</div>`}</div>
+      <div><h4>${H('res.expected')} <span class="count">${exp.values.length}</span></h4>${gridHTML(exp, { rowNums: true, rowClass: (r, i) => em[i], headClass: hcE })}</div></div>`;
+}
 function resultsHTML(prob) {
   const run = S.runs[prob.id];
   const exp = S.engine.exec(prob.sql);
@@ -2037,8 +2060,11 @@ function resultsHTML(prob) {
   // INSERT / UPDATE / DELETE: rows that are new or changed are highlighted
   const before = exp && exp.dml ? new Set(S.engine.tableData(exp.dml.table).values.map(r => JSON.stringify(r))) : null;
   const opts = { rowNums: true, rowClass: before ? r => (before.has(JSON.stringify(r)) ? '' : 'chg') : null };
+  const canCmp = run && !run.error && user && user.columns && user.columns.length && !user.dml && exp && !exp.dml;
+  if (S.tab === 'cmp' && !canCmp) S.tab = 'user';
   let body;
-  if (S.tab === 'expected') body = gridHTML(exp, opts);
+  if (S.tab === 'cmp') body = compareHTML(user, exp, prob.ordered);
+  else if (S.tab === 'expected') body = gridHTML(exp, opts);
   else if (!run || run.error) body = `<div class="res-empty">${H('res.notRun')}</div>`;
   else if (!user.columns.length || !user.values.length) body = `<div class="res-empty">${H('res.noRows')}</div>`;
   else body = gridHTML(user, user.dml ? opts : { rowNums: true });
@@ -2047,7 +2073,7 @@ function resultsHTML(prob) {
   if (lesson.chart) body += resultChartHTML(lesson, prob, S.tab === 'expected' ? exp : (run && !run.error ? user : null), L());
   const after = exp && exp.dml ? `<p class="res-after muted small">${H('res.after', { t: exp.dml.table })}</p>` : '';
   return `<section class="card results">${after}
-    <div class="res-tabs" role="tablist">${tab('user', T('res.yours'), run && !run.error ? user : null)}${tab('expected', T('res.expected'), exp)}</div>
+    <div class="res-tabs" role="tablist">${canCmp ? tab('cmp', T('res.compare'), null) : ''}${tab('user', T('res.yours'), run && !run.error ? user : null)}${tab('expected', T('res.expected'), exp)}</div>
     <div class="res-body">${body}</div>
   </section>`;
 }
@@ -2167,7 +2193,7 @@ function record(prob, ok, run, sql) {
     }
   }
   S.runs[prob.id] = run;
-  S.tab = 'user';
+  S.tab = !ok && run.res && run.res.columns && run.res.columns.length && !run.res.dml ? 'cmp' : 'user';   // a wrong answer: the comparison
   save();
   return run;
 }

@@ -2054,5 +2054,11 @@ export default {
   "nav.more": "More",
   "hm.all": "See all",
   "hm.learnSub": "Pick a lesson by chapter: lecture, worked example, then practice.",
-  "nav.dash": "Home"
+  "nav.dash": "Home",
+  "res.compare": "Compare",
+  "res.cmpExtra": "Rows only in yours {n}",
+  "res.cmpMiss": "Rows in the model but not in yours {n}",
+  "res.cmpMoved": "Rows in a different place {n}",
+  "res.cmpCols": "The columns differ (red)",
+  "res.cmpSame": "The rows match. Check the column names and order"
 };

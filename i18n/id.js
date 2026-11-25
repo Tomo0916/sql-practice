@@ -2053,5 +2053,11 @@ export default {
   "nav.more": "Lainnya",
   "hm.all": "Lihat semua",
   "hm.learnSub": "Pilih pelajaran per bab: kuliah, contoh, lalu latihan.",
-  "nav.dash": "Beranda"
+  "nav.dash": "Beranda",
+  "res.compare": "Bandingkan",
+  "res.cmpExtra": "Baris hanya di hasil Anda {n}",
+  "res.cmpMiss": "Baris di contoh yang tidak ada di hasil Anda {n}",
+  "res.cmpMoved": "Baris di urutan berbeda {n}",
+  "res.cmpCols": "Kolomnya berbeda (merah)",
+  "res.cmpSame": "Isi barisnya sama. Periksa nama dan urutan kolom"
 };
