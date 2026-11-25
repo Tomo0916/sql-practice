@@ -2060,5 +2060,7 @@ export default {
   "res.cmpMiss": "Rows in the model but not in yours {n}",
   "res.cmpMoved": "Rows in a different place {n}",
   "res.cmpCols": "The columns differ (red)",
-  "res.cmpSame": "The rows match. Check the column names and order"
+  "res.cmpSame": "The rows match. Check the column names and order",
+  "ds.bike_rentals": "Bike rentals (with dates)",
+  "ds.concerts": "Concerts (with dates)"
 };

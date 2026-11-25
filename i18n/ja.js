@@ -2060,5 +2060,7 @@ export default {
   "res.cmpMiss": "見本にあって、あなたの結果にない行 {n}",
   "res.cmpMoved": "順番がちがう行 {n}",
   "res.cmpCols": "列がちがいます（赤い列）",
-  "res.cmpSame": "行の中身は同じです。列の名前や順番を確かめましょう"
+  "res.cmpSame": "行の中身は同じです。列の名前や順番を確かめましょう",
+  "ds.bike_rentals": "レンタサイクルの記録（日付つき）",
+  "ds.concerts": "コンサートの記録（日付つき）"
 };

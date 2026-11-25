@@ -2059,5 +2059,7 @@ export default {
   "res.cmpMiss": "Baris di contoh yang tidak ada di hasil Anda {n}",
   "res.cmpMoved": "Baris di urutan berbeda {n}",
   "res.cmpCols": "Kolomnya berbeda (merah)",
-  "res.cmpSame": "Isi barisnya sama. Periksa nama dan urutan kolom"
+  "res.cmpSame": "Isi barisnya sama. Periksa nama dan urutan kolom",
+  "ds.bike_rentals": "Sewa sepeda (dengan tanggal)",
+  "ds.concerts": "Konser (dengan tanggal)"
 };
