@@ -2049,5 +2049,10 @@ export default {
   "ex.tc.saved": "保存しました。",
   "ex.tc.loadConfirm": "「{n}」を開きますか？ 今の流れは置き換わります。",
   "ex.tc.syncOn": "生徒の画面の同期を始めました。",
-  "ex.tc.syncOff": "生徒の画面の同期を止めました。"
+  "ex.tc.syncOff": "生徒の画面の同期を止めました。",
+  "nav.python": "Python",
+  "nav.more": "その他",
+  "hm.all": "すべて見る",
+  "hm.learnSub": "章ごとにレッスンを選びます。講義・例題・演習の順に進みます。",
+  "nav.dash": "ホーム"
 };

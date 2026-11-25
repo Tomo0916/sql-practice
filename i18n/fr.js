@@ -2048,5 +2048,10 @@ export default {
   "ex.tc.saved": "Enregistré.",
   "ex.tc.loadConfirm": "Ouvrir « {n} » ? Il remplace le déroulé actuel.",
   "ex.tc.syncOn": "Synchronisation des écrans des élèves activée.",
-  "ex.tc.syncOff": "Synchronisation des écrans des élèves arrêtée."
+  "ex.tc.syncOff": "Synchronisation des écrans des élèves arrêtée.",
+  "nav.python": "Python",
+  "nav.more": "Plus",
+  "hm.all": "Tout voir",
+  "hm.learnSub": "Choisissez une leçon par chapitre : cours, exemple, puis exercices.",
+  "nav.dash": "Accueil"
 };

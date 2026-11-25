@@ -9,6 +9,29 @@ import { PD_BY_KEY } from './pandas.js';
 /* ---------- icons ---------- */
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 export const I = {
+  home: svg('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/>'),
+  layers: svg('<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>'),
+  medal: svg('<circle cx="12" cy="14" r="6"/><path d="M8.5 9 6 3h4l2 4 2-4h4l-2.5 6"/><path d="m12 11.5.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z"/>'),
+  code: svg('<path d="m8 8-4 4 4 4"/><path d="m16 8 4 4-4 4"/><path d="m14 5-4 14"/>'),
+  inbox: svg('<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5.5 5h13L21 13v6H3v-6z"/>'),
+  present: svg('<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8"/>'),
+  words: svg('<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>'),
+  map: svg('<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/>'),
+  menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
+  more: svg('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>'),
+  timer: svg('<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/>'),
+  target: svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>'),
+  blocks: svg('<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>'),
+  puzzle: svg('<path d="M9 3h6v3a2 2 0 1 0 4 0h2v6h-3a2 2 0 1 0 0 4h3v5h-6v-3a2 2 0 1 0-4 0v3H3v-6h3a2 2 0 1 0 0-4H3V3z"/>'),
+  sliders: svg('<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'),
+  pin: svg('<path d="M9 3h6l-1 6 3 3H7l3-3z"/><path d="M12 12v9"/>'),
+  clip: svg('<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/>'),
+  stairs: svg('<path d="M3 20h5v-5h5v-5h5V5h3"/>'),
+  sparkle: svg('<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>'),
+  save: svg('<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7M8 21v-7h8v7"/>'),
+  folder: svg('<path d="M3 6h6l2 2h10v11H3z"/>'),
+  expand: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+  chart: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
   globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
   play: svg('<path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/>'),
   reset: svg('<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>'),
@@ -239,4 +262,37 @@ export function countPickHTML(o) {
     <div class="cp-row">${o.presets.map(btn).join('')}
       <span class="cp-step ${off ? 'on' : ''}"><button type="button" data-act="${o.act}" data-k="${o.k}" data-v="${Math.max(o.min, v - 1)}" aria-label="−" ${v <= o.min ? 'disabled' : ''}>−</button><b>${v}</b><button type="button" data-act="${o.act}" data-k="${o.k}" data-v="${Math.min(o.max, v + 1)}" aria-label="+" ${v >= o.max ? 'disabled' : ''}>+</button></span></div>
     <small class="cp-est">${th('cnt.sum', o.lang, { n: v, m: Math.max(1, min) })}</small></div>`;
+}
+
+/* ---------- emoji → line icons: every emoji that reaches the page (texts, toasts, partial redraws) is drawn as a simple icon ---------- */
+const EMOJI_ICON = { '🎉': 'sparkle', '🧱': 'blocks', '🧩': 'puzzle', '📽': 'present', '📝': 'clip', '🎯': 'target', '🎚': 'sliders', '🗂': 'table', '📬': 'inbox', '📌': 'pin', '⏱': 'timer', '🌐': 'globe', '🔒': 'lock', '🏅': 'medal', '🐍': 'code', '🪜': 'stairs', '💾': 'save', '📂': 'folder', '⛶': 'expand', '📖': 'words', '📊': 'chart', '🔥': 'fire', '👀': 'eye', '⚡': 'bolt', '📈': 'chart', '✏️': 'clip', '✏': 'clip', '📋': 'clip', '🏠': 'home', '📚': 'layers', '🔁': 'repeat', '🔀': 'shuffle', '🖨': 'print', '👥': 'users', '⚙': 'gear', '⚙️': 'gear' };
+const EMOJI_RE = /(?:\p{Extended_Pictographic}|⛶)\uFE0F?/gu;
+const SKIP = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'CODE', 'PRE', 'INPUT']);
+function iconizeText(node) {
+  const p = node.parentNode; if (!p || SKIP.has(p.nodeName) || (p.closest && p.closest('.cm-editor, .no-icons'))) return;
+  const txt = node.nodeValue; EMOJI_RE.lastIndex = 0; let hit = false, m0; while ((m0 = EMOJI_RE.exec(txt))) if (EMOJI_ICON[m0[0]] || EMOJI_ICON[m0[0].replace('\uFE0F', '')]) { hit = true; break; } if (!hit) return;
+  if (p.nodeName === 'OPTION' || p.nodeName === 'TITLE') { node.nodeValue = txt.replace(EMOJI_RE, x => (EMOJI_ICON[x] || EMOJI_ICON[x.replace('\uFE0F', '')] ? '' : x)).replace(/^\s+/, ''); return; }
+  const frag = document.createDocumentFragment(); let at = 0; EMOJI_RE.lastIndex = 0; let m;
+  while ((m = EMOJI_RE.exec(txt))) {
+    if (m.index > at) frag.appendChild(document.createTextNode(txt.slice(at, m.index)));
+    const k = EMOJI_ICON[m[0]] || EMOJI_ICON[m[0].replace('\uFE0F', '')];
+    if (k && I[k]) { const sp = document.createElement('span'); sp.className = 'ic'; sp.innerHTML = I[k]; frag.appendChild(sp); }
+    else frag.appendChild(document.createTextNode(m[0]));   // arrows and other symbols stay as they are
+    at = m.index + m[0].length;
+  }
+  if (at < txt.length) frag.appendChild(document.createTextNode(txt.slice(at)));
+  p.replaceChild(frag, node);
+}
+function iconizeTree(root) {
+  if (root.nodeType === 3) { iconizeText(root); return; }
+  if (root.nodeType !== 1 || SKIP.has(root.nodeName)) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = [];
+  while (w.nextNode()) list.push(w.currentNode);
+  list.forEach(iconizeText);
+}
+/** start once per page: draw emoji as icons from now on */
+export function startIconizer(root = document.body) {
+  iconizeTree(root);
+  new MutationObserver(ms => ms.forEach(m => { if (m.type === 'characterData') iconizeText(m.target); else m.addedNodes.forEach(iconizeTree); }))
+    .observe(root, { childList: true, subtree: true, characterData: true });
 }

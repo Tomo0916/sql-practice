@@ -2049,5 +2049,10 @@ export default {
   "ex.tc.saved": "Saved.",
   "ex.tc.loadConfirm": "Open \"{n}\"? It replaces the current flow.",
   "ex.tc.syncOn": "Syncing the students' screens.",
-  "ex.tc.syncOff": "Stopped syncing the students' screens."
+  "ex.tc.syncOff": "Stopped syncing the students' screens.",
+  "nav.python": "Python",
+  "nav.more": "More",
+  "hm.all": "See all",
+  "hm.learnSub": "Pick a lesson by chapter: lecture, worked example, then practice.",
+  "nav.dash": "Home"
 };
