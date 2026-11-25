@@ -2062,5 +2062,21 @@ export default {
   "res.cmpSame": "Les lignes sont identiques. Vérifiez le nom et l’ordre des colonnes",
   "ds.bike_rentals": "Locations de vélos (avec dates)",
   "ds.concerts": "Concerts (avec dates)",
-  "tc.toStudent": "Pages des élèves"
+  "tc.toStudent": "Pages des élèves",
+  "test.types": "Types de questions (au choix)",
+  "test.typesTip": "Les types choisis sont mélangés. Une question qui ne convient pas à un type devient « Écrire le SQL ».",
+  "test.typeOrder": "Remettre en ordre",
+  "test.typeFill": "Texte à trous",
+  "test.pts": "Points par question",
+  "test.ptsTip": "0 : aucun point imprimé.",
+  "test.ptsEach": "{n} pt",
+  "test.presets": "Réglages enregistrés",
+  "test.presetSave": "Enregistrer ces réglages",
+  "test.presetLoad": "Ouvrir des réglages enregistrés",
+  "test.presetName": "Nom de ces réglages",
+  "test.presetSaved": "Réglages enregistrés.",
+  "test.presetLoaded": "« {n} » ouvert.",
+  "test.qOrder": "Remettez les morceaux dans l’ordre pour obtenir le SQL qui donne ce qui suit, et répondez avec leurs lettres. Un morceau peut rester inutilisé.",
+  "test.qFill": "Écrivez ce qui va dans (1), (2)… pour obtenir le SQL qui donne ce qui suit.",
+  "test.keyUnused": "{x} n’est pas utilisé"
 };

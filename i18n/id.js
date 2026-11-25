@@ -2062,5 +2062,21 @@ export default {
   "res.cmpSame": "Isi barisnya sama. Periksa nama dan urutan kolom",
   "ds.bike_rentals": "Sewa sepeda (dengan tanggal)",
   "ds.concerts": "Konser (dengan tanggal)",
-  "tc.toStudent": "Halaman siswa"
+  "tc.toStudent": "Halaman siswa",
+  "test.types": "Jenis soal (boleh lebih dari satu)",
+  "test.typesTip": "Jenis yang dipilih dicampur di semua soal. Soal yang tidak cocok dengan suatu jenis menjadi \"Tulis SQL\".",
+  "test.typeOrder": "Susun urutan",
+  "test.typeFill": "Isi titik-titik",
+  "test.pts": "Poin per soal",
+  "test.ptsTip": "0 berarti poin tidak dicetak.",
+  "test.ptsEach": "{n} poin",
+  "test.presets": "Pengaturan tersimpan",
+  "test.presetSave": "Simpan pengaturan ini",
+  "test.presetLoad": "Buka pengaturan tersimpan",
+  "test.presetName": "Nama pengaturan ini",
+  "test.presetSaved": "Pengaturan disimpan.",
+  "test.presetLoaded": "\"{n}\" dibuka.",
+  "test.qOrder": "Susun potongan dengan urutan yang benar agar menjadi SQL yang mengambil data berikut, lalu jawab dengan hurufnya. Mungkin ada satu potongan yang tidak dipakai.",
+  "test.qFill": "Tulis isi (1), (2) … agar menjadi SQL yang mengambil data berikut.",
+  "test.keyUnused": "{x} tidak dipakai"
 };

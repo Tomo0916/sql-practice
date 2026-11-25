@@ -55,7 +55,7 @@ const S = {
   mistakeProb: null,
   busy: false,
   isTeacher: null,   // null = not checked yet
-  test: Object.assign({ title: '', tlang: null, bilingual: null, lessons: LESSONS.map(l => l.key), per: 1, type: 'write', key: true, results: true, code: randomCode(), ab: false }, Store.get(KEYS.test, {}))
+  test: Object.assign({ title: '', tlang: null, bilingual: null, lessons: LESSONS.map(l => l.key), per: 1, type: 'write', types: null, band: 0, pts: 0, key: true, results: true, code: randomCode(), ab: false }, Store.get(KEYS.test, {}))
 };
 S.settings.lang = detectLang(S.settings.lang);
 // the teacher's view choices (sorting, ranking options, open cards) are remembered on this computer
@@ -1140,21 +1140,28 @@ function testHTML() {
       <div class="row-btns left"><button class="btn btn-ghost btn-xs" data-act="testAll">${H('test.all')}</button><button class="btn btn-ghost btn-xs" data-act="testNone">${H('test.none')}</button>${S.klass ? `<button class="btn btn-ghost btn-xs" data-act="testClass">${H('tc.fromClass')}</button>` : ''}</div>
       <div class="lesson-pick compact">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>${LESSONS.filter(l => l.ch === ch.key && l.kind !== 'quiz' && !l.noTest).map(l => `<label class="chk"><input type="checkbox" data-tl="${l.key}" ${o.lessons.includes(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
     <div class="fld"><span>${H('test.perLesson')}</span><div class="seg">${radio('per', 1, '1')}${radio('per', 2, '2')}${radio('per', 3, '3')}</div></div>
-    <div class="fld"><span>${H('test.type')}</span><div class="seg">${radio('type', 'write', T('test.typeWrite'))}${radio('type', 'predict', T('test.typePredict'))}${radio('type', 'mix', T('test.typeMix'))}</div></div>
+    <div class="fld"><span>${H('test.types')}</span><div class="tt-pick">${['write', 'predict', 'order', 'fill'].map(k => `<label class="chk"><input type="checkbox" data-tt="${k}" ${testTypes().includes(k) ? 'checked' : ''}><span>${H('test.type' + k[0].toUpperCase() + k.slice(1))}</span></label>`).join('')}</div><small class="muted">${H('test.typesTip')}</small></div>
+    <div class="fld"><span>${H('dif.title')}</span><div class="seg">${radio('band', 0, T('dif.any'))}${radio('band', 1, T('dif.1'))}${radio('band', 2, T('dif.2'))}${radio('band', 3, T('dif.3'))}</div></div>
+    <label class="fld"><span>${H('test.pts')}</span><div class="inline-form"><input type="number" min="0" max="100" data-tk="pts" value="${o.pts || 0}" style="width:90px"><small class="muted">${H('test.ptsTip')}</small></div></label>
     <div class="fld"><span>${H('test.versions')}</span><div class="seg">${radio('ab', false, T('test.versionA'))}${radio('ab', true, T('test.versionAB'))}</div><small class="muted">${H('test.versionTip')}</small></div>
     <div class="fld"><span>${H('test.options')}</span>
       <label class="chk"><input type="checkbox" data-tk="key" ${o.key ? 'checked' : ''}><span>${H('test.withKey')}</span></label>
       <label class="chk"><input type="checkbox" data-tk="results" ${o.results ? 'checked' : ''} ${o.key ? '' : 'disabled'}><span>${H('test.withResult')}</span></label></div>
     <label class="fld"><span>${H('test.code')}</span><div class="inline-form"><input class="mono" data-tk="code" value="${esc(o.code)}" maxlength="16"><button class="btn btn-ghost btn-sm" data-act="testNewCode">${I.shuffle}${H('test.newCode')}</button></div></label>
+    <div class="fld"><span>${H('test.presets')}</span><div class="row-btns left"><button class="btn btn-ghost btn-sm" data-act="testSavePreset">${I.save}${H('test.presetSave')}</button>${(Store.get(KEYS.test + '.presets', []) || []).length ? `<select data-tp="load"><option value="">${esc(T('test.presetLoad'))}</option>${Store.get(KEYS.test + '.presets', []).map((x, i) => `<option value="${i}">${esc(x.name)}</option>`).join('')}</select>` : ''}</div></div>
     <div class="tm-print"><button class="btn btn-primary" data-act="print" ${o.lessons.length ? '' : 'disabled'}>${I.print}${H('test.print')}</button><button class="btn btn-ghost" data-act="testTables" ${o.lessons.length ? '' : 'disabled'}>${I.screen}${H('test.project')}</button><div class="muted small center" id="tm-count"></div></div>
   </aside>`;
   return `<main class="wrap"><div class="tm-layout">${panel}<div class="paper-wrap">${paperHTML()}</div></div></main>`;
 }
+const LETTERS = 'ABCDEFGHIJKL';
+const INST = { write: 'test.qWrite', predict: 'test.qPredict', order: 'test.qOrder', fill: 'test.qFill' };
+/** the question types chosen (old settings: type write / predict / mix) */
+const testTypes = () => { const o = S.test; if (Array.isArray(o.types) && o.types.length) return o.types; return o.type === 'mix' ? ['write', 'predict'] : [o.type || 'write']; };
 function paperHTML() {
   const o = S.test;
   if (!o.lessons.length) return `<div class="card res-empty">${H('test.nothing')}</div>`;
   const vers = o.ab ? ['A', 'B'] : ['A'];
-  const tests = vers.map(v => S.engine.makeTest({ lessons: o.lessons, per: o.per, type: o.type, code: o.code || 'X', version: v }));
+  const tests = vers.map(v => S.engine.makeTest({ lessons: o.lessons, per: o.per, types: testTypes(), band: +o.band || 0, code: o.code || 'X', version: v }));
   S.testTables = [...new Set(tests.flatMap(x => x.tables))];
   const out = tests.map((x, k) => sheetsHTML(x, vers[k], o.ab)).join('');
   return out;
@@ -1164,24 +1171,29 @@ function sheetsHTML(test, ver, ab) {
   const P = (k, v) => th(k, tl, v);
   const title = esc(o.title.trim()) || P('test.headingDefault');
   const tag = ab ? ` <span class="ver">${esc(t('test.version', tl, { v: ver }))}</span>` : '';
+  const pts = +o.pts || 0;
   const qs = test.questions.map((q, i) => {
     const write = q.qtype === 'write';
     const lines = Math.min(5, Math.max(2, Math.ceil(q.sql.length / 58) + 1));
     const rows = q.result ? q.result.values.length : 3;
     return `<div class="q"><div class="q-head"><span class="q-num">Q${i + 1}.</span><div class="q-body">
-      <div class="q-inst">${P(write ? 'test.qWrite' : 'test.qPredict')}${sec ? ` <span class="q-sec">/ ${th(write ? 'test.qWrite' : 'test.qPredict', sec)}</span>` : ''}</div>
-      ${write ? `<p class="q-text">${problemHTML(q, tl)}</p>${sec ? `<p class="q-en" lang="${htmlLang(sec)}">${problemHTML(q, sec)}</p>` : ''}` : `<div class="q-sql">${esc(q.sql)}</div>`}
+      <div class="q-inst">${P(INST[q.qtype])}${pts ? ` <span class="q-pts">(${esc(t('test.ptsEach', tl, { n: pts }))})</span>` : ''}${sec ? ` <span class="q-sec">/ ${th(INST[q.qtype], sec)}</span>` : ''}</div>
+      ${q.qtype !== 'predict' ? `<p class="q-text">${problemHTML(q, tl)}</p>${sec ? `<p class="q-en" lang="${htmlLang(sec)}">${problemHTML(q, sec)}</p>` : ''}` : `<div class="q-sql">${esc(q.sql)}</div>`}
+      ${q.qtype === 'order' ? `<ol class="pieces">${q.order.chunks.map((c, k) => `<li><b>${LETTERS[k]}</b><code>${esc(c.text)}</code></li>`).join('')}</ol>` : ''}
+      ${q.qtype === 'fill' ? `<div class="q-sql fill-sql">${q.fill.parts.map(x => (typeof x === 'string' ? esc(x) : `<span class="blank">(${x.blank + 1})</span>`)).join('')}</div>` : ''}
       <div class="q-meta">${esc(t('test.useTable', tl, { t: q.tables.join(', ') }))}</div>
-      ${write ? `<div class="ans lines" style="--h:${lines * 8 + 2}mm"><span class="lab">${P('test.answerSpace')}</span></div>` : `<div class="ans grid-ans" style="--h:${(rows + 2) * 7}mm"><span class="lab">${P('test.answerSpace')}</span></div>`}
+      ${q.qtype === 'order' ? `<div class="ans order-ans">${q.order.answer.map(() => '<i></i>').join('<span>→</span>')}</div>`
+        : q.qtype === 'fill' ? `<div class="ans fill-ans">${q.fill.answers.map((_, k) => `<div><b>(${k + 1})</b><i></i></div>`).join('')}</div>`
+        : write ? `<div class="ans lines" style="--h:${lines * 8 + 2}mm"><span class="lab">${P('test.answerSpace')}</span></div>` : `<div class="ans grid-ans" style="--h:${(rows + 2) * 7}mm"><span class="lab">${P('test.answerSpace')}</span></div>`}
     </div></div></div>`;
   }).join('');
   const s1 = `<section class="sheet" lang="${htmlLang(tl)}"><h2>${title}${tag}</h2>
     <div class="meta"><span>${esc(t('test.count', tl, { n: test.questions.length }))}</span><span>${esc(t('set.code', tl))}: ${esc(o.code)}${ab ? '-' + ver : ''}</span></div>
-    <div class="idbox"><div>${P('test.class')}</div><div>${P('test.name')}</div><div>${P('test.date')}</div><div>${P('test.score')}</div></div>${qs}</section>`;
+    <div class="idbox"><div>${P('test.class')}</div><div>${P('test.name')}</div><div>${P('test.date')}</div><div>${P('test.score')}${pts ? `<span class="total">/ ${pts * test.questions.length}</span>` : ''}</div></div>${qs}</section>`;
   const tables = test.tables.map(n => { const d = S.engine.tableData(n); return `<div class="${d.columns.length > 4 ? 'wide' : ''}"><h4>${esc(n)}</h4>${gridHTML(d)}</div>`; }).join('');
   const s2 = `<section class="sheet" lang="${htmlLang(tl)}"><h3>${P('test.data')}${tag}</h3><p class="note">${P('test.dataNote')}</p><div class="data-tables">${tables}</div></section>`;
   const s3 = !o.key ? '' : `<section class="sheet" lang="${htmlLang(tl)}"><h3>${P('test.key')}${tag} — ${title}</h3><p class="note">${P('test.keyNote')}</p>
-    ${test.questions.map((q, i) => `<div class="key-item"><span class="q-num">Q${i + 1}.</span><div class="q-body"><div class="q-sql">${esc(q.sql)}</div>${q.qtype === 'write' ? altAnswers(S.engine, q, 3).map(a => `<div class="q-alt"><span>${P('alt.title')}:</span> <span class="q-sql">${esc(a.sql)}</span></div>`).join('') : ''}${o.results || q.qtype === 'predict' ? `<div class="res">${gridHTML(q.result)}</div>` : ''}</div></div>`).join('')}</section>`;
+    ${test.questions.map((q, i) => `<div class="key-item"><span class="q-num">Q${i + 1}.</span><div class="q-body">${q.qtype === 'order' ? `<div class="key-order">${q.order.answer.map(id => LETTERS[q.order.chunks.findIndex(c => c.id === id)]).join(' → ')}${q.order.chunks.some(c => c.distractor) ? ` <small>(${esc(t('test.keyUnused', tl, { x: LETTERS[q.order.chunks.findIndex(c => c.distractor)] }))})</small>` : ''}</div>` : ''}${q.qtype === 'fill' ? `<div class="key-order">${q.fill.answers.map((a, k) => `(${k + 1}) <code>${esc(a)}</code>`).join('　')}</div>` : ''}<div class="q-sql">${esc(q.sql)}</div>${q.qtype === 'write' ? altAnswers(S.engine, q, 3).map(a => `<div class="q-alt"><span>${P('alt.title')}:</span> <span class="q-sql">${esc(a.sql)}</span></div>`).join('') : ''}${o.results || q.qtype === 'predict' ? `<div class="res">${gridHTML(q.result)}</div>` : ''}</div></div>`).join('')}</section>`;
   setTimeout(() => { const el = document.getElementById('tm-count'); if (el) el.textContent = `${t('test.count', L(), { n: test.questions.length })}${ab ? ' × 2' : ''} · ${o.code}`; });
   return s1 + s2 + s3;
 }
@@ -1496,6 +1508,7 @@ const actions = {
   },
   quickBig() { modal(`<div class="modal-body">${quickBigHTML()}</div>`, { wide: true }); },
   closeModal,
+  testSavePreset() { const name = prompt(T('test.presetName'), S.test.title || T('test.headingDefault')); if (!name) return; const keep = ['title', 'tlang', 'bilingual', 'lessons', 'per', 'types', 'band', 'pts', 'key', 'results', 'ab']; const o = Object.fromEntries(keep.map(k => [k, S.test[k]])); const list = Store.get(KEYS.test + '.presets', []) || []; list.unshift({ name: name.slice(0, 60), o }); Store.set(KEYS.test + '.presets', list.slice(0, 30)); toast(T('test.presetSaved')); render(); },
   navMenu() { document.body.classList.toggle('nav-open'); },
   loginMode(el) { S.loginMode = el.dataset.m; render(); },
   async signOut() { await backend.signOut(); S.session = null; S.isTeacher = null; S.classes = []; S.klass = null; stopWatch(); location.hash = '#/'; render(); },
@@ -1626,11 +1639,15 @@ document.addEventListener('change', async e => {
   if (el.dataset.qsel === 'pass') { const d = quickDraft(S.klass); d.pass = el.value === '' ? null : +el.value; saveQDraft(d, true); refreshTab(); return; }
   if (el.dataset.act2 === 'boardHide') { S.boardHide = el.checked; saveView(); return; }
   if (el.dataset.act2 === 'mistakeProb') { S.mistakeProb = el.value; refreshTab(); return; }
+  if (el.dataset.tt) { const o = S.test, set = new Set(testTypes()); if (el.checked) set.add(el.dataset.tt); else set.delete(el.dataset.tt); if (!set.size) set.add('write'); o.types = ['write', 'predict', 'order', 'fill'].filter(x => set.has(x)); saveTest(); render(); return; }
+  if (el.dataset.tp === 'load' && el.value !== '') { const x = Store.get(KEYS.test + '.presets', [])[+el.value]; if (x) { Object.assign(S.test, x.o); saveTest(); render(); toast(T('test.presetLoaded', { n: x.name })); } return; }
   const k = el.dataset.tk;
   if (k) {
     const o = S.test;
     if (el.type === 'checkbox') o[k] = el.checked;
     else if (k === 'per') o.per = +el.value;
+    else if (k === 'band') o.band = +el.value;
+    else if (k === 'pts') o.pts = Math.max(0, Math.min(100, Math.round(+el.value) || 0));
     else if (k === 'ab') o.ab = el.value === 'true';
     else if (k === 'code') o.code = normCode(el.value) || randomCode();
     else if (k === 'bilingual') o.bilingual = el.value || null;

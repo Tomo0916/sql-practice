@@ -2062,5 +2062,21 @@ export default {
   "res.cmpSame": "行的内容相同。请检查列名和顺序",
   "ds.bike_rentals": "共享单车租借记录（含日期）",
   "ds.concerts": "演唱会记录（含日期）",
-  "tc.toStudent": "学生页面"
+  "tc.toStudent": "学生页面",
+  "test.types": "题型（可多选）",
+  "test.typesTip": "所选题型会在各题中混合。不适合某题型的题会变成“写 SQL”。",
+  "test.typeOrder": "排序",
+  "test.typeFill": "填空",
+  "test.pts": "每题分值",
+  "test.ptsTip": "填 0 则不印分数。",
+  "test.ptsEach": "{n} 分",
+  "test.presets": "保存的设置",
+  "test.presetSave": "保存当前设置",
+  "test.presetLoad": "打开保存的设置",
+  "test.presetName": "这个设置的名称",
+  "test.presetSaved": "设置已保存。",
+  "test.presetLoaded": "已打开“{n}”。",
+  "test.qOrder": "把下面的部件按正确顺序排列，组成取出以下内容的 SQL，并用字母作答。可能有一个部件用不到。",
+  "test.qFill": "写出 (1)(2)… 处应填的内容，组成取出以下内容的 SQL。",
+  "test.keyUnused": "{x} 用不到"
 };
