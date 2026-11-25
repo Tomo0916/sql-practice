@@ -2063,5 +2063,21 @@ export default {
   "res.cmpSame": "The rows match. Check the column names and order",
   "ds.bike_rentals": "Bike rentals (with dates)",
   "ds.concerts": "Concerts (with dates)",
-  "tc.toStudent": "Student pages"
+  "tc.toStudent": "Student pages",
+  "test.types": "Question types (any number)",
+  "test.typesTip": "The chosen types are mixed across the questions. A question that does not fit a type becomes \"Write the SQL\".",
+  "test.typeOrder": "Put in order",
+  "test.typeFill": "Fill in the blanks",
+  "test.pts": "Points per question",
+  "test.ptsTip": "0 prints no points.",
+  "test.ptsEach": "{n} pt",
+  "test.presets": "Saved settings",
+  "test.presetSave": "Save these settings",
+  "test.presetLoad": "Open saved settings",
+  "test.presetName": "Name of these settings",
+  "test.presetSaved": "Settings saved.",
+  "test.presetLoaded": "Opened \"{n}\".",
+  "test.qOrder": "Put the pieces in the right order to make SQL that gets the following, and answer with their letters. One piece may not be used.",
+  "test.qFill": "Write what goes in (1), (2) … to make SQL that gets the following.",
+  "test.keyUnused": "{x} is not used"
 };

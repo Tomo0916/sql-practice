@@ -2063,5 +2063,21 @@ export default {
   "res.cmpSame": "行の中身は同じです。列の名前や順番を確かめましょう",
   "ds.bike_rentals": "レンタサイクルの記録（日付つき）",
   "ds.concerts": "コンサートの記録（日付つき）",
-  "tc.toStudent": "生徒用のページへ"
+  "tc.toStudent": "生徒用のページへ",
+  "test.types": "問題の形式（いくつでも）",
+  "test.typesTip": "選んだ形式が問題ごとに混ざります。形式に合わない問題は「SQLを書く」になります。",
+  "test.typeOrder": "並べかえ",
+  "test.typeFill": "穴うめ",
+  "test.pts": "1問の配点",
+  "test.ptsTip": "0 にすると点数を書きません。",
+  "test.ptsEach": "{n} 点",
+  "test.presets": "設定の保存",
+  "test.presetSave": "今の設定を保存",
+  "test.presetLoad": "保存した設定を開く",
+  "test.presetName": "この設定の名前",
+  "test.presetSaved": "設定を保存しました。",
+  "test.presetLoaded": "「{n}」の設定を開きました。",
+  "test.qOrder": "次の内容を取り出すSQLになるように、部品を正しい順に並べ、記号で答えなさい。使わない部品が1つあることもあります。",
+  "test.qFill": "次の内容を取り出すSQLになるように、(1)(2)… に入る語句を書きなさい。",
+  "test.keyUnused": "{x} は使わない部品"
 };

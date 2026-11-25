@@ -2062,5 +2062,21 @@ export default {
   "res.cmpSame": "Các dòng giống nhau. Hãy kiểm tra tên và thứ tự cột",
   "ds.bike_rentals": "Thuê xe đạp (có ngày)",
   "ds.concerts": "Buổi hòa nhạc (có ngày)",
-  "tc.toStudent": "Trang học viên"
+  "tc.toStudent": "Trang học viên",
+  "test.types": "Dạng câu hỏi (chọn nhiều)",
+  "test.typesTip": "Các dạng đã chọn được trộn trong đề. Câu không hợp dạng nào sẽ thành \"Viết SQL\".",
+  "test.typeOrder": "Sắp xếp",
+  "test.typeFill": "Điền vào chỗ trống",
+  "test.pts": "Điểm mỗi câu",
+  "test.ptsTip": "0 thì không in điểm.",
+  "test.ptsEach": "{n} điểm",
+  "test.presets": "Cài đặt đã lưu",
+  "test.presetSave": "Lưu cài đặt này",
+  "test.presetLoad": "Mở cài đặt đã lưu",
+  "test.presetName": "Tên cài đặt này",
+  "test.presetSaved": "Đã lưu cài đặt.",
+  "test.presetLoaded": "Đã mở \"{n}\".",
+  "test.qOrder": "Sắp xếp các mảnh theo đúng thứ tự để thành câu SQL lấy ra nội dung sau, rồi trả lời bằng chữ cái. Có thể có một mảnh không dùng.",
+  "test.qFill": "Viết phần điền vào (1), (2)… để thành câu SQL lấy ra nội dung sau.",
+  "test.keyUnused": "{x} không dùng"
 };

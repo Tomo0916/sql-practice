@@ -602,12 +602,14 @@ export class SqlEngine {
     LESSONS.filter(l => opts.lessons.includes(l.key) && l.kind !== 'quiz' && !l.noTest).forEach(lesson => {
       const themes = lesson.kind === 'join' ? joins : lesson.themes === 'null' ? NULL_DATASETS.slice(0, 2) : lesson.themes === 'analysis' ? R.shuffle(ANALYSIS_THEMES).slice(0, 2) : lesson.themes === 'date' ? DATE_DATASETS.slice(0, 2) : lesson.themes === 'join3' ? JOIN3_DATASETS : singles;
       for (let q = 0; q < opts.per; q++) {
-        const wantType = opts.type === 'mix' ? (RT.next() < 0.5 ? 'write' : 'predict') : opts.type;
+        const types = opts.types && opts.types.length ? opts.types : opts.type === 'mix' ? ['write', 'predict'] : [opts.type || 'write'];
+        const wantType = types[Math.floor(RT.next() * types.length)];
+        const lv = opts.band ? bandLevel(lesson.key, opts.band) : 0;
         let made = null;
         for (let i = 0; i < 24 && !made; i++) {
           const shift = lesson.themes === 'analysis' && ver === 'B' ? 1 : 0;   // analysis answers depend mostly on the table: B uses the other one
           const ds = themes[(q + i + shift) % themes.length];
-          const p = this.genOne(lesson, ds, `test|${opts.code}|${ver}|${lesson.key}|${q}|${i}`);
+          const sd = `test|${opts.code}|${ver}|${lesson.key}|${q}|${i}`, p = (lv && this.genLevel(lesson, ds, sd, lv)) || this.genOne(lesson, ds, sd);
           if (!p) continue;
           const prob = this.buildProblem(lesson, p, 'test', questions.length + 1, ds.table || ds.key);
           if (seen.has(prob.sql)) continue;
@@ -616,7 +618,10 @@ export class SqlEngine {
         if (!made) continue;
         seen.add(made.sql);
         made.result = this.exec(made.sql);
-        made.qtype = wantType === 'predict' && this.predictable(made) ? 'predict' : 'write';
+        made.qtype = 'write';
+        if (wantType === 'predict' && this.predictable(made)) made.qtype = 'predict';
+        if (wantType === 'order') { const t = this.orderTask(made); if (t && t.chunks.length >= 3 && t.chunks.length <= 9) { made.qtype = 'order'; made.order = t; } }
+        if (wantType === 'fill' && blanksOf(lesson, made.p).length) { const t = this.fillTask(made); if (t.answers.length && t.answers.every(a => a !== '')) { made.qtype = 'fill'; made.fill = t; } }
         questions.push(made);
       }
     });
