@@ -2048,5 +2048,10 @@ export default {
   "ex.tc.saved": "已保存。",
   "ex.tc.loadConfirm": "要打开“{n}”吗？当前的流程会被替换。",
   "ex.tc.syncOn": "已开始同步学生的画面。",
-  "ex.tc.syncOff": "已停止同步学生的画面。"
+  "ex.tc.syncOff": "已停止同步学生的画面。",
+  "nav.python": "Python",
+  "nav.more": "更多",
+  "hm.all": "查看全部",
+  "hm.learnSub": "按章节选择课程：讲解、例题，然后练习。",
+  "nav.dash": "首页"
 };

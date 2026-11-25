@@ -2048,5 +2048,10 @@ export default {
   "ex.tc.saved": "Tersimpan.",
   "ex.tc.loadConfirm": "Buka \"{n}\"? Alur sekarang akan diganti.",
   "ex.tc.syncOn": "Sinkron layar siswa dimulai.",
-  "ex.tc.syncOff": "Sinkron layar siswa dihentikan."
+  "ex.tc.syncOff": "Sinkron layar siswa dihentikan.",
+  "nav.python": "Python",
+  "nav.more": "Lainnya",
+  "hm.all": "Lihat semua",
+  "hm.learnSub": "Pilih pelajaran per bab: kuliah, contoh, lalu latihan.",
+  "nav.dash": "Beranda"
 };

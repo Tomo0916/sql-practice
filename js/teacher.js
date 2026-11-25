@@ -30,7 +30,7 @@ import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
 import * as backend from './backend.js';
-import { pyDescHTML, highlightPy, composeHTML, countPickHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
+import { pyDescHTML, highlightPy, composeHTML, countPickHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -87,6 +87,7 @@ window.addEventListener('hashchange', () => { closeProjector(); const prev = S.r
 /* =========================================================
  * RENDER
  * ========================================================= */
+startIconizer();
 function render() {
   applySettings(S.settings, htmlLang(L()));
   const v = S.route.view;

@@ -21,7 +21,7 @@ import { exOf, exLesson, exTitleHTML } from './explain.js';
 import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
-import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
+import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 /* the code editor (CodeMirror, ~420 KB) is loaded when a page needs it, not on the home page */
 let createEditor = null;
@@ -143,6 +143,7 @@ function parseRoute() {
   if (h[0] === 'table') return { view: 'session', kind: 'table', ds: h[1] || null };
   if (h[0] === 'practice') return { view: 'session', kind: 'prac', go: h[1] === 'go', pre: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'py') return pyRoute(h);
+  if (h[0] === 'learn') return { view: 'learn', ch: h[1] || null };
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
   if (h[0] === 'mastery') return { view: 'mastery' };
@@ -204,6 +205,7 @@ function saveDraft() {
 /* =========================================================
  * RENDER
  * ========================================================= */
+startIconizer();
 function render() {
   applySettings(S.settings, htmlLang(L()));
   if (S.asgRun && !location.hash.startsWith(S.asgRun.prefix)) S.asgRun = null;   // left the page of a sent item
@@ -224,36 +226,66 @@ function render() {
   else if (r.view === 'clauses') body = clausesHTML();
   else if (r.view === 'lecture') body = lectureHTML();
   else if (r.view === 'explain') body = explainViewHTML();
+  else if (r.view === 'learn') body = learnHTML();
   else if (r.view === 'py') body = pyHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
-  app.innerHTML = head + quickBannerHTML() + liveBannerHTML() + body + exBackHTML() + footerHTML();
+  document.body.classList.remove('nav-open');
+  app.innerHTML = `<div class="shell">${head}<div class="shell-main">${quickBannerHTML()}${liveBannerHTML()}${body}${exBackHTML()}${footerHTML()}</div></div>${tabbarHTML()}`;
   mountWorkspace();
   pyMount();
   drawJoinLines(app);
 }
 
+/* ---------- the frame: a side menu (computers), a top bar and a tab bar (phones) ---------- */
+/** which menu item a page belongs to */
+function navOf(r) {
+  if (r.view === 'home') return 'home';
+  if (r.view === 'session') return r.kind === 'rank' ? 'rank' : r.kind === 'review' ? 'review' : 'learn';
+  if (['learn', 'lesson', 'lecture', 'basics', 'clauses', 'practice', 'solved', 'mastery'].includes(r.view)) return r.view === 'mastery' ? 'mastery' : 'learn';
+  return r.view;
+}
+function navItems() {
+  const due = S.engine ? reviewCount() : 0, cls = S.klass && ((S.klass.lessons || []).length || asgList(S.klass).length), todo = asgTodo().length;
+  return [
+    ['home', '#/', I.home, 'nav.dash'], ['learn', '#/learn', I.layers, 'hm.learn'], ['rank', '#/rank', I.medal, 'rk.title'], ['py', '#/py', I.code, 'nav.python'],
+    cls ? ['live', '#/live', liveOn(S.klass) ? '<i class="live-dot"></i>' : I.inbox, 'nav.assign', todo] : null,
+    EX.on ? ['explain', '#/explain', '<i class="live-dot"></i>', 'ex.title'] : null,
+    '-', ['review', '#/review', I.repeat, 'nav.review', due], ['mastery', '#/mastery', I.map, 'rv.map'], ['words', '#/words', I.words, 'nav.words'], ['tables', '#/tables', I.table, 'nav.tables'],
+  ].filter(Boolean);
+}
 function headerHTML() {
-  const due = S.engine ? reviewCount() : 0;
-  const v = S.route.view;
-  return `<header class="topbar"><div class="topbar-in">
+  const on = navOf(S.route);
+  const item = ([k, href, ic, label, badge]) => `<a href="${href}" class="nav-i ${on === k ? 'on' : ''}">${ic}<span>${H(label)}</span>${badge ? `<b class="badge">${badge}</b>` : ''}</a>`;
+  const side = `<aside class="side-nav" aria-label="menu">
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
-    <nav class="topnav">
-      <a href="#/" class="${v === 'home' || v === 'lesson' ? 'on' : ''}">${I.book}<span>${H('nav.home')}</span></a>
-      ${S.klass && ((S.klass.lessons || []).length || asgList(S.klass).length) ? `<a href="#/live" class="${v === 'live' ? 'on' : ''}">${liveOn(S.klass) ? '<i class="live-dot"></i>' : I.users}<span>${H('nav.assign')}</span></a>` : ''}
-      <a href="#/review" class="${v === 'session' && S.route.kind !== 'check' ? 'on' : ''}">${I.repeat}<span>${H('nav.review')}</span>${due ? `<b class="badge">${due}</b>` : ''}</a>
-      <a href="#/words" class="${v === 'words' ? 'on' : ''}">${I.globe}<span>${H('nav.words')}</span></a>
-      <a href="#/tables" class="${v === 'tables' ? 'on' : ''}">${I.table}<span>${H('nav.tables')}</span></a>
-    </nav>
-    <div class="topbar-right">
-      ${S.klass ? `<button class="class-chip" data-act="classInfo" title="${esc(S.klass.name)}">${I.users}<span>${esc(S.klass.name)}</span></button>` : ''}
-      ${langSelect(L(), T('nav.language'))}
-      <button class="icon-btn" data-act="settings" aria-label="${esc(T('set.title'))}" title="${esc(T('set.title'))}">${I.gear}</button>
-    </div>
-  </div></header>`;
+    <nav>${navItems().map(x => (x === '-' ? '<hr>' : item(x))).join('')}</nav>
+    <div class="side-foot">
+      ${S.klass ? `<button class="side-class" data-act="classInfo">${I.users}<span><b>${esc(S.klass.name)}</b><small>${esc(S.klass.nickname || '')}</small></span></button>` : backend.enabled ? `<button class="side-class join" data-act="join">${I.users}<span><b>${H('class.join')}</b></span></button>` : ''}
+      <div class="side-tools">${langSelect(L(), T('nav.language'))}<button class="icon-btn" data-act="settings" aria-label="${esc(T('set.title'))}" title="${esc(T('set.title'))}">${I.gear}</button></div>
+      <a class="side-teacher" href="teacher/">${H('foot.teacher')}</a>
+    </div></aside>`;
+  const top = `<header class="m-top"><a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
+    <div class="m-top-r">${S.klass ? `<button class="icon-btn" data-act="classInfo" aria-label="${esc(S.klass.name)}">${I.users}</button>` : ''}<button class="icon-btn" data-act="settings" aria-label="${esc(T('set.title'))}">${I.gear}</button></div></header>`;
+  return side + `<div class="nav-scrim" data-act="navMenu"></div>` + top;
+}
+/** phones: the five main places at the bottom; "more" opens the side menu as a drawer */
+function tabbarHTML() {
+  const on = navOf(S.route), main = ['home', 'learn', 'rank', 'py'];
+  const tabs = navItems().filter(x => x !== '-' && main.includes(x[0]));
+  const extra = navItems().filter(x => x !== '-' && !main.includes(x[0])).some(x => x[0] === on || x[4]);
+  return `<nav class="tabbar">${tabs.map(([k, href, ic, label]) => `<a href="${href}" class="${on === k ? 'on' : ''}">${ic}<span>${H(label)}</span></a>`).join('')}
+    <button type="button" data-act="navMenu" class="${extra ? 'dot' : ''}">${I.more}<span>${H('nav.more')}</span></button></nav>`;
 }
 function footerHTML() {
   return `<footer class="foot"><span>${H('foot.saved')}</span><a href="teacher/">${H('foot.teacher')}</a></footer>`;
+}
+
+/* ---------- 学ぶ (#/learn): every chapter and lesson; #/learn/<chapter> opens that chapter ---------- */
+function learnHTML() {
+  document.title = `${T('hm.learn')} · SQL Practice`;
+  if (S.route.ch) setTimeout(() => { const el = document.querySelector(`.chapter[data-ch="${S.route.ch}"]`); if (el) { el.classList.add('open'); el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } }, 0);
+  return `<main class="wrap"><header class="page-head"><h1>${H('hm.learn')}</h1><p class="muted">${H('hm.learnSub')}</p></header>${chaptersHTML()}</main>`;
 }
 
 /* ---------- home ---------- */
@@ -278,7 +310,7 @@ function chaptersHTML() {
   if (!book) return `${toggle}<section class="chapters">
       ${CHAPTERS.map((ch, ci) => {
         const ls = LESSONS.filter(l => l.ch === ch.key);
-        return `<article class="card chapter ${chOpen(ls) ? 'open' : ''}" style="--cc:var(--c-${ch.key})">
+        return `<article class="card chapter ${chOpen(ls) ? 'open' : ''}" data-ch="${ch.key}" style="--cc:var(--c-${ch.key})">
           <div class="chapter-head" data-act="chToggle"><div class="chapter-icon">${esc(ch.icon)}</div><div>
             <small>${H('home.chapter', { n: ci + 1 })}</small>
             <h2>${rubyHTML(raw('ch.' + ch.key, L()))}</h2><p>${rubyHTML(raw('ch.' + ch.key + '.desc', L()))}</p></div></div>
@@ -325,32 +357,29 @@ function homeHTML() {
       <button class="btn btn-primary btn-sm" data-act="join">${H('class.join')}</button></div>`;
 
   return `<main class="wrap">${asgHomeHTML()}
-    <section class="hero">
-      <div class="hero-text">
-        <h1>${rubyHTML(raw('home.title', L()))}</h1>
-        <p>${rubyHTML(raw('home.sub', L()))}</p>
-        <div class="hero-btns">
-          <a class="btn btn-light" href="${contHash}">${esc(last ? T('home.continue') : T('home.start'))} ${I.next}</a>
-          ${due ? `<a class="btn btn-glass" href="#/review">${I.repeat}${H('rv.today', { n: due })}</a>` : ''}
-          <a class="btn btn-glass" href="#/mastery">${H('rv.map')}</a>
-        </div>
-        <div class="hero-deco" aria-hidden="true">SELECT *</div>
-      </div>
-      <div class="card stats">
-        <div class="stat-row">
-          <div class="stat"><b>${solved}</b><span>${H('home.solved')}</span></div>
-          <div class="stat"><b>${allDone}<small> / ${LESSONS.length}</small></b><span>${H('home.lessonsDone')}</span></div>
-          <div class="stat"><b>${I.fire}${streak}</b><span>${H('home.streak')}</span></div>
-        </div>
+    <header class="dash-head"><h1>${rubyHTML(raw('home.title', L()))}</h1><p class="muted">${rubyHTML(raw('home.sub', L()))}</p></header>
+    <div class="dash-top">
+      ${(() => { const l = last && LESSON_BY_KEY[last.key] ? LESSON_BY_KEY[last.key] : LESSONS[0], st = stateOf(l), ch = CHAPTERS.find(c => c.key === l.ch);
+        return `<a class="card dash-cont" href="${contHash}" style="--cc:var(--c-${l.ch})">
+          <span class="dash-eyebrow">${H(last ? 'home.continue' : 'home.start')}</span>
+          <span class="dash-cont-title">${l.no}. ${lessonTitleHTML(l, L())}</span>
+          <span class="muted small">${ch ? chName(ch.key) : ''}</span>
+          <span class="dots big" aria-label="${st.count}/${st.solved.length}">${problemsOf(l).map((p, n) => `<i class="${st.solved[n] ? 'on' : ''}"></i>`).join('')}</span>
+          <span class="dash-go">${I.next}</span></a>`; })()}
+      <div class="card dash-stats">
+        <div class="stat"><b>${solved}</b><span>${H('home.solved')}</span></div>
+        <div class="stat"><b>${allDone}<small> / ${LESSONS.length}</small></b><span>${H('home.lessonsDone')}</span></div>
+        <div class="stat"><b>${I.fire}${streak}</b><span>${H('home.streak')}</span></div>
         <div class="bar"><i style="width:${Math.round(allDone / LESSONS.length * 100)}%"></i></div>
-        ${classBox}
-        ${S.klass ? `<div class="joinbox in"><b>${I.users} ${esc(S.klass.name)}</b><p class="muted">${H('class.you', { n: S.klass.nickname })} · ${H('set.code')} <span class="mono">${esc(S.klass.set_code)}</span></p><button class="btn btn-ghost btn-sm" data-act="classInfo">${I.gear}${H('set.title')}</button></div>` : setBoxHTML()}
+        ${due ? `<a class="btn btn-ghost btn-sm" href="#/review">${I.repeat}${H('rv.today', { n: due })}</a>` : ''}
       </div>
-    </section>
+    </div>
+    ${classBox ? `<section class="card dash-join">${classBox}</section>` : ''}
     ${assign}${taskCard}
     ${S.pinNeeded ? `<section class="card mixcard pincard"><div><span class="drill-ic">🔢</span><div><b>${H('pin.setTitle')}</b><p class="muted">${H('pin.setSub')}</p></div></div><button class="btn btn-ok" data-act="setPin">${H('pin.setNow')}</button></section>` : ''}
-    <section class="home-group"><h2 class="home-h">${H('hm.learn')}</h2></section>
-    ${chaptersHTML()}
+    <section class="home-group"><h2 class="home-h">${H('hm.learn')}<a class="home-more" href="#/learn">${H('hm.all')} ${I.next}</a></h2>
+      <div class="ch-map">${CHAPTERS.map(ch => { const ls = LESSONS.filter(l => l.ch === ch.key), d = ls.filter(l => S.progress.lessons[l.key] && S.progress.lessons[l.key].done).length;
+        return `<a class="ch-tile" href="#/learn/${ch.key}" style="--cc:var(--c-${ch.key})"><span class="ch-ic">${esc(ch.icon)}</span><span class="ch-tile-name">${chName(ch.key)}</span><span class="ch-bar"><i style="width:${ls.length ? Math.round(d / ls.length * 100) : 0}%"></i></span><small class="muted">${d} / ${ls.length}</small></a>`; }).join('')}</div></section>
     ${PRACTICE ? `
     <section class="home-group"><h2 class="home-h">${H('hm.practice')}</h2><div class="home-grid">
     <section class="card mixcard drillcard">
@@ -443,7 +472,7 @@ function lessonHTML() {
   </aside>`;
 
   return `<main class="wrap">
-    <div class="crumbs"><a href="#/">${H('nav.home')}</a><span>›</span><span>${rubyHTML(raw('ch.' + ch.key, L()))}</span><span>›</span><span>${lessonTitleHTML(lesson, L())}</span></div>
+    <div class="crumbs"><a href="#/learn">${H('hm.learn')}</a><span>›</span><span>${rubyHTML(raw('ch.' + ch.key, L()))}</span><span>›</span><span>${lessonTitleHTML(lesson, L())}</span></div>
     <div class="lesson-layout">${side}<div class="main" id="ws">${workspaceHTML(prob)}</div></div>
   </main>`;
 }
@@ -503,7 +532,7 @@ function sessionHTML() {
   if (!ses.items.length) {
     return `<main class="wrap narrow"><section class="card empty">
       <div class="empty-icon">${I.check}</div><h1>${H('review.none')}</h1><p class="muted">${H('review.noneSub')}</p>
-      <div class="row-btns"><a class="btn btn-primary" href="#/mix">${I.shuffle}${H('mix.start')}</a><a class="btn btn-ghost" href="#/mastery">${H('rv.map')}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
+      <div class="row-btns"><a class="btn btn-primary" href="#/mix">${I.shuffle}${H('mix.start')}</a><a class="btn btn-ghost" href="#/mastery">${H('rv.map')}</a><a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a></div></section></main>`;
   }
   if (ses.i >= ses.items.length && kind === 'review') return reviewDoneHTML(ses);
   if (ses.i >= ses.items.length) {
@@ -548,7 +577,7 @@ function levelHubHTML() {
   const st = lvState();
   if (!st) return `<main class="wrap narrow"><section class="card empty lv-hero"><div class="empty-icon">🎯</div><h1>${H('lv.title')}</h1><p class="muted">${H('lv.intro')}</p>
       ${levelStepsHTML(null)}<p class="muted small">${H('lv.testNoteA')}</p>
-      <div class="row-btns"><a class="btn btn-primary btn-lg" href="#/level/test">${H('lv.startTest')}${I.next}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
+      <div class="row-btns"><a class="btn btn-primary btn-lg" href="#/level/test">${H('lv.startTest')}${I.next}</a><a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a></div></section></main>`;
   const ch = targetChapter(st), first = ch ? chapterLessons(ch)[0] : null;
   return `<main class="wrap narrow lv-hub"><section class="card lv-card">
       <div class="lv-badge"><small>${H('lv.title')}</small><b>Lv.${st.lv}</b><span class="muted small">/ ${LV_MAX}</span></div>
@@ -630,7 +659,7 @@ function levelRoundDoneHTML(ses) {
   return `<main class="wrap narrow lv-hub"><section class="card empty lv-hero ${r.up ? 'up' : ''}"><div class="empty-icon">${r.up ? '🎉' : I.fire}</div><h1>${r.up ? `Lv.${st.lv}` : H('review.finished')}</h1>
       <p class="big-score">${ok} / ${ses.items.length}</p><p class="${r.up ? 'qk-break' : 'muted'}">${msg}</p>
       ${ch ? `<div class="lv-now center"><small class="muted">${H('lv.learning')}：${chName(ch)}</small>${fmtLadderHTML(st.fmt || 0)}</div>` : ''}
-      <div class="row-btns"><button class="btn btn-primary btn-lg" data-act="levelMore">${I.repeat}${H('rv.more', { n: 5 })}</button><a class="btn btn-ghost" href="#/level">${H('lv.title')}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
+      <div class="row-btns"><button class="btn btn-primary btn-lg" data-act="levelMore">${I.repeat}${H('rv.more', { n: 5 })}</button><a class="btn btn-ghost" href="#/level">${H('lv.title')}</a><a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a></div></section></main>`;
 }
 /* ---------- the root drill (基礎の型): #/basics = the steps, #/basics/<step> = practise one shape ---------- */
 const bsState = k => basicNorm((S.progress.basics || {})[k]);
@@ -818,7 +847,7 @@ function bsMixHTML() {
   document.title = `${T(S.route.task ? 'task.title' : 'bs.all.title')} · SQL Practice`;
   if (!S.route.go) { if (S.session && S.session.kind === 'bsmix') S.session = null; return basicsHubHTML(); }
   const tk = S.route.task ? taskOf() : null;
-  if (S.route.task && !tk) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">📌</div><h1>${H('task.none')}</h1><a class="btn btn-primary" href="#/">${H('nav.home')}</a></section></main>`;
+  if (S.route.task && !tk) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">📌</div><h1>${H('task.none')}</h1><a class="btn btn-primary" href="#/learn">${H('hm.learn')}</a></section></main>`;
   if (!S.session || S.session.kind !== 'bsmix' || (S.session.task || null) !== (tk ? tk.id : null)) {
     if (tk) {   // the assignment: the problems not solved yet first, then the solved ones
       const done = new Set((S.progress.tasks || {})[tk.id] || []), all = taskProblems(tk);
@@ -835,7 +864,7 @@ function bsMixHTML() {
     const weak = Object.keys(by).filter(k => by[k].ok < by[k].n);
     return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${ok === n ? '🎉' : '🔀'}</div><h1>${H('review.finished')}</h1>
       <p class="muted">${H(ses.task ? 'task.title' : 'bs.all.title')}</p><p class="big-score">${ok} / ${n}</p>${ses.task && tk ? `<p class="muted small">${H('task.total', { n: taskSolved(tk), m: tk.n })}</p>` : ''}
-      <div class="row-btns"><button class="btn btn-primary" data-act="mixAgain">${I.repeat}${H('cq.again')}</button>${ses.task ? `<a class="btn btn-ghost" href="#/">${H('nav.home')}</a>` : ''}<a class="btn btn-ghost" href="#/basics">${H('bs.title')}</a></div></section>
+      <div class="row-btns"><button class="btn btn-primary" data-act="mixAgain">${I.repeat}${H('cq.again')}</button>${ses.task ? `<a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a>` : ''}<a class="btn btn-ghost" href="#/basics">${H('bs.title')}</a></div></section>
       <h2 class="bs-h2">${H('bs.mix.result')}</h2>
       <ul class="mx-res">${Object.keys(by).map(k => `<li class="card ${by[k].ok === by[k].n ? 'ok' : 'ng'}"><b>${bsName(k)}</b><span>${by[k].ok} / ${by[k].n}</span>${by[k].ok < by[k].n ? `<a class="btn btn-ghost btn-sm" href="#/basics/${k}">${H('cq.toBasics')}${I.next}</a>` : '<span class="mx-ok">✓</span>'}</li>`).join('')}</ul>
       ${weak.length ? '' : `<p class="muted small center">${H('cq.perfect')}</p>`}</main>`;
@@ -949,7 +978,7 @@ function oneTableHTML() {
     const ok = Object.values(ses.done).filter(Boolean).length;
     return `<main class="wrap narrow"><section class="card empty">
       <div class="empty-icon">${I.fire}</div><h1>${H('review.finished')}</h1><p class="muted">${names}</p><p class="big-score">${ok} / ${ses.items.length}</p>
-      <div class="row-btns"><button class="btn btn-primary" data-act="tpAgain">${I.repeat}${H('tp.again')}</button><a class="btn btn-ghost" href="#/table">${H('tp.other')}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div></section></main>`;
+      <div class="row-btns"><button class="btn btn-primary" data-act="tpAgain">${I.repeat}${H('tp.again')}</button><a class="btn btn-ghost" href="#/table">${H('tp.other')}</a><a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a></div></section></main>`;
   }
   const prob = ses.items[ses.i], lesson = LESSON_BY_KEY[prob.lesson];
   return `<main class="wrap">
@@ -1008,7 +1037,7 @@ function pracSetupHTML() {
       ${lvPick}
       ${ex ? `<div class="pr-ex"><small class="muted">${H('pr.example', { name: lessonTitle(LESSON_BY_KEY[ex.lesson], L()) })} · Lv${ex.lv}</small><p class="small">${problemHTML(ex, L())}</p><pre class="sql">${highlightSQL(ex.sql)}</pre></div>` : ''}
       <div class="qs-row"><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('fmt', PR_FMT, prFmtName)}</div><div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'prSet', k: 'n', value: c.n, presets: PR_N, min: 1, max: 20, secEach: c.fmt === 'write' ? 90 : 50, lang: L() })}</div></div>
-      <div class="row-btns"><a class="btn btn-primary btn-lg ${c.lessons.length ? '' : 'disabled'}" href="${c.lessons.length ? '#/practice/go' : '#/practice'}">${H('pr.start')}${I.next}</a><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></div>
+      <div class="row-btns"><a class="btn btn-primary btn-lg ${c.lessons.length ? '' : 'disabled'}" href="${c.lessons.length ? '#/practice/go' : '#/practice'}">${H('pr.start')}${I.next}</a><a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a></div>
       ${c.lessons.length ? '' : `<p class="muted small">${H('pr.pick')}</p>`}
     </section></main>`;
 }
@@ -1061,7 +1090,7 @@ function reviewDoneHTML(ses) {
   const ok = Object.values(ses.done).filter(Boolean).length, more = reviewCount();
   return `<main class="wrap narrow"><section class="card empty">
       <div class="empty-icon">${I.fire}</div><h1>${H('review.finished')}</h1><p class="big-score">${ok} / ${ses.items.length}</p>
-      <div class="row-btns">${more ? `<button class="btn btn-primary" data-act="reviewMore">${I.repeat}${H('rv.more', { n: Math.min(more, REVIEW_N) })}</button>` : ''}<a class="btn ${more ? 'btn-ghost' : 'btn-primary'}" href="#/">${H('nav.home')}</a><a class="btn btn-ghost" href="#/mastery">${H('rv.map')}</a></div></section>
+      <div class="row-btns">${more ? `<button class="btn btn-primary" data-act="reviewMore">${I.repeat}${H('rv.more', { n: Math.min(more, REVIEW_N) })}</button>` : ''}<a class="btn ${more ? 'btn-ghost' : 'btn-primary'}" href="#/learn">${H('hm.learn')}</a><a class="btn btn-ghost" href="#/mastery">${H('rv.map')}</a></div></section>
     <section class="rv-result">${ses.items.map(p => { const lesson = LESSON_BY_KEY[p.lesson], m = ses.moves[p.id], good = ses.done[p.id];
       return `<div class="card rv-item"><b class="ck-m ${good ? 'ok' : 'bad'}">${good ? '○' : m ? '×' : '–'}</b>
         <div class="rv-what"><small class="muted">${H('lesson.of', { a: lesson.no })} · ${lessonTitleHTML(lesson, L())}</small><b>${patNameHTML(p.lesson, p.topic)}</b></div>
@@ -1172,7 +1201,7 @@ function drillHTML(ses) {
   const one = ses.key && LESSON_BY_KEY[ses.key];
   const lv = drillLevel();
   const seg = `<div class="seg drill-lv">${[['mix', 'drill.lvMix'], ['1', 'drill.lv1'], ['2', 'drill.lv2']].map(([v, k]) => `<button class="${lv === v ? 'on' : ''}" data-act="drillLevel" data-v="${v}">${H(k)}</button>`).join('')}</div>`;
-  const back = one ? `<a class="btn btn-ghost" href="#/l/${one.key}/0">${H('drill.back')}</a>` : `<a class="btn btn-ghost" href="#/">${H('nav.home')}</a>`;
+  const back = one ? `<a class="btn btn-ghost" href="#/l/${one.key}/0">${H('drill.back')}</a>` : `<a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a>`;
   if (!ses.items.length) return `<main class="wrap narrow"><section class="card empty"><h1>${H('drill.title')}</h1><p class="muted">${H('drill.none')}</p><div class="row-btns">${back}</div></section></main>`;
   if (ses.i >= ses.items.length) {
     asgHit('drill');
@@ -1238,7 +1267,7 @@ function quickEndedHTML(st) {
   return `<main class="wrap narrow ck-result"><section class="card empty quick-done ${passed ? '' : 'not'}">
       <div class="empty-icon">${passed ? '🎉' : '⚡'}</div><h1>${H('qk.endedTitle')}</h1><p class="big-score">${ok} / ${n}</p>
       <p class="${passed ? 'qk-break' : 'muted'}">${H(passed ? 'qk.passTitle' : 'qk.upSub')}</p>
-      <a class="btn btn-primary" href="#/">${H('nav.home')}</a></section>${qReviewHTML(items, st)}</main>`;
+      <a class="btn btn-primary" href="#/learn">${H('hm.learn')}</a></section>${qReviewHTML(items, st)}</main>`;
 }
 const qDone = p => !!qState().done[p.qn];
 /** a level test from the teacher: one answer per problem */
@@ -1303,7 +1332,7 @@ function quickViewHTML() {
   if (!quickOn(S.klass)) {
     const last = S.klass && S.engine ? qLast() : null;
     if (last) { S.qResSeen = last.id; return quickEndedHTML(last); }
-    return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.none')}</p><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></section></main>`;
+    return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">⚡</div><h1>${H('qk.title')}</h1><p class="muted">${H('qk.none')}</p><a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a></section></main>`;
   }
   const q = S.klass.quick, items = qItems(), n = items.length, ok = qOk(), st = qState(), ph = qPhaseNow();
   if (ph === 'wait') return `<main class="wrap narrow"><section class="card empty quick-wait">
@@ -1494,7 +1523,7 @@ function liveViewHTML() {
   const live = liveOn(S.klass);
   document.title = `${T('nav.assign')} · SQL Practice`;
   if (S.klass && !groups.length && asgList(S.klass).length) return `<main class="wrap narrow">${asgListHTML()}</main>`;
-  if (!S.klass || !groups.length) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${I.users}</div><h1>${H('nav.assign')}</h1><p class="muted">${H('live.none')}</p><a class="btn btn-ghost" href="#/">${H('nav.home')}</a></section></main>`;
+  if (!S.klass || !groups.length) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">${I.users}</div><h1>${H('nav.assign')}</h1><p class="muted">${H('live.none')}</p><a class="btn btn-ghost" href="#/learn">${H('hm.learn')}</a></section></main>`;
   const seq = groups.flatMap(g => g.probs), solved = seq.filter(p => isSolved(p.id)).length;
   const c = current();
   const lib = groups.map(g => {
@@ -1618,7 +1647,7 @@ function exPaint(e) {
 function explainViewHTML() {
   const e = exOf(S.klass);
   document.title = `${T('ex.title')} · SQL Practice`;
-  if (!e) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">📽</div><h1>${H('ex.title')}</h1><p class="muted">${H('ex.none')}</p><a class="btn btn-primary" href="#/">${H('nav.home')}</a></section></main>`;
+  if (!e) return `<main class="wrap narrow"><section class="card empty"><div class="empty-icon">📽</div><h1>${H('ex.title')}</h1><p class="muted">${H('ex.none')}</p><a class="btn btn-primary" href="#/learn">${H('hm.learn')}</a></section></main>`;
   const lesson = exLesson(e.key), steps = lectureSteps(e.key), st = steps[Math.min(e.i, steps.length - 1)], slides = lectureOf(e.key).slides;
   EX.last = { key: e.key, i: e.i };
   return `<main class="wrap lec-wrap ex-view">
@@ -2487,6 +2516,7 @@ function openSettings() {
     </div>`);
 }
 actions.closeModal = closeModal;
+actions.navMenu = () => document.body.classList.toggle('nav-open');
 actions.asgGo = el => {
   const it = asgById(S.klass, el.dataset.id); if (!it) return;
   if (it.open === false) { toast(T('as.closed')); return; }

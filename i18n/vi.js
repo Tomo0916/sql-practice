@@ -2048,5 +2048,10 @@ export default {
   "ex.tc.saved": "Đã lưu.",
   "ex.tc.loadConfirm": "Mở \"{n}\"? Trình tự hiện tại sẽ bị thay.",
   "ex.tc.syncOn": "Đã bắt đầu đồng bộ màn hình học viên.",
-  "ex.tc.syncOff": "Đã dừng đồng bộ màn hình học viên."
+  "ex.tc.syncOff": "Đã dừng đồng bộ màn hình học viên.",
+  "nav.python": "Python",
+  "nav.more": "Thêm",
+  "hm.all": "Xem tất cả",
+  "hm.learnSub": "Chọn bài học theo chương: bài giảng, ví dụ rồi luyện tập.",
+  "nav.dash": "Trang chủ"
 };
