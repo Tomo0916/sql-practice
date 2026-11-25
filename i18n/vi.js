@@ -2053,5 +2053,11 @@ export default {
   "nav.more": "Thêm",
   "hm.all": "Xem tất cả",
   "hm.learnSub": "Chọn bài học theo chương: bài giảng, ví dụ rồi luyện tập.",
-  "nav.dash": "Trang chủ"
+  "nav.dash": "Trang chủ",
+  "res.compare": "So sánh",
+  "res.cmpExtra": "Dòng chỉ có trong kết quả của bạn {n}",
+  "res.cmpMiss": "Dòng có trong mẫu nhưng thiếu ở bạn {n}",
+  "res.cmpMoved": "Dòng sai thứ tự {n}",
+  "res.cmpCols": "Cột khác nhau (màu đỏ)",
+  "res.cmpSame": "Các dòng giống nhau. Hãy kiểm tra tên và thứ tự cột"
 };

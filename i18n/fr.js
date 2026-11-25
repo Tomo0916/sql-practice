@@ -2053,5 +2053,11 @@ export default {
   "nav.more": "Plus",
   "hm.all": "Tout voir",
   "hm.learnSub": "Choisissez une leçon par chapitre : cours, exemple, puis exercices.",
-  "nav.dash": "Accueil"
+  "nav.dash": "Accueil",
+  "res.compare": "Comparer",
+  "res.cmpExtra": "Lignes seulement chez vous {n}",
+  "res.cmpMiss": "Lignes du modèle absentes chez vous {n}",
+  "res.cmpMoved": "Lignes à une autre place {n}",
+  "res.cmpCols": "Les colonnes diffèrent (en rouge)",
+  "res.cmpSame": "Les lignes sont identiques. Vérifiez le nom et l’ordre des colonnes"
 };

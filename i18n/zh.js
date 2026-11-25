@@ -2053,5 +2053,11 @@ export default {
   "nav.more": "更多",
   "hm.all": "查看全部",
   "hm.learnSub": "按章节选择课程：讲解、例题，然后练习。",
-  "nav.dash": "首页"
+  "nav.dash": "首页",
+  "res.compare": "对比",
+  "res.cmpExtra": "只在你的结果中的行 {n}",
+  "res.cmpMiss": "示例中有而你的结果中没有的行 {n}",
+  "res.cmpMoved": "顺序不同的行 {n}",
+  "res.cmpCols": "列不同（红色）",
+  "res.cmpSame": "行的内容相同。请检查列名和顺序"
 };
