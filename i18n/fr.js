@@ -2059,5 +2059,7 @@ export default {
   "res.cmpMiss": "Lignes du modèle absentes chez vous {n}",
   "res.cmpMoved": "Lignes à une autre place {n}",
   "res.cmpCols": "Les colonnes diffèrent (en rouge)",
-  "res.cmpSame": "Les lignes sont identiques. Vérifiez le nom et l’ordre des colonnes"
+  "res.cmpSame": "Les lignes sont identiques. Vérifiez le nom et l’ordre des colonnes",
+  "ds.bike_rentals": "Locations de vélos (avec dates)",
+  "ds.concerts": "Concerts (avec dates)"
 };

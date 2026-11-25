@@ -2059,5 +2059,7 @@ export default {
   "res.cmpMiss": "Dòng có trong mẫu nhưng thiếu ở bạn {n}",
   "res.cmpMoved": "Dòng sai thứ tự {n}",
   "res.cmpCols": "Cột khác nhau (màu đỏ)",
-  "res.cmpSame": "Các dòng giống nhau. Hãy kiểm tra tên và thứ tự cột"
+  "res.cmpSame": "Các dòng giống nhau. Hãy kiểm tra tên và thứ tự cột",
+  "ds.bike_rentals": "Thuê xe đạp (có ngày)",
+  "ds.concerts": "Buổi hòa nhạc (có ngày)"
 };

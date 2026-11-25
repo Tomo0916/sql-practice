@@ -412,6 +412,24 @@ export const DATE_DATASETS = [
       [4, 'Nagoya', 'IT', 30000, '2025-04-09'], [5, 'Sendai', 'Design', 38000, '2025-04-23'], [6, 'Naha', 'IT', 72000, '2025-05-08'],
       [7, 'Kyoto', 'Sales', 36000, '2025-05-15'], [8, 'Kobe', 'IT', 40000, '2025-05-27'], [9, 'Hiroshima', 'Design', 47000, '2025-06-05'],
       [10, 'Kanazawa', 'Sales', 39000, '2025-06-12'], [11, 'Niigata', 'IT', 33000, '2025-06-19'], [12, 'Matsuyama', 'Design', 51000, '2025-06-30']]
+  },
+  {
+    table: 'bike_rentals',
+    columns: [['id', 'INTEGER'], ['rider', 'TEXT'], ['station', 'TEXT'], ['minutes', 'INTEGER'], ['rented_on', 'TEXT']],
+    roles: { name: 'rider', cat: 'station', n1: 'minutes', d: 'rented_on' },
+    rows: [[1, 'Aoi', 'Station A', 35, '2025-03-03'], [2, 'Ben', 'Riverside', 50, '2025-03-14'], [3, 'Chen', 'Station A', 20, '2025-03-29'],
+      [4, 'Dina', 'Park Gate', 75, '2025-04-04'], [5, 'Emil', 'Riverside', 40, '2025-04-16'], [6, 'Fatima', 'Park Gate', 15, '2025-04-27'],
+      [7, 'Gita', 'Station A', 60, '2025-05-02'], [8, 'Hugo', 'Riverside', 25, '2025-05-18'], [9, 'Ivan', 'Park Gate', 45, '2025-05-25'],
+      [10, 'Jun', 'Station A', 30, '2025-06-08'], [11, 'Kiran', 'Riverside', 90, '2025-06-20'], [12, 'Lena', 'Park Gate', 55, '2025-06-29']]
+  },
+  {
+    table: 'concerts',
+    columns: [['id', 'INTEGER'], ['artist', 'TEXT'], ['hall', 'TEXT'], ['tickets', 'INTEGER'], ['played_on', 'TEXT']],
+    roles: { name: 'artist', cat: 'hall', n1: 'tickets', d: 'played_on' },
+    rows: [[1, 'Blue Lane', 'North Hall', 420, '2025-03-07'], [2, 'Mika Trio', 'Small Hall', 180, '2025-03-21'], [3, 'Red Owls', 'North Hall', 510, '2025-04-03'],
+      [4, 'Sora', 'Garden Stage', 260, '2025-04-13'], [5, 'Kite', 'Small Hall', 150, '2025-04-24'], [6, 'Blue Lane', 'Garden Stage', 330, '2025-05-09'],
+      [7, 'Nova', 'North Hall', 600, '2025-05-16'], [8, 'Mika Trio', 'Garden Stage', 240, '2025-05-30'], [9, 'Sora', 'Small Hall', 170, '2025-06-06'],
+      [10, 'Red Owls', 'Garden Stage', 310, '2025-06-15'], [11, 'Kite', 'North Hall', 450, '2025-06-22'], [12, 'Nova', 'Small Hall', 200, '2025-06-28']]
   }
 ];
 

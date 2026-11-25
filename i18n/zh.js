@@ -2059,5 +2059,7 @@ export default {
   "res.cmpMiss": "示例中有而你的结果中没有的行 {n}",
   "res.cmpMoved": "顺序不同的行 {n}",
   "res.cmpCols": "列不同（红色）",
-  "res.cmpSame": "行的内容相同。请检查列名和顺序"
+  "res.cmpSame": "行的内容相同。请检查列名和顺序",
+  "ds.bike_rentals": "共享单车租借记录（含日期）",
+  "ds.concerts": "演唱会记录（含日期）"
 };

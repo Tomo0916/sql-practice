@@ -1144,7 +1144,20 @@ const VARIANTS = {
   insert: [['(a, b, c, d)', s => (/\(([^)]*)\) VALUES/.exec(s) || ['', ''])[1].split(',').length <= 4], ['(a, b, c, d, e, f)', s => (/\(([^)]*)\) VALUES/.exec(s) || ['', ''])[1].split(',').length > 4]],
   update: [['SET a = 1', s => !/SET \w+ = \w+ [-+*\/]/.test(strip(s))], ['SET a = a + 1', s => /SET \w+ = \w+ [-+*\/]/.test(strip(s))]],
   delete: [['WHERE a = 100', s => / = \d/.test(s)], ["WHERE a = 'abc'", s => / = '/.test(s)], ['WHERE a > 100', s => CMP.test(strip(s))]],
-  alias: [['a * 10 AS x', s => !/SELECT \w+, [a-z_]+ [-+*\/] [a-z_]+ AS/.test(strip(s))], ['a * b AS x', s => /SELECT \w+, [a-z_]+ [-+*\/] [a-z_]+ AS/.test(strip(s))]]
+  alias: [['a * 10 AS x', s => !/SELECT \w+, [a-z_]+ [-+*\/] [a-z_]+ AS/.test(strip(s))], ['a * b AS x', s => /SELECT \w+, [a-z_]+ [-+*\/] [a-z_]+ AS/.test(strip(s))]],
+  // Lessons 19–28, 35, 36 (2026-11): the kinds of SQL each one already makes, easiest first
+  case: [['CASE WHEN … ELSE', s => !/WHEN[\s\S]*WHEN/.test(s)], ['CASE WHEN … WHEN … ELSE', s => /WHEN[\s\S]*WHEN/.test(s)]],
+  calc: [['ROUND(a * 1.1)', s => !/\//.test(strip(s)) && !/AVG\(/.test(s)], ['ROUND(a * 1.0 / b, 2)', s => /\//.test(strip(s))], ['ROUND(AVG(a))', s => /AVG\(/.test(s)]],
+  coalesce: [["COALESCE(a, 'x')", s => /COALESCE\(/.test(s)], ['COUNT(*) · COUNT(a)', s => !/COALESCE\(/.test(s)]],
+  strfn: [['UPPER(a)', s => /UPPER\(/.test(s)], ['SUBSTR(a, 1, 3)', s => /SUBSTR\(/.test(s)], ["a || ' / ' || b", s => /\|\|/.test(s)], ['WHERE LENGTH(a)', s => /LENGTH\(/.test(s)]],
+  dates: [["BETWEEN '…' AND '…'", s => /BETWEEN/.test(s)], ["date(a, '+10 days')", s => /\bdate\(/.test(s)], ["strftime('%m', a)", s => /strftime\(/.test(s)]],
+  sub1: [['= (SELECT MAX / MIN)', s => / = \(SELECT/.test(s)], ['> < (SELECT AVG)', s => /[<>]=? \(SELECT/.test(s)]],
+  subin: [['IN (SELECT …)', s => !/NOT IN/.test(s)], ['NOT IN (SELECT …)', s => /NOT IN/.test(s)]],
+  subfrom: [['MAX / MIN (…)', s => /^\s*SELECT (MAX|MIN)\(/.test(s)], ['AVG (…)', s => /^\s*SELECT AVG\(/.test(s)]],
+  with: [['WITH … WHERE', s => !/\) SELECT[\s\S]*GROUP BY/.test(s)], ['WITH … GROUP BY', s => /\) SELECT[\s\S]*GROUP BY/.test(s)]],
+  window: [['RANK() OVER (ORDER BY)', s => /RANK\(\) OVER \(ORDER/.test(s)], ['SUM() OVER (ORDER BY)', s => /SUM\(\w+\) OVER/.test(s)], ['AVG() OVER (PARTITION BY)', s => /AVG\(\w+\) OVER \(PARTITION/.test(s)], ['RANK() OVER (PARTITION BY … ORDER BY)', s => /RANK\(\) OVER \(PARTITION/.test(s)]],
+  join3: [['CROSS JOIN', s => /CROSS JOIN/.test(s)], ['a JOIN a', s => /FROM (\w+) \w+ JOIN \1 /.test(s)], ['a LEFT JOIN a', s => /FROM (\w+) \w+ LEFT JOIN \1 /.test(s)], ['a JOIN b JOIN c', s => /JOIN[\s\S]*JOIN/.test(s) && !/WHERE/.test(s)], ['a JOIN b JOIN c WHERE', s => /JOIN[\s\S]*JOIN[\s\S]*WHERE/.test(s)]],
+  setops: [['UNION', s => /\bUNION\b/.test(s)], ['INTERSECT', s => /\bINTERSECT\b/.test(s)], ['EXCEPT', s => /\bEXCEPT\b/.test(s)]]
 };
 /** the variant of a problem's SQL (1 = the easiest; 1 for a lesson without variants) */
 export const variantOf = (key, sql) => { const vs = VARIANTS[key]; if (!vs) return 1; const i = vs.findIndex(([, test]) => test(sql)); return i < 0 ? 0 : i + 1; };
