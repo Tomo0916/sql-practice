@@ -42,6 +42,7 @@ import { levelProfile } from './quick.js';
 import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, cqQuiz, cqRecord } from './clauses.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, shapeCountSlots, slotProblems, kindsOf, levelFor } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
+import { ORD_GROUPS, ordContext, pieceGroup } from './ordgroup.js';
 import { installHr, hrRoute, hrHTML, hrMount, hrActions } from './hr-ui.js';
 import { installPz, pzRoute, pzHTML, pzMount, pzActions } from './pz-ui.js';
 import { pzRec, pzCheckIds } from './pz.js';
@@ -1749,8 +1750,24 @@ function wordsHTML() {
 /* =========================================================
  * WORKSPACE (one problem): text, steps, stage body, feedback, results
  * ========================================================= */
+/* ---------- the data tables: after 2 problems in a row solved with the data hidden, the next one starts hidden ----------
+ * S.settings.dataRun = how many problems in a row were solved with every data table hidden (and not opened on the way) */
+const DATA_RUN = 2;
+function dataStart(prob) {
+  if (!prob.tables || !prob.tables.length || S.dataProbId === prob.id) return;
+  S.dataProbId = prob.id; S.dataPeek = false; S.dataAuto = false;
+  if ((S.settings.dataRun || 0) >= DATA_RUN && !isSolved(prob.id)) { prob.tables.forEach(t => { S.hideData[t] = true; }); S.dataAuto = true; }
+}
+function dataSolved(prob) {
+  if (!prob.tables || !prob.tables.length || S.dataCounted === prob.id) return;
+  S.dataCounted = prob.id;
+  const hidden = prob.tables.every(t => S.hideData[t]) && !(S.dataPeek && S.dataProbId === prob.id);
+  S.settings.dataRun = hidden ? (S.settings.dataRun || 0) + 1 : 0;
+  saveSettings(S.settings);
+}
 function workspaceHTML(prob) {
   if (prob.abs) return absHTML(prob);
+  dataStart(prob);
   return `<section class="card prob">
       <div class="prob-top">
         <span class="tag st-${prob.stage}">${stageLabelH(prob)}</span>
@@ -1760,6 +1777,7 @@ function workspaceHTML(prob) {
       <p class="inst">${rubyHTML(raw('inst.' + (prob.p && prob.p.choices ? 'choice' : isQuiz(prob) ? 'quiz' : prob.stage === 'review' ? 'write' : prob.stage === 'order' && S.engine.orderTask(prob) && !S.engine.orderTask(prob).chunks.some(c => c.distractor) ? 'orderNoTrap' : prob.stage), L()))}</p>
       <p class="prob-text">${problemHTML(prob, L())}</p>
       ${S.settings.second && S.settings.second !== L() ? `<p class="prob-text bi" lang="${htmlLang(S.settings.second)}">${problemHTML(prob, S.settings.second)}</p>` : ''}
+      ${S.dataAuto && S.dataProbId === prob.id && prob.tables.every(t => S.hideData[t]) ? `<p class="data-auto">🙈 ${H('prob.dataAuto')}</p>` : ''}
       <div class="tables">${prob.tables.map(n => tableBlockHTML(n, prob)).join('')}</div>
       ${isAnalysis(LESSON_BY_KEY[prob.lesson]) ? toolsHTML(prob, L(), setCode(), formatKey(formatOf(LESSON_BY_KEY[prob.lesson]))) : ''}
     </section>
@@ -2014,20 +2032,11 @@ function fillHTML(prob) {
     </section>`;
 }
 /* ordering pieces, grouped by what they start with: SQL words, table names, column names (and names given with AS), symbols, values */
-const ORD_KW = new Set(['SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'ORDER', 'GROUP', 'BY', 'HAVING', 'LIMIT', 'OFFSET', 'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'JOIN', 'INNER', 'LEFT', 'ON', 'AS', 'DISTINCT', 'BETWEEN', 'IN', 'LIKE', 'IS', 'NULL', 'ASC', 'DESC']);
-const ORD_FN = /^(COUNT|SUM|AVG|MAX|MIN|ROUND|LENGTH|UPPER|LOWER|COALESCE)\(/i;
-const ORD_GROUPS = ['kw', 'table', 'col', 'op', 'val'];
-function pieceGroup(text) {
-  const w = text.trim().split(/\s+/)[0], bare = w.replace(/^\(+|[,;)]+$/g, '');
-  if (ORD_KW.has(w.toUpperCase())) return 'kw';
-  if (ALL_TABLES[bare]) return 'table';
-  if (ORD_FN.test(w) || /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_*][A-Za-z0-9_]*)?$/.test(bare)) return 'col';
-  if (/^(=|<>|!=|<=|>=|<|>|\*|\+|-|\/|%|\|\|)$/.test(bare)) return 'op';
-  return 'val';
-}
-const groupsOf = task => {
+/** the pieces in groups (keywords, tables, columns, symbols, values), read in the problem's context (ordgroup.js) */
+const groupsOf = (task, prob) => {
   if (!task.fine) return null;
-  const gs = ORD_GROUPS.map(key => ({ key, items: task.chunks.filter(c => pieceGroup(c.text) === key) })).filter(g => g.items.length);
+  const ctx = ordContext(prob && prob.sql, prob && prob.tables);
+  const gs = ORD_GROUPS.map(key => ({ key, items: task.chunks.filter(c => pieceGroup(c.text, ctx) === key) })).filter(g => g.items.length);
   return gs.length > 1 ? gs : null;
 };
 const chipBtn = c => `<button class="ord-chip" data-act="place" data-id="${c.id}"><code>${highlightSQL(c.text)}</code></button>`;
@@ -2042,7 +2051,7 @@ function orderHTML(prob) {
       <div class="ord-label">${H('order.answer')}</div>
       <ol class="ord-ans ${run && run.grade && run.grade.ok ? 'ok' : ''}" aria-live="polite">${placed.length ? placed.map((id, i) => `<li><button class="ord-chip placed" data-act="unplace" data-id="${id}" aria-label="${esc(T('order.remove'))}"><span class="ord-n">${i + 1}</span><code>${highlightSQL(byId[id].text)}</code>${I.x}</button></li>`).join('') : `<li class="ord-empty">${H('order.empty')}</li>`}</ol>
       <div class="ord-label">${H('order.pool')}</div>
-      <div class="ord-pool ${groupsOf(task) ? 'grouped' : ''}">${groupsOf(task) ? groupsOf(task).map(g => `<div class="ord-grp"><small class="ord-grp-h">${H('order.g.' + g.key)}</small><div class="ord-grp-items">${g.items.filter(c => !placed.includes(c.id)).map(chipBtn).join('') || '<span class="muted small">—</span>'}</div></div>`).join('') : pool.map(chipBtn).join('') || `<span class="muted small">${H('order.allUsed')}</span>`}</div>
+      <div class="ord-pool ${groupsOf(task, prob) ? 'grouped' : ''}">${groupsOf(task, prob) ? groupsOf(task, prob).map(g => `<div class="ord-grp"><small class="ord-grp-h">${H('order.g.' + g.key)}</small><div class="ord-grp-items">${g.items.filter(c => !placed.includes(c.id)).map(chipBtn).join('') || '<span class="muted small">—</span>'}</div></div>`).join('') : pool.map(chipBtn).join('') || `<span class="muted small">${H('order.allUsed')}</span>`}</div>
       ${task.fine ? `<p class="ord-level">${H('order.fine')}</p>` : ''}<p class="muted small">${H('order.tip')} ${H('order.dragTip')}</p>
       <div class="actions">
         <button class="btn btn-primary btn-run" data-act="checkOrder" ${placed.length ? '' : 'disabled'}>${I.check}${H('fill.check')}</button>
@@ -2204,6 +2213,7 @@ function evaluate(prob, sql, extra) {
 /** progress, streak, review and class log after a check */
 function record(prob, ok, run, sql) {
   const empty = run.error && run.error.code === 'empty';
+  if (ok && !empty) dataSolved(prob);
   if (!empty && prob.quick) {   // the quick test: retry until right; the class log tells the teacher who has finished
     if (qPhaseNow() !== 'run') { render(); return; }   // the time is over (or not started): the answer does not count
     if (qOnce() && qTried(prob)) { S.runs[prob.id] = run; render(); return run; }   // a level test: the first answer was recorded
@@ -2368,7 +2378,7 @@ const actions = {
   },
   tab(el) { S.tab = el.dataset.tab; refresh(['res']); },
   csv(el) { downloadCSV(el.dataset.t); },
-  toggleData(el) { const n = el.dataset.t; S.hideData[n] = !S.hideData[n]; saveDraft(); render(); },
+  toggleData(el) { const n = el.dataset.t; S.hideData[n] = !S.hideData[n]; if (!S.hideData[n]) S.dataPeek = true; saveDraft(); render(); },
   stepStart() { S.step = 0; refresh(['steps']); },
   stepNext() { S.step++; refresh(['steps']); },
   stepPrev() { S.step = Math.max(0, S.step - 1); refresh(['steps']); },

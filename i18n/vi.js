@@ -2346,5 +2346,6 @@ export default {
   "pz.p.pz5b.t": "Chênh lệch với tháng trước",
   "pz.p.pz5b.d": "Từ `monthly`, hiển thị `month` và mức thay đổi `amount` so với tháng trước (tháng này − tháng trước). Tháng đầu tiên không có tháng trước nên là NULL.\nSắp xếp theo tháng.",
   "pz.p.pz5c.t": "Tỷ lệ doanh thu theo loại",
-  "pz.p.pz5c.d": "Từ `sales`, hiển thị với mỗi `category` tổng `amount` và tỷ lệ trên tổng chung (%, làm tròn 1 chữ số thập phân).\nSắp xếp tổng giảm dần; bằng nhau thì theo loại."
+  "pz.p.pz5c.d": "Từ `sales`, hiển thị với mỗi `category` tổng `amount` và tỷ lệ trên tổng chung (%, làm tròn 1 chữ số thập phân).\nSắp xếp tổng giảm dần; bằng nhau thì theo loại.",
+  "prob.dataAuto": "Bạn đã giải liên tiếp 2 bài mà không xem dữ liệu, nên dữ liệu được ẩn sẵn. Nhấn \"Xem dữ liệu\" nếu muốn xem."
 };

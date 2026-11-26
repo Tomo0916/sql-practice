@@ -953,5 +953,25 @@ console.log('20. paiza practice (paiza 対策)');
   console.log(`   ${PZ.PZ_PROBLEMS.length} problems`);
 }
 
+console.log('21. Ordering pieces in groups (並べ替えの語群)');
+{
+  const OG = await import('../js/ordgroup.js');
+  const { ALL_TABLES: AT } = await import('../js/datasets.js');
+  const KWS = /^\(*(SELECT|FROM|WHERE|AND|OR|NOT|ORDER|GROUP|BY|HAVING|LIMIT|OFFSET|INSERT|INTO|VALUES|UPDATE|SET|DELETE|JOIN|INNER|LEFT|ON|AS|DISTINCT|BETWEEN|IN|LIKE|IS|NULL|ASC|DESC|CASE|WHEN|THEN|ELSE|END|CROSS)\b/i;
+  let n = 0;
+  for (const L of LESSONS) for (let i = 0; i < 20; i++) for (const level of [1, 2]) {
+    let p; try { p = eng.drillProblem(L, `og|${L.key}|${level}|${i}`, level); } catch (e) { p = null; }
+    const o = p && eng.orderTask(p); if (!o || !o.fine) continue;
+    const ctx = OG.ordContext(p.sql, p.tables), cols = new Set((p.tables || []).flatMap(t => (AT[t] ? AT[t].columns.map(c => c[0]) : [])));
+    o.chunks.forEach(c => { n++;
+      const g = OG.pieceGroup(c.text, ctx), w = c.text.trim().split(/\s+/)[0].replace(/^\(+|[,;)]+$/g, '');
+      if (KWS.test(c.text.trim()) && /^[A-Za-z]+$/.test(w) && g !== 'kw') err(`order groups: "${c.text}" is a keyword piece but in ${g} ← ${p.sql}`);
+      if (g === 'table' && cols.has(w) && !(p.tables || []).includes(w)) err(`order groups: column "${w}" is in the table group ← ${p.sql}`);
+      if (g === 'table' && !ctx.tables.has(w)) err(`order groups: "${w}" is not a table of the problem ← ${p.sql}`);
+      if (g === 'col' && /^'/.test(w)) err(`order groups: value "${c.text}" is in the column group ← ${p.sql}`); });
+  }
+  console.log(`   ${n} pieces checked`);
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

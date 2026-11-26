@@ -2346,5 +2346,6 @@ export default {
   "pz.p.pz5b.t": "Écart avec le mois précédent",
   "pz.p.pz5b.d": "Dans `monthly`, affichez le `month` et la variation de `amount` par rapport au mois précédent (ce mois − mois précédent). Le premier mois n'a pas de mois précédent : NULL.\nTriez par mois.",
   "pz.p.pz5c.t": "Part des ventes par catégorie",
-  "pz.p.pz5c.d": "Dans `sales`, affichez pour chaque `category` le total de `amount` et sa part du total général (%, arrondie à 1 décimale).\nTriez par total décroissant ; à égalité, par catégorie."
+  "pz.p.pz5c.d": "Dans `sales`, affichez pour chaque `category` le total de `amount` et sa part du total général (%, arrondie à 1 décimale).\nTriez par total décroissant ; à égalité, par catégorie.",
+  "prob.dataAuto": "Vous avez résolu 2 problèmes de suite sans regarder les données : elles commencent masquées. Appuyez sur « Voir les données » pour les voir."
 };

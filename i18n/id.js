@@ -2346,5 +2346,6 @@ export default {
   "pz.p.pz5b.t": "Selisih dengan bulan lalu",
   "pz.p.pz5b.d": "Dari `monthly`, tampilkan `month` dan perubahan `amount` dari bulan sebelumnya (bulan ini − bulan lalu). Bulan pertama tidak punya bulan sebelumnya, jadi NULL.\nUrutkan berdasarkan bulan.",
   "pz.p.pz5c.t": "Porsi penjualan per kategori",
-  "pz.p.pz5c.d": "Dari `sales`, tampilkan untuk setiap `category` total `amount` dan porsinya dari total keseluruhan (%, dibulatkan 1 desimal).\nUrutkan total dari besar; jika sama, berdasarkan kategori."
+  "pz.p.pz5c.d": "Dari `sales`, tampilkan untuk setiap `category` total `amount` dan porsinya dari total keseluruhan (%, dibulatkan 1 desimal).\nUrutkan total dari besar; jika sama, berdasarkan kategori.",
+  "prob.dataAuto": "Kamu menyelesaikan 2 soal berturut-turut tanpa melihat data, jadi data dimulai tersembunyi. Tekan \"Lihat data\" jika ingin melihatnya."
 };

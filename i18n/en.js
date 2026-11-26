@@ -2347,5 +2347,6 @@ export default {
   "pz.p.pz5b.t": "Change from the previous month",
   "pz.p.pz5b.d": "From the monthly sales table `monthly`, show the `month` and the change in `amount` from the previous month (this month − previous month). The first month has no previous month, so it is NULL.\nSort by month.",
   "pz.p.pz5c.t": "Share of sales by category",
-  "pz.p.pz5c.d": "From the sales table `sales`, show for each `category` the total `amount` and its share of the grand total (%, rounded to 1 decimal place).\nSort by the total from large to small; for the same total, by category name."
+  "pz.p.pz5c.d": "From the sales table `sales`, show for each `category` the total `amount` and its share of the grand total (%, rounded to 1 decimal place).\nSort by the total from large to small; for the same total, by category name.",
+  "prob.dataAuto": "You solved 2 problems in a row without looking at the data, so it starts hidden. Press \"Show data\" if you want to see it."
 };

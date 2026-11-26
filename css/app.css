@@ -1862,3 +1862,4 @@ body.pj-open { overflow: hidden; }
 .pz-lv.clear { border: 2px solid #1f6fd1; }
 .pz-now { font-weight: 700; margin: 6px 0; }
 .pz-clear { font-weight: 800; color: #1f6fd1; font-size: 1.05rem; }
+.data-auto { margin: 6px 0 0; padding: 6px 10px; border-radius: 8px; background: var(--accent-soft); font-size: .88rem; }
