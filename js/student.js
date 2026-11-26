@@ -40,6 +40,7 @@ import { levelProfile } from './quick.js';
 import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, cqQuiz, cqRecord } from './clauses.js';
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, shapeCountSlots, slotProblems, kindsOf, levelFor } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
+import { installHr, hrRoute, hrHTML, hrMount, hrActions } from './hr-ui.js';
 import { installPy, pyRoute, pyHTML, pyMount, pyActions, pyQuickHTML, pyPrepare } from './py-ui.js';
 import { PD_LESSONS, PD_BY_KEY } from './pandas.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
@@ -143,6 +144,7 @@ function parseRoute() {
   if (h[0] === 'table') return { view: 'session', kind: 'table', ds: h[1] || null };
   if (h[0] === 'practice') return { view: 'session', kind: 'prac', go: h[1] === 'go', pre: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'py') return pyRoute(h);
+  if (h[0] === 'hr') return hrRoute(h);
   if (h[0] === 'learn') return { view: 'learn', ch: h[1] || null };
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
@@ -228,12 +230,14 @@ function render() {
   else if (r.view === 'explain') body = explainViewHTML();
   else if (r.view === 'learn') body = learnHTML();
   else if (r.view === 'py') body = pyHTML();
+  else if (r.view === 'hr') body = hrHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
   document.body.classList.remove('nav-open');
   app.innerHTML = `<div class="shell">${head}<div class="shell-main">${quickBannerHTML()}${liveBannerHTML()}${body}${exBackHTML()}${footerHTML()}</div></div>${tabbarHTML()}`;
   mountWorkspace();
   pyMount();
+  hrMount();
   drawJoinLines(app);
 }
 
@@ -252,7 +256,7 @@ function navItems() {
     cls ? ['live', '#/live', liveOn(S.klass) ? '<i class="live-dot"></i>' : I.inbox, 'nav.assign', todo] : null,
     EX.on ? ['explain', '#/explain', '<i class="live-dot"></i>', 'ex.title'] : null,
     '-', ['review', '#/review', I.repeat, 'nav.review', due], ['mastery', '#/mastery', I.map, 'rv.map'], ['words', '#/words', I.words, 'nav.words'], ['tables', '#/tables', I.table, 'nav.tables'],
-    '-', ['certs', `https://tomo0916.github.io/ds/certs/?lang=${encodeURIComponent(L())}`, I.target, 'nav.certs'],
+    '-', ['hr', '#/hr', I.target, 'nav.hr'], ['certs', `https://tomo0916.github.io/ds/certs/?lang=${encodeURIComponent(L())}`, I.medal, 'nav.certs'],
   ].filter(Boolean);
 }
 function headerHTML() {
@@ -414,6 +418,10 @@ function homeHTML() {
     <section class="card mixcard drillcard rkcard">
       <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.hist && r.hist.length).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/rank">${H('rk.open')}</a>
+    </section>
+    <section class="card mixcard drillcard hrcard">
+      <div><span class="drill-ic">HR</span><div><b>${H('hr.title')}${(n => (n ? ` <span class="tag">${n}</span>` : ''))(((S.progress.hr || {}).ok || []).length)}</b><p class="muted">${H('hr.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/hr">${H('hr.open')}</a>
     </section>
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">📝</span><div><b>${H('ck.title')}</b><p class="muted">${H('ck.homeSub')}</p></div></div>
@@ -2262,6 +2270,7 @@ const actions = {
   homeOrder(el) { S.settings.order = el.dataset.v === 'book' ? 'book' : 'app'; saveSettings(S.settings); render(); },   // the home page: the app's chapters or the textbook's order
   qRef(el) { qBack = +el.dataset.qn; saveDraft(); location.hash = el.getAttribute('href'); },   // remember the problem, then open the lesson
   ...pyActions,
+  ...hrActions,
   lang: null,
   settings() { openSettings(); },
   classInfo() { openClassInfo(); },
@@ -2803,6 +2812,7 @@ window.addEventListener('storage', e => {
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
+  installHr({ S, L, save, render });
   installRank({ S, render, save, chName, workspaceHTML, asgHit, ruCleared: (ch, tier) => !!S.klass && asgList(S.klass).some(it => it.type === 'rankup' && it.ref === ch && ((((asgRec(it.id) || {}).t) || {})[tier] || {}).clear) });
   installPy({ S, L, save, render, asgHit,
     // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)

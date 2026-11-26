@@ -920,5 +920,21 @@ console.log('18. Reading Python errors');
   console.log(`   ${probs.length} problems run (the exact messages are checked in the browser with Pyodide)`);
 }
 
+console.log('19. HackerRank practice (HackerRank 対策)');
+{
+  const HR = await import('../js/hr.js');
+  const SQL2 = await initSqlJs();
+  const langs = ['ja', 'easy', 'en', 'ne', 'fr', 'my', 'bn', 'si', 'id', 'vi', 'zh'];
+  HR.HR_PROBLEMS.forEach(p => {
+    const s = HR.hrExpected(SQL2, p, false), h = HR.hrExpected(SQL2, p, true);
+    if (!s.values.length) err(`hr ${p.id}: the answer returns no rows on the sample`);
+    if (JSON.stringify(s.values) === JSON.stringify(h.values)) warn(`hr ${p.id}: the hidden rows do not change the result`);
+    if (!HR.hrSubmit(SQL2, p, p.sql).every(c => c.ok)) err(`hr ${p.id}: the answer does not pass its own test cases`);
+    if (HR.hrSubmit(SQL2, p, `SELECT * FROM ${Object.keys(p.tables)[0]};`).every(c => c.ok)) err(`hr ${p.id}: SELECT * passes`);
+    langs.forEach(l => ['t', 'd'].concat(p.ex ? ['how'] : []).forEach(k => { if (!dicts[l][`hr.p.${p.id}.${k}`]) err(`hr ${p.id}: ${l}.js has no hr.p.${p.id}.${k}`); }));
+  });
+  console.log(`   ${HR.HR_PROBLEMS.length} problems`);
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

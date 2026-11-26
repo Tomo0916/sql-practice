@@ -1789,3 +1789,66 @@ body.pj-open { overflow: hidden; }
 .sheet .key-order { font-weight: 700; margin-bottom: 1mm; }
 .sheet .key-order code { font-family: var(--mono); background: #f1f3f9; padding: 0 1.5mm; border-radius: 1mm; }
 @media print { .m-top, .side-nav, .tabbar, .nav-scrim, .toast, .ex-back { display: none !important; } .shell { display: block; } .shell-main { padding: 0 !important; } }
+
+/* ---------- HackerRank practice (hr-ui.js) ---------- */
+.hr-page { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.hr-page > * { min-width: 0; }
+.hr-hero { display: flex; gap: 16px; align-items: flex-start; padding: 20px; }
+.hr-hero h1 { margin: 0 0 6px; font-size: 1.35rem; }
+.hr-logo, .hrcard .drill-ic { flex: none; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; color: #fff; background: #1ba94c; font-family: var(--mono); }
+.hrcard .drill-ic { width: 40px; height: 40px; font-size: .95rem; }
+.hr-facts { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 4px; }
+.hr-area h2, .hr-mockcard h2 { margin: 0; font-size: 1.1rem; }
+.hr-area-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.hr-list { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 2px; }
+.hr-list a { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 10px; color: var(--ink); text-decoration: none; }
+.hr-list a:hover { background: var(--accent-soft); }
+.hr-list a.done .hr-mark { color: var(--ok); }
+.hr-mark { width: 1.2em; text-align: center; font-weight: 700; color: var(--accent); }
+.hr-list .tag.ex { margin-left: auto; }
+.hr-mockcard { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; border: 2px solid #1ba94c; }
+.hr-ul { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 6px; line-height: 1.6; }
+.hr-words th { text-align: left; white-space: nowrap; font-family: var(--mono); font-size: .92rem; padding-right: 14px; }
+.hr-q .hr-title { font-size: 1.3rem; margin: 4px 0 8px; }
+.hr-text p { margin: 0 0 8px; line-height: 1.7; }
+.hr-text code, .hr-tr code, .hr-how code { font-family: var(--mono); background: var(--code-bg); color: var(--code-ink); padding: 1px 5px; border-radius: 5px; font-size: .9em; }
+.hr-tr { margin: 10px 0; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); }
+.hr-tr summary { cursor: pointer; font-weight: 700; }
+.hr-tr h3 { margin: 8px 0 4px; font-size: 1rem; }
+.hr-tr p { margin: 0 0 6px; line-height: 1.7; }
+.hr-h { margin: 16px 0 6px; font-size: 1rem; }
+.hr-tb { margin-bottom: 12px; }
+.hr-tbname code { font-family: var(--mono); font-weight: 700; }
+.hr-cols { border-collapse: collapse; font-size: .85rem; margin: 4px 0; }
+.hr-cols th, .hr-cols td { border: 1px solid var(--line); padding: 3px 10px; text-align: left; font-family: var(--mono); }
+.hr-cols th { background: var(--code-bg); font-family: var(--sans); }
+.hr-edhead { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.hr-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px; flex-wrap: wrap; }
+.hr-res.ok { border-left: 5px solid var(--ok); }
+.hr-res.bad { border-left: 5px solid var(--bad); }
+.hr-two { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.hr-err { white-space: pre-wrap; background: var(--bad-soft); padding: 8px 10px; border-radius: 8px; font-size: .88rem; }
+.hr-score { font-weight: 800; font-size: 1.1rem; margin: 0 0 6px; }
+.hr-cases { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
+.hr-cases li { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 8px; }
+.hr-cases li.ok { background: var(--ok-soft); } .hr-cases li.bad { background: var(--bad-soft); }
+.hr-cases li > span:first-child { font-weight: 800; }
+.hr-cases li > span:last-child { margin-left: auto; }
+.hr-how ol { margin: 6px 0 0; padding-left: 1.3em; display: grid; gap: 6px; line-height: 1.7; }
+.hr-how h3 { margin: 0; }
+.hr-ans summary { cursor: pointer; font-weight: 700; }
+.hr-ans pre { margin: 10px 0 0; white-space: pre-wrap; }
+.hr-bar { position: sticky; top: 0; z-index: 5; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.hr-clock-wrap b { font-family: var(--mono); font-size: 1.25rem; }
+#hr-clock.low { color: var(--bad); }
+.hr-qtabs { display: flex; gap: 6px; }
+.hr-qtab { font: inherit; font-weight: 700; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.hr-qtab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.hr-qst { font-weight: 400; opacity: .8; font-size: .85em; }
+.hr-big { font-size: 2.2rem; font-weight: 800; margin: 6px 0; }
+.hr-big small { font-size: .9rem; font-weight: 400; }
+.hr-result.ok { border: 2px solid var(--ok); }
+.hr-page > .card, .hr-page details.card { padding: 18px 20px; }
+.hr-page .hr-q .data-box, .hr-page .hr-res .data-box { max-height: 300px; }
+.hr-page h2.home-h { margin: 8px 0 0; }
+.hr-tr p, .hr-text p { overflow-wrap: anywhere; }

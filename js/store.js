@@ -59,6 +59,8 @@ export function mergeProgress(stored, mine) {
     out.py[k] = { seed: b.seed, ok: b.seed === a.seed ? [...new Set([...(a.ok || []), ...(b.ok || [])])] : b.ok || [], n: Math.max(a.n || 0, b.n || 0), clear: !!(a.clear || b.clear) }; });
   { const a = stored.pyErr, b = mine.pyErr;   // reading errors: the same rule as the Python lessons
     out.pyErr = !a || !b ? a || b : { seed: b.seed, ok: b.seed === a.seed ? [...new Set([...(a.ok || []), ...(b.ok || [])])] : b.ok || [], done: b.seed === a.seed ? [...new Set([...(a.done || []), ...(b.done || [])])] : b.done || [] }; }
+  { const a = stored.hr, b = mine.hr;   // HackerRank practice: solved on either side, the mock tests of both
+    out.hr = !a || !b ? a || b : { ok: [...new Set([...(a.ok || []), ...(b.ok || [])])], mock: [...(a.mock || []), ...(b.mock || [])].filter((m, i, all) => all.findIndex(x => x.at === m.at) === i).sort((x, y) => x.at - y.at).slice(-30) }; }
   out.drafts = mine.drafts || {};   // drafts belong to the tab (a removed draft must not come back)
   return out;
 }
