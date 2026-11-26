@@ -43,6 +43,8 @@ import { CLAUSES, CQ_SETS, KW, CQ_N, CQ_BASIC, CQ_EXAMPLE, BLANK, CHAPTER_QUIZ, 
 import { quickOn, quickProblems, quickPhase, passOf, spanText, limitSecOf, shapeSlots, shapeCountSlots, slotProblems, kindsOf, levelFor } from './quick.js';
 import { checkSetupHTML, installCheckUI } from './check-ui.js';
 import { installHr, hrRoute, hrHTML, hrMount, hrActions } from './hr-ui.js';
+import { installPz, pzRoute, pzHTML, pzMount, pzActions } from './pz-ui.js';
+import { pzRec, pzCheckIds } from './pz.js';
 import { installPy, pyRoute, pyHTML, pyMount, pyActions, pyQuickHTML, pyPrepare } from './py-ui.js';
 import { PD_LESSONS, PD_BY_KEY } from './pandas.js';
 import { tablesPageHTML, installTables, setTablesLang, closeProjector } from './tables-ui.js';
@@ -147,6 +149,7 @@ function parseRoute() {
   if (h[0] === 'practice') return { view: 'session', kind: 'prac', go: h[1] === 'go', pre: LESSON_BY_KEY[h[1]] ? h[1] : null };
   if (h[0] === 'py') return pyRoute(h);
   if (h[0] === 'hr') return hrRoute(h);
+  if (h[0] === 'pz') return pzRoute(h);
   if (h[0] === 'learn') return { view: 'learn', ch: h[1] || null };
   if (h[0] === 'words') return { view: 'words' };
   if (h[0] === 'solved') return { view: 'solved' };
@@ -233,6 +236,7 @@ function render() {
   else if (r.view === 'learn') body = learnHTML();
   else if (r.view === 'py') body = pyHTML();
   else if (r.view === 'hr') body = hrHTML();
+  else if (r.view === 'pz') body = pzHTML();
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
   document.body.classList.remove('nav-open');
@@ -240,6 +244,7 @@ function render() {
   mountWorkspace();
   pyMount();
   hrMount();
+  pzMount();
   drawJoinLines(app);
 }
 
@@ -258,7 +263,7 @@ function navItems() {
     cls ? ['live', '#/live', liveOn(S.klass) ? '<i class="live-dot"></i>' : I.inbox, 'nav.assign', todo] : null,
     EX.on ? ['explain', '#/explain', '<i class="live-dot"></i>', 'ex.title'] : null,
     '-', ['review', '#/review', I.repeat, 'nav.review', due], ['mastery', '#/mastery', I.map, 'rv.map'], ['words', '#/words', I.words, 'nav.words'], ['tables', '#/tables', I.table, 'nav.tables'],
-    '-', ['hr', '#/hr', I.target, 'nav.hr'], ['certs', `https://tomo0916.github.io/ds/certs/?lang=${encodeURIComponent(L())}`, I.medal, 'nav.certs'],
+    '-', ['hr', '#/hr', I.target, 'nav.hr'], ['pz', '#/pz', I.stairs, 'nav.pz'], ['certs', `https://tomo0916.github.io/ds/certs/?lang=${encodeURIComponent(L())}`, I.medal, 'nav.certs'],
   ].filter(Boolean);
 }
 function headerHTML() {
@@ -424,6 +429,10 @@ function homeHTML() {
     <section class="card mixcard drillcard hrcard">
       <div><span class="drill-ic">HR</span><div><b>${H('hr.title')}${(n => (n ? ` <span class="tag">${n}</span>` : ''))(((S.progress.hr || {}).ok || []).length)}</b><p class="muted">${H('hr.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/hr">${H('hr.open')}</a>
+    </section>
+    <section class="card mixcard drillcard pzcard">
+      <div><span class="drill-ic">pz</span><div><b>${H('pz.title')}${(n => (n ? ` <span class="tag">Lv.${n}</span>` : ''))(pzReachedOf())}</b><p class="muted">${H('pz.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/pz">${H('hr.open')}</a>
     </section>
     <section class="card mixcard drillcard">
       <div><span class="drill-ic">📝</span><div><b>${H('ck.title')}</b><p class="muted">${H('ck.homeSub')}</p></div></div>
@@ -1459,8 +1468,8 @@ function asgSync() {
     if (changed && (S.route.view === 'live' || S.route.view === 'home')) render();
   }, () => { asgSynced = null; });
 }
-const asgTodo = () => (S.klass ? asgOpen(S.klass).filter(it => (['rankup', 'read', 'hr'].includes(it.type) ? !(asgRec(it.id) || {}).d : !(asgRec(it.id) || {}).s)) : []);
-const asgPrefix = (it, h) => { const p = h.split('/'); if (it.type === 'hr') return '#/hr'; return it.type === 'rank' || it.type === 'check' ? h : it.type === 'practice' || it.type === 'level' ? p.slice(0, 2).join('/') : p.slice(0, 3).join('/'); };
+const asgTodo = () => (S.klass ? asgOpen(S.klass).filter(it => (['rankup', 'read', 'hr', 'pz'].includes(it.type) ? !(asgRec(it.id) || {}).d : !(asgRec(it.id) || {}).s)) : []);
+const asgPrefix = (it, h) => { const p = h.split('/'); if (it.type === 'hr' || it.type === 'pz') return '#/' + it.type; return it.type === 'rank' || it.type === 'check' ? h : it.type === 'practice' || it.type === 'level' ? p.slice(0, 2).join('/') : p.slice(0, 3).join('/'); };
 /** a finished sent item (called where each kind of page ends): the record here and in the class log */
 /** rankup: one result into the tiers { beginner: { n, best, clear }, ... } */
 function ruAdd(t, d) {
@@ -1516,10 +1525,11 @@ function asgStartLog(it) {
   if (backend.enabled && S.klass) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'start')));
 }
 /** HackerRank practice: check every open hr item after a problem is solved or a mock test ends (mock = its points of 4) */
+const pzReachedOf = () => { const ok = pzRec(S.progress).ok; let n = 0; for (const lv of [1, 2, 3, 4, 5]) { if (!pzCheckIds(lv).every(id => ok.includes(id))) break; n = lv; } return n; };
 function asgHrCheck(mock) {
   if (!S.klass) return;
-  const ok = hrRec(S.progress).ok;
-  asgOpen(S.klass).filter(it => it.type === 'hr' && !(asgRec(it.id) || {}).d).forEach(it => {
+  asgOpen(S.klass).filter(it => (it.type === 'hr' || it.type === 'pz') && !(asgRec(it.id) || {}).d).forEach(it => {
+    const ok = (it.type === 'pz' ? pzRec(S.progress) : hrRec(S.progress)).ok;
     const rec = asgRec(it.id) || {};
     if (it.ref === 'mock') {
       if (!mock || mock.at < (it.at || 0)) return;
@@ -1527,7 +1537,7 @@ function asgHrCheck(mock) {
       if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'done', `${mock.pts}/4`, { pts: mock.pts })));
       return;
     }
-    const ids = asgHrIds(it), n = ids.filter(id => ok.includes(id)).length, m = ids.length;
+    const ids = it.type === 'pz' ? pzCheckIds(+it.ref) : asgHrIds(it), n = ids.filter(id => ok.includes(id)).length, m = ids.length;
     if (n === (rec.n || 0)) return;
     if (n >= m) {
       asgSet(it.id, { s: rec.s || Date.now(), d: Date.now(), r: `${n}/${m}`, n });
@@ -1539,19 +1549,19 @@ function asgHrCheck(mock) {
   });
 }
 function asgReadItemHTML(it) {
-  const rec = asgRec(it.id) || {}, closed = it.open === false, hr = it.type === 'hr';
-  const prog = hr && it.ref !== 'mock' ? (ids => `${ids.filter(id => hrRec(S.progress).ok.includes(id)).length} / ${ids.length}`)(asgHrIds(it)) : '';
+  const rec = asgRec(it.id) || {}, closed = it.open === false, hr = it.type === 'hr' || it.type === 'pz';
+  const prog = it.type === 'pz' ? (ids => `${ids.filter(id => pzRec(S.progress).ok.includes(id)).length} / ${ids.length}`)(pzCheckIds(+it.ref)) : hr && it.ref !== 'mock' ? (ids => `${ids.filter(id => hrRec(S.progress).ok.includes(id)).length} / ${ids.length}`)(asgHrIds(it)) : '';
   let right;
   if (rec.d) right = `<span class="as-done">✓ ${H(hr ? 'as.done' : 'as.rd.done')}</span>${rec.r ? ` <b>${esc(rec.r)}</b>` : ''}<button class="btn btn-ghost btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H(hr ? 'as.again' : 'as.rd.again')}</button>`;
   else if (closed) right = `<span class="tag">${H('as.closedTag')}</span>`;
   else right = `${prog ? `<span class="tag">${esc(prog)}</span>` : ''}<button class="btn btn-primary btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H(hr ? 'as.open' : 'as.rd.open')}</button>${!hr && rec.s ? `<button class="btn btn-ok btn-sm" data-act="asgRead" data-id="${esc(it.id)}">✓ ${H('as.rd.mark')}</button>` : ''}`;
   return `<li class="as-item ${rec.d ? 'done' : ''} ${closed ? 'closed' : ''}"><span class="as-ic">${ASG_ICON[it.type]}</span>
-    <div class="as-what"><small class="muted">${H('as.type.' + it.type)}${hr && it.ref !== 'mock' ? ` · ${H('as.hr.goal')}` : !hr && !rec.d && !rec.s ? ` · ${H('as.rd.how')}` : ''}</small><b>${asgLabelHTML(it, L())}</b></div>
+    <div class="as-what"><small class="muted">${H('as.type.' + it.type)}${it.type === 'pz' ? ` · ${H('pz.lvSub.' + it.ref)}` : hr && it.ref !== 'mock' ? ` · ${H('as.hr.goal')}` : !hr && !rec.d && !rec.s ? ` · ${H('as.rd.how')}` : ''}</small><b>${asgLabelHTML(it, L())}</b></div>
     <div class="as-right">${right}</div></li>`;
 }
 function asgItemHTML(it) {
   if (it.type === 'rankup') return ruItemHTML(it);
-  if (it.type === 'read' || it.type === 'hr') return asgReadItemHTML(it);
+  if (it.type === 'read' || it.type === 'hr' || it.type === 'pz') return asgReadItemHTML(it);
   const rec = asgRec(it.id) || {}, test = ASG_TEST.has(it.type), closed = it.open === false, lim = asgLimit(it);
   let right;
   if (rec.d) right = `<span class="as-done">✓ ${H('as.done')}</span>${asgResultHTML(it, rec)}${test || closed ? '' : `<button class="btn btn-ghost btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H('as.again')}</button>`}`;
@@ -2314,6 +2324,7 @@ const actions = {
   qRef(el) { qBack = +el.dataset.qn; saveDraft(); location.hash = el.getAttribute('href'); },   // remember the problem, then open the lesson
   ...pyActions,
   ...hrActions,
+  ...pzActions,
   lang: null,
   settings() { openSettings(); },
   classInfo() { openClassInfo(); },
@@ -2612,7 +2623,7 @@ actions.asgGo = el => {
     if (u.startsWith('#')) { location.hash = u; return; }
     window.open(u, '_blank', 'noopener'); render(); return;
   }
-  if (it.type === 'hr') asgStartLog(it);
+  if (it.type === 'hr' || it.type === 'pz') asgStartLog(it);
   if (it.type === 'rankup') {   // the tier to take now
     const tier = ruNext(rec.t); if (!tier) return;
     const h = `#/rank/${it.ref}/${tier}`;
@@ -2869,6 +2880,7 @@ window.addEventListener('storage', e => {
 (async function start() {
   installTables(); setTablesLang(L);
   installHr({ S, L, save, render, asgHr: asgHrCheck });
+  installPz({ S, L, save, render, asgPz: () => asgHrCheck(null) });
   installRank({ S, render, save, chName, workspaceHTML, asgHit, ruCleared: (ch, tier) => !!S.klass && asgList(S.klass).some(it => it.type === 'rankup' && it.ref === ch && ((((asgRec(it.id) || {}).t) || {})[tier] || {}).clear) });
   installPy({ S, L, save, render, asgHit,
     // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)

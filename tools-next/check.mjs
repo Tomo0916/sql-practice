@@ -44,7 +44,7 @@ for (const l of LANGS) {
   for (const [k, v] of Object.entries(d)) {
     if (typeof v !== 'string' || !v.trim()) { err(`${l}.js "${k}" is empty`); continue; }
     if (ph(v) !== ph(en[k])) err(`${l}.js "${k}" placeholders {${ph(v)}} ≠ English {${ph(en[k])}}`);
-    const plain = v.replace(/\{[^{}|]+\|[^{}]+\}/g, '');
+    const plain = v.replace(/\{[^{}|]+\|[^{}]+\}/g, '').replace(/`[^`]*`/g, '');   // `code` (SQL, data values) may stay as it is
     if (l !== 'ja' && l !== 'easy') {
       if (l === 'zh' ? KANA.test(plain) : CJK.test(plain)) err(`${l}.js "${k}" contains Japanese: ${v}`);
     }
@@ -56,7 +56,7 @@ for (const l of LANGS) {
         if (!/^[ぁ-ゟー]+$/.test(m[2])) err(`easy.js "${k}": reading "${m[2]}" for ${m[1]} must be hiragana`);
       }
       // kanji outside ruby → reader may not be able to read it
-      const bare = v.replace(/\{[^{}|]+\|[^{}]+\}/g, '').match(/[一-鿿]+/g);
+      const bare = v.replace(/\{[^{}|]+\|[^{}]+\}/g, '').replace(/`[^`]*`/g, '').match(/[一-鿿]+/g);
       if (bare) err(`easy.js "${k}": kanji without furigana: ${bare.join(' ')}`);
     }
   }
@@ -934,6 +934,23 @@ console.log('19. HackerRank practice (HackerRank 対策)');
     langs.forEach(l => ['t', 'd'].concat(p.ex ? ['how'] : []).forEach(k => { if (!dicts[l][`hr.p.${p.id}.${k}`]) err(`hr ${p.id}: ${l}.js has no hr.p.${p.id}.${k}`); }));
   });
   console.log(`   ${HR.HR_PROBLEMS.length} problems`);
+}
+
+console.log('20. paiza practice (paiza 対策)');
+{
+  const PZ = await import('../js/pz.js');
+  const SQL3 = await initSqlJs();
+  const langs = ['ja', 'easy', 'en', 'ne', 'fr', 'my', 'bn', 'si', 'id', 'vi', 'zh'];
+  PZ.PZ_PROBLEMS.forEach(p => {
+    const s = PZ.pzExpected(SQL3, p, false), h = PZ.pzExpected(SQL3, p, true);
+    if (!s.values.length) err(`pz ${p.id}: the answer returns no rows on the sample`);
+    if (JSON.stringify(s.values) === JSON.stringify(h.values)) warn(`pz ${p.id}: the hidden rows do not change the result`);
+    if (!PZ.pzSubmit(SQL3, p, p.sql).every(c => c.ok)) err(`pz ${p.id}: the answer does not pass its own test cases`);
+    if (PZ.pzSubmit(SQL3, p, `SELECT * FROM ${Object.keys(p.tables)[0]};`).every(c => c.ok)) err(`pz ${p.id}: SELECT * passes`);
+    langs.forEach(l => ['t', 'd'].concat(p.ex ? ['how'] : []).forEach(k => { if (!dicts[l][`pz.p.${p.id}.${k}`]) err(`pz ${p.id}: ${l}.js has no pz.p.${p.id}.${k}`); }));
+  });
+  PZ.PZ_LEVELS.forEach(lv => { const d = PZ.pzLevel(lv); if (!d.length || !d[0].ex || PZ.pzCheckIds(lv).length < 2) err(`pz level ${lv}: needs an example and practice problems`); });
+  console.log(`   ${PZ.PZ_PROBLEMS.length} problems`);
 }
 
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);

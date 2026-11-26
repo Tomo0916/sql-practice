@@ -658,6 +658,7 @@ function asgChoices(type) {
     case 'py': return PD_LESSONS.map(l => [l.key, `${l.no}. ${plainT('pd.t.' + l.key)}`]);
     case 'read': return READ_PRESETS.map(k => [k, plainT('as.rd.' + k)]);
     case 'hr': return [...['sel', 'rel', 'agg'].map(a => [a, plainT('hr.area.' + a)]), ['mock', plainT('hr.mockH')]];
+    case 'pz': return [1, 2, 3, 4, 5].map(n => [String(n), `Lv.${n} ${plainT('pz.lv.' + n)}`]);
     default: return [];
   }
 }
@@ -684,7 +685,7 @@ function asgFormHTML() {
       <select data-as="type">${ASG_TYPES.map(t => `<option value="${t}" ${t === asD.type ? 'selected' : ''}>${ASG_ICON[t]} ${esc(plainT('as.type.' + t))}</option>`).join('')}</select>
       <div class="as-what">${what}</div>
       <button type="button" class="btn btn-primary" data-act="asSend" ${ok ? '' : 'disabled'}>📬 ${H('as.tc.send')}</button></div>
-    <p class="muted small">${asD.type === 'rankup' ? H('as.ru.tcNote', { r: esc(asD.pass) }) : asD.type === 'read' ? H('as.tc.rdNote') : asD.type === 'hr' ? H('as.tc.hrNote') : ASG_TEST.has(asD.type) ? `${H('as.tc.testNote')}${lim ? ` ${H('as.limit', { m: lim / 60 })}` : ''}` : H('as.tc.pracNote')}</p>`;
+    <p class="muted small">${asD.type === 'rankup' ? H('as.ru.tcNote', { r: esc(asD.pass) }) : asD.type === 'read' ? H('as.tc.rdNote') : asD.type === 'hr' ? H('as.tc.hrNote') : asD.type === 'pz' ? H('as.tc.pzNote') : ASG_TEST.has(asD.type) ? `${H('as.tc.testNote')}${lim ? ` ${H('as.limit', { m: lim / 60 })}` : ''}` : H('as.tc.pracNote')}</p>`;
 }
 function ruItemTcHTML(it) {
   const rs = ruResults(S.asAtt || [], S.members || [], it), all = rs.filter(r => !r.next).length;
@@ -706,7 +707,7 @@ function hrProgress(it) {
 function asgItemTcHTML(it) {
   if (it.type === 'rankup') return ruItemTcHTML(it);
   const rs = asgResults(S.asAtt || [], S.members || [], it), done = rs.filter(r => r.done).length, mid = rs.filter(r => r.started && !r.done).length, test = ASG_TEST.has(it.type);
-  const prog = it.type === 'hr' ? hrProgress(it) : {};
+  const prog = it.type === 'hr' || it.type === 'pz' ? hrProgress(it) : {};
   const res = r => { if (!r.done) return prog[r.m.user_id] ? `<span class="tag">${esc(prog[r.m.user_id])}</span>` : r.started ? `<span class="tag">${H(it.type === 'read' ? 'as.tc.st.opened' : 'as.tc.st.started')}</span>` : `<span class="muted">${H('as.tc.st.none')}</span>`;
     if (it.type === 'rank' && r.d && r.d.rank) return `<span class="rk-badge sm r-${esc(r.d.rank)}">${esc(r.d.rank)}</span>${r.d.passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''} <b>${esc(String(r.d.score))}</b>`;
     return `✓ ${r.reason ? `<b>${esc(r.reason)}</b>` : H('as.done')}`; };

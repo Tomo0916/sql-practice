@@ -9,6 +9,7 @@
  *         basics | clauses | drill | practice | table | lecture | py — practice and lectures
  *         read                           — a document to read: ref = a preset (READ_PRESETS) or 'url' (+ url, title); note = the teacher's message
  *                                          start = opened, done = the student pressed "read"
+ *         pz                             — paiza practice: ref = a level (1–5); done when the level is cleared
  *         hr                             — HackerRank practice: ref = an area (sel | rel | agg) or 'mock';
  *                                          done when every problem of the area is solved / a mock test is finished;
  *                                          as:<id>:try rows carry the progress { n, m } on the way
@@ -26,10 +27,11 @@ import { BASIC_BY_KEY } from './basics.js';
 import { KW } from './clauses.js';
 import { rankParse, RK_SEC, RK_TIERS, RK_RANKS } from './rank.js';
 import { hrDrill } from './hr.js';
+import { pzLevel } from './pz.js';
 
-export const ASG_TYPES = ['read', 'hr', 'rankup', 'rank', 'check', 'level', 'basics', 'clauses', 'drill', 'practice', 'table', 'lecture', 'py'];
+export const ASG_TYPES = ['read', 'hr', 'pz', 'rankup', 'rank', 'check', 'level', 'basics', 'clauses', 'drill', 'practice', 'table', 'lecture', 'py'];
 export const ASG_TEST = new Set(['rank', 'check', 'level']);
-export const ASG_ICON = { read: '📖', hr: '🟩', rankup: '🪜', rank: '🏅', check: '📝', level: '🎯', basics: '🧱', clauses: '🧩', drill: '⇅', practice: '🎚', table: '🗂', lecture: '📽', py: '🐍' };
+export const ASG_ICON = { read: '📖', hr: '🟩', pz: '🪜', rankup: '🪜', rank: '🏅', check: '📝', level: '🎯', basics: '🧱', clauses: '🧩', drill: '⇅', practice: '🎚', table: '🗂', lecture: '📽', py: '🐍' };
 
 /** the class's items (open and closed), newest first */
 export const asgList = k => (k && k.tasks && Array.isArray(k.tasks.items) ? k.tasks.items.slice().sort((a, b) => (b.at || 0) - (a.at || 0)) : []);
@@ -90,6 +92,7 @@ export function asgHash(it) {
     case 'lecture': return `#/lecture/${r}`;
     case 'py': return `#/py/${r}/0`;
     case 'hr': return it.ref === 'mock' ? '#/hr/mock' : `#/hr/${asgHrIds(it)[0] || ''}`;
+    case 'pz': return `#/pz/${(pzLevel(+it.ref)[0] || {}).id || ''}`;
     case 'read': return asgReadUrl(it).startsWith('#') ? asgReadUrl(it) : '#/live';
     default: return '#/';
   }
@@ -109,6 +112,7 @@ function labelCore(it, lang) {
     case 'table': return (it.tables || [it.ref]).map(t => `<b class="mono">${esc(t)}</b>`).join(' + ');
     case 'py': return PD_BY_KEY[it.ref] ? `${PD_BY_KEY[it.ref].no}. ${R('pd.t.' + it.ref)}` : esc(it.ref);
     case 'hr': return it.ref === 'mock' ? R('hr.mockH') : `${R('hr.title')} · ${R('hr.area.' + it.ref)}`;
+    case 'pz': return `${R('pz.title')} · Lv.${esc(it.ref)} ${R('pz.lv.' + it.ref)}`;
     case 'read': return it.ref === 'url' ? esc(it.title || it.url || '') : R('as.rd.' + it.ref);
     default: return lesson(it.ref);
   }
