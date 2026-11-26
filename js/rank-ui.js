@@ -3,7 +3,7 @@
  * a test (#/rank/<subject>/<tier>) and its result. The rules and scores are in rank.js.
  * student.js gives this module its state and a few helpers with installRank().
  * ========================================================= */
-import { RK_N, RK_SEC, RK_TIERS, RK_CHAPTERS, RK_RANKS, RK_FROM, rankKey, rankParse, rankOf, rankToNext, rankProblems, rankScore, rankRow, rankBetter } from './rank.js';
+import { RK_N, RK_SEC, RK_TIERS, RK_CHAPTERS, RK_RANKS, RK_FROM, rankKey, rankParse, rankOf, rankToNext, rankProblems, rankScore, rankRow, rankBetter, totalBoardHTML } from './rank.js';
 import { htmlLang, t, th, esc } from './i18n.js';
 import { I, highlightSQL, lessonTitleHTML, problemHTML } from './ui.js';
 import { LESSON_BY_KEY, randomCode } from './engine.js';
@@ -36,6 +36,23 @@ function boardHTML(test) {
     ${rows.length ? `<table class="wtable rk-board"><tbody>${show.map(i => { const r = rows[i];
       return `${i === mi && mi >= 10 ? '<tr><td colspan="4" class="muted">⋯</td></tr>' : ''}<tr class="${r.me ? 'me' : ''}"><td class="n">${place[i]}</td><td>${esc(r.nickname)}${r.me ? ` <span class="tag">${H('rk.you')}</span>` : ''}</td><td>${rkBadge(r.rank, r.passed)}</td><td class="n"><b>${r.score}</b></td></tr>`; }).join('')}</tbody></table>`
       : `<p class="muted small">${H('rk.boardNone')}</p>`}</section>`;
+}
+
+/* ---------- 総合ランキング (Supabase rank_total): on the rank hub, this class or every class ---------- */
+const totals = { scope: 'class', class: undefined, all: undefined, at: {} };
+function loadTotal(scope) {
+  if (!C.S.klass || !backend.enabled) return;
+  if (totals[scope] === 'loading' || (totals[scope] !== undefined && Date.now() - (totals.at[scope] || 0) < 30000)) return;
+  totals[scope] = 'loading';
+  backend.rankTotal(C.S.klass.id, scope === 'all').then(rows => { totals[scope] = rows; }, () => { totals[scope] = null; })
+    .then(() => { totals.at[scope] = Date.now(); if (C.S.route.kind === 'rank' && !C.S.route.test) C.render(); });
+}
+export function rkScope(v) { totals.scope = v === 'all' ? 'all' : 'class'; loadTotal(totals.scope); C.render(); }
+function totalHTML() {
+  if (!C.S.klass || !backend.enabled) return '';
+  loadTotal(totals.scope);
+  const rows = totals[totals.scope];
+  return `<section class="card">${totalBoardHTML(rows === 'loading' || rows === undefined ? [] : rows, { lang: L(), all: totals.scope === 'all', top: 20, act: 'rkScope', state: rows === 'loading' || rows === undefined ? 'loading' : null })}</section>`;
 }
 
 /* ---------- rank tests (#/rank, #/rank/<subject>/<tier>): how many ordering problems within a time limit, like e-typing's level check ---------- */
@@ -118,6 +135,7 @@ function rankHubHTML() {
   return `<main class="wrap rk-page">
     <section class="card rk-head"><h1>🏅 ${H('rk.title')}</h1><p class="muted">${H('rk.sub', { n: RK_N })}</p>
       <ul class="rk-rules"><li>${H('rk.rule1')}</li><li>${H('rk.rule2')}</li><li>${H('rk.rule3')}</li><li>${H('rk.rule4')}</li><li><b>${H('rk.self.rule', { r: SELF_PASS })}</b></li></ul></section>
+    ${totalHTML()}
     <section class="card rk-grid-card"><table class="rk-grid"><thead><tr><th>${H('rk.chapter')}</th>${RK_TIERS.map((t, i) => `<th class="t${i}">${H('rk.tier.' + t)} <span class="tag">⏱ ${H('rk.limit', { m: rkMin(t) })}</span><small>${H('rk.tierDesc.' + t)}</small></th>`).join('')}</tr></thead><tbody>
       ${RK_CHAPTERS.map((ch, ci) => `<tr style="--cc:var(--c-${ch})"><th><span class="rk-chdot"></span>${H('home.chapter', { n: ci + 1 })} ${C.chName(ch)}</th>${RK_TIERS.map(t => { const rec = rkRec(rankKey(ch, t));
         const i = RK_TIERS.indexOf(t);

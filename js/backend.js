@@ -111,6 +111,15 @@ export async function rankBoard(classId, test) {
   if (error) return null;
   return data || [];
 }
+/** the overall ranking of the rank tests (each test's best, added up): this class, or every class (others: first letter + ******); null if the database does not have rank_total yet */
+export async function rankTotal(classId, all) {
+  if (!enabled) return null;
+  const sb = await client();
+  try { await flushAttempts(); } catch (e) { /* the ranking can still be read */ }
+  const { data, error } = await sb.rpc('rank_total', { p_class: classId, p_all: !!all });
+  if (error) return null;
+  return data || [];
+}
 export function logAttempt(row) {
   const q = Store.get(QKEY, []);
   q.push(row);

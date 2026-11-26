@@ -21,7 +21,7 @@ import { installExplain, explainTcHTML, explainActions, explainInput, explainKey
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
-import { RK_TIERS, RK_CHAPTERS, RK_RANKS, rankKey, rankParse, isRankRow, rankFromRow, classRanking } from './rank.js';
+import { RK_TIERS, RK_CHAPTERS, RK_RANKS, rankKey, rankParse, isRankRow, rankFromRow, classRanking, totalBoardHTML, classTotals } from './rank.js';
 import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS, DIF_RATIOS, KIND_RATIOS, QK, splitBy, spreadGrid, gridSlots, shapeCountSlots, shapeCountsOf } from './quick.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_BY_KEY } from './basics.js';
 import { tablesPageHTML, installTables, setTablesLang, openProjector, closeProjector } from './tables-ui.js';
@@ -1081,7 +1081,19 @@ function boardHTML(c) {
       <label class="chk"><input type="checkbox" data-act2="boardHide" ${S.boardHide ? 'checked' : ''}><span>${H('tc.rkHide')}</span></label>
       <button class="btn btn-primary btn-sm" data-act="projectBoard">${I.screen}${H('tc.project')}</button></div>
     ${S.members.length ? boardListHTML(list, by, false) : `<p class="res-empty">${H('tc.noMembers')}</p>`}
-  </section>`;
+  </section>${rkTotalHTML(c)}`;
+}
+/** 総合ランキング of the rank tests: this class (from its own rows), or every class (rank_total; others shown as M******) */
+const rkTot = { scope: 'class', all: undefined, at: 0, cid: null };
+function rkTotalHTML(c) {
+  if (rkTot.cid !== c.id) Object.assign(rkTot, { all: undefined, at: 0, cid: c.id });
+  const all = rkTot.scope === 'all';
+  if (all && rkTot.all !== 'loading' && (rkTot.all === undefined || Date.now() - rkTot.at > 30000)) {
+    rkTot.all = 'loading';
+    backend.rankTotal(c.id, true).then(r => { rkTot.all = r; }, () => { rkTot.all = null; }).then(() => { rkTot.at = Date.now(); if (S.route.tab === 'board') refreshTab(); });
+  }
+  const rows = all ? rkTot.all : classTotals(S.rkAtt || [], S.members);
+  return `<section class="card board-card rk-tcard">${totalBoardHTML(rows === 'loading' || rows === undefined ? [] : rows, { lang: L(), all, act: 'rkScope', teacher: true, state: rows === 'loading' || rows === undefined ? 'loading' : null })}</section>`;
 }
 
 /** the projector list: ranked, cut to the chosen number */
@@ -1708,6 +1720,7 @@ const actions = {
   testClass() { S.test.lessons = LESSONS.map(l => l.key).filter(k => (S.klass.lessons || []).includes(k)); S.test.code = S.klass.set_code; render(); saveTest(); },
   testNewCode() { S.test.code = randomCode(); render(); saveTest(); },
   print() { setTimeout(() => window.print(), 60); },
+  rkScope(el) { rkTot.scope = el.dataset.v === 'all' ? 'all' : 'class'; refreshTab(); },
   testTables() { if (!S.testTables) paperHTML(); openProjector(S.testTables || [], L(), 0); }
 };
 document.addEventListener('click', e => {

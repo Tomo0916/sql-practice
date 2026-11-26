@@ -489,3 +489,32 @@ returns table (nickname text, score integer, rank text, passed integer, at times
   limit 200;
 $$;
 grant execute on function public.rank_board(uuid, text) to authenticated;
+
+-- ---------- 総合ランキング: each student's best score of every rank test (8 chapters × 3 tiers), added up ----------
+-- p_all = false: this class only. p_all = true: every class; people of other classes are shown as the first letter + ******.
+create or replace function public.rank_total(p_class uuid, p_all boolean default false)
+returns table (nickname text, total integer, tests integer, passed integer, last_at timestamptz, me boolean, same boolean)
+  language sql stable security definer set search_path = public as $$
+  with r as (
+    select a.user_id, a.class_id, split_part(a.problem_id, ':', 2) as test, split_part(a.problem_id, ':', 3)::int as score,
+           coalesce(case when a.sql ~ '^\s*\{' then (a.sql::jsonb ->> 'pass')::int end, 0) as passed, a.created_at
+    from public.attempts a
+    where (public.is_member_of(p_class) or public.is_teacher_of(p_class))
+      and (p_all or a.class_id = p_class)
+      and a.problem_id like 'rk:%'
+      and split_part(a.problem_id, ':', 2) ~ '^[a-z]+-(beginner|intermediate|advanced)$'
+      and split_part(a.problem_id, ':', 3) ~ '^[0-9]+$'
+  ), best as (
+    select distinct on (class_id, user_id, test) * from r order by class_id, user_id, test, score desc, (passed > 0), created_at
+  ), tot as (
+    select class_id, user_id, sum(score)::int as total, count(*)::int as tests, (count(*) filter (where passed > 0))::int as passed, max(created_at) as last_at
+    from best group by class_id, user_id
+  )
+  select case when t.class_id = p_class then m.nickname else left(m.nickname, 1) || '******' end,
+         t.total, t.tests, t.passed, t.last_at, (t.class_id = p_class and t.user_id = auth.uid()), t.class_id = p_class
+  from tot t join public.members m on m.class_id = t.class_id and m.user_id = t.user_id
+  order by t.total desc, t.passed, t.last_at
+  limit 300;
+$$;
+revoke all on function public.rank_total(uuid, boolean) from public, anon;
+grant execute on function public.rank_total(uuid, boolean) to authenticated;

@@ -10,6 +10,7 @@
  * Pure functions (check.mjs tests them); the screen is in student.js.
  * ========================================================= */
 import { LESSONS, bandLevel } from './lessons.js';
+import { th, esc } from './i18n.js';
 import { LESSON_BY_KEY } from './engine.js';
 
 export const RK_N = 10;   // problems made at the start (more are made as they are used)
@@ -92,4 +93,45 @@ export function classRanking(rows, test) {
     if (rankBetter(r, b) || (!rankBetter(b, r) && r.at < b.at)) best[r.user] = r;
   });
   return Object.values(best).sort((a, b) => b.score - a.score || (!!a.passed - !!b.passed) || (a.at < b.at ? -1 : 1));
+}
+
+/* ---------- 総合ランキング: each rank test's best, added up (rows from rank_total) ---------- */
+export const RK_TESTS = RK_CHAPTERS.length * RK_TIERS.length;   // 24
+/** places: the same total and the same number of tests with passes share a place */
+export function totalPlaces(rows) { const p = []; rows.forEach((r, i) => { p[i] = i && rows[i - 1].total === r.total && rows[i - 1].passed === r.passed ? p[i - 1] : i + 1; }); return p; }
+/**
+ * The board. o = { lang, all (every class), top (show the first n, and me), act (data-act of the class / all switch), state ('loading' | null) }
+ * rows: null = the database has no rank_total yet.
+ */
+export function totalBoardHTML(rows, o) {
+  const L = o.lang, H = (k, v) => th(k, L, v);
+  const seg = `<div class="seg rk-tscope">${[[false, 'rk.total.class'], [true, 'rk.total.all']].map(([v, k]) => `<button type="button" class="seg-b ${!!o.all === v ? 'on' : ''}" data-act="${o.act}" data-v="${v ? 'all' : 'class'}" aria-pressed="${!!o.all === v}">${H(k)}</button>`).join('')}</div>`;
+  let body;
+  if (o.state === 'loading') body = `<p class="muted small">${H('rk.loading')}</p>`;
+  else if (rows === null) body = `<p class="muted small">${H(o.teacher ? 'rk.total.needT' : 'rk.total.need')}</p>`;
+  else if (!rows.length) body = `<p class="muted small">${H('rk.total.none')}</p>`;
+  else {
+    const place = totalPlaces(rows), mi = rows.findIndex(r => r.me), top = o.top || rows.length;
+    const show = rows.map((r, i) => i).filter(i => i < top || i === mi), max = Math.max(1, rows[0].total);
+    body = `${mi >= 0 ? `<p class="rk-myplace">${H(o.all ? 'rk.total.myPlaceAll' : 'rk.myPlace', { n: place[mi], m: rows.length })}</p>` : ''}
+      <ol class="rk-total">${show.map(i => { const r = rows[i];
+        return `${i === mi && i >= top ? '<li class="gap" aria-hidden="true">⋯</li>' : ''}<li class="${r.me ? 'me' : ''} ${r.same ? '' : 'other'} ${place[i] <= 3 ? 'top top' + place[i] : ''}">
+          <span class="rt-place">${place[i] <= 3 ? ['🥇', '🥈', '🥉'][place[i] - 1] : place[i]}</span>
+          <span class="rt-name">${esc(r.nickname)}${r.me ? ` <span class="tag">${H('rk.you')}</span>` : ''}</span>
+          <span class="rt-bar"><i style="width:${Math.round(r.total / max * 100)}%"></i></span>
+          <span class="rt-pts"><b>${r.total}</b><small>${H('rk.total.pt')}</small></span>
+          <span class="rt-tests muted small">${H('rk.total.tests', { n: r.tests, m: RK_TESTS })}${r.passed ? ` · ${H('rk.total.withPass', { n: r.passed })}` : ''}</span></li>`; }).join('')}</ol>`;
+  }
+  return `<div class="rk-tboard"><div class="rk-thead"><div><h3>${H('rk.total.title')}</h3><p class="muted small">${H('rk.total.sub', { m: RK_TESTS })}</p></div>${seg}</div>
+    ${o.all ? `<p class="muted small rk-tnote">🔒 ${H('rk.total.allNote')}</p>` : ''}${body}</div>`;
+}
+/** the class's 総合ランキング from its own rows (the teacher has them): the same as rank_total(class) */
+export function classTotals(rows, members) {
+  const best = {};
+  rows.filter(isRankRow).map(rankFromRow).filter(r => rankParse(r.test)).forEach(r => { const k = r.user + '|' + r.test, b = best[k]; if (rankBetter(r, b) || (!rankBetter(b, r) && r.at < b.at)) best[k] = r; });
+  const tot = {};
+  Object.values(best).forEach(r => { const t = (tot[r.user] = tot[r.user] || { user: r.user, total: 0, tests: 0, passed: 0, last_at: r.at }); t.total += r.score; t.tests++; if (r.passed) t.passed++; if (r.at > t.last_at) t.last_at = r.at; });
+  const nick = u => (members.find(m => m.user_id === u) || {}).nickname;
+  return Object.values(tot).filter(t => nick(t.user)).sort((a, b) => b.total - a.total || a.passed - b.passed || (a.last_at < b.last_at ? -1 : 1))
+    .map(t => ({ nickname: nick(t.user), total: t.total, tests: t.tests, passed: t.passed, last_at: t.last_at, me: false, same: true }));
 }

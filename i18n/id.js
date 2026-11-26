@@ -2382,5 +2382,17 @@ export default {
   "lp.orderNote": "Angka dalam lingkaran adalah urutan soal (urutan dipilih).",
   "nav.fold": "Ciutkan menu",
   "nav.unfold": "Buka menu",
-  "ck.sameNoteR": "Semua mendapat soal yang sama dengan urutan yang sama. Soal dan jawaban ada di kanan."
+  "ck.sameNoteR": "Semua mendapat soal yang sama dengan urutan yang sama. Soal dan jawaban ada di kanan.",
+  "rk.total.title": "Peringkat keseluruhan",
+  "rk.total.sub": "Jumlah skor terbaik tiap tes peringkat (total {m} tes).",
+  "rk.total.class": "Kelas saya",
+  "rk.total.all": "Semua kelas",
+  "rk.total.allNote": "Orang dari kelas lain hanya ditampilkan huruf pertama namanya.",
+  "rk.total.myPlaceAll": "Anda peringkat {n} dari semua ({m} orang)",
+  "rk.total.need": "Peringkat keseluruhan belum tersedia (minta guru memperbarui database).",
+  "rk.total.needT": "Untuk peringkat semua kelas, jalankan lagi supabase/schema.sql di SQL Editor Supabase.",
+  "rk.total.none": "Belum ada yang mengikuti tes peringkat.",
+  "rk.total.pt": "poin",
+  "rk.total.tests": "{n} / {m} tes",
+  "rk.total.withPass": "{n} dengan lewati"
 };

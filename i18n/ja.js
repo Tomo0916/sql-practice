@@ -2383,5 +2383,17 @@ export default {
   "lp.orderNote": "丸の中の数字は出題の順番です（選んだ順）。",
   "nav.fold": "メニューをたたむ",
   "nav.unfold": "メニューを広げる",
-  "ck.sameNoteR": "全員に同じ問題が同じ順番で出ます。右側で問題と答えを確認できます。"
+  "ck.sameNoteR": "全員に同じ問題が同じ順番で出ます。右側で問題と答えを確認できます。",
+  "rk.total.title": "総合ランキング",
+  "rk.total.sub": "ランクテスト（全{m}種類）それぞれの最高点を合計した点数の順位です。",
+  "rk.total.class": "クラス内",
+  "rk.total.all": "全クラス",
+  "rk.total.allNote": "ほかのクラスの人は、名前の1文字目だけが表示されます。",
+  "rk.total.myPlaceAll": "あなたは全体で {n} 位（{m} 人中）",
+  "rk.total.need": "総合ランキングはまだ使えません（先生にデータベースの更新をお願いしてください）。",
+  "rk.total.needT": "全クラスの総合ランキングを使うには、Supabase の SQL Editor で supabase/schema.sql をもう一度実行してください。",
+  "rk.total.none": "まだだれもランクテストを受けていません。",
+  "rk.total.pt": "点",
+  "rk.total.tests": "{n} / {m} テスト",
+  "rk.total.withPass": "パスあり {n}"
 };

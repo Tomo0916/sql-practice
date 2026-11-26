@@ -2382,5 +2382,17 @@ export default {
   "lp.orderNote": "Số trong vòng tròn là thứ tự ra đề (theo thứ tự chọn).",
   "nav.fold": "Thu gọn menu",
   "nav.unfold": "Mở rộng menu",
-  "ck.sameNoteR": "Mọi người nhận cùng câu hỏi theo cùng thứ tự. Xem câu hỏi và đáp án ở bên phải."
+  "ck.sameNoteR": "Mọi người nhận cùng câu hỏi theo cùng thứ tự. Xem câu hỏi và đáp án ở bên phải.",
+  "rk.total.title": "Bảng xếp hạng tổng",
+  "rk.total.sub": "Tổng điểm cao nhất của từng bài kiểm tra xếp hạng (tất cả {m} bài).",
+  "rk.total.class": "Trong lớp",
+  "rk.total.all": "Tất cả các lớp",
+  "rk.total.allNote": "Người ở lớp khác chỉ hiện chữ cái đầu của tên.",
+  "rk.total.myPlaceAll": "Bạn hạng {n} trên toàn bộ ({m} người)",
+  "rk.total.need": "Bảng xếp hạng tổng chưa dùng được (hãy nhờ giáo viên cập nhật cơ sở dữ liệu).",
+  "rk.total.needT": "Để dùng bảng xếp hạng toàn bộ lớp, hãy chạy lại supabase/schema.sql trong SQL Editor của Supabase.",
+  "rk.total.none": "Chưa ai làm bài kiểm tra xếp hạng.",
+  "rk.total.pt": "điểm",
+  "rk.total.tests": "{n} / {m} bài",
+  "rk.total.withPass": "{n} có bỏ qua"
 };

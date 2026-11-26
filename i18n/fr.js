@@ -2382,5 +2382,17 @@ export default {
   "lp.orderNote": "Les numéros dans les ronds donnent l'ordre des problèmes (ordre de sélection).",
   "nav.fold": "Replier le menu",
   "nav.unfold": "Déplier le menu",
-  "ck.sameNoteR": "Tout le monde a les mêmes problèmes dans le même ordre. Problèmes et réponses à droite."
+  "ck.sameNoteR": "Tout le monde a les mêmes problèmes dans le même ordre. Problèmes et réponses à droite.",
+  "rk.total.title": "Classement général",
+  "rk.total.sub": "La somme des meilleurs scores de chaque test de rang ({m} tests).",
+  "rk.total.class": "Ma classe",
+  "rk.total.all": "Toutes les classes",
+  "rk.total.allNote": "Les élèves des autres classes ne sont affichés que par la première lettre de leur nom.",
+  "rk.total.myPlaceAll": "Vous êtes {n}e au total (sur {m})",
+  "rk.total.need": "Le classement général n'est pas encore disponible (demandez à l'enseignant de mettre à jour la base).",
+  "rk.total.needT": "Pour le classement de toutes les classes, relancez supabase/schema.sql dans le SQL Editor de Supabase.",
+  "rk.total.none": "Personne n'a encore passé de test de rang.",
+  "rk.total.pt": "pts",
+  "rk.total.tests": "{n} / {m} tests",
+  "rk.total.withPass": "{n} avec passes"
 };

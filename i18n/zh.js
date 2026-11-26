@@ -2382,5 +2382,17 @@ export default {
   "lp.orderNote": "圆圈中的数字是出题顺序（选择的顺序）。",
   "nav.fold": "收起菜单",
   "nav.unfold": "展开菜单",
-  "ck.sameNoteR": "所有人按相同顺序做相同的题。右侧可查看题目和答案。"
+  "ck.sameNoteR": "所有人按相同顺序做相同的题。右侧可查看题目和答案。",
+  "rk.total.title": "综合排名",
+  "rk.total.sub": "各等级测试（共 {m} 种）最高分的合计排名。",
+  "rk.total.class": "班内",
+  "rk.total.all": "全部班级",
+  "rk.total.allNote": "其他班级的人只显示名字的第一个字。",
+  "rk.total.myPlaceAll": "你在全部中排第 {n} 名（共 {m} 人）",
+  "rk.total.need": "综合排名暂不可用（请老师更新数据库）。",
+  "rk.total.needT": "要使用全部班级排名，请在 Supabase 的 SQL Editor 中再次运行 supabase/schema.sql。",
+  "rk.total.none": "还没有人参加等级测试。",
+  "rk.total.pt": "分",
+  "rk.total.tests": "{n} / {m} 项测试",
+  "rk.total.withPass": "有跳过 {n}"
 };

@@ -22,7 +22,7 @@ import { asgReadUrl, asgHrIds } from './assign.js';
 import { hrRec } from './hr.js';
 import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
-import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
+import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML, rkScope } from './rank-ui.js';
 import { navFoldHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 /* the code editor (CodeMirror, ~420 KB) is loaded when a page needs it, not on the home page */
@@ -2342,6 +2342,7 @@ function checkOrder() {
  * ========================================================= */
 const actions = {
   rkGo() { rkStart(S.route.test); },
+  rkScope(el) { rkScope(el.dataset.v); },
   rkPass() { const ses = S.session; if (!ses || ses.kind !== 'rank' || ses.phase !== 'run') return; const p = ses.items[ses.i]; if (!ses.done[p.id]) ses.pass[p.id] = true; saveDraft(); rkNext(); },
   rkAgain() { rkStopTick(); S.session = null; render(); window.scrollTo(0, 0); },
   homeOrder(el) { S.settings.order = el.dataset.v === 'book' ? 'book' : 'app'; saveSettings(S.settings); render(); },   // the home page: the app's chapters or the textbook's order

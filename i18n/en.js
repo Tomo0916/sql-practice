@@ -2383,5 +2383,17 @@ export default {
   "lp.orderNote": "The numbers in circles are the order of the problems (the order you picked).",
   "nav.fold": "Collapse menu",
   "nav.unfold": "Expand menu",
-  "ck.sameNoteR": "Everyone gets the same problems in the same order. You can see them and their answers on the right."
+  "ck.sameNoteR": "Everyone gets the same problems in the same order. You can see them and their answers on the right.",
+  "rk.total.title": "Overall ranking",
+  "rk.total.sub": "Each rank test's best score (all {m} tests), added up.",
+  "rk.total.class": "My class",
+  "rk.total.all": "All classes",
+  "rk.total.allNote": "People in other classes are shown by the first letter of their name only.",
+  "rk.total.myPlaceAll": "You are #{n} overall (of {m})",
+  "rk.total.need": "The overall ranking is not available yet (ask your teacher to update the database).",
+  "rk.total.needT": "To use the all-class ranking, run supabase/schema.sql again in the Supabase SQL Editor.",
+  "rk.total.none": "No one has taken a rank test yet.",
+  "rk.total.pt": "pts",
+  "rk.total.tests": "{n} / {m} tests",
+  "rk.total.withPass": "{n} with passes"
 };

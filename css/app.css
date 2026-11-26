@@ -1987,3 +1987,20 @@ body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select:
 }
 @media (max-width: 860px) { .side-fold { display: none; } }
 .ck-calc { font-weight: 600; } .ck-s1 { color: #0f9d6b; } .ck-s2 { color: #6b4fd5; } .ck-s3 { color: var(--ink); }
+/* 総合ランキング (rank tests, added up) */
+.rk-thead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.rk-thead h3 { margin: 0 0 2px; }
+.rk-tnote { margin: 8px 0 0; }
+.rk-total { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
+.rk-total li { display: grid; grid-template-columns: 2.4em minmax(0, 1.4fr) minmax(60px, 2fr) auto; grid-template-areas: "p n b s" "p t t t"; align-items: center; gap: 2px 12px; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); }
+.rk-total li.gap { display: block; text-align: center; background: none; padding: 0; color: var(--ink-3); }
+.rk-total li.me { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.rk-total li.other .rt-name { color: var(--ink-3); font-family: var(--mono); letter-spacing: .05em; }
+.rk-total li.top1 { background: color-mix(in srgb, #f5b301 14%, var(--surface)); }
+.rt-place { grid-area: p; font-weight: 800; font-size: 1.05rem; text-align: center; font-variant-numeric: tabular-nums; }
+.rt-name { grid-area: n; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rt-bar { grid-area: b; height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.rt-bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+.rt-pts { grid-area: s; text-align: right; white-space: nowrap; } .rt-pts b { font-size: 1.1rem; font-variant-numeric: tabular-nums; } .rt-pts small { color: var(--ink-3); margin-left: 2px; }
+.rt-tests { grid-area: t; }
+@media (max-width: 600px) { .rk-total li { grid-template-columns: 2.2em minmax(0, 1fr) auto; grid-template-areas: "p n s" "p b b" "p t t"; } }

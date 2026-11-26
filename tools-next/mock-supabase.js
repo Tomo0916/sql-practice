@@ -168,6 +168,24 @@ export function createClient() {
         save(db); bc.postMessage({ table: 'classes', type: 'UPDATE', row: c });
         return ok(c);
       }
+      if (name === 'rank_board' || name === 'rank_total') {   // the same as supabase/schema.sql
+        const mine = db.members.some(m => m.class_id === args.p_class && m.user_id === s.user.id) || db.classes.some(c => c.id === args.p_class && c.teacher_id === s.user.id);
+        if (!mine) return ok([]);
+        const all = name === 'rank_total' && args.p_all, best = {};
+        db.attempts.filter(a => /^rk:[a-z]+-(beginner|intermediate|advanced):[0-9]+:/.test(a.problem_id) && (all || a.class_id === args.p_class)).forEach(a => {
+          const [, test, sc] = a.problem_id.split(':'); if (name === 'rank_board' && test !== args.p_test) return;
+          let pass = 0; try { pass = +JSON.parse(a.sql).pass || 0; } catch (e) { /* old */ }
+          const k = a.class_id + '|' + a.user_id + '|' + test, b = best[k], r = { cls: a.class_id, user: a.user_id, test, score: +sc, rank: a.problem_id.split(':')[3], passed: pass, at: a.created_at };
+          if (!b || r.score > b.score || (r.score === b.score && !r.passed && b.passed)) best[k] = r;
+        });
+        const nick = (c, u) => (db.members.find(m => m.class_id === c && m.user_id === u) || {}).nickname;
+        if (name === 'rank_board') return ok(Object.values(best).filter(r => nick(r.cls, r.user)).sort((a, b) => b.score - a.score || (a.passed > 0) - (b.passed > 0) || (a.at < b.at ? -1 : 1))
+          .map(r => ({ nickname: nick(r.cls, r.user), score: r.score, rank: r.rank, passed: r.passed, at: r.at, me: r.user === s.user.id })));
+        const tot = {};
+        Object.values(best).forEach(r => { const k = r.cls + '|' + r.user, t = (tot[k] = tot[k] || { cls: r.cls, user: r.user, total: 0, tests: 0, passed: 0, last_at: r.at }); t.total += r.score; t.tests++; if (r.passed) t.passed++; if (r.at > t.last_at) t.last_at = r.at; });
+        return ok(Object.values(tot).filter(t => nick(t.cls, t.user)).sort((a, b) => b.total - a.total || a.passed - b.passed || (a.last_at < b.last_at ? -1 : 1))
+          .map(t => { const same = t.cls === args.p_class, n = nick(t.cls, t.user); return { nickname: same ? n : [...n][0] + '******', total: t.total, tests: t.tests, passed: t.passed, last_at: t.last_at, me: same && t.user === s.user.id, same }; }));
+      }
       return fail('unknown rpc');
     },
     channel() {
