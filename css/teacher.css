@@ -525,3 +525,20 @@ details.rank .rk-head { justify-content: flex-end; }
 body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select: none; }
 .qs-pv-btns { display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 .qs-clear:hover { color: var(--bad); border-color: var(--bad); }
+/* ---------- 配信 (sendHTML) ---------- */
+.snd { display: grid; gap: 14px; }
+.snd > .card { padding: 18px 20px; }
+.snd .snd-make .task-card { box-shadow: none; border: 1px dashed var(--line); margin-top: 10px; }
+.snd .snd-lessons { margin-top: 10px; }
+.snd-type optgroup { font-weight: 700; }
+.snd-tbl th, .snd-tbl td { white-space: nowrap; }
+.snd-tbl thead th { vertical-align: bottom; max-width: 120px; }
+.snd-tbl .snd-name { display: block; font-size: .78rem; font-weight: 600; white-space: normal; max-width: 120px; line-height: 1.3; }
+.snd-tbl .snd-ic { display: block; font-size: 1.05rem; }
+.snd-tbl td.sc { text-align: center; font-size: .85rem; }
+.snd-tbl td.sc.done { background: var(--ok-soft); color: var(--ok); font-weight: 700; }
+.snd-tbl td.sc.mid { background: var(--warn-soft); }
+.snd-tbl td.sc.none { color: var(--line-2, #aaa); }
+.snd-closed { margin-top: 10px; }
+.snd-closed summary { cursor: pointer; font-weight: 700; color: var(--muted, inherit); }
+.snd-tbl tfoot td, .snd-tbl td.sum { text-align: center; }

@@ -74,7 +74,7 @@ const joinURL = code => `${studentURL()}?class=${encodeURIComponent(code)}`;
 /* ---------- routing ---------- */
 function parseRoute() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
-  if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['assign', 'live', 'quick', 'board', 'mistakes', 'members', 'explain'].includes(h[2]) ? h[2] : 'live' };
+  if (h[0] === 'c' && h[1]) return { view: 'class', id: h[1], tab: ['send', 'assign', 'live', 'quick', 'board', 'mistakes', 'members', 'explain'].includes(h[2]) ? h[2] : 'live' };
   if (h[0] === 'present') return { view: 'present' };
   if (h[0] === 'test') return { view: 'test' };
   if (h[0] === 'book') return { view: 'book' };
@@ -112,7 +112,7 @@ function render() {
   if (v === 'test' && S.engine) document.title = `${S.test.title || t('test.headingDefault', S.test.tlang)} (${S.test.code})`;
 }
 /* ---------- the frame: a side menu (the pages; the open class and its tabs), a top bar on phones ---------- */
-const CLASS_TABS = [['live', I.bolt, 'tc.tabLive'], ['quick', I.timer, 'tc.tabQuick'], ['board', I.check, 'tc.tabBoard'], ['assign', I.book, 'tc.tabAssign'], ['explain', I.present, 'ex.tc.tab'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
+const CLASS_TABS = [['live', I.bolt, 'tc.tabLive'], ['send', I.inbox, 'tc.tabSend'], ['quick', I.timer, 'tc.tabQuick'], ['board', I.check, 'tc.tabBoard'], ['assign', I.gear, 'tc.tabSettings'], ['explain', I.present, 'ex.tc.tab'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
 function headerHTML() {
   const v = S.route.view, c = v === 'class' ? S.klass : null;
   const item = (href, on, ic, label) => `<a href="${href}" class="nav-i ${on ? 'on' : ''}">${ic}<span>${H(label)}</span></a>`;
@@ -196,6 +196,7 @@ function classHTML() {
   const tabs = CLASS_TABS;
   let body = '';
   if (tab === 'assign') body = assignHTML(c);
+  else if (tab === 'send') body = sendHTML(c);
   else if (tab === 'explain') body = explainTcHTML();
   else if (tab === 'mistakes') body = mistakesHTML(c);
   else if (tab === 'members') body = membersHTML(c);
@@ -616,9 +617,6 @@ function assignHTML(c) {
   const sel = new Set(c.lessons || []);
   const pol = c.answer_policy;
   return `<form class="card assign-form" data-form="assign">
-    <div class="fld"><span>${H('tc.assignLessons')}</span>
-      <div class="lesson-pick">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>
-        ${LESSONS.filter(l => l.ch === ch.key).map(l => `<label class="chk"><input type="checkbox" name="lesson" value="${l.key}" ${sel.has(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
     <div class="fld"><span>${H('tc.setCode')}</span>
       <div class="inline-form"><input name="set_code" class="mono" maxlength="16" value="${esc(c.set_code)}" required>
       <button type="button" class="btn btn-ghost btn-sm" data-act="setToday">${H('set.today')}</button>
@@ -634,14 +632,87 @@ function assignHTML(c) {
         const l = LESSON_BY_KEY[k];
         return `<details class="pv"><summary>${lessonTitleHTML(l, L())}</summary>${S.engine.lessonProblems(l, c.set_code, c.format).map(p => `<div class="pv-item"><span class="tag st-${p.stage}">${stageNameH(p)}</span>${p.bd ? `<span class="bd d${p.bd}">${H('dif.' + p.bd)}</span>` : ''} ${problemHTML(p, L())}${answerHTML(p)}</div>`).join('')}</details>`;
       }).join('') || `<p class="muted">${H('tc.noLessons')}</p>`}</div></div>
-  </form>
-  ${asgPanelHTML(c)}
-  ${taskHTML(c)}`;
+  </form>`;
+}
+
+/* ---------- 配信: everything sent to the class in one place: the live lessons, the shape mix, tests, practice,
+ * documents and certification practice; who has done what in one table ---------- */
+const SEND_GROUPS = [['g.read', ['read']], ['g.prac', ['lessons', 'mix', 'basics', 'clauses', 'drill', 'practice', 'table', 'lecture', 'py']], ['g.test', ['rankup', 'rank', 'check', 'level']], ['g.cert', ['hr', 'pz']]];
+const SEND_ICON = Object.assign({ lessons: '📚', mix: '🧱' }, ASG_ICON);
+const typeName = t => plainT(t === 'lessons' ? 'tc.send.lessons' : t === 'mix' ? 'tc.task.title' : 'as.type.' + t);
+function sendTypeHTML() {
+  return `<select data-as="type" class="snd-type">${SEND_GROUPS.map(([g, ts]) => `<optgroup label="${esc(plainT('tc.send.' + g))}">${ts.map(t => `<option value="${t}" ${t === asD.type ? 'selected' : ''}>${SEND_ICON[t] || '•'} ${esc(typeName(t))}</option>`).join('')}</optgroup>`).join('')}</select>`;
+}
+function lessonsFormHTML(c) {
+  const sel = new Set(c.lessons || []);
+  return `<form class="assign-form snd-lessons" data-form="lessons">
+    <div class="fld"><span>${H('tc.assignLessons')}</span><small class="muted">${H('tc.send.lessonsNote')}</small>
+      <div class="lesson-pick">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>
+        ${LESSONS.filter(l => l.ch === ch.key).map(l => `<label class="chk"><input type="checkbox" name="lesson" value="${l.key}" ${sel.has(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
+    <div class="actions"><button class="btn btn-primary">📬 ${H('tc.send.lessonsSave')}</button><a class="small" href="#/c/${c.id}/assign">${H('tc.send.toSettings')} →</a></div></form>`;
+}
+/** the "make" card: the type, then what it needs */
+function sendMakeHTML(c) {
+  let what;
+  if (asD.type === 'lessons') what = `<div class="as-form">${sendTypeHTML()}</div>${lessonsFormHTML(c)}`;
+  else if (asD.type === 'mix') what = `<div class="as-form">${sendTypeHTML()}</div>${taskHTML(c)}`;
+  else what = tasksInDb(c) ? asgFormHTML() : `<div class="as-form">${sendTypeHTML()}</div><p class="muted small">${H('tc.task.schema')}</p>`;
+  return `<section class="card snd-make"><h2>📬 ${H('tc.send.make')}</h2>${what}</section>`;
+}
+/** each member's progress in the live lessons: user → [solved, of] */
+function lessonProgress(c) {
+  const all = classProblems(c).flatMap(g => g.probs), ok = new Set();
+  countable(visibleAttempts()).forEach(a => { if (a.ok) ok.add(a.user_id + '|' + a.problem_id); });
+  return { n: all.length, of: m => all.filter(p => ok.has(m.user_id + '|' + p.id)).length };
+}
+/** one cell of the table: [text, state] state = done | mid | none */
+function sendCell(it, m) {
+  if (it.type === 'rankup') { const r = ruResults(S.asAtt || [], [m], it)[0]; const n = RK_TIERS.filter(t => r.tiers[t] && r.tiers[t].clear).length; return [n === RK_TIERS.length ? '✓' : `${n}/${RK_TIERS.length}`, n === RK_TIERS.length ? 'done' : r.n ? 'mid' : 'none']; }
+  const r = asgResults(S.asAtt || [], [m], it)[0];
+  if (r.done) return [r.reason || '✓', 'done'];
+  if (it.type === 'hr' || it.type === 'pz') { const pr = hrProgress(it)[m.user_id]; if (pr) return [pr.replace(/\s/g, ''), 'mid']; }
+  if (r.started) return [plainT(it.type === 'read' ? 'as.tc.st.opened' : 'as.tc.st.started'), 'mid'];
+  return ['—', 'none'];
+}
+function sendMatrixHTML(c) {
+  const items = asgList(c).filter(it => it.open !== false).reverse(), lp = (c.lessons || []).length ? lessonProgress(c) : null, mix = c.tasks && c.tasks.mix;
+  const mixRows = mix ? Object.fromEntries(taskRows(mix).map(r => [r.m.user_id, r])) : {};
+  const cols = [...(lp && lp.n ? [{ k: 'lessons', ic: SEND_ICON.lessons, name: plainT('tc.send.lessons') }] : []), ...(mix ? [{ k: 'mix', ic: SEND_ICON.mix, name: plainT('tc.task.title') }] : []),
+    ...items.map(it => ({ k: it.id, ic: SEND_ICON[it.type], name: asgLabelHTML(it, L()).replace(/<small[\s\S]*$/, '').replace(/<rt>[^<]*<\/rt>/g, '').replace(/<[^>]+>/g, ''), it }))];
+  if (!cols.length) return `<section class="card snd-matrix"><h2>📊 ${H('tc.send.matrix')}</h2><p class="muted small">${H('as.tc.none')}</p></section>`;
+  const cell = (col, m) => {
+    if (col.k === 'lessons') { const d = lp.of(m); return [`${d}/${lp.n}`, d >= lp.n ? 'done' : d ? 'mid' : 'none']; }
+    if (col.k === 'mix') { const r = mixRows[m.user_id] || { ok: 0, tried: 0 }; return [`${r.ok}/${mix.n}`, r.ok >= mix.n ? 'done' : r.tried ? 'mid' : 'none']; }
+    return sendCell(col.it, m);
+  };
+  const rows = S.members.map(m => { const cs = cols.map(col => cell(col, m)), d = cs.filter(x => x[1] === 'done').length;
+    return `<tr><th>${esc(m.nickname)}</th><td class="n sum">${d}/${cols.length}</td>${cs.map(([t, st]) => `<td class="sc ${st}">${st === 'done' && t !== '✓' ? `✓ ${esc(t)}` : esc(t)}</td>`).join('')}</tr>`; }).join('');
+  const doneBy = col => S.members.filter(m => cell(col, m)[1] === 'done').length;
+  return `<section class="card snd-matrix"><h2>📊 ${H('tc.send.matrix')}</h2><p class="muted small">${H('tc.send.matrixSub')}</p>
+    <div class="q-table-wrap"><table class="q-table snd-tbl"><thead><tr><th></th><th>${H('tc.send.done')}</th>${cols.map(col => `<th title="${esc(col.name)}"><span class="snd-ic">${col.ic || '•'}</span><span class="snd-name">${esc(col.name)}</span></th>`).join('')}</tr></thead>
+    <tbody>${rows || `<tr><td colspan="${cols.length + 2}" class="muted">${H('as.tc.noMembers')}</td></tr>`}</tbody>
+    ${S.members.length ? `<tfoot><tr><th>${H('tc.send.total')}</th><td></td>${cols.map(col => `<td class="n">${doneBy(col)}/${S.members.length}</td>`).join('')}</tr></tfoot>` : ''}</table></div></section>`;
+}
+function sendListHTML(c) {
+  const items = asgList(c), open = items.filter(it => it.open !== false), closed = items.filter(it => it.open === false);
+  return `<section class="card snd-list"><h2>🗂 ${H('tc.send.list')}</h2>
+    ${open.length ? `<ul class="as-list">${open.map(asgItemTcHTML).join('')}</ul>` : `<p class="muted small">${H('as.tc.none')}</p>`}
+    ${closed.length ? `<details class="snd-closed"><summary>${H('tc.send.closed', { n: closed.length })}</summary><ul class="as-list">${closed.map(asgItemTcHTML).join('')}</ul></details>` : ''}</section>`;
+}
+function sendHTML(c) {
+  return `<div class="as-tc snd">${sendMakeHTML(c)}${sendMatrixHTML(c)}${sendListHTML(c)}</div>`;
+}
+/** after new results: the table and the list (the "make" card keeps what the teacher is typing) */
+function sendRefresh() {
+  if (!S.klass) return;
+  const m = document.querySelector('.snd-matrix'), l = document.querySelector('.snd-list');
+  if (m) m.outerHTML = sendMatrixHTML(S.klass);
+  if (l) { const was = !!(l.querySelector('.snd-closed') || {}).open; l.outerHTML = sendListHTML(S.klass); if (was) { const d = document.querySelector('.snd-list .snd-closed'); if (d) d.open = true; } }
 }
 /* ---------- sending things to the class (配信, assign.js): tests each student starts when ready, practice, lectures ----------
  * In the class row: tasks.items. The students' records come in as as:<id>:start / as:<id>:done (S.asAtt). */
 const asD = { type: 'read', ref: '', limit: 0, pass: 'B', url: '', title: '', note: '' };
-const redrawAs = () => { const el = document.querySelector('.as-tc'); if (el && S.klass) el.outerHTML = asgPanelHTML(S.klass); };
+const redrawAs = () => { const el = document.querySelector('.as-tc'); if (el && S.klass) el.outerHTML = el.classList.contains('snd') ? sendHTML(S.klass) : asgPanelHTML(S.klass); };
 const plainT = k => String(T(k)).replace(/\{([^|}]+)\|[^}]+\}/g, '$1');
 const lessonOpt = k => `${LESSON_BY_KEY[k].no}. ${plainT(`L.${k}.title`)}`;
 /** the choices for one type: [[ref, label]] */
@@ -682,7 +753,7 @@ function asgFormHTML() {
   const lim = asD.type === 'rank' ? asgLimit({ type: 'rank', ref: asD.ref }) : 0;
   const ok = asD.type === 'check' ? !!ck : asD.type === 'level' || !!asD.ref;
   return `<div class="as-form">
-      <select data-as="type">${ASG_TYPES.map(t => `<option value="${t}" ${t === asD.type ? 'selected' : ''}>${ASG_ICON[t]} ${esc(plainT('as.type.' + t))}</option>`).join('')}</select>
+      ${sendTypeHTML()}
       <div class="as-what">${what}</div>
       <button type="button" class="btn btn-primary" data-act="asSend" ${ok ? '' : 'disabled'}>📬 ${H('as.tc.send')}</button></div>
     <p class="muted small">${asD.type === 'rankup' ? H('as.ru.tcNote', { r: esc(asD.pass) }) : asD.type === 'read' ? H('as.tc.rdNote') : asD.type === 'hr' ? H('as.tc.hrNote') : asD.type === 'pz' ? H('as.tc.pzNote') : ASG_TEST.has(asD.type) ? `${H('as.tc.testNote')}${lim ? ` ${H('as.limit', { m: lim / 60 })}` : ''}` : H('as.tc.pracNote')}</p>`;
@@ -857,7 +928,7 @@ function whoHTML(m, st) {
 }
 function liveHTML(c) {
   const groups = classProblems(c);
-  if (!groups.length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/assign">${H('tc.tabAssign')}</a></section>`;
+  if (!groups.length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/send">${H('tc.sendLessons')}</a></section>`;
   const atts = countable(visibleAttempts());
   const cell = {}; // user|problem → {ok, n}
   atts.forEach(a => { const k = a.user_id + '|' + a.problem_id; const x = cell[k] || (cell[k] = { ok: false, n: 0, onTime: false }); if (a.ok) { x.ok = true; if (!a.late) x.onTime = true; } else x.n++; });
@@ -996,7 +1067,7 @@ function boardListHTML(list, by, big) {
   }).join('')}</ol>`;
 }
 function boardHTML(c) {
-  if (!classProblems(c).length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/assign">${H('tc.tabAssign')}</a></section>`;
+  if (!classProblems(c).length) return `<section class="card empty"><p>${H('tc.noLessons')}</p><a class="btn btn-primary" href="#/c/${c.id}/send">${H('tc.sendLessons')}</a></section>`;
   const by = S.boardBy;
   const list = rankBoard(boardRows(c), by);
   return `<section class="card board-card">
@@ -1272,7 +1343,7 @@ function connHTML() {
   return `<span id="conn" class="conn ${k}" title="${esc(T('tc.conn.' + k))}"><i></i>${H('tc.conn.' + k)}${k === 'lost' ? ` <button class="btn btn-ghost btn-xs" data-act="reconnect">${H('tc.conn.retry')}</button>` : ''}</span>`;
 }
 const soonRefresh = (() => { let pending = null; return () => { clearTimeout(pending); pending = setTimeout(() => { if (S.route.view !== 'class') return; if (['live', 'quick', 'board', 'mistakes', 'members'].includes(S.route.tab)) refreshTab();
-    else if (S.route.tab === 'assign') { const el = document.querySelector('.task-card'); if (el && S.klass) el.outerHTML = taskHTML(S.klass); redrawAs(); } }, 300); }; })();
+    else if (S.route.tab === 'send') { const el = document.querySelector('.task-card'); if (el && S.klass && !el.contains(document.activeElement)) el.outerHTML = taskHTML(S.klass); sendRefresh(); } }, 300); }; })();
 async function startWatch() {
   stopWatch();
   clearTimeout(retryTimer);
@@ -1713,9 +1784,15 @@ document.addEventListener('submit', async e => {
       } catch (ex) { err.style.color = ''; err.textContent = /Invalid login/i.test(ex.message) ? T('tc.badLogin') : /confirm/i.test(ex.message) ? T('tc.notConfirmed') : ex.message; if (btn) btn.disabled = false; }
     } else if (kind === 'newClass') {
       const c = await backend.createClass(String(fd.get('name')).trim());
-      location.hash = `#/c/${c.id}/assign`;
+      location.hash = `#/c/${c.id}/send`;
+    } else if (kind === 'lessons') {   // 配信: the lessons of the live class
+      const patch = { lessons: LESSONS.map(l => l.key).filter(k => fd.getAll('lesson').includes(k)) };
+      const removed = (S.klass.lessons || []).some(k => !patch.lessons.includes(k));
+      if (liveOn(S.klass) && removed && !confirm(T('tc.live.changeConfirm'))) { if (btn) btn.disabled = false; return; }
+      S.klass = await backend.updateClass(S.klass.id, patch);
+      toast(T('as.tc.sent')); render();
     } else if (kind === 'assign') {
-      const patch = { lessons: LESSONS.map(l => l.key).filter(k => fd.getAll('lesson').includes(k)), set_code: normCode(fd.get('set_code')) || todayCode(), answer_policy: fd.get('policy') || 'after2' };
+      const patch = { lessons: S.klass.lessons || [], set_code: normCode(fd.get('set_code')) || todayCode(), answer_policy: fd.get('policy') || 'after2' };
       const fmt = normFormat(readFormat());   // null = the usual set
       const removed = (S.klass.lessons || []).some(k => !patch.lessons.includes(k));
       if (liveOn(S.klass) && (patch.set_code !== S.klass.set_code || formatKey(fmt) !== formatKey(S.klass.format) || removed) && !confirm(T('tc.live.changeConfirm'))) { if (btn) btn.disabled = false; return; }
