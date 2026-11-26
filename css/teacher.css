@@ -542,3 +542,4 @@ body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select:
 .snd-closed { margin-top: 10px; }
 .snd-closed summary { cursor: pointer; font-weight: 700; color: var(--muted, inherit); }
 .snd-tbl tfoot td, .snd-tbl td.sum { text-align: center; }
+.snd .ck-layout { margin-top: 8px; } .snd-ckbar { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }

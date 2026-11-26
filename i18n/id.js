@@ -2365,5 +2365,9 @@ export default {
   "tc.send.done": "Selesai",
   "tc.send.total": "Siswa selesai",
   "tc.send.list": "Semua kiriman",
-  "tc.send.closed": "Ditutup ({n})"
+  "tc.send.closed": "Ditutup ({n})",
+  "upd.ready": "Versi baru sudah siap.",
+  "upd.reload": "Muat ulang",
+  "as.leaveConfirm": "Kamu sedang mengerjakan tes. Jika meninggalkan halaman ini, tes berakhir di sini dan tidak bisa diulang. Tinggalkan?",
+  "tc.send.checkHere": "Buat tes cek di sini dan langsung kirim. Soal yang akan keluar terlihat di sebelah kanan."
 };

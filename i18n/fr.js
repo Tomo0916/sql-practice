@@ -2365,5 +2365,9 @@ export default {
   "tc.send.done": "Terminé",
   "tc.send.total": "Élèves ayant terminé",
   "tc.send.list": "Tous les envois",
-  "tc.send.closed": "Fermés ({n})"
+  "tc.send.closed": "Fermés ({n})",
+  "upd.ready": "Une nouvelle version est prête.",
+  "upd.reload": "Recharger",
+  "as.leaveConfirm": "Vous êtes en plein test. Si vous quittez cette page, le test se termine ici et vous ne pourrez pas le repasser. Quitter ?",
+  "tc.send.checkHere": "Créez le test ici et envoyez-le directement. Les problèmes posés s'affichent à droite."
 };

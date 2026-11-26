@@ -2365,5 +2365,9 @@ export default {
   "tc.send.done": "Xong",
   "tc.send.total": "Số học sinh xong",
   "tc.send.list": "Tất cả bài đã giao",
-  "tc.send.closed": "Đã kết thúc ({n})"
+  "tc.send.closed": "Đã kết thúc ({n})",
+  "upd.ready": "Đã có phiên bản mới.",
+  "upd.reload": "Tải lại",
+  "as.leaveConfirm": "Bạn đang làm bài kiểm tra. Nếu rời trang này, bài kiểm tra sẽ kết thúc và không thể làm lại. Rời trang?",
+  "tc.send.checkHere": "Tạo bài kiểm tra ở đây và giao ngay. Các câu sẽ ra được hiện ở bên phải."
 };

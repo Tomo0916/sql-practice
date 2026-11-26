@@ -164,7 +164,20 @@ function parseRoute() {
   if (h[0] === 'live') return { view: 'live', key: LESSON_BY_KEY[h[1]] ? h[1] : h[1] === 'done' ? 'done' : null, idx: Math.min(29, Math.max(0, parseInt(h[2], 10) || 0)) };
   return { view: 'home' };
 }
+/* ---------- a sent test can be taken once: leaving its pages ends it, so ask first ---------- */
+const inOnceTest = () => !!(S.asgRun && ASG_TEST.has(S.asgRun.type) && !(asgRec(S.asgRun.id) || {}).d);
+const leavesTest = hash => inOnceTest() && !String(hash || '').startsWith(S.asgRun.prefix);
+let shownHash = location.hash, leaveOk = false;
+document.addEventListener('click', e => {   // links inside the app: ask before the page changes
+  const a = e.target.closest && e.target.closest('a[href^="#"]');
+  if (!a || !leavesTest(a.getAttribute('href'))) return;
+  if (confirm(T('as.leaveConfirm'))) leaveOk = true; else { e.preventDefault(); e.stopPropagation(); }
+}, true);
+window.addEventListener('beforeunload', e => { if (inOnceTest()) { e.preventDefault(); e.returnValue = ''; } });   // closing the tab or reloading
 window.addEventListener('hashchange', () => {
+  if (!leaveOk && leavesTest(location.hash) && shownHash.startsWith(S.asgRun.prefix) && !confirm(T('as.leaveConfirm'))) { history.pushState(null, '', shownHash); return; }   // the back button
+  leaveOk = false;
+  shownHash = location.hash;
   saveDraft(); stopAuto(); closeProjector();
   S.route = parseRoute(); S.step = null; S.tab = 'user';
   if (S.route.view !== 'session') S.session = null;
@@ -215,6 +228,7 @@ function saveDraft() {
  * ========================================================= */
 startIconizer();
 function render() {
+  shownHash = location.hash;   // the page on screen (also after a history.pushState)
   applySettings(S.settings, htmlLang(L()));
   if (S.asgRun && !location.hash.startsWith(S.asgRun.prefix)) S.asgRun = null;   // left the page of a sent item
   if (S.klass) asgSync();
@@ -2120,7 +2134,7 @@ function compareHTML(user, exp, ordered) {
   const n = { extra: um.filter(x => x === 'extra').length, miss: em.filter(x => x === 'miss').length, moved: um.filter(x => x === 'moved').length };
   const notes = [!sameCols ? `<li class="k-col">${H('res.cmpCols')}</li>` : '', n.extra ? `<li class="k-extra">${H('res.cmpExtra', { n: n.extra })}</li>` : '', n.miss ? `<li class="k-miss">${H('res.cmpMiss', { n: n.miss })}</li>` : '', n.moved ? `<li class="k-moved">${H('res.cmpMoved', { n: n.moved })}</li>` : ''].join('');
   return `<ul class="cmp-notes">${notes || `<li>${H('res.cmpSame')}</li>`}</ul>
-    <div class="cmp"><div><h4>${H('res.yours')} <span class="count">${user.values.length}</span></h4>${user.values.length ? gridHTML(user, { rowNums: true, rowClass: (r, i) => um[i], headClass: hcU }) : `<div class="res-empty">${H('res.noRows')}</div>`}</div>
+    <div class="res-cmp"><div><h4>${H('res.yours')} <span class="count">${user.values.length}</span></h4>${user.values.length ? gridHTML(user, { rowNums: true, rowClass: (r, i) => um[i], headClass: hcU }) : `<div class="res-empty">${H('res.noRows')}</div>`}</div>
       <div><h4>${H('res.expected')} <span class="count">${exp.values.length}</span></h4>${gridHTML(exp, { rowNums: true, rowClass: (r, i) => em[i], headClass: hcE })}</div></div>`;
 }
 function resultsHTML(prob) {
@@ -2886,6 +2900,15 @@ window.addEventListener('storage', e => {
   if (!document.activeElement || !document.activeElement.closest('.cm-editor')) render();
 });
 
+/* ---------- a new version of the app is ready (sw.js): a small bar offers to reload ---------- */
+function updateBanner() {
+  if (document.getElementById('upd-bar')) return;
+  const bar = document.createElement('div'); bar.id = 'upd-bar'; bar.className = 'upd-bar';
+  bar.innerHTML = `<span>${esc(T('upd.ready'))}</span><button type="button" class="btn btn-primary btn-sm">${esc(T('upd.reload'))}</button><button type="button" class="icon-btn" aria-label="${esc(T('btn.close'))}">×</button>`;
+  bar.querySelector('.btn').onclick = () => location.reload();
+  bar.querySelector('.icon-btn').onclick = () => bar.remove();
+  document.body.appendChild(bar);
+}
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
@@ -2900,10 +2923,11 @@ window.addEventListener('storage', e => {
   installCheckUI({ mode: 'student', lang: L, engine: () => S.engine, assigned: () => (S.klass ? (S.klass.lessons || []).filter(k => LESSON_BY_KEY[k] && LESSON_BY_KEY[k].kind !== 'quiz') : []),
     onStart(cfg) { const code = encodeCheck(cfg); startCheck(code, cfg); if (location.hash === '#/check/' + code) render(); else location.hash = '#/check/' + code; } });
   S.route = parseRoute();
-  await Promise.all([loadLang('en'), loadLang(L()), S.settings.second ? loadLang(S.settings.second) : null]);
+  const en = loadLang('en');   // the fallback language: loaded while the SQL engine starts, ready before the first page with content
+  await Promise.all([loadLang(L()), S.settings.second ? loadLang(S.settings.second) : null]);
   render();
   try {
-    const SQL = await window.initSqlJs({ locateFile: f => 'vendor/' + f });
+    const [SQL] = await Promise.all([window.initSqlJs({ locateFile: f => 'vendor/' + f }), en]);
     S.engine = new SqlEngine(SQL);
   } catch (e) {
     console.error(e);
@@ -2915,5 +2939,8 @@ window.addEventListener('storage', e => {
   const q = new URLSearchParams(location.search).get('class');
   if (q && backend.enabled && (!S.klass || S.klass.code !== normCode(q))) openJoin(normCode(q));
   watchKlass();
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'updated') updateBanner(); });   // a new version is saved: offer to reload
+  }
 })();

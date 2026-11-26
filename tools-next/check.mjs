@@ -973,5 +973,13 @@ console.log('21. Ordering pieces in groups (並べ替えの語群)');
   console.log(`   ${n} pieces checked`);
 }
 
+console.log('22. index.html loads every module at once (modulepreload)');
+{
+  const { preloadBlock } = await import('./preload.mjs');
+  const html = fs.readFileSync(path.join(here, '../index.html'), 'utf8');
+  if (!html.includes(preloadBlock())) err('index.html: the modulepreload list is stale — run  node tools-next/preload.mjs');
+  else console.log('   up to date');
+}
+
 console.log(`\n${errors ? '✗' : '✓'} ${errors} error(s), ${warnings} warning(s)`);
 process.exit(errors ? 1 : 0);

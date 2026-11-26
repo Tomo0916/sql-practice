@@ -2365,5 +2365,9 @@ export default {
   "tc.send.done": "完成",
   "tc.send.total": "完成人数",
   "tc.send.list": "全部发布",
-  "tc.send.closed": "已结束({n})"
+  "tc.send.closed": "已结束({n})",
+  "upd.ready": "有新版本。",
+  "upd.reload": "重新加载",
+  "as.leaveConfirm": "测试正在进行中。离开此页面后测试将在此结束,无法再次参加。确定离开吗?",
+  "tc.send.checkHere": "在这里制作确认测试并直接发布。右侧显示将出的题目。"
 };

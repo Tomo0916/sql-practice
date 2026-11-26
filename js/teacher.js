@@ -656,6 +656,11 @@ function sendMakeHTML(c) {
   let what;
   if (asD.type === 'lessons') what = `<div class="as-form">${sendTypeHTML()}</div>${lessonsFormHTML(c)}`;
   else if (asD.type === 'mix') what = `<div class="as-form">${sendTypeHTML()}</div>${taskHTML(c)}`;
+  else if (asD.type === 'check' && tasksInDb(c)) what = `<div class="as-form">${sendTypeHTML()}</div><p class="muted small">${H('tc.send.checkHere')}</p>${checkSetupHTML()}
+    <div class="as-form snd-ckbar"><label class="as-lim"><span>${H('as.tc.limitMin')}</span><input type="number" min="0" max="180" value="${asD.limit || 0}" data-as="limit"></label>
+      <label class="as-lim as-wide"><span>${H('as.tc.note')}</span><input type="text" maxlength="120" value="${esc(asD.note)}" data-as="note" placeholder="${esc(plainT('as.tc.notePh'))}"></label>
+      <button type="button" class="btn btn-primary" data-act="asSend">📬 ${H('as.tc.send')}</button></div>
+    <p class="muted small">${H('as.tc.testNote')}</p>`;
   else what = tasksInDb(c) ? asgFormHTML() : `<div class="as-form">${sendTypeHTML()}</div><p class="muted small">${H('tc.task.schema')}</p>`;
   return `<section class="card snd-make"><h2>📬 ${H('tc.send.make')}</h2>${what}</section>`;
 }
@@ -1433,7 +1438,7 @@ const actions = {
   taskSet(el) { const d = taskDraft(); d[el.dataset.k] = el.dataset.k === 'n' ? +el.dataset.v : el.dataset.v; Store.set(TDRAFT, d); redrawTask(); },
   asSend() {
     const it = { id: newAsgId(), type: asD.type, ref: asD.ref, at: Date.now(), open: true };
-    if (asD.type === 'check') { const ck = currentCheck(); if (!ck) return; Object.assign(it, { ref: ck.code, n: ck.n, limit: Math.max(0, Math.min(180, Math.round(asD.limit) || 0)) }); }
+    if (asD.type === 'check') { const ck = currentCheck(); if (!ck) { toast(T('ck.pickLesson')); return; } Object.assign(it, { ref: ck.code, n: ck.n, limit: Math.max(0, Math.min(180, Math.round(asD.limit) || 0)) }); }
     if (asD.type === 'level') it.ref = '';
     if (asD.type === 'rankup') it.pass = RK_RANKS.includes(asD.pass) ? asD.pass : 'B';
     if (asD.type === 'table') { const x = tableSets(S.engine).find(t => t.key === asD.ref); if (x) it.tables = x.tables; }
@@ -1814,6 +1819,15 @@ async function openQR(c) {
   document.getElementById('modal').classList.add('full');
 }
 
+/* ---------- a new version of the app is ready (sw.js): a small bar offers to reload ---------- */
+function updateBanner() {
+  if (document.getElementById('upd-bar')) return;
+  const bar = document.createElement('div'); bar.id = 'upd-bar'; bar.className = 'upd-bar';
+  bar.innerHTML = `<span>${esc(T('upd.ready'))}</span><button type="button" class="btn btn-primary btn-sm">${esc(T('upd.reload'))}</button><button type="button" class="icon-btn" aria-label="${esc(T('btn.close'))}">×</button>`;
+  bar.querySelector('.btn').onclick = () => location.reload();
+  bar.querySelector('.icon-btn').onclick = () => bar.remove();
+  document.body.appendChild(bar);
+}
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
@@ -1829,7 +1843,10 @@ async function openQR(c) {
     sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') { S.session = null; render(); } if (ev === 'PASSWORD_RECOVERY') { const pw = prompt(T('tc.newPassword')); if (pw) sb.auth.updateUser({ password: pw }).then(() => toast(T('tc.saved'))); } });
   }
   load();
-  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('../sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('../sw.js').catch(() => {});
+    navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'updated') updateBanner(); });   // a new version is saved: offer to reload
+  }
 })();
 
 /* ---------- dragging the problems of a quick test into another order (mouse, touch; ↑ ↓ on the handle) ---------- */

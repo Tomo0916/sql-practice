@@ -2366,5 +2366,9 @@ export default {
   "tc.send.done": "済み",
   "tc.send.total": "済みの人数",
   "tc.send.list": "配信の一覧",
-  "tc.send.closed": "終了した配信({n})"
+  "tc.send.closed": "終了した配信({n})",
+  "upd.ready": "新しいバージョンがあります。",
+  "upd.reload": "再読み込み",
+  "as.leaveConfirm": "テストの途中です。このページを離れるとテストはそこで終わり、もう一度受けることはできません。離れますか?",
+  "tc.send.checkHere": "ここで確認テストを作って、そのまま配信できます。右側で出題される問題を確認できます。"
 };

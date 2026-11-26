@@ -11,9 +11,65 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Myanmar:wght@400;600;700&display=swap">
+  <!-- the fonts do not hold up the first screen: the page shows at once with the system font, then switches -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Myanmar:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&family=Noto+Sans+Sinhala:wght@400;600;700&family=Noto+Sans+Myanmar:wght@400;600;700&display=swap"></noscript>
   <link rel="stylesheet" href="css/app.css">
-  <script src="vendor/sql-wasm.js"></script>
+  <link rel="preload" href="vendor/sql-wasm.wasm" as="fetch" type="application/wasm" crossorigin>
+  <script src="vendor/sql-wasm.js" defer></script>
+  <!-- PRELOAD (tools-next/preload.mjs) -->
+  <link rel="modulepreload" href="js/i18n.js">
+  <link rel="modulepreload" href="js/analysis-data.js">
+  <link rel="modulepreload" href="js/datasets.js">
+  <link rel="modulepreload" href="js/lessons.js">
+  <link rel="modulepreload" href="js/engine.js">
+  <link rel="modulepreload" href="js/diagnose.js">
+  <link rel="modulepreload" href="js/store.js">
+  <link rel="modulepreload" href="config.js">
+  <link rel="modulepreload" href="js/backend.js">
+  <link rel="modulepreload" href="js/rank.js">
+  <link rel="modulepreload" href="js/features.js">
+  <link rel="modulepreload" href="js/pandas.js">
+  <link rel="modulepreload" href="js/lecture-kit.js">
+  <link rel="modulepreload" href="js/lectures-a.js">
+  <link rel="modulepreload" href="js/lectures-b.js">
+  <link rel="modulepreload" href="js/lectures-c.js">
+  <link rel="modulepreload" href="js/lectures-d.js">
+  <link rel="modulepreload" href="js/charts.js">
+  <link rel="modulepreload" href="js/lectures-py2.js">
+  <link rel="modulepreload" href="js/pystats.js">
+  <link rel="modulepreload" href="js/lectures-py3.js">
+  <link rel="modulepreload" href="js/lectures-py.js">
+  <link rel="modulepreload" href="js/lectures.js">
+  <link rel="modulepreload" href="js/explain.js">
+  <link rel="modulepreload" href="js/lecture-topics.js">
+  <link rel="modulepreload" href="js/mastery.js">
+  <link rel="modulepreload" href="js/basics.js">
+  <link rel="modulepreload" href="js/clauses.js">
+  <link rel="modulepreload" href="js/hr.js">
+  <link rel="modulepreload" href="js/pz.js">
+  <link rel="modulepreload" href="js/assign.js">
+  <link rel="modulepreload" href="js/ui.js">
+  <link rel="modulepreload" href="js/rank-ui.js">
+  <link rel="modulepreload" href="js/viz.js">
+  <link rel="modulepreload" href="js/book.js">
+  <link rel="modulepreload" href="js/timer.js">
+  <link rel="modulepreload" href="js/analysis-content.js">
+  <link rel="modulepreload" href="js/analysis-ui.js">
+  <link rel="modulepreload" href="js/lecture-ui.js">
+  <link rel="modulepreload" href="js/alt.js">
+  <link rel="modulepreload" href="js/check.js">
+  <link rel="modulepreload" href="js/level.js">
+  <link rel="modulepreload" href="js/quick.js">
+  <link rel="modulepreload" href="js/check-ui.js">
+  <link rel="modulepreload" href="js/ordgroup.js">
+  <link rel="modulepreload" href="js/hr-ui.js">
+  <link rel="modulepreload" href="js/pz-ui.js">
+  <link rel="modulepreload" href="js/pyrun.js">
+  <link rel="modulepreload" href="js/pyerrors.js">
+  <link rel="modulepreload" href="js/py-ui.js">
+  <link rel="modulepreload" href="js/tables-ui.js">
+  <!-- /PRELOAD -->
 </head>
 <body>
   <div id="app"></div>

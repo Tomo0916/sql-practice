@@ -2366,5 +2366,9 @@ export default {
   "tc.send.done": "すみ",
   "tc.send.total": "すみの {人数|にんずう}",
   "tc.send.list": "{配信|はいしん}の いちらん",
-  "tc.send.closed": "おわった {配信|はいしん}({n})"
+  "tc.send.closed": "おわった {配信|はいしん}({n})",
+  "upd.ready": "あたらしい バージョンが あります。",
+  "upd.reload": "よみこみなおす",
+  "as.leaveConfirm": "テストの とちゅうです。この ページを はなれると テストは おわり、もう いちど うけられません。はなれますか?",
+  "tc.send.checkHere": "ここで {確認|かくにん}テストを つくって、そのまま {配信|はいしん}できます。"
 };

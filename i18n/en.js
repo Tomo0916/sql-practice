@@ -2366,5 +2366,9 @@ export default {
   "tc.send.done": "Done",
   "tc.send.total": "Students done",
   "tc.send.list": "Everything sent",
-  "tc.send.closed": "Closed ({n})"
+  "tc.send.closed": "Closed ({n})",
+  "upd.ready": "A new version is ready.",
+  "upd.reload": "Reload",
+  "as.leaveConfirm": "You are in the middle of a test. If you leave this page, the test ends here and you cannot take it again. Leave?",
+  "tc.send.checkHere": "Make the check test here and send it right away. The problems it will give are shown on the right."
 };
