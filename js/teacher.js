@@ -30,7 +30,7 @@ import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
 import * as backend from './backend.js';
-import { pyDescHTML, highlightPy, composeHTML, countPickHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
+import { navFoldHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, composeHTML, countPickHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -115,7 +115,7 @@ function render() {
 const CLASS_TABS = [['live', I.bolt, 'tc.tabLive'], ['send', I.inbox, 'tc.tabSend'], ['quick', I.timer, 'tc.tabQuick'], ['board', I.check, 'tc.tabBoard'], ['assign', I.gear, 'tc.tabSettings'], ['explain', I.present, 'ex.tc.tab'], ['mistakes', I.eye, 'tc.tabMistakes'], ['members', I.users, 'tc.tabMembers']];
 function headerHTML() {
   const v = S.route.view, c = v === 'class' ? S.klass : null;
-  const item = (href, on, ic, label) => `<a href="${href}" class="nav-i ${on ? 'on' : ''}">${ic}<span>${H(label)}</span></a>`;
+  const item = (href, on, ic, label) => `<a href="${href}" class="nav-i ${on ? 'on' : ''}" title="${esc(T(label))}">${ic}<span>${H(label)}</span></a>`;
   const side = `<aside class="side-nav" aria-label="menu">
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span><span class="brand-tag">${H('tc.badge')}</span></a>
     <nav>
@@ -128,6 +128,7 @@ function headerHTML() {
       ${item('#/book', v === 'book', I.words, 'book.nav')}
       ${item('#/tables', v === 'tables', I.table, 'nav.tables')}
     </nav>
+    ${navFoldHTML(L())}
     <div class="side-foot">
       <div class="side-tools">${langSelect(L(), T('nav.language'))}${S.session ? `<button class="icon-btn" data-act="signOut" title="${esc(T('tc.signOut'))}" aria-label="${esc(T('tc.signOut'))}">${I.door}</button>` : ''}</div>
       <a class="side-teacher" href="../">${H('tc.toStudent')}</a>
@@ -367,15 +368,11 @@ function quickHTML(c) {
   const goals = [['quick', '⚡', 'tc.quick.title', 'tc.qs.goalQuick'], ['level', '🎯', 'lv.testTitle', 'tc.qs.goalLevel'], ['shape', '🧱', 'bs.title', 'tc.qs.goalShape']];
   const s1 = `<div class="qs-goals">${goals.map(([k, ic, t, sub]) => `<button class="qs-goal ${d.goal === k ? 'on' : ''}" data-act="quickSet" data-k="goal" data-v="${k}" aria-pressed="${d.goal === k}"><span class="qs-ic">${ic}</span><b>${H(t)}</b><small>${H(sub)}</small></button>`).join('')}</div>`;
   // 2. the range: every lesson in view, a chapter at a time
-  const ordB = k => (chosen.has(k) ? `<i class="qs-ord" title="${esc(T('tc.qs.orderTip'))}">${d.lessons.indexOf(k) + 1}</i>` : '');
-  const asg = checkLessons().filter(l => assigned.has(l.key)), asgOn = asg.length > 0 && asg.length === chosen.size && asg.every(l => chosen.has(l.key));
-  const lessonsPick = `<div class="qs-quickbtns">${asg.length ? `<button class="btn btn-ghost btn-xs q-ch ${asgOn ? 'on' : ''}" data-act="quickChapter" data-v="@assign">${I.book}${H('tc.quick.fromAssign')} <span class="muted">${asg.length}</span></button>` : ''}
-      ${chosen.size ? `<button class="btn btn-ghost btn-xs" data-act="quickChapter" data-v="">${H('tc.quick.none')}</button><span class="muted small">${H('tc.qs.picked', { n: chosen.size })}</span>` : `<span class="muted small">${H('tc.qs.pickHint')}</span>`}</div>
-    <div class="qs-chs">${CHAPTERS.map(ch => { const ls = checkLessons().filter(l => l.ch === ch.key); if (!ls.length) return ''; const got = ls.filter(l => chosen.has(l.key)).length;
-      return `<div class="qs-ch" style="--cc:var(--c-${ch.key})"><button class="qs-chb ${got === ls.length ? 'on' : got ? 'some' : ''}" data-act="quickChapter" data-v="${ch.key}" title="${esc(T('ck.chapterTip'))}">${rubyHTML(raw('ch.' + ch.key, L()))} <span>${got}/${ls.length}</span></button>
-        <div class="qs-ls">${ls.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}">${ordB(l.key)}<b>${l.no}</b>${lessonTitleHTML(l, L())}</button>`).join('')}</div></div>`; }).join('')}
-      ${(() => { const got = PD_LESSONS.filter(l => chosen.has(l.key)).length; return `<div class="qs-ch qs-py" style="--cc:#3776ab"><button class="qs-chb ${got === PD_LESSONS.length ? 'on' : got ? 'some' : ''}" data-act="quickChapter" data-v="@py">🐍 ${H('pd.title')} <span>${got}/${PD_LESSONS.length}</span></button>
-        <div class="qs-ls">${PD_LESSONS.map(l => `<button class="qs-l ${chosen.has(l.key) ? 'on' : ''}" data-act="quickLesson" data-l="${l.key}" aria-pressed="${chosen.has(l.key)}">${ordB(l.key)}<b>Py${l.no}</b>${rubyHTML(raw('pd.t.' + l.key, L()))}</button>`).join('')}</div></div>`; })()}</div>`;
+  const asg = checkLessons().filter(l => assigned.has(l.key));
+  const lessonsPick = lessonPickHTML({ id: 'quick', lang: L(), chosen: d.lessons, badge: k => (chosen.has(k) && d.lessons.length > 1 ? String(d.lessons.indexOf(k) + 1) : ''),
+    tools: asg.length ? [{ label: `${I.book}${H('tc.quick.fromAssign')} <span class="muted">${asg.length}</span>`, keys: asg.map(l => l.key) }] : [],
+    groups: [...lessonGroups(checkLessons(), L()), { key: 'py', cc: '#3776ab', label: `🐍 ${H('pd.title')}`, items: PD_LESSONS.map(l => ({ key: l.key, no: 'Py' + l.no, label: rubyHTML(raw('pd.t.' + l.key, L())) })) }] })
+    + (d.lessons.length > 1 ? `<p class="muted small">${H('lp.orderNote')}</p>` : '');
   const lvPick = `<div class="qs-quickbtns"><button class="btn btn-ghost btn-xs" data-act="quickLv" data-v="all">${H('tc.quick.lvAll')}</button><span class="muted small">${H('tc.quick.lvNote')}</span></div>
     <div class="qs-chs">${LV_CHAPTERS.map((k, i) => { const on = d.lv.includes(i); return `<button class="qs-chb wide ${on ? 'on' : ''}" style="--cc:var(--c-${k})" data-act="quickLv" data-v="${i}" aria-pressed="${on}">${i + 1}. ${rubyHTML(raw('ch.' + k, L()))}</button>`; }).join('')}</div>`;
   const s2 = lvMode ? lvPick : shMode ? shapePickHTML(d.shapes, 'quickShape') : lessonsPick;
@@ -647,8 +644,7 @@ function lessonsFormHTML(c) {
   const sel = new Set(c.lessons || []);
   return `<form class="assign-form snd-lessons" data-form="lessons">
     <div class="fld"><span>${H('tc.assignLessons')}</span><small class="muted">${H('tc.send.lessonsNote')}</small>
-      <div class="lesson-pick">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>
-        ${LESSONS.filter(l => l.ch === ch.key).map(l => `<label class="chk"><input type="checkbox" name="lesson" value="${l.key}" ${sel.has(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
+      ${lessonPickHTML({ id: 'class', lang: L(), name: 'lesson', chosen: [...sel], groups: lessonGroups(LESSONS, L()) })}</div>
     <div class="actions"><button class="btn btn-primary">📬 ${H('tc.send.lessonsSave')}</button><a class="small" href="#/c/${c.id}/assign">${H('tc.send.toSettings')} →</a></div></form>`;
 }
 /** the "make" card: the type, then what it needs */
@@ -656,11 +652,11 @@ function sendMakeHTML(c) {
   let what;
   if (asD.type === 'lessons') what = `<div class="as-form">${sendTypeHTML()}</div>${lessonsFormHTML(c)}`;
   else if (asD.type === 'mix') what = `<div class="as-form">${sendTypeHTML()}</div>${taskHTML(c)}`;
-  else if (asD.type === 'check' && tasksInDb(c)) what = `<div class="as-form">${sendTypeHTML()}</div><p class="muted small">${H('tc.send.checkHere')}</p>${checkSetupHTML()}
-    <div class="as-form snd-ckbar"><label class="as-lim"><span>${H('as.tc.limitMin')}</span><input type="number" min="0" max="180" value="${asD.limit || 0}" data-as="limit"></label>
-      <label class="as-lim as-wide"><span>${H('as.tc.note')}</span><input type="text" maxlength="120" value="${esc(asD.note)}" data-as="note" placeholder="${esc(plainT('as.tc.notePh'))}"></label>
-      <button type="button" class="btn btn-primary" data-act="asSend">📬 ${H('as.tc.send')}</button></div>
-    <p class="muted small">${H('as.tc.testNote')}</p>`;
+  else if (asD.type === 'check' && tasksInDb(c)) what = `<div class="as-form">${sendTypeHTML()}</div><p class="muted small">${H('tc.send.checkHere')}</p>${checkSetupHTML({ sendBar: ready => `<div class="snd-ckbar">
+      <label class="fld"><span>${H('as.tc.limitMin')}</span><input type="number" min="0" max="180" value="${asD.limit || 0}" data-as="limit"></label>
+      <label class="fld"><span>${H('as.tc.note')}</span><input type="text" maxlength="120" value="${esc(asD.note)}" data-as="note" placeholder="${esc(plainT('as.tc.notePh'))}"></label>
+      <button type="button" class="btn btn-primary btn-lg qs-start" data-act="asSend" ${ready ? '' : 'disabled'}>📬 ${H('as.tc.send')}</button>
+      <p class="muted small">${H('as.tc.testNote')}</p></div>` })}`;
   else what = tasksInDb(c) ? asgFormHTML() : `<div class="as-form">${sendTypeHTML()}</div><p class="muted small">${H('tc.task.schema')}</p>`;
   return `<section class="card snd-make"><h2>📬 ${H('tc.send.make')}</h2>${what}</section>`;
 }
@@ -1230,8 +1226,8 @@ function testHTML() {
     <label class="fld"><span>${H('test.lang')}</span><select data-tk="tlang">${langOptions(o.tlang)}</select></label>
     <label class="fld"><span>${H('test.second')}</span><select data-tk="bilingual"><option value="">${esc(T('set.secondNone'))}</option>${LANGS.filter(l => l.code !== o.tlang).map(l => `<option value="${l.code}" ${o.bilingual === l.code ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select></label>
     <div class="fld"><span>${H('test.lessons')}</span>
-      <div class="row-btns left"><button class="btn btn-ghost btn-xs" data-act="testAll">${H('test.all')}</button><button class="btn btn-ghost btn-xs" data-act="testNone">${H('test.none')}</button>${S.klass ? `<button class="btn btn-ghost btn-xs" data-act="testClass">${H('tc.fromClass')}</button>` : ''}</div>
-      <div class="lesson-pick compact">${CHAPTERS.map(ch => `<div class="lp-ch" style="--cc:var(--c-${ch.key})"><b>${rubyHTML(raw('ch.' + ch.key, L()))}</b>${LESSONS.filter(l => l.ch === ch.key && l.kind !== 'quiz' && !l.noTest).map(l => `<label class="chk"><input type="checkbox" data-tl="${l.key}" ${o.lessons.includes(l.key) ? 'checked' : ''}><span>${l.no}. ${lessonTitleHTML(l, L())}</span></label>`).join('')}</div>`).join('')}</div></div>
+      ${S.klass ? `<div class="row-btns left"><button class="btn btn-ghost btn-xs" data-act="testClass">${H('tc.fromClass')}</button></div>` : ''}
+      ${lessonPickHTML({ id: 'test', lang: L(), chosen: o.lessons, groups: lessonGroups(LESSONS.filter(l => l.kind !== 'quiz' && !l.noTest), L()) })}</div>
     <div class="fld"><span>${H('test.perLesson')}</span><div class="seg">${radio('per', 1, '1')}${radio('per', 2, '2')}${radio('per', 3, '3')}</div></div>
     <div class="fld"><span>${H('test.types')}</span><div class="tt-pick">${['write', 'predict', 'order', 'fill'].map(k => `<label class="chk"><input type="checkbox" data-tt="${k}" ${testTypes().includes(k) ? 'checked' : ''}><span>${H('test.type' + k[0].toUpperCase() + k.slice(1))}</span></label>`).join('')}</div><small class="muted">${H('test.typesTip')}</small></div>
     <div class="fld"><span>${H('dif.title')}</span><div class="seg">${radio('band', 0, T('dif.any'))}${radio('band', 1, T('dif.1'))}${radio('band', 2, T('dif.2'))}${radio('band', 3, T('dif.3'))}</div></div>
@@ -1891,4 +1887,10 @@ document.addEventListener('keydown', e => {
   const j = +g.dataset.grip, n = document.querySelectorAll('.qs-grip').length;
   if (e.key === 'ArrowUp' && j > 0) { e.preventDefault(); quickMove(j, j - 1); }
   else if (e.key === 'ArrowDown' && j < n - 1) { e.preventDefault(); quickMove(j, j + 1); }
+});
+// the lesson pickers (lessonPickHTML): the quick test, the paper test
+document.addEventListener('lpchange', e => {
+  const { id, keys } = e.detail;
+  if (id === 'quick' && S.klass) { const d = quickDraft(S.klass), old = d.lessons.filter(k => keys.includes(k)); d.lessons = [...old, ...keys.filter(k => !old.includes(k))]; d.swaps = {}; saveQDraft(d); refreshTab(); }
+  else if (id === 'test') { S.test.lessons = keys; const b = document.querySelector('[data-act="print"]'); if (b) b.disabled = !keys.length; for (const x of document.querySelectorAll('[data-act="testTables"]')) x.disabled = !keys.length; saveTest(); rerenderPaper(); }
 });

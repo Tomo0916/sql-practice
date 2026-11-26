@@ -2369,5 +2369,18 @@ export default {
   "upd.ready": "Une nouvelle version est prête.",
   "upd.reload": "Recharger",
   "as.leaveConfirm": "Vous êtes en plein test. Si vous quittez cette page, le test se termine ici et vous ne pourrez pas le repasser. Quitter ?",
-  "tc.send.checkHere": "Créez le test ici et envoyez-le directement. Les problèmes posés s'affichent à droite."
+  "tc.send.checkHere": "Créez le test ici et envoyez-le directement. Les problèmes posés s'affichent à droite.",
+  "ck.perLesson": "Par leçon",
+  "ck.upTo": "{n} max.",
+  "ck.calcSome": "{l} leçons × {per} = {all} problèmes → {n} sont tirés au hasard.",
+  "ck.calcAll": "{l} leçons × {per} = les {n} problèmes.",
+  "ck.lessonsCol": "Leçons",
+  "ck.min": "~{n} min",
+  "ck.aim": "Durée (env.)",
+  "lp.hint": "□ choisit un chapitre entier ; ouvrez ▸ pour choisir leçon par leçon",
+  "lp.fold": "Tout replier",
+  "lp.orderNote": "Les numéros dans les ronds donnent l'ordre des problèmes (ordre de sélection).",
+  "nav.fold": "Replier le menu",
+  "nav.unfold": "Déplier le menu",
+  "ck.sameNoteR": "Tout le monde a les mêmes problèmes dans le même ordre. Problèmes et réponses à droite."
 };

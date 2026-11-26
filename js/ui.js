@@ -3,12 +3,13 @@
  * ========================================================= */
 import { LANGS, t, th, esc, rubyHTML, raw } from './i18n.js';
 import { LESSON_BY_KEY } from './engine.js';
-import { joinView, MORE_AGG } from './lessons.js';
+import { joinView, MORE_AGG, CHAPTERS } from './lessons.js';
 import { PD_BY_KEY } from './pandas.js';
 
 /* ---------- icons ---------- */
 const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 export const I = {
+  fold: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m15 10-2 2 2 2"/>'),
   home: svg('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/>'),
   layers: svg('<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>'),
   medal: svg('<circle cx="12" cy="14" r="6"/><path d="M8.5 9 6 3h4l2 4 2-4h4l-2.5 6"/><path d="m12 11.5.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2-1.45-1.4 2-.3z"/>'),
@@ -296,4 +297,86 @@ export function startIconizer(root = document.body) {
   iconizeTree(root);
   new MutationObserver(ms => ms.forEach(m => { if (m.type === 'characterData') iconizeText(m.target); else m.addedNodes.forEach(iconizeTree); }))
     .observe(root, { childList: true, subtree: true, characterData: true });
+}
+
+/* ---------- choosing lessons (the same everywhere: quick test, check test, paper test, practice, the class's lessons) ----------
+ * Chapters fold up: a chapter's checkbox takes the whole chapter, ▸ opens it to pick single lessons.
+ * The lessons are real checkboxes (name = o.name inside a form). Any change fires a bubbling
+ * 'lpchange' event on the picker: detail = { id, keys (in course order) }.
+ * o = { id, groups: [{ key, label (html), cc (css color), items: [{ key, no, label (html), extra (html) }] }],
+ *       chosen: [keys], name, tools: [{ label (html), keys }], badge(key) → html, lang, empty (html: nothing chosen) } */
+const LP_OPEN = new Map();
+export function lessonPickHTML(o) {
+  const on = new Set(o.chosen || []), L = o.lang, all = o.groups.flatMap(g => g.items.map(x => x.key));
+  const tools = [{ label: th('test.all', L), keys: all }, ...(o.tools || [])];
+  const group = g => {
+    const got = g.items.filter(x => on.has(x.key)), st = got.length === g.items.length ? 'on' : got.length ? 'some' : '';
+    const ok = `${o.id}:${g.key}`, open = LP_OPEN.has(ok) ? LP_OPEN.get(ok) : st === 'some';
+    return `<details class="lp2-g ${st}" style="--cc:${g.cc}" data-lp-open="${esc(ok)}" ${open ? 'open' : ''}>
+      <summary><button type="button" class="lp2-gb" data-lp-g aria-pressed="${st === 'on'}" title="${esc(t('ck.chapterTip', L))}"><i class="lp2-box"></i></button>
+        <span class="lp2-name">${g.label}</span><span class="lp2-n">${got.length}/${g.items.length}</span>
+        <span class="lp2-chips">${got.length && got.length < g.items.length ? got.map(x => `<i>${esc(String(x.no))}</i>`).join('') : ''}</span><span class="lp2-arrow" aria-hidden="true"></span></summary>
+      <div class="lp2-ls">${g.items.map(x => `<label class="lp2-l"><input type="checkbox" data-lp-k="${x.key}" ${o.name ? `name="${o.name}" value="${x.key}"` : ''} ${on.has(x.key) ? 'checked' : ''}><i class="lp2-box"></i>${o.badge ? `<span class="lp2-badge">${o.badge(x.key) || ''}</span>` : ''}<b>${esc(String(x.no))}</b><span>${x.label}</span>${x.extra || ''}</label>`).join('')}</div>
+    </details>`;
+  };
+  return `<div class="lp2" data-lp="${esc(o.id)}" data-lp-lang="${esc(L)}">
+    <div class="lp2-tools">${tools.map(x => `<button type="button" class="btn btn-ghost btn-xs" data-lp-set="${x.keys.join(',')}">${x.label}</button>`).join('')}<button type="button" class="btn btn-ghost btn-xs" data-lp-set="">${th('test.none', L)}</button>
+      <span class="lp2-total" data-lp-total>${lpTotal(on.size, o.lang)}</span><button type="button" class="btn btn-ghost btn-xs lp2-fold" data-lp-fold>${th('lp.fold', L)}</button></div>
+    <div class="lp2-gs">${o.groups.filter(g => g.items.length).map(group).join('')}</div>
+  </div>`;
+}
+const lpTotal = (n, L) => (n ? th('tc.qs.picked', L, { n }) : `<span class="muted">${th('lp.hint', L)}</span>`);
+function lpSync(root) {
+  root.querySelectorAll('.lp2-g').forEach(g => {
+    const bs = [...g.querySelectorAll('input[data-lp-k]')], got = bs.filter(b => b.checked);
+    g.classList.toggle('on', got.length === bs.length); g.classList.toggle('some', got.length > 0 && got.length < bs.length);
+    g.querySelector('.lp2-gb').setAttribute('aria-pressed', String(got.length === bs.length));
+    g.querySelector('.lp2-n').textContent = `${got.length}/${bs.length}`;
+    g.querySelector('.lp2-chips').innerHTML = got.length && got.length < bs.length ? got.map(b => `<i>${esc(b.closest('.lp2-l').querySelector('b').textContent)}</i>`).join('') : '';
+  });
+  const n = root.querySelectorAll('input[data-lp-k]:checked').length, el = root.querySelector('[data-lp-total]');
+  if (el) el.innerHTML = lpTotal(n, root.dataset.lpLang);
+}
+function lpChanged(root) {
+  lpSync(root);
+  const f = document.activeElement, fk = f && f.dataset && f.dataset.lpK, id = root.dataset.lp;
+  if (fk) setTimeout(() => { if (document.activeElement && document.activeElement !== document.body) return; const x = document.querySelector(`.lp2[data-lp="${id}"] input[data-lp-k="${fk}"]`); if (x) x.focus({ preventScroll: true }); }, 200);
+  root.dispatchEvent(new CustomEvent('lpchange', { bubbles: true, detail: { id: root.dataset.lp, keys: [...root.querySelectorAll('input[data-lp-k]:checked')].map(b => b.dataset.lpK) } }));
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('.lp2 [data-lp-g], .lp2 [data-lp-set], .lp2 [data-lp-fold]');
+    if (!b) return;
+    e.preventDefault();
+    const root = b.closest('.lp2');
+    if (b.hasAttribute('data-lp-fold')) { root.querySelectorAll('details.lp2-g').forEach(d => { d.open = false; }); return; }
+    if (b.hasAttribute('data-lp-g')) { const bs = [...b.closest('.lp2-g').querySelectorAll('input[data-lp-k]')], all = bs.every(x => x.checked); bs.forEach(x => { x.checked = !all; }); }
+    else { const ks = new Set(b.dataset.lpSet ? b.dataset.lpSet.split(',') : []); root.querySelectorAll('input[data-lp-k]').forEach(x => { x.checked = ks.has(x.dataset.lpK); }); }
+    lpChanged(root);
+  });
+  document.addEventListener('change', e => { const x = e.target.closest && e.target.closest('.lp2 input[data-lp-k]'); if (x) { e.stopPropagation(); lpChanged(x.closest('.lp2')); } }, true);
+  document.addEventListener('toggle', e => { const d = e.target; if (d.matches && d.matches('details.lp2-g')) LP_OPEN.set(d.dataset.lpOpen, d.open); }, true);
+}
+
+/** the lessons of a list, by chapter, for lessonPickHTML (extra(l) → html after the title) */
+export function lessonGroups(list, lang, extra) {
+  return CHAPTERS.map(ch => ({ key: ch.key, cc: `var(--c-${ch.key})`, label: rubyHTML(raw('ch.' + ch.key, lang)),
+    items: list.filter(l => l.ch === ch.key).map(l => ({ key: l.key, no: l.no, label: rubyHTML(raw(`L.${l.key}.title`, lang).replace(new RegExp('^' + l.no + '[\\s.．:：]*'), '')), extra: extra ? extra(l) : '' })) }));
+}
+
+/* ---------- the side menu on computers: folded to a thin row of icons (remembered in this browser) ---------- */
+const NAV_MINI = 'sqlp.navMini';
+export function navFoldHTML(lang) {
+  const mini = typeof document !== 'undefined' && document.documentElement.classList.contains('nav-mini'), lab = th(mini ? 'nav.unfold' : 'nav.fold', lang);
+  return `<button type="button" class="nav-i side-fold" data-nav-fold="${esc(lang)}" aria-expanded="${!mini}" title="${esc(t(mini ? 'nav.unfold' : 'nav.fold', lang))}">${I.fold}<span>${lab}</span></button>`;
+}
+if (typeof document !== 'undefined') {
+  try { if (localStorage.getItem(NAV_MINI) === '1') document.documentElement.classList.add('nav-mini'); } catch (e) { /* private window */ }
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-nav-fold]'); if (!b) return;
+    e.preventDefault();
+    const mini = document.documentElement.classList.toggle('nav-mini');
+    try { localStorage.setItem(NAV_MINI, mini ? '1' : '0'); } catch (er) { /* private window */ }
+    document.querySelectorAll('[data-nav-fold]').forEach(x => { x.outerHTML = navFoldHTML(x.dataset.navFold); });
+  });
 }

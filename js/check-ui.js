@@ -7,9 +7,8 @@
  * ========================================================= */
 import { th, t, esc, rubyHTML, raw } from './i18n.js';
 import { FORMAT_KEYS, FORMAT_MAX, LESSON_BY_KEY, randomCode } from './engine.js';
-import { CHAPTERS } from './lessons.js';
 import { CHECK_MAXES, CHECK_PRESETS, checkLessons, normCheck, encodeCheck, checkCounts, buildCheck } from './check.js';
-import { highlightSQL, problemHTML, lessonTitle, lessonTitleHTML, themeName, toast, copyText } from './ui.js';
+import { highlightSQL, problemHTML, toast, copyText, composeHTML, lessonPickHTML, lessonGroups } from './ui.js';
 import { altAnswers } from './alt.js';
 
 const FMT_LABEL = { fill: 'tc.fmtFill', order1: 'tc.fmtOrder1', order2: 'tc.fmtOrder2', write: 'tc.fmtWrite' };
@@ -41,31 +40,41 @@ export function currentCheck() {
   const cfg = cfgOf(d);
   return { code: encodeCheck(cfg), n: buildCheck(ctx.engine(), cfg, cfg.seed).length, lessons: d.lessons.length };
 }
-export function checkSetupHTML() { return `<div id="ck-setup">${innerHTML()}</div>`; }
+/** opts (teacher, 配信): { sendBar(ready) → html: the time limit, the note and the send button } */
+let sendBar = null;
+export function checkSetupHTML(opts) { sendBar = (opts && opts.sendBar) || null; return `<div id="ck-setup">${innerHTML()}</div>`; }
+const FMT_TONE = { fill: 's1', order1: 's2', order2: 's2', write: 's3' };
+const FMT_SEC = { fill: 40, order1: 50, order2: 60, write: 90 };
 function innerHTML() {
-  const d = D(), L = ctx.lang(), assigned = (ctx.assigned && ctx.assigned()) || [];
-  const chosen = new Set(d.lessons);
-  const cnt = checkCounts(d);
-  const lessonsBox = `<div class="fld"><span>${H('ck.lessons')}</span>
-    <div class="row-btns left"><button class="btn btn-ghost btn-xs" data-ck="all">${H('test.all')}</button><button class="btn btn-ghost btn-xs" data-ck="none">${H('test.none')}</button>${assigned.length ? `<button class="btn btn-ghost btn-xs" data-ck="assigned">${H('ck.assigned')}</button>` : ''}</div>
-    <div class="ck-pick">${CHAPTERS.map(ch => {
-      const ls = checkLessons().filter(l => l.ch === ch.key);
-      if (!ls.length) return '';
-      const allOn = ls.every(l => chosen.has(l.key));
-      return `<div class="ck-ch" style="--cc:var(--c-${ch.key})"><button class="ck-ch-name" data-ck="chapter" data-v="${ch.key}" aria-pressed="${allOn}" title="${esc(T('ck.chapterTip'))}">${rubyHTML(raw('ch.' + ch.key, L))}</button>
-        ${ls.map(l => `<label class="chk"><input type="checkbox" data-ck-l="${l.key}" ${chosen.has(l.key) ? 'checked' : ''}><span>${lessonTitle(l, L).startsWith(String(l.no)) ? '' : l.no + '. '}${lessonTitleHTML(l, L)}</span></label>`).join('')}</div>`;
-    }).join('')}</div></div>`;
-  const fmtBox = `<div class="fld"><span>${H('ck.format')}</span>
-    <div class="fmt-presets"><b class="small">${H('tc.fmtPresets')}</b>${Object.keys(CHECK_PRESETS).map(k => `<button class="btn btn-ghost btn-xs" data-ck="preset" data-v="${k}">${H(k === 'balance' ? 'ck.p.balance' : 'tc.fmtP.' + k)}</button>`).join('')}</div>
-    <div class="ck-fmt">${FORMAT_KEYS.map(k => `<div class="fmt-n"><span>${H(FMT_LABEL[k])}</span><span class="stepper"><button class="btn btn-ghost btn-xs" data-ck="step" data-k="${k}" data-d="-1" aria-label="−" ${d.f[k] <= 0 ? 'disabled' : ''}>−</button><b class="ck-num">${d.f[k]}</b><button class="btn btn-ghost btn-xs" data-ck="step" data-k="${k}" data-d="1" aria-label="+" ${d.f[k] >= FORMAT_MAX ? 'disabled' : ''}>+</button></span></div>`).join('')}</div>
-    <small class="muted">${H('ck.formatNote')}</small></div>`;
-  const maxBox = `<div class="fld"><span>${H('ck.count')}</span><div class="seg">${CHECK_MAXES.map(m => `<button class="seg-b ${d.max === m ? 'on' : ''}" data-ck="max" data-v="${m}" aria-pressed="${d.max === m}">${m ? m : H('ck.countAll')}</button>`).join('')}</div></div>`;
-  const sameBox = ctx.mode !== 'teacher' ? '' : `<div class="fld"><span>${H('ck.who')}</span><div class="seg">${[[true, 'ck.sameYes'], [false, 'ck.sameNo']].map(([v, k]) => `<button class="seg-b ${d.same === v ? 'on' : ''}" data-ck="same" data-v="${v}" aria-pressed="${d.same === v}">${H(k)}</button>`).join('')}</div></div>`;
-  const total = !d.lessons.length ? `<p class="ck-total muted">${H('ck.pickLesson')}</p>`
-    : `<p class="ck-total"><b>${H('ck.total', { n: cnt.n })}</b>${cnt.all > cnt.n ? ` <span class="muted small">${H('ck.fromAll', { all: cnt.all })}</span>` : ''} <span class="muted small">· ${H('ck.lessonsN', { n: d.lessons.length })}</span></p>`;
-  const form = `<div class="card ck-form">${lessonsBox}${fmtBox}${maxBox}${sameBox}${total}
-    ${ctx.mode === 'teacher' ? '' : `<button class="btn btn-primary btn-lg" data-ck="start" ${d.lessons.length ? '' : 'disabled'}>${H('ck.start')}</button>`}</div>`;
-  return ctx.mode === 'teacher' ? `<div class="ck-layout">${form}<div class="ck-out">${teacherOutHTML()}</div></div>` : form;
+  const d = D(), L = ctx.lang(), assigned = (ctx.assigned && ctx.assigned()) || [], teacher = ctx.mode === 'teacher';
+  const cnt = checkCounts(d), n = d.lessons.length ? cnt.n : 0;
+  const step = (no, title, body) => `<section class="card qs-step"><h3><i>${no}</i>${title}</h3>${body}</section>`;
+  // 1. the lessons
+  const s1 = lessonPickHTML({ id: 'ck', lang: L, chosen: d.lessons, groups: lessonGroups(checkLessons(), L),
+    tools: assigned.length ? [{ label: `${H('ck.assigned')} <span class="muted">${assigned.length}</span>`, keys: assigned }] : [] });
+  // 2. the kinds of problem, for each lesson
+  const presetOn = Object.keys(CHECK_PRESETS).find(k => FORMAT_KEYS.every(x => CHECK_PRESETS[k][x] === d.f[x])) || null;
+  const s2 = composeHTML({ act: 'ckCmp', rows: FORMAT_KEYS.map(k => ({ id: k, label: `<span class="kd ck-${FMT_TONE[k]}">${H(FMT_LABEL[k])}</span>`, text: T(FMT_LABEL[k]) })), cols: [{ id: 'n', label: H('ck.perLesson'), text: '' }],
+    get: k => d.f[k], max: FORMAT_MAX, lang: L, hideTotal: true,
+    presets: Object.keys(CHECK_PRESETS).map(k => ({ v: k, label: H(k === 'balance' ? 'ck.p.balance' : 'tc.fmtP.' + k) })), presetAct: 'ckPreset', presetOn, note: H('ck.formatNote') });
+  // 3. how many problems at most
+  const per = FORMAT_KEYS.reduce((a, k) => a + d.f[k], 0);
+  const s3 = `<div class="seg ck-max">${CHECK_MAXES.map(m => `<button type="button" class="seg-b ${d.max === m ? 'on' : ''}" data-ck="max" data-v="${m}" aria-pressed="${d.max === m}">${m ? H('ck.upTo', { n: m }) : H('ck.countAll')}</button>`).join('')}</div>
+    <p class="ck-calc">${d.lessons.length ? H(cnt.all > cnt.n ? 'ck.calcSome' : 'ck.calcAll', { l: d.lessons.length, per, all: cnt.all, n: cnt.n }) : `<span class="muted">${H('ck.pickLesson')}</span>`}</p>`;
+  const s4 = !teacher ? '' : `<div class="seg">${[[true, 'ck.sameYes'], [false, 'ck.sameNo']].map(([v, k]) => `<button type="button" class="seg-b ${d.same === v ? 'on' : ''}" data-ck="same" data-v="${v}" aria-pressed="${d.same === v}">${H(k)}</button>`).join('')}</div>
+    <p class="muted small">${H(d.same ? 'ck.sameNoteR' : 'ck.diffNote')}</p>`;
+  // the side: the numbers, then start / send / the link, then the problems
+  const secEach = per ? FORMAT_KEYS.reduce((a, k) => a + d.f[k] * FMT_SEC[k], 0) / per : 60, mins = n ? Math.max(1, Math.round(n * secEach / 60)) : 0;
+  const nums = `<div class="qs-nums"><div><b>${n}</b><small>${H('tc.qs.problems')}</small></div><div><b>${d.lessons.length}</b><small>${H('ck.lessonsCol')}</small></div><div><b>${n ? H('ck.min', { n: mins }) : '—'}</b><small>${H('ck.aim')}</small></div></div>`;
+  const act = !teacher ? `<button type="button" class="btn btn-primary btn-lg qs-start" data-ck="start" ${n ? '' : 'disabled'}>${H('ck.start')}</button>`
+    : sendBar ? sendBar(!!n) : linkHTML();
+  const side = `<aside class="card qs-side ck-side">${nums}${act}${!n ? `<p class="muted small">${H('ck.pickLesson')}</p>` : ''}${teacher ? previewHTML() : `<p class="muted small">${H('ck.introBody')}</p>`}</aside>`;
+  return `<div class="qs-wrap"><div class="qs-main">
+      ${step(1, H('ck.lessons'), s1)}
+      ${step(2, H('ck.format'), s2)}
+      ${step(3, H('ck.count'), s3)}
+      ${teacher ? step(4, H('ck.who'), s4) : ''}
+    </div>${side}</div>`;
 }
 
 /* ---------- teacher: the link, and the problems with their answers ---------- */
@@ -73,20 +82,24 @@ export function checkLink(cfg) {
   const base = location.origin + location.pathname.replace(/teacher\/(index\.html)?$/, '');
   return `${base}#/check/${encodeCheck(cfg)}`;
 }
-function teacherOutHTML() {
+function linkHTML() {
   const d = D();
-  if (!d.lessons.length) return `<div class="card ck-empty muted">${H('ck.pickLesson')}</div>`;
+  if (!d.lessons.length) return '';
   const cfg = cfgOf(d), link = checkLink(cfg);
-  const items = d.same ? buildCheck(ctx.engine(), cfg, cfg.seed) : [];
-  const L = ctx.lang();
-  return `<section class="card ck-link"><h2>${H('ck.link')}</h2>
-      <div class="inline-form"><input class="mono" readonly value="${esc(link)}" aria-label="${esc(T('ck.link'))}" data-ck-sel><button class="btn btn-primary btn-sm" data-ck="copy">${H('ck.copy')}</button></div>
-      <div class="row-btns left"><a class="btn btn-ghost btn-sm" href="${esc(link)}" target="_blank" rel="noopener">${H('ck.open')}</a>${d.same ? `<button class="btn btn-ghost btn-sm" data-ck="reseed">${H('ck.newSet')}</button>` : ''}<span class="muted small">${H('ck.code')}: <b class="mono">${esc(encodeCheck(cfg))}</b></span></div>
-      <p class="muted small">${H(d.same ? 'ck.sameNote' : 'ck.diffNote')}</p></section>
-    ${d.same ? `<section class="card ck-prev"><h2>${H('ck.preview')} <small class="muted">(${items.length})</small></h2>
-      ${items.map((p, i) => `<details class="ck-q"><summary><b>Q${i + 1}</b> <span class="tag st-${p.stage}">${esc(stageName(p))}</span> <span class="muted small">Lesson ${LESSON_BY_KEY[p.lesson].no} · ${esc(themeName(p, L))}</span></summary>
-        <p class="prob-text">${problemHTML(p, L)}</p><pre class="sql">${highlightSQL(p.sql)}</pre>
-        ${altAnswers(ctx.engine(), p).map(a => `<div class="alt"><p class="alt-note">${H('alt.' + a.rule)}</p><pre class="sql">${highlightSQL(a.sql)}</pre></div>`).join('')}</details>`).join('')}</section>` : ''}`;
+  return `<div class="ck-link"><b class="small">${H('ck.link')}</b>
+      <div class="inline-form"><input class="mono" readonly value="${esc(link)}" aria-label="${esc(T('ck.link'))}" data-ck-sel><button type="button" class="btn btn-primary btn-sm" data-ck="copy">${H('ck.copy')}</button></div>
+      <div class="row-btns left"><a class="btn btn-ghost btn-sm" href="${esc(link)}" target="_blank" rel="noopener">${H('ck.open')}</a><span class="muted small">${H('ck.code')}: <b class="mono">${esc(encodeCheck(cfg))}</b></span></div></div>`;
+}
+function previewHTML() {
+  const d = D();
+  if (!d.lessons.length) return '';
+  if (!d.same) return '';
+  const cfg = cfgOf(d), items = buildCheck(ctx.engine(), cfg, cfg.seed), L = ctx.lang();
+  const short = h => { const x = String(h).replace(/<rt>[^<]*<\/rt>/g, '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); return esc(x.length > 54 ? x.slice(0, 52) + '…' : x); };
+  return `<div class="qs-pv-h"><b>${H('ck.preview')} <small class="muted">(${items.length})</small></b><span class="qs-pv-btns"><button type="button" class="btn btn-ghost btn-xs" data-ck="reseed">${H('ck.newSet')}</button></span></div>
+    <div class="qs-pvs">${items.map((p, i) => `<details class="qs-pv"><summary><b>Q${i + 1}</b><span class="tag st-${p.stage}">${esc(stageName(p))}</span><span class="qs-pv-t"><small class="muted">L${LESSON_BY_KEY[p.lesson].no}</small> ${short(problemHTML(p, L))}</span></summary>
+      <div class="qs-pv-b"><p class="prob-text">${problemHTML(p, L)}</p><pre class="sql">${highlightSQL(p.sql)}</pre>
+      ${altAnswers(ctx.engine(), p).map(a => `<div class="alt"><p class="alt-note">${H('alt.' + a.rule)}</p><pre class="sql">${highlightSQL(a.sql)}</pre></div>`).join('')}</div></details>`).join('')}</div>`;
 }
 export function stageName(p) {
   return p.stage === 'write' ? T('tc.fmtWrite') : p.stage === 'order' ? T(p.level === 2 ? 'tc.fmtOrder2' : 'tc.fmtOrder1') : T('stage.' + p.stage);
@@ -106,10 +119,10 @@ export function installCheckUI(c) {
   ctx = c; draft = null;
   if (installed) return; installed = true;
   document.addEventListener('click', e => {
-    const b = e.target.closest('[data-ck]');
+    const b = e.target.closest('[data-ck], [data-act="ckCmp"], [data-act="ckPreset"]');
     if (!b || !ctx || !document.getElementById('ck-setup') || !document.getElementById('ck-setup').contains(b)) return;
     e.preventDefault();
-    const a = b.dataset.ck, v = b.dataset.v;
+    const a = b.dataset.ck || b.dataset.act, v = b.dataset.v;
     if (a === 'start') { const cfg = cfgOf(D()); if (cfg.lessons.length) ctx.onStart(cfg); return; }
     if (a === 'copy') { const link = checkLink(cfgOf(D())); copyText(link, () => toast(T('ck.copied'))); return; }
     change(d => {
@@ -120,8 +133,8 @@ export function installCheckUI(c) {
         const ks = checkLessons().filter(l => l.ch === v).map(l => l.key);
         const on = ks.every(k => d.lessons.includes(k));
         d.lessons = on ? d.lessons.filter(k => !ks.includes(k)) : [...d.lessons, ...ks];
-      } else if (a === 'preset') d.f = Object.assign({}, CHECK_PRESETS[v]);
-      else if (a === 'step') { const k = b.dataset.k; d.f[k] = Math.max(0, Math.min(FORMAT_MAX, d.f[k] + +b.dataset.d)); if (FORMAT_KEYS.every(x => !d.f[x])) d.f[k] = 1; }
+      } else if (a === 'preset' || a === 'ckPreset') d.f = Object.assign({}, CHECK_PRESETS[v]);
+      else if (a === 'step' || a === 'ckCmp') { const k = b.dataset.k || b.dataset.r; d.f[k] = Math.max(0, Math.min(FORMAT_MAX, d.f[k] + +b.dataset.d)); if (FORMAT_KEYS.every(x => !d.f[x])) d.f[k] = 1; }
       else if (a === 'max') d.max = +v;
       else if (a === 'same') d.same = v === 'true';
       else if (a === 'reseed') d.seed = randomCode(4);
@@ -130,15 +143,6 @@ export function installCheckUI(c) {
       d.lessons = order.filter(k => d.lessons.includes(k));
     });
   });
-  document.addEventListener('change', e => {
-    const x = e.target.closest('[data-ck-l]');
-    if (!x || !ctx) return;
-    change(d => {
-      const k = x.dataset.ckL;
-      d.lessons = x.checked ? [...d.lessons, k] : d.lessons.filter(y => y !== k);
-      const order = checkLessons().map(l => l.key);
-      d.lessons = order.filter(y => d.lessons.includes(y));
-    });
-  });
+  document.addEventListener('lpchange', e => { if (e.detail.id === 'ck' && ctx) change(d => { d.lessons = e.detail.keys; }); });
   document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('[data-ck-sel]')) e.target.select(); });
 }

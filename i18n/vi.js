@@ -2369,5 +2369,18 @@ export default {
   "upd.ready": "Đã có phiên bản mới.",
   "upd.reload": "Tải lại",
   "as.leaveConfirm": "Bạn đang làm bài kiểm tra. Nếu rời trang này, bài kiểm tra sẽ kết thúc và không thể làm lại. Rời trang?",
-  "tc.send.checkHere": "Tạo bài kiểm tra ở đây và giao ngay. Các câu sẽ ra được hiện ở bên phải."
+  "tc.send.checkHere": "Tạo bài kiểm tra ở đây và giao ngay. Các câu sẽ ra được hiện ở bên phải.",
+  "ck.perLesson": "Mỗi bài học",
+  "ck.upTo": "Tối đa {n}",
+  "ck.calcSome": "{l} bài × {per} = {all} câu → chọn ngẫu nhiên {n} câu.",
+  "ck.calcAll": "{l} bài × {per} = tất cả {n} câu.",
+  "ck.lessonsCol": "Bài học",
+  "ck.min": "~{n} phút",
+  "ck.aim": "Thời gian dự kiến",
+  "lp.hint": "□ chọn cả chương; mở ▸ để chọn từng bài",
+  "lp.fold": "Thu gọn tất cả",
+  "lp.orderNote": "Số trong vòng tròn là thứ tự ra đề (theo thứ tự chọn).",
+  "nav.fold": "Thu gọn menu",
+  "nav.unfold": "Mở rộng menu",
+  "ck.sameNoteR": "Mọi người nhận cùng câu hỏi theo cùng thứ tự. Xem câu hỏi và đáp án ở bên phải."
 };

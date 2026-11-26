@@ -2370,5 +2370,18 @@ export default {
   "upd.ready": "A new version is ready.",
   "upd.reload": "Reload",
   "as.leaveConfirm": "You are in the middle of a test. If you leave this page, the test ends here and you cannot take it again. Leave?",
-  "tc.send.checkHere": "Make the check test here and send it right away. The problems it will give are shown on the right."
+  "tc.send.checkHere": "Make the check test here and send it right away. The problems it will give are shown on the right.",
+  "ck.perLesson": "Per lesson",
+  "ck.upTo": "Up to {n}",
+  "ck.calcSome": "{l} lessons × {per} = {all} problems → {n} of them are picked at random.",
+  "ck.calcAll": "{l} lessons × {per} = all {n} problems.",
+  "ck.lessonsCol": "Lessons",
+  "ck.min": "~{n} min",
+  "ck.aim": "Time (approx.)",
+  "lp.hint": "□ picks a whole chapter; open ▸ to pick single lessons",
+  "lp.fold": "Collapse all",
+  "lp.orderNote": "The numbers in circles are the order of the problems (the order you picked).",
+  "nav.fold": "Collapse menu",
+  "nav.unfold": "Expand menu",
+  "ck.sameNoteR": "Everyone gets the same problems in the same order. You can see them and their answers on the right."
 };

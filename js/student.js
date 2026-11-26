@@ -23,7 +23,7 @@ import { hrRec } from './hr.js';
 import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
-import { pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
+import { navFoldHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 /* the code editor (CodeMirror, ~420 KB) is loaded when a page needs it, not on the home page */
 let createEditor = null;
@@ -283,10 +283,11 @@ function navItems() {
 }
 function headerHTML() {
   const on = navOf(S.route);
-  const item = ([k, href, ic, label, badge]) => `<a href="${href}"${/^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ''} class="nav-i ${on === k ? 'on' : ''}">${ic}<span>${H(label)}</span>${badge ? `<b class="badge">${badge}</b>` : ''}</a>`;
+  const item = ([k, href, ic, label, badge]) => `<a href="${href}"${/^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ''} class="nav-i ${on === k ? 'on' : ''}" title="${esc(T(label))}">${ic}<span>${H(label)}</span>${badge ? `<b class="badge">${badge}</b>` : ''}</a>`;
   const side = `<aside class="side-nav" aria-label="menu">
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
     <nav>${navItems().map(x => (x === '-' ? '<hr>' : item(x))).join('')}</nav>
+    ${navFoldHTML(L())}
     <div class="side-foot">
       ${S.klass ? `<button class="side-class" data-act="classInfo">${I.users}<span><b>${esc(S.klass.name)}</b><small>${esc(S.klass.nickname || '')}</small></span></button>` : backend.enabled ? `<button class="side-class join" data-act="join">${I.users}<span><b>${H('class.join')}</b></span></button>` : ''}
       <div class="side-tools">${langSelect(L(), T('nav.language'))}<button class="icon-btn" data-act="settings" aria-label="${esc(T('set.title'))}" title="${esc(T('set.title'))}">${I.gear}</button></div>
@@ -1066,9 +1067,8 @@ function pracSetupHTML() {
     : `<div class="fld"><span>${H('dif.title')}</span>${seg('lv', [1, 2, 3], v => `${H('dif.' + v)}`)}</div><p class="muted small">${H('dif.about.' + c.lv)} ${c.lessons.length > 1 ? H('dif.bandNote') : ''}</p>`;
   return `<main class="wrap narrow pr-hub"><h1 class="page-title">🎚 ${H('pr.title')}</h1><p class="muted">${H('pr.sub')}</p>
     <section class="card pr-set">
-      <div class="fld"><span>${H('pr.lessons')}</span>${on.size ? `<button class="btn btn-ghost btn-xs" data-act="prLesson" data-v="">${H('tc.quick.none')}</button>` : ''}</div>
-      <div class="qs-chs">${CHAPTERS.map(ch => { const ls = prLessons().filter(l => l.ch === ch.key); if (!ls.length) return '';
-        return `<div class="qs-ch" style="--cc:var(--c-${ch.key})"><span class="qs-chn">${rubyHTML(raw('ch.' + ch.key, L()))}</span><div class="qs-ls">${ls.map(l => `<button class="qs-l ${on.has(l.key) ? 'on' : ''}" data-act="prLesson" data-v="${l.key}"><b>${l.no}</b>${lessonTitleHTML(l, L())} <small class="muted">Lv1–${levelsOf(l.key).length}</small></button>`).join('')}</div></div>`; }).join('')}</div>
+      <div class="fld"><span>${H('pr.lessons')}</span></div>
+      ${lessonPickHTML({ id: 'prac', lang: L(), chosen: c.lessons, groups: lessonGroups(prLessons(), L(), l => `<small class="muted">Lv1–${levelsOf(l.key).length}</small>`) })}
       ${lvPick}
       ${ex ? `<div class="pr-ex"><small class="muted">${H('pr.example', { name: lessonTitle(LESSON_BY_KEY[ex.lesson], L()) })} · Lv${ex.lv}</small><p class="small">${problemHTML(ex, L())}</p><pre class="sql">${highlightSQL(ex.sql)}</pre></div>` : ''}
       <div class="qs-row"><div class="fld"><span>${H('tc.quick.kind')}</span>${seg('fmt', PR_FMT, prFmtName)}</div><div class="fld"><span>${H('tc.quick.count')}</span>${countPickHTML({ act: 'prSet', k: 'n', value: c.n, presets: PR_N, min: 1, max: 20, secEach: c.fmt === 'write' ? 90 : 50, lang: L() })}</div></div>
@@ -2944,3 +2944,6 @@ function updateBanner() {
     navigator.serviceWorker.addEventListener('message', e => { if (e.data && e.data.type === 'updated') updateBanner(); });   // a new version is saved: offer to reload
   }
 })();
+
+// the lesson picker of the practice set-up
+document.addEventListener('lpchange', e => { if (e.detail.id !== 'prac') return; const c = prConfig(); c.lessons = e.detail.keys; c.fine = 1; Store.set(PR_KEY, c); render(); });

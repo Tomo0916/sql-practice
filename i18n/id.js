@@ -2369,5 +2369,18 @@ export default {
   "upd.ready": "Versi baru sudah siap.",
   "upd.reload": "Muat ulang",
   "as.leaveConfirm": "Kamu sedang mengerjakan tes. Jika meninggalkan halaman ini, tes berakhir di sini dan tidak bisa diulang. Tinggalkan?",
-  "tc.send.checkHere": "Buat tes cek di sini dan langsung kirim. Soal yang akan keluar terlihat di sebelah kanan."
+  "tc.send.checkHere": "Buat tes cek di sini dan langsung kirim. Soal yang akan keluar terlihat di sebelah kanan.",
+  "ck.perLesson": "Per pelajaran",
+  "ck.upTo": "Maks. {n}",
+  "ck.calcSome": "{l} pelajaran × {per} = {all} soal → {n} soal dipilih acak.",
+  "ck.calcAll": "{l} pelajaran × {per} = semua {n} soal.",
+  "ck.lessonsCol": "Pelajaran",
+  "ck.min": "~{n} mnt",
+  "ck.aim": "Perkiraan waktu",
+  "lp.hint": "□ memilih satu bab; buka ▸ untuk memilih per pelajaran",
+  "lp.fold": "Tutup semua",
+  "lp.orderNote": "Angka dalam lingkaran adalah urutan soal (urutan dipilih).",
+  "nav.fold": "Ciutkan menu",
+  "nav.unfold": "Buka menu",
+  "ck.sameNoteR": "Semua mendapat soal yang sama dengan urutan yang sama. Soal dan jawaban ada di kanan."
 };

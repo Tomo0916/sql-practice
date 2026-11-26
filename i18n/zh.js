@@ -2369,5 +2369,18 @@ export default {
   "upd.ready": "有新版本。",
   "upd.reload": "重新加载",
   "as.leaveConfirm": "测试正在进行中。离开此页面后测试将在此结束,无法再次参加。确定离开吗?",
-  "tc.send.checkHere": "在这里制作确认测试并直接发布。右侧显示将出的题目。"
+  "tc.send.checkHere": "在这里制作确认测试并直接发布。右侧显示将出的题目。",
+  "ck.perLesson": "每课",
+  "ck.upTo": "最多 {n} 题",
+  "ck.calcSome": "{l} 课 × {per} 题 = {all} 题 → 从中随机出 {n} 题。",
+  "ck.calcAll": "{l} 课 × {per} 题 = 全部 {n} 题。",
+  "ck.lessonsCol": "课",
+  "ck.min": "约{n}分钟",
+  "ck.aim": "预计时间",
+  "lp.hint": "□ 整章选择，展开 ▸ 可逐课选择",
+  "lp.fold": "全部收起",
+  "lp.orderNote": "圆圈中的数字是出题顺序（选择的顺序）。",
+  "nav.fold": "收起菜单",
+  "nav.unfold": "展开菜单",
+  "ck.sameNoteR": "所有人按相同顺序做相同的题。右侧可查看题目和答案。"
 };
