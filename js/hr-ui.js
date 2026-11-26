@@ -45,7 +45,7 @@ function endMock() {
   const r = rec();
   r.mock.push({ at: Date.now(), ids: mock.ids, pts: mockPts(mock), ms: mock.ms });
   r.mock = r.mock.slice(-30);
-  keepMock(); C.save(); stopTick(); C.render(); window.scrollTo(0, 0);
+  keepMock(); C.save(); if (C.asgHr) C.asgHr({ at: Date.now(), pts: mockPts(mock) }); stopTick(); C.render(); window.scrollTo(0, 0);
 }
 function stopTick() { clearInterval(tick); tick = null; }
 function startTick() {
@@ -113,7 +113,7 @@ function submit() {
   if (c.inMock && (!mock || mock.done || leftMs() <= 0)) return;
   const cases = hrSubmit(SQL(), c.prob, ed.get()), n = cases.filter(x => x.ok).length;
   if (c.inMock) { mock.best[c.prob.id] = Math.max(mock.best[c.prob.id] || 0, n); keepMock(); const tab = document.querySelector(`.hr-qtab[data-i="${mock.ids.indexOf(c.prob.id)}"] .hr-qst`); if (tab) tab.textContent = `${mock.best[c.prob.id]}/2`; }
-  else if (n === 2) { const r = rec(); if (!r.ok.includes(c.prob.id)) { r.ok.push(c.prob.id); C.save(); } }
+  else if (n === 2) { const r = rec(); if (!r.ok.includes(c.prob.id)) { r.ok.push(c.prob.id); C.save(); if (C.asgHr) C.asgHr(null); } }
   const err = cases[0].err;
   const row = (x, i) => `<li class="${x.ok ? 'ok' : 'bad'}"><span>${x.ok ? '✓' : '✗'}</span><span lang="en">Test case ${i}</span><span class="muted small">${H(i ? 'hr.hidden' : 'hr.sample')}</span></li>`;
   let msg = '';

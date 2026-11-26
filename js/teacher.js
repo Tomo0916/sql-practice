@@ -15,7 +15,7 @@ import { TEXTBOOKS } from './book.js';
 import { hasLecture } from './lectures.js';
 import { altAnswers } from './alt.js';
 import { checkSetupHTML, installCheckUI, currentCheck } from './check-ui.js';
-import { ASG_TYPES, ASG_TEST, ASG_ICON, asgList, asgLabelHTML, asgLimit, isAsRow, asgResults, ruResults, newAsgId } from './assign.js';
+import { ASG_TYPES, ASG_TEST, ASG_ICON, asgList, asgLabelHTML, asgLimit, isAsRow, asgResults, ruResults, newAsgId, READ_PRESETS, okUrl, asgReadUrl, asParse } from './assign.js';
 import { CQ_SETS, KW } from './clauses.js';
 import { installExplain, explainTcHTML, explainActions, explainInput, explainKey, explainStop } from './explain-tc.js';
 import { checkLessons } from './check.js';
@@ -640,7 +640,7 @@ function assignHTML(c) {
 }
 /* ---------- sending things to the class (配信, assign.js): tests each student starts when ready, practice, lectures ----------
  * In the class row: tasks.items. The students' records come in as as:<id>:start / as:<id>:done (S.asAtt). */
-const asD = { type: 'rankup', ref: '', limit: 0, pass: 'B' };
+const asD = { type: 'read', ref: '', limit: 0, pass: 'B', url: '', title: '', note: '' };
 const redrawAs = () => { const el = document.querySelector('.as-tc'); if (el && S.klass) el.outerHTML = asgPanelHTML(S.klass); };
 const plainT = k => String(T(k)).replace(/\{([^|}]+)\|[^}]+\}/g, '$1');
 const lessonOpt = k => `${LESSON_BY_KEY[k].no}. ${plainT(`L.${k}.title`)}`;
@@ -656,6 +656,8 @@ function asgChoices(type) {
     case 'table': return tableSets(S.engine).map(x => [x.key, x.tables.join(' + ')]);
     case 'lecture': return [...LESSONS.filter(l => hasLecture(l.key)).map(l => [l.key, lessonOpt(l.key)]), ...PD_LESSONS.filter(l => hasLecture(l.key)).map(l => [l.key, `Python ${l.no}. ${plainT('pd.t.' + l.key)}`])];
     case 'py': return PD_LESSONS.map(l => [l.key, `${l.no}. ${plainT('pd.t.' + l.key)}`]);
+    case 'read': return READ_PRESETS.map(k => [k, plainT('as.rd.' + k)]);
+    case 'hr': return [...['sel', 'rel', 'agg'].map(a => [a, plainT('hr.area.' + a)]), ['mock', plainT('hr.mockH')]];
     default: return [];
   }
 }
@@ -669,13 +671,20 @@ function asgFormHTML() {
   else if (asD.type === 'level') what = `<p class="small muted">${H('as.noLimit')}</p>`;
   else what = `<select data-as="ref">${ch.map(([v, lab]) => `<option value="${esc(v)}" ${v === asD.ref ? 'selected' : ''}>${esc(lab)}</option>`).join('')}</select>${asD.type === 'rankup'
       ? ` <label class="as-lim"><span>${H('as.ru.passLabel')}</span><select data-as="pass">${RK_RANKS.slice(1).map(r => `<option value="${r}" ${r === asD.pass ? 'selected' : ''}>${r}</option>`).join('')}</select></label>` : ''}`;
+  if (asD.type === 'read') {
+    const u = asD.ref === 'url' ? '' : asgReadUrl({ ref: asD.ref }, L());
+    what += asD.ref === 'url' ? `<label class="as-lim as-wide"><span>${H('as.tc.rdTitle')}</span><input type="text" maxlength="80" value="${esc(asD.title)}" data-as="title" placeholder="${esc(plainT('as.tc.rdTitlePh'))}"></label>
+      <label class="as-lim as-wide"><span>${H('as.tc.rdUrl')}</span><input type="url" value="${esc(asD.url)}" data-as="url" placeholder="https://…"></label>`
+      : ` <a class="small" href="${esc(u.startsWith('#') ? '../' + u : u.startsWith('http') ? u : '../' + u)}" target="_blank" rel="noopener">${H('as.tc.rdPreview')} ↗</a>`;
+  }
+  what += `<label class="as-lim as-wide"><span>${H('as.tc.note')}</span><input type="text" maxlength="120" value="${esc(asD.note)}" data-as="note" placeholder="${esc(plainT('as.tc.notePh'))}"></label>`;
   const lim = asD.type === 'rank' ? asgLimit({ type: 'rank', ref: asD.ref }) : 0;
   const ok = asD.type === 'check' ? !!ck : asD.type === 'level' || !!asD.ref;
   return `<div class="as-form">
       <select data-as="type">${ASG_TYPES.map(t => `<option value="${t}" ${t === asD.type ? 'selected' : ''}>${ASG_ICON[t]} ${esc(plainT('as.type.' + t))}</option>`).join('')}</select>
       <div class="as-what">${what}</div>
       <button type="button" class="btn btn-primary" data-act="asSend" ${ok ? '' : 'disabled'}>📬 ${H('as.tc.send')}</button></div>
-    <p class="muted small">${asD.type === 'rankup' ? H('as.ru.tcNote', { r: esc(asD.pass) }) : ASG_TEST.has(asD.type) ? `${H('as.tc.testNote')}${lim ? ` ${H('as.limit', { m: lim / 60 })}` : ''}` : H('as.tc.pracNote')}</p>`;
+    <p class="muted small">${asD.type === 'rankup' ? H('as.ru.tcNote', { r: esc(asD.pass) }) : asD.type === 'read' ? H('as.tc.rdNote') : asD.type === 'hr' ? H('as.tc.hrNote') : ASG_TEST.has(asD.type) ? `${H('as.tc.testNote')}${lim ? ` ${H('as.limit', { m: lim / 60 })}` : ''}` : H('as.tc.pracNote')}</p>`;
 }
 function ruItemTcHTML(it) {
   const rs = ruResults(S.asAtt || [], S.members || [], it), all = rs.filter(r => !r.next).length;
@@ -688,10 +697,17 @@ function ruItemTcHTML(it) {
     <div class="row-btns left"><button type="button" class="btn btn-ghost btn-sm" data-act="asOpen" data-id="${esc(it.id)}">${H(it.open === false ? 'as.tc.reopen' : 'as.tc.close')}</button><button type="button" class="btn btn-ghost btn-sm danger" data-act="asDel" data-id="${esc(it.id)}">${H('as.tc.del')}</button></div>
     <table class="wtable as-tbl"><thead><tr><th></th>${RK_TIERS.map(t => `<th>${H('rk.tier.' + t)}</th>`).join('')}</tr></thead><tbody>${order.map(r => `<tr class="${r.next ? '' : 'done'}"><th>${esc(r.m.nickname)}</th>${RK_TIERS.map(t => cell(r, t)).join('')}</tr>`).join('') || `<tr><td class="muted">${H('as.tc.noMembers')}</td></tr>`}</tbody></table></details></li>`;
 }
+/** HackerRank practice on the way: each student's latest { n, m } → "n / m" */
+function hrProgress(it) {
+  const o = {};
+  (S.asAtt || []).map(asParse).filter(x => x && x.id === it.id && x.kind === 'try' && x.d && x.d.m).forEach(x => { o[x.user] = `${x.d.n} / ${x.d.m}`; });
+  return o;
+}
 function asgItemTcHTML(it) {
   if (it.type === 'rankup') return ruItemTcHTML(it);
   const rs = asgResults(S.asAtt || [], S.members || [], it), done = rs.filter(r => r.done).length, mid = rs.filter(r => r.started && !r.done).length, test = ASG_TEST.has(it.type);
-  const res = r => { if (!r.done) return r.started ? `<span class="tag">${H('as.tc.st.started')}</span>` : `<span class="muted">${H('as.tc.st.none')}</span>`;
+  const prog = it.type === 'hr' ? hrProgress(it) : {};
+  const res = r => { if (!r.done) return prog[r.m.user_id] ? `<span class="tag">${esc(prog[r.m.user_id])}</span>` : r.started ? `<span class="tag">${H(it.type === 'read' ? 'as.tc.st.opened' : 'as.tc.st.started')}</span>` : `<span class="muted">${H('as.tc.st.none')}</span>`;
     if (it.type === 'rank' && r.d && r.d.rank) return `<span class="rk-badge sm r-${esc(r.d.rank)}">${esc(r.d.rank)}</span>${r.d.passed ? `<span class="rk-withpass">${H('rk.withPass')}</span>` : ''} <b>${esc(String(r.d.score))}</b>`;
     return `✓ ${r.reason ? `<b>${esc(r.reason)}</b>` : H('as.done')}`; };
   const order = rs.slice().sort((a, b) => (b.done - a.done) || (((b.d && b.d.score) || 0) - ((a.d && a.d.score) || 0)));
@@ -1349,6 +1365,13 @@ const actions = {
     if (asD.type === 'level') it.ref = '';
     if (asD.type === 'rankup') it.pass = RK_RANKS.includes(asD.pass) ? asD.pass : 'B';
     if (asD.type === 'table') { const x = tableSets(S.engine).find(t => t.key === asD.ref); if (x) it.tables = x.tables; }
+    if (asD.type === 'read' && asD.ref === 'url') {
+      const u = (document.querySelector('[data-as="url"]') || {}).value || asD.url, ti = (document.querySelector('[data-as="title"]') || {}).value || asD.title;
+      if (!okUrl(u)) { toast(T('as.tc.rdBad')); return; }
+      Object.assign(it, { url: u.trim(), title: (ti || '').trim().slice(0, 80) || u.trim() });
+    }
+    { const n = ((document.querySelector('[data-as="note"]') || {}).value || asD.note || '').trim().slice(0, 120); if (n) it.note = n; }
+    asD.note = ''; asD.url = ''; asD.title = '';
     asgSave([...asgList(S.klass), it], 'as.tc.sent');
   },
   asOpen(el) { asgSave(asgList(S.klass).map(it => (it.id === el.dataset.id ? Object.assign({}, it, { open: it.open === false }) : it))); },
@@ -1624,6 +1647,7 @@ document.addEventListener('toggle', e => { if (e.target.matches && e.target.matc
 document.addEventListener('change', async e => {
   const el = e.target;
   if (el.dataset.ex && el.dataset.ex !== 'q') { explainInput(el); return; }
+  if (el.dataset.as && ['url', 'title', 'note'].includes(el.dataset.as)) { asD[el.dataset.as] = el.value; return; }
   if (el.dataset.as) { const k = el.dataset.as; asD[k] = k === 'limit' ? Math.max(0, parseInt(el.value, 10) || 0) : el.value; if (k === 'type') asD.ref = ''; redrawAs(); return; }
   if (el.matches('[data-act="lang"]')) { await loadLang(el.value); S.settings.lang = el.value; saveSettings(Object.assign(loadSettings(el.value), { lang: el.value })); render(); return; }
   if (el.dataset.act2 === 'today') { S.liveOnlyToday = el.checked; refreshTab(); return; }

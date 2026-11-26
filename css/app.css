@@ -1852,3 +1852,6 @@ body.pj-open { overflow: hidden; }
 .hr-page .hr-q .data-box, .hr-page .hr-res .data-box { max-height: 300px; }
 .hr-page h2.home-h { margin: 8px 0 0; }
 .hr-tr p, .hr-text p { overflow-wrap: anywhere; }
+.as-note { display: block; margin-top: 4px; font-weight: 400; color: var(--ink); background: var(--accent-soft); padding: 4px 8px; border-radius: 8px; font-size: .85rem; }
+.as-form .as-wide { display: grid; gap: 2px; margin-top: 6px; }
+.as-form .as-wide input { width: 100%; min-width: 220px; font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }

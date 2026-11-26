@@ -18,6 +18,8 @@ import * as backend from './backend.js';
 import { RK_TIERS, RK_CHAPTERS, RK_SEC, rankKey, rankParse } from './rank.js';
 import { FEATURES } from './features.js';
 import { exOf, exLesson, exTitleHTML } from './explain.js';
+import { asgReadUrl, asgHrIds } from './assign.js';
+import { hrRec } from './hr.js';
 import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML } from './rank-ui.js';
@@ -1457,8 +1459,8 @@ function asgSync() {
     if (changed && (S.route.view === 'live' || S.route.view === 'home')) render();
   }, () => { asgSynced = null; });
 }
-const asgTodo = () => (S.klass ? asgOpen(S.klass).filter(it => (it.type === 'rankup' ? !(asgRec(it.id) || {}).d : !(asgRec(it.id) || {}).s)) : []);
-const asgPrefix = (it, h) => { const p = h.split('/'); return it.type === 'rank' || it.type === 'check' ? h : it.type === 'practice' || it.type === 'level' ? p.slice(0, 2).join('/') : p.slice(0, 3).join('/'); };
+const asgTodo = () => (S.klass ? asgOpen(S.klass).filter(it => (['rankup', 'read', 'hr'].includes(it.type) ? !(asgRec(it.id) || {}).d : !(asgRec(it.id) || {}).s)) : []);
+const asgPrefix = (it, h) => { const p = h.split('/'); if (it.type === 'hr') return '#/hr'; return it.type === 'rank' || it.type === 'check' ? h : it.type === 'practice' || it.type === 'level' ? p.slice(0, 2).join('/') : p.slice(0, 3).join('/'); };
 /** a finished sent item (called where each kind of page ends): the record here and in the class log */
 /** rankup: one result into the tiers { beginner: { n, best, clear }, ... } */
 function ruAdd(t, d) {
@@ -1507,8 +1509,49 @@ function ruItemHTML(it) {
     <div class="as-what"><small class="muted">${H('as.type.rankup')} · ${H('as.ru.again')}</small><b>${asgLabelHTML(it, L())}</b><div class="ru-steps">${steps}</div></div>
     <div class="as-right">${right}</div></li>`;
 }
+/** a sent document (read) or HackerRank practice (hr): open it; a document is done when the student says so, practice when it is finished */
+function asgStartLog(it) {
+  if ((asgRec(it.id) || {}).s) return;
+  asgSet(it.id, { s: Date.now() });
+  if (backend.enabled && S.klass) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'start')));
+}
+/** HackerRank practice: check every open hr item after a problem is solved or a mock test ends (mock = its points of 4) */
+function asgHrCheck(mock) {
+  if (!S.klass) return;
+  const ok = hrRec(S.progress).ok;
+  asgOpen(S.klass).filter(it => it.type === 'hr' && !(asgRec(it.id) || {}).d).forEach(it => {
+    const rec = asgRec(it.id) || {};
+    if (it.ref === 'mock') {
+      if (!mock || mock.at < (it.at || 0)) return;
+      asgSet(it.id, { s: rec.s || Date.now(), d: Date.now(), r: `${mock.pts}/4`, x: { pts: mock.pts } });
+      if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'done', `${mock.pts}/4`, { pts: mock.pts })));
+      return;
+    }
+    const ids = asgHrIds(it), n = ids.filter(id => ok.includes(id)).length, m = ids.length;
+    if (n === (rec.n || 0)) return;
+    if (n >= m) {
+      asgSet(it.id, { s: rec.s || Date.now(), d: Date.now(), r: `${n}/${m}`, n });
+      if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'done', `${n}/${m}`, { n, m })));
+    } else {
+      asgSet(it.id, { s: rec.s || Date.now(), n });
+      if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'try', `${n}/${m}`, { n, m })));
+    }
+  });
+}
+function asgReadItemHTML(it) {
+  const rec = asgRec(it.id) || {}, closed = it.open === false, hr = it.type === 'hr';
+  const prog = hr && it.ref !== 'mock' ? (ids => `${ids.filter(id => hrRec(S.progress).ok.includes(id)).length} / ${ids.length}`)(asgHrIds(it)) : '';
+  let right;
+  if (rec.d) right = `<span class="as-done">✓ ${H(hr ? 'as.done' : 'as.rd.done')}</span>${rec.r ? ` <b>${esc(rec.r)}</b>` : ''}<button class="btn btn-ghost btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H(hr ? 'as.again' : 'as.rd.again')}</button>`;
+  else if (closed) right = `<span class="tag">${H('as.closedTag')}</span>`;
+  else right = `${prog ? `<span class="tag">${esc(prog)}</span>` : ''}<button class="btn btn-primary btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H(hr ? 'as.open' : 'as.rd.open')}</button>${!hr && rec.s ? `<button class="btn btn-ok btn-sm" data-act="asgRead" data-id="${esc(it.id)}">✓ ${H('as.rd.mark')}</button>` : ''}`;
+  return `<li class="as-item ${rec.d ? 'done' : ''} ${closed ? 'closed' : ''}"><span class="as-ic">${ASG_ICON[it.type]}</span>
+    <div class="as-what"><small class="muted">${H('as.type.' + it.type)}${hr && it.ref !== 'mock' ? ` · ${H('as.hr.goal')}` : !hr && !rec.d && !rec.s ? ` · ${H('as.rd.how')}` : ''}</small><b>${asgLabelHTML(it, L())}</b></div>
+    <div class="as-right">${right}</div></li>`;
+}
 function asgItemHTML(it) {
   if (it.type === 'rankup') return ruItemHTML(it);
+  if (it.type === 'read' || it.type === 'hr') return asgReadItemHTML(it);
   const rec = asgRec(it.id) || {}, test = ASG_TEST.has(it.type), closed = it.open === false, lim = asgLimit(it);
   let right;
   if (rec.d) right = `<span class="as-done">✓ ${H('as.done')}</span>${asgResultHTML(it, rec)}${test || closed ? '' : `<button class="btn btn-ghost btn-sm" data-act="asgGo" data-id="${esc(it.id)}">${H('as.again')}</button>`}`;
@@ -2563,6 +2606,13 @@ actions.asgGo = el => {
     asgSet(it.id, { s: Date.now() });
     if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'start')));
   }
+  if (it.type === 'read') {   // a document: opened here (a page of the app) or in a new tab (a file, a web page)
+    const u = asgReadUrl(it, L()); if (!u) return;
+    asgStartLog(it);
+    if (u.startsWith('#')) { location.hash = u; return; }
+    window.open(u, '_blank', 'noopener'); render(); return;
+  }
+  if (it.type === 'hr') asgStartLog(it);
   if (it.type === 'rankup') {   // the tier to take now
     const tier = ruNext(rec.t); if (!tier) return;
     const h = `#/rank/${it.ref}/${tier}`;
@@ -2577,6 +2627,12 @@ actions.asgGo = el => {
   if (it.type === 'rank') { rkStart(it.ref); if (S.session) S.session.asg = it.id; }
   else if (it.type === 'check') { const cfg = decodeCheck(it.ref); if (cfg) { startCheck(it.ref, cfg); S.session.asg = it.id; } if (S.asgRun.limit) asgClock(); }
   render(); window.scrollTo(0, 0);
+};
+actions.asgRead = el => {
+  const it = asgById(S.klass, el.dataset.id); if (!it || (asgRec(it.id) || {}).d) return;
+  asgSet(it.id, { s: (asgRec(it.id) || {}).s || Date.now(), d: Date.now() });
+  if (backend.enabled) backend.logAttempt(Object.assign({ class_id: S.klass.id }, asgRow(it, 'done')));
+  toast(T('as.rd.thanks')); render();
 };
 actions.chToggle = el => { if (matchMedia('(max-width: 720px)').matches) el.closest('.chapter').classList.toggle('open'); };
 /* ---------- backup: the records of this browser as a file, to move to another device ---------- */
@@ -2812,7 +2868,7 @@ window.addEventListener('storage', e => {
 /* ---------- start ---------- */
 (async function start() {
   installTables(); setTablesLang(L);
-  installHr({ S, L, save, render });
+  installHr({ S, L, save, render, asgHr: asgHrCheck });
   installRank({ S, render, save, chName, workspaceHTML, asgHit, ruCleared: (ch, tier) => !!S.klass && asgList(S.klass).some(it => it.type === 'rankup' && it.ref === ch && ((((asgRec(it.id) || {}).t) || {})[tier] || {}).clear) });
   installPy({ S, L, save, render, asgHit,
     // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)

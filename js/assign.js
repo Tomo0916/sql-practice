@@ -7,6 +7,11 @@
  *                                          without passes; a tier can be taken again until it is cleared
  *                                          (rank: the test's own time limit; check: the teacher's limit, or none)
  *         basics | clauses | drill | practice | table | lecture | py — practice and lectures
+ *         read                           — a document to read: ref = a preset (READ_PRESETS) or 'url' (+ url, title); note = the teacher's message
+ *                                          start = opened, done = the student pressed "read"
+ *         hr                             — HackerRank practice: ref = an area (sel | rel | agg) or 'mock';
+ *                                          done when every problem of the area is solved / a mock test is finished;
+ *                                          as:<id>:try rows carry the progress { n, m } on the way
  *   ref:  what exactly (the rank test 'agg-beginner', the check code, the lesson key, ...)
  *   open: false = closed by the teacher (no new starts; a student in the middle can finish)
  * The class log (attempts, lesson 'assign', stage 'review'):
@@ -20,10 +25,11 @@ import { PD_BY_KEY } from './pandas.js';
 import { BASIC_BY_KEY } from './basics.js';
 import { KW } from './clauses.js';
 import { rankParse, RK_SEC, RK_TIERS, RK_RANKS } from './rank.js';
+import { hrDrill } from './hr.js';
 
-export const ASG_TYPES = ['rankup', 'rank', 'check', 'level', 'basics', 'clauses', 'drill', 'practice', 'table', 'lecture', 'py'];
+export const ASG_TYPES = ['read', 'hr', 'rankup', 'rank', 'check', 'level', 'basics', 'clauses', 'drill', 'practice', 'table', 'lecture', 'py'];
 export const ASG_TEST = new Set(['rank', 'check', 'level']);
-export const ASG_ICON = { rankup: '🪜', rank: '🏅', check: '📝', level: '🎯', basics: '🧱', clauses: '🧩', drill: '⇅', practice: '🎚', table: '🗂', lecture: '📽', py: '🐍' };
+export const ASG_ICON = { read: '📖', hr: '🟩', rankup: '🪜', rank: '🏅', check: '📝', level: '🎯', basics: '🧱', clauses: '🧩', drill: '⇅', practice: '🎚', table: '🗂', lecture: '📽', py: '🐍' };
 
 /** the class's items (open and closed), newest first */
 export const asgList = k => (k && k.tasks && Array.isArray(k.tasks.items) ? k.tasks.items.slice().sort((a, b) => (b.at || 0) - (a.at || 0)) : []);
@@ -37,6 +43,21 @@ export function asgLimit(it) {
   return 0;
 }
 
+/* ---------- documents to read ---------- */
+export const READ_PRESETS = ['certs', 'hr', 'book_sql', 'book_ana', 'url'];
+export const okUrl = u => /^https?:\/\/[^\s]+$/i.test(String(u || '').trim());
+/** where a document is: an address in the app (#/…), a file of the site, or a web page */
+export function asgReadUrl(it, lang) {
+  switch (it.ref) {
+    case 'certs': return `https://tomo0916.github.io/ds/certs/?lang=${encodeURIComponent(lang || 'ja')}`;
+    case 'hr': return '#/hr';
+    case 'book_sql': return 'book/sql-textbook-beginner.pdf';
+    case 'book_ana': return 'book/data-analysis-textbook.pdf';
+    default: return okUrl(it.url) ? String(it.url).trim() : '';
+  }
+}
+/** HackerRank practice: the problems of an area that count, and how many are solved */
+export const asgHrIds = it => (it.ref === 'mock' ? [] : hrDrill(it.ref).map(p => p.id));
 /** where the item's page is in the student app */
 /* ---------- rankup: the tiers in turn ---------- */
 /** is a rank test result enough for the next tier? (rank `pass` or better, no passes) */
@@ -68,12 +89,15 @@ export function asgHash(it) {
     case 'table': return `#/table/${r}`;
     case 'lecture': return `#/lecture/${r}`;
     case 'py': return `#/py/${r}/0`;
+    case 'hr': return it.ref === 'mock' ? '#/hr/mock' : `#/hr/${asgHrIds(it)[0] || ''}`;
+    case 'read': return asgReadUrl(it).startsWith('#') ? asgReadUrl(it) : '#/live';
     default: return '#/';
   }
 }
 
-/** the item's name in a language (HTML) */
-export function asgLabelHTML(it, lang) {
+/** the item's name in a language (HTML), with the teacher's message if there is one */
+export const asgLabelHTML = (it, lang) => labelCore(it, lang) + (it.note ? `<small class="as-note">💬 ${esc(it.note)}</small>` : '');
+function labelCore(it, lang) {
   const R = k => rubyHTML(raw(k, lang)), lesson = k => (LESSON_BY_KEY[k] ? `${LESSON_BY_KEY[k].no}. ${R(`L.${k}.title`)}` : esc(k));
   switch (it.type) {
     case 'rank': { const t = rankParse(it.ref); return t ? `${R('ch.' + t.ch)} · ${R('rk.tier.' + t.tier)}` : esc(it.ref); }
@@ -84,6 +108,8 @@ export function asgLabelHTML(it, lang) {
     case 'clauses': return it.ref === 'all' ? R('cq.all') : `<code>${esc(KW[it.ref] || it.ref)}</code>`;
     case 'table': return (it.tables || [it.ref]).map(t => `<b class="mono">${esc(t)}</b>`).join(' + ');
     case 'py': return PD_BY_KEY[it.ref] ? `${PD_BY_KEY[it.ref].no}. ${R('pd.t.' + it.ref)}` : esc(it.ref);
+    case 'hr': return it.ref === 'mock' ? R('hr.mockH') : `${R('hr.title')} · ${R('hr.area.' + it.ref)}`;
+    case 'read': return it.ref === 'url' ? esc(it.title || it.url || '') : R('as.rd.' + it.ref);
     default: return lesson(it.ref);
   }
 }
