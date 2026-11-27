@@ -19,8 +19,6 @@ export const PALETTE = ['', '#1b1b25', '#ffffff', '#ffe0bd', '#e8b48a', '#a0663f
   // special colours (g–n), unlocked by trophies: gold, silver, pink, mint, night, lava, crystal, rainbow
   '#ffc61a', '#dfe5ee', '#ff7eb6', '#6ff0c6', '#232a63', '#ff4d1a', '#b9f3ff', 'url(#av-rb)'];
 export const COLOR_NEED = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 5, 7, 9, 11, 13, 15];   // trophies needed
-const RAINBOW = '<defs><linearGradient id="av-rb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d4d"/><stop offset=".33" stop-color="#ffd23c"/><stop offset=".66" stop-color="#4dd67a"/><stop offset="1" stop-color="#4d8cff"/></linearGradient></defs>';
-const cIdx = ch => parseInt(ch, 36);
 const LETTER = { '.': 0, k: 1, w: 2, s: 3, t: 4, d: 5, r: 6, o: 7, y: 8, g: 9, G: 10, c: 11, b: 12, p: 13, n: 14, a: 15 };
 const grid = rows => rows.map(r => [...r].map(ch => (LETTER[ch] || 0).toString(16)).join('')).join('');
 /** starting points (all original) */
@@ -43,41 +41,161 @@ export const AV_TEMPLATES = {
     '...knnnnnnnnk...', '...kggggggggk...', '....knnk.knnk...', '....kkkk.kkkk...'])
 };
 export const AV_EMPTY = '0'.repeat(AV * AV);
-export const avOk = s => typeof s === 'string' && /^[0-9a-n]{256}$/.test(s);
+/* A drawing is 256 cells (left to right, top to bottom). A cell is '' (no colour), 'rrggbb' (any colour)
+ * or a letter g–n (a special colour, unlocked by trophies: it shines). Saved as text:
+ *   new:    "2:" + the colours, comma-separated + ":" + 256 characters (0 = none, 1… = the n-th colour)
+ *   older:  256 base-36 digits 0–n (the first 24-colour palette) — still read. */
+export const SPECIAL = {   // letter: [name in CSV, light, middle, dark]
+  g: ['gold', '#fff3b0', '#ffc61a', '#a87200'], h: ['silver', '#ffffff', '#c9d1dc', '#7d8796'], i: ['pink', '#ffd6ea', '#ff7eb6', '#c2336f'],
+  j: ['mint', '#d9fff2', '#6ff0c6', '#1fa37a'], k: ['night', '#5b66d1', '#232a63', '#090c2a'], l: ['lava', '#ffe066', '#ff4d1a', '#7a1200'],
+  m: ['crystal', '#ffffff', '#b9f3ff', '#4fa6d9'], n: ['rainbow']
+};
+export const SPECIAL_NEED = { g: 1, h: 3, i: 5, j: 7, k: 9, l: 11, m: 13, n: 15 };   // trophies needed (= COLOR_NEED)
+const RB_STOPS = ['#ff4d4d', '#ffd23c', '#4dd67a', '#4d8cff', '#b45cff'];
+/** CSS for a cell (editor, swatches) */
+export function avCss(c) {
+  if (!c) return '';
+  if (c === 'n') return `linear-gradient(135deg,${RB_STOPS.join(',')})`;
+  if (SPECIAL[c]) { const [, l, m, d] = SPECIAL[c]; return `linear-gradient(135deg,${m} 0%,${l} 35%,${m} 55%,${d} 100%)`; }
+  return '#' + c;
+}
+const specialDefs = used => used.map(c => c === 'n'
+  ? `<linearGradient id="av-n" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="16" y2="16">${RB_STOPS.map((x, i) => `<stop offset="${i / (RB_STOPS.length - 1)}" stop-color="${x}"/>`).join('')}</linearGradient>`
+  : (([, l, m, d]) => `<linearGradient id="av-${c}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="8" y2="8" spreadMethod="reflect"><stop offset="0" stop-color="${d}"/><stop offset=".45" stop-color="${m}"/><stop offset=".6" stop-color="${l}"/><stop offset=".75" stop-color="${m}"/><stop offset="1" stop-color="${d}"/></linearGradient>`)(SPECIAL[c])).join('');
+const ALPH = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_';
+export const AV_MAX_COLORS = 63;
+const V2 = /^2:([0-9a-n,]*):([0-9a-zA-Z_-]{256})$/;
+const cellsCache = new Map();
+/** the 256 cells of a saved drawing, or null if it is not one */
+export function avCells(s) {
+  if (typeof s !== 'string') return null;
+  if (cellsCache.has(s)) return cellsCache.get(s);
+  let out = null;
+  if (/^[0-9a-n]{256}$/.test(s)) out = [...s].map(ch => { const i = parseInt(ch, 36); return i === 0 ? '' : i >= 16 ? ch : PALETTE[i].slice(1); });
+  else {
+    const m = V2.exec(s);
+    if (m) {
+      const cols = m[1] ? m[1].split(',') : [];
+      if (cols.length <= AV_MAX_COLORS && cols.every(c => /^[0-9a-f]{6}$/.test(c) || (c.length === 1 && SPECIAL[c]))) {
+        const cs = [...m[2]].map(ch => { const i = ALPH.indexOf(ch); return i === 0 ? '' : cols[i - 1]; });
+        if (!cs.includes(undefined)) out = cs;
+      }
+    }
+  }
+  if (cellsCache.size > 400) cellsCache.clear();
+  cellsCache.set(s, out);
+  return out;
+}
+export const avOk = s => !!avCells(s);
+const rgbOf = h => [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+const dist = (a, b) => { const x = rgbOf(a), y = rgbOf(b); return (x[0] - y[0]) ** 2 * 2 + (x[1] - y[1]) ** 2 * 4 + (x[2] - y[2]) ** 2 * 3; };
+/** at most max colours: the two closest colours are joined (the rarer one becomes the commoner one) until it fits */
+export function avReduce(cells, max = AV_MAX_COLORS) {
+  let cs = cells.slice();
+  const from = new Set(cs.filter(Boolean)).size;
+  for (;;) {
+    const count = new Map(); cs.forEach(c => { if (c) count.set(c, (count.get(c) || 0) + 1); });
+    if (count.size <= max) break;
+    const hex = [...count.keys()].filter(c => c.length === 6);
+    let best = null;
+    for (let i = 0; i < hex.length; i++) for (let j = i + 1; j < hex.length; j++) { const d = dist(hex[i], hex[j]); if (!best || d < best[0]) best = [d, hex[i], hex[j]]; }
+    if (!best) break;
+    const [, a, b] = best, keep = count.get(a) >= count.get(b) ? a : b, drop = keep === a ? b : a;
+    cs = cs.map(c => (c === drop ? keep : c));
+  }
+  return { cells: cs, from, to: new Set(cs.filter(Boolean)).size };
+}
+/** the cells → the saved text */
+export function avEncode(cells) {
+  const cs = avReduce(cells).cells, cols = [...new Set(cs.filter(Boolean))];
+  return `2:${cols.join(',')}:${cs.map(c => (c ? ALPH[cols.indexOf(c) + 1] : '0')).join('')}`;
+}
 /** the avatar as an SVG (runs of one colour become one rectangle) */
 const svgCache = new Map();
 export function avatarSVG(a, size = 32, label = '') {
-  const s = avOk(a) ? a : AV_TEMPLATES.knight, key = s + '|' + size;
-  let body = svgCache.get(s);
+  const cs = avCells(a) || avCells(AV_TEMPLATES.knight), key = Array.isArray(a) ? cs.join(',') : String(a);
+  let body = svgCache.get(key);
   if (!body) {
-    const out = [];
+    const out = [], used = new Set();
     for (let y = 0; y < AV; y++) {
       let x = 0;
       while (x < AV) {
-        const c = cIdx(s[y * AV + x]); let w = 1;
-        while (x + w < AV && s[y * AV + x + w] === s[y * AV + x]) w++;
-        if (c) out.push(`<rect x="${x}" y="${y}" width="${w}" height="1" fill="${PALETTE[c]}"/>`);
+        const c = cs[y * AV + x]; let w = 1;
+        while (x + w < AV && cs[y * AV + x + w] === c) w++;
+        if (c) { if (SPECIAL[c]) used.add(c); out.push(`<rect x="${x}" y="${y}" width="${w}" height="1" fill="${SPECIAL[c] ? `url(#av-${c})` : '#' + c}"/>`); }
         x += w;
       }
     }
-    body = (s.includes('n') ? RAINBOW : '') + out.join(''); svgCache.set(s, body);
+    body = (used.size ? `<defs>${specialDefs([...used])}</defs>` : '') + out.join('');
+    if (svgCache.size > 400) svgCache.clear();
+    svgCache.set(key, body);
   }
-  void key;
   return `<svg class="av" viewBox="0 0 16 16" width="${size}" height="${size}" style="width:${size}px;height:${size}px" shape-rendering="crispEdges" role="img" aria-label="${label}">${body}</svg>`;
 }
-/** mirror the left half onto the right (for symmetrical drawing) */
-export const avMirror = s => { const a = [...s]; for (let y = 0; y < AV; y++) for (let x = 0; x < AV / 2; x++) a[y * AV + AV - 1 - x] = a[y * AV + x]; return a.join(''); };
-/** flood fill from (x, y) with colour c */
-export function avFill(s, x, y, c) {
-  const a = [...s], from = a[y * AV + x], to = c.toString(36);
-  if (from === to) return s;
+/** flood fill from (x, y) with colour c (cells in, cells out) */
+export function avFill(cells, x, y, c) {
+  const a = cells.slice(), from = a[y * AV + x];
+  if (from === c) return a;
   const st = [[x, y]];
   while (st.length) {
     const [px, py] = st.pop();
     if (px < 0 || py < 0 || px >= AV || py >= AV || a[py * AV + px] !== from) continue;
-    a[py * AV + px] = to; st.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]);
+    a[py * AV + px] = c; st.push([px + 1, py], [px - 1, py], [px, py + 1], [px, py - 1]);
   }
-  return a.join('');
+  return a;
+}
+
+/* ---------- CSV: 16 lines × 16 values (#RRGGBB, - = no colour, or a special colour's name) ---------- */
+const NAME_TO = Object.fromEntries(Object.entries(SPECIAL).map(([k, v]) => [v[0], k]));
+export const specialName = c => SPECIAL[c][0];
+export function avToCSV(cells) {
+  const cs = avCells(cells) || cells;
+  return Array.from({ length: AV }, (_, y) => cs.slice(y * AV, y * AV + AV).map(c => (!c ? '-' : SPECIAL[c] ? SPECIAL[c][0] : '#' + c.toUpperCase())).join(',')).join('\n');
+}
+const EMPTY_WORDS = new Set(['', '-', '--', '.', '_', 'transparent', 'none', 'null', 'empty', 'clear', 'nan']);
+/** one value → '' | 'rrggbb' | a special letter | undefined (not a colour) */
+function cellOf(v) {
+  const t = v.trim().replace(/^["'`]+|["'`]+$/g, '').trim().toLowerCase();
+  if (EMPTY_WORDS.has(t)) return '';
+  let m = /^(?:#|0x)?([0-9a-f]{6})([0-9a-f]{2})?$/.exec(t);
+  if (m) return m[2] === '00' ? '' : m[1];
+  m = /^#([0-9a-f])([0-9a-f])([0-9a-f])$/.exec(t);
+  if (m) return m[1] + m[1] + m[2] + m[2] + m[3] + m[3];
+  if (NAME_TO[t]) return NAME_TO[t];
+  return undefined;
+}
+/** what the AI wrote → { cells, colored, rows, cols, bad, lock, colors } or null (nothing that looks like the grid).
+ *  open(letter) = may this special colour be used; a locked one becomes its middle colour. */
+export function avFromCSV(text, open = () => true) {
+  const src = String(text || '').normalize('NFKC').replace(/```[a-z]*/gi, '\n');
+  const rows = [];
+  for (let line of src.split(/\r?\n/)) {
+    line = line.trim().replace(/^\|+|\|+$/g, '');
+    if (!line) continue;
+    let parts = line.split(/[,\t;|]/);
+    if (parts.length === 1) parts = line.split(/\s+/);
+    if (parts.length < 4) continue;
+    let vals = parts.map(cellOf);
+    if (vals.length > AV && vals[0] === undefined) vals = vals.slice(1);   // a row number in front
+    const ok = vals.filter(v => v !== undefined).length, real = vals.filter(v => v).length;
+    if (ok / vals.length < 0.6 || (!real && !parts.some(p => /^\s*-\s*$/.test(p)))) continue;
+    rows.push(vals);
+  }
+  if (!rows.length) return null;
+  const res = { rows: rows.length, cols: 0, bad: 0, lock: 0 };
+  const cells = [];
+  for (let y = 0; y < AV; y++) {
+    const r = rows[y] || [];
+    if (y < rows.length && r.length !== AV) res.cols++;
+    for (let x = 0; x < AV; x++) {
+      let v = r[x];
+      if (v === undefined) { if (x < r.length) res.bad++; v = ''; }
+      if (v && SPECIAL[v] && !open(v)) { res.lock++; v = v === 'n' ? 'ff4d4d' : SPECIAL[v][2].slice(1); }
+      cells.push(v);
+    }
+  }
+  const red = avReduce(cells);
+  return Object.assign(res, { cells: red.cells, colored: red.cells.filter(Boolean).length, colors: red.from > red.to ? red.to : 0 });
 }
 
 /* ---------- weapons: one for each rank-test subject ---------- */

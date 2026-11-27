@@ -1,10 +1,10 @@
 /* The adventure screens (冒険): #/hero (status), #/hero/edit (the pixel avatar), the party of the class,
  * and the "you got …!" message. Everything is worked out by hero.js from the progress. */
 import { t, th, esc } from './i18n.js';
-import { getMode, modeBtnHTML } from './ui.js';
+import { getMode, modeBtnHTML, copyText } from './ui.js';
 import { RK_CHAPTERS } from './rank.js';
 import { LV_CHAPTERS } from './level.js';
-import { AV, PALETTE, AV_TEMPLATES, AV_EMPTY, COLOR_NEED, avOk, avatarSVG, heroSVG, avFill, WEAPON_OF, SYNTAX_OF, weaponSVG, weaponNext, heroOf, TROPHIES, trophiesOf, titlesOf, titleKey, earnedIds, heroPublic, heroPublicOk } from './hero.js';
+import { AV, PALETTE, AV_TEMPLATES, AV_EMPTY, SPECIAL, SPECIAL_NEED, avCss, avCells, avEncode, avToCSV, avFromCSV, specialName, avOk, avatarSVG, heroSVG, avFill, WEAPON_OF, SYNTAX_OF, weaponSVG, weaponNext, heroOf, TROPHIES, trophiesOf, titlesOf, titleKey, earnedIds, heroPublic, heroPublicOk } from './hero.js';
 
 let C = null;   // { S, render, save, backend, toast }
 export function installHero(ctx) { C = ctx; }
@@ -12,8 +12,6 @@ const L = () => C.S.settings.lang;
 const T = (k, v) => t(k, L(), v);
 const H = (k, v) => `<span class="tx">${th(k, L(), v && Object.fromEntries(Object.entries(v).map(([a, b]) => [a, esc(b)])))}</span>`;
 const rec = () => (C.S.progress.hero = Object.assign({ a: '', t: 'novice', seen: null, at: 0 }, C.S.progress.hero));
-const cssCol = i => (i === 23 ? 'linear-gradient(135deg,#ff4d4d,#ffd23c,#4dd67a,#4d8cff)' : PALETTE[i]);
-const cIdx = ch => parseInt(ch, 36);
 const myName = () => (C.S.klass && C.S.klass.nickname) || T('hero.you');
 export const myAvatar = () => { const a = rec().a; return avOk(a) ? a : AV_TEMPLATES.knight; };
 
@@ -81,39 +79,95 @@ function partyHTML() {
 }
 
 /* ---------- the avatar editor ---------- */
-const ed = { a: null, c: 1, tool: 'pen', mirror: false, undo: [], down: false };
+const ed = { cells: null, c: '1b1b25', tool: 'pen', mirror: false, undo: [], down: false, what: '', base: false, csv: '', msg: '' };
+const BASE = PALETTE.slice(1, 16).map(x => x.slice(1));
+const trophyN = () => trophiesOf(heroOf(C.S.progress)).length;
+const isOpen = c => !SPECIAL[c] || SPECIAL_NEED[c] <= trophyN();
+function swatch(c, label, extra = '') {
+  const lock = !isOpen(c), on = ed.tool !== 'erase' && ed.c === c;
+  const tip = lock ? T('hero.colorLock', { n: SPECIAL_NEED[c] }) : label;
+  return `<button type="button" class="${on ? 'on' : ''} ${lock ? 'lock' : ''} ${SPECIAL[c] ? 'sp' : ''} ${extra}" ${lock ? 'disabled' : ''} data-hero-c="${c}" style="background:${avCss(c)}" title="${esc(tip)}" aria-label="${esc(tip)}" aria-pressed="${on}">${lock ? '🔒' : ''}</button>`;
+}
 export function editHTML() {
-  if (ed.a === null) ed.a = rec().a && avOk(rec().a) ? rec().a : AV_TEMPLATES.knight;
-  const cells = [...ed.a].map((v, i) => `<i data-av="${i}" style="${v !== '0' ? `background:${cssCol(cIdx(v))}` : ''}"></i>`).join('');
+  if (ed.cells === null) ed.cells = (avCells(rec().a) || avCells(AV_TEMPLATES.knight)).slice();
+  const cells = ed.cells.map((v, i) => `<i data-av="${i}" style="${v ? `background:${avCss(v)}` : ''}"></i>`).join('');
   const tool = (k, ic) => `<button type="button" class="btn btn-ghost btn-sm ${ed.tool === k ? 'on' : ''}" data-hero-tool="${k}" aria-pressed="${ed.tool === k}">${ic} ${H('hero.' + k)}</button>`;
+  const used = [...new Set(ed.cells.filter(c => c && !SPECIAL[c] && !BASE.includes(c)))].slice(0, 16);
+  const cur = ed.c && !SPECIAL[ed.c] ? '#' + ed.c : '#1b1b25';
+  const palette = `<div class="rpg-win"><h2 class="rpg-h">${H('hero.palette')}</h2>
+      <p class="av-sub">${H('hero.base')}</p><div class="av-pal">${BASE.map(c => swatch(c, '#' + c.toUpperCase())).join('')}<button type="button" class="clear ${ed.tool === 'erase' ? 'on' : ''}" data-hero-tool="erase" title="${esc(T('hero.erase'))}" aria-label="${esc(T('hero.erase'))}"></button></div>
+      <p class="av-sub">${H('hero.free')}</p><div class="av-free"><input type="color" value="${cur}" data-hero-pick aria-label="${esc(T('hero.free'))}"><code data-hero-hex>${esc(cur.toUpperCase())}</code></div>
+      ${used.length ? `<p class="av-sub">${H('hero.used')}</p><div class="av-pal">${used.map(c => swatch(c, '#' + c.toUpperCase())).join('')}</div>` : ''}
+      <p class="av-sub">${H('hero.special')}</p><div class="av-pal">${Object.keys(SPECIAL).map(c => swatch(c, specialName(c))).join('')}</div>
+      <div class="row-btns left">${tool('pen', '✏️')}${tool('fill', '🪣')}${tool('erase', '🧽')}</div>
+      <div class="row-btns left"><button type="button" class="btn btn-ghost btn-sm ${ed.mirror ? 'on' : ''}" data-hero-do="mirror" aria-pressed="${ed.mirror}">↔️ ${H('hero.mirror')}</button><button type="button" class="btn btn-ghost btn-sm" data-hero-do="undo" ${ed.undo.length ? '' : 'disabled'}>↩️ ${H('hero.undo')}</button><button type="button" class="btn btn-ghost btn-sm" data-hero-do="clear">🗑 ${H('hero.clear')}</button></div></div>`;
+  const ai = `<div class="rpg-win hero-ai"><h2 class="rpg-h">🤖 ${H('hero.ai')}</h2>
+      <p class="small muted">${H('hero.aiLead')}</p>
+      <ol class="hero-ai-steps">
+        <li><label class="fld"><span>${H('hero.aiWhat')}</span><input type="text" data-hero-ai="what" value="${esc(ed.what)}" placeholder="${esc(T('hero.aiWhatPh'))}" maxlength="200"></label>
+          <label class="chk"><input type="checkbox" data-hero-ai="base" ${ed.base ? 'checked' : ''}><span>${H('hero.aiBase')}</span></label>
+          <button type="button" class="btn btn-ghost btn-sm" data-hero-do="aiCopy">📋 ${H('hero.aiCopy')}</button></li>
+        <li><label class="fld"><span>${H('hero.aiPaste')}</span><textarea data-hero-ai="csv" rows="4" spellcheck="false" placeholder="-,-,#1B1B25,#1B1B25,…">${esc(ed.csv)}</textarea></label>
+          <div class="row-btns left"><button type="button" class="btn btn-primary btn-sm" data-hero-do="aiLoad">🎨 ${H('hero.aiLoad')}</button><label class="btn btn-ghost btn-sm">📄 ${H('hero.aiFile')}<input type="file" accept=".csv,.txt,text/csv,text/plain" data-hero-ai-file hidden></label></div>
+          <div class="hero-ai-msg small" data-hero-ai-msg role="status">${ed.msg}</div></li>
+      </ol>
+      <details class="small"><summary>${H('hero.aiFormat')}</summary><p class="muted">${H('hero.aiTip', { names: Object.keys(SPECIAL).map(specialName).join(', ') })}</p></details>
+      <div class="row-btns left"><button type="button" class="btn btn-ghost btn-sm" data-hero-do="csvOut">⬇ ${H('hero.csvOut')}</button><button type="button" class="btn btn-ghost btn-sm" data-hero-do="csvCopy">📋 ${H('hero.csvCopy')}</button></div></div>`;
   return `<div class="hero-page hero-edit"><header class="page-head"><h1>🎨 ${H('hero.draw')}</h1><p class="muted">${H('hero.editTip')}</p></header>
     <div class="hero-ed">
-      <div class="rpg-win"><div class="av-grid ${ed.mirror ? 'mirror' : ''}" data-av-grid style="--n:${AV}">${cells}</div></div>
-      <div class="hero-ed-side">
-        <div class="rpg-win"><h2 class="rpg-h">${H('hero.palette')}</h2><div class="av-pal">${PALETTE.map((p, i) => { const lock = COLOR_NEED[i] > trophiesOf(heroOf(C.S.progress)).length;
-            return `<button type="button" class="${ed.c === i ? 'on' : ''} ${i ? '' : 'clear'} ${lock ? 'lock' : ''} ${i >= 16 ? 'sp' : ''}" ${lock ? `disabled title="${esc(T('hero.colorLock', { n: COLOR_NEED[i] }))}"` : ''} data-hero-c="${i}" style="${p ? `background:${cssCol(i)}` : ''}" aria-label="${i ? (lock ? esc(T('hero.colorLock', { n: COLOR_NEED[i] })) : String(i)) : esc(T('hero.erase'))}" aria-pressed="${ed.c === i}">${lock ? '🔒' : ''}</button>`; }).join('')}</div>
-          <div class="row-btns left">${tool('pen', '✏️')}${tool('fill', '🪣')}${tool('erase', '🧽')}</div>
-          <div class="row-btns left"><button type="button" class="btn btn-ghost btn-sm ${ed.mirror ? 'on' : ''}" data-hero-do="mirror" aria-pressed="${ed.mirror}">↔️ ${H('hero.mirror')}</button><button type="button" class="btn btn-ghost btn-sm" data-hero-do="undo" ${ed.undo.length ? '' : 'disabled'}>↩️ ${H('hero.undo')}</button><button type="button" class="btn btn-ghost btn-sm" data-hero-do="clear">🗑 ${H('hero.clear')}</button></div></div>
+      <div class="hero-ed-main"><div class="rpg-win"><div class="av-grid ${ed.mirror ? 'mirror' : ''}" data-av-grid style="--n:${AV}">${cells}</div></div>${ai}</div>
+      <div class="hero-ed-side">${palette}
         <div class="rpg-win"><h2 class="rpg-h">${H('hero.tpl')}</h2><div class="av-tpls">${Object.keys(AV_TEMPLATES).map(k => `<button type="button" data-hero-tpl="${k}">${avatarSVG(AV_TEMPLATES[k], 48)}<small>${H(`hero.tpl.${k}`)}</small></button>`).join('')}</div></div>
-        <div class="rpg-win hero-prev"><h2 class="rpg-h">${H('hero.preview')}</h2><div data-av-prev>${avatarSVG(ed.a, 96)}${avatarSVG(ed.a, 32)}</div></div>
+        <div class="rpg-win hero-prev"><h2 class="rpg-h">${H('hero.preview')}</h2><div data-av-prev>${avatarSVG(ed.cells, 96)}${avatarSVG(ed.cells, 32)}</div></div>
         <div class="row-btns left"><button type="button" class="btn btn-primary" data-hero-do="save">💾 ${H('hero.save')}</button><a class="btn btn-ghost" href="#/hero" data-hero-do="cancel">${H('hero.cancel')}</a></div>
       </div></div></div>`;
 }
 function paintAt(i) {
-  const x = i % AV, y = Math.floor(i / AV), c = ed.tool === 'erase' ? 0 : ed.c;
-  let a = ed.tool === 'fill' ? avFill(ed.a, x, y, c) : ed.a.slice(0, i) + c.toString(36) + ed.a.slice(i + 1);
-  if (ed.mirror && ed.tool !== 'fill') { const j = y * AV + (AV - 1 - x); a = a.slice(0, j) + c.toString(36) + a.slice(j + 1); }
-  if (ed.mirror && ed.tool === 'fill') a = avFill(a, AV - 1 - x, y, c);
-  if (a === ed.a) return;
-  ed.a = a; drawGrid();
+  const x = i % AV, y = Math.floor(i / AV), c = ed.tool === 'erase' ? '' : ed.c;
+  let a = ed.cells;
+  if (ed.tool === 'fill') { a = avFill(a, x, y, c); if (ed.mirror) a = avFill(a, AV - 1 - x, y, c); }
+  else { a = a.slice(); a[i] = c; if (ed.mirror) a[y * AV + (AV - 1 - x)] = c; }
+  if (a.join() === ed.cells.join()) return;
+  ed.cells = a; drawGrid();
 }
 function drawGrid() {
   const g = document.querySelector('[data-av-grid]'); if (!g) return;
-  g.querySelectorAll('[data-av]').forEach((el, i) => { const v = cIdx(ed.a[i]); el.style.background = v ? cssCol(v) : ''; });
+  g.querySelectorAll('[data-av]').forEach((el, i) => { el.style.background = avCss(ed.cells[i]); });
 }
-const drawPrev = () => { const p = document.querySelector('[data-av-prev]'); if (p) p.innerHTML = avatarSVG(ed.a, 96) + avatarSVG(ed.a, 32); };
-const pushUndo = () => { ed.undo.push(ed.a); if (ed.undo.length > 40) ed.undo.shift(); };
-export function editLeave() { ed.a = null; ed.undo = []; }
+const drawPrev = () => { const p = document.querySelector('[data-av-prev]'); if (p) p.innerHTML = avatarSVG(ed.cells, 96) + avatarSVG(ed.cells, 32); };
+const pushUndo = () => { ed.undo.push(ed.cells.slice()); if (ed.undo.length > 40) ed.undo.shift(); };
+export function editLeave() { Object.assign(ed, { cells: null, undo: [], msg: '', csv: '' }); }
+
+/* ---------- AI: the prompt to copy, and the CSV it gives back ---------- */
+function aiPrompt() {
+  const what = ed.what.trim() || 'an original hero for a retro RPG, standing and facing forward';
+  const names = Object.keys(SPECIAL).filter(isOpen).map(specialName);
+  return [`Draw 16x16 pixel art of: ${what}`, '',
+    ...(ed.base ? ['Start from my current picture below (same format) and change it as asked.', '```csv', avToCSV(ed.cells), '```', ''] : []),
+    'Rules for your answer:',
+    '- Output CSV only, in one code block, with no explanation.',
+    '- Exactly 16 lines. Each line has exactly 16 values separated by commas.',
+    '- Each value is one pixel: a colour as #RRGGBB, or - for a transparent pixel.',
+    '- Keep the background transparent (-). Draw the subject large and centred, with a dark outline, like a retro game sprite.',
+    ...(names.length ? [`- You may also use these special shining colours by name: ${names.join(', ')}.`] : [])].join('\n');
+}
+function aiLoad(text) {
+  const r = avFromCSV(text, isOpen), box = document.querySelector('[data-hero-ai-msg]');
+  if (!r || !r.colored) { ed.msg = `<p class="bad">${H('hero.aiNone')}</p>`; if (box) box.innerHTML = ed.msg; return; }
+  pushUndo(); ed.cells = r.cells;
+  const notes = [H('hero.aiDone', { n: r.colored })];
+  if (r.rows !== AV) notes.push(H('hero.aiFixRows', { n: r.rows }));
+  if (r.cols) notes.push(H('hero.aiFixCols', { n: r.cols }));
+  if (r.bad) notes.push(H('hero.aiFixBad', { n: r.bad }));
+  if (r.lock) notes.push(H('hero.aiFixLock', { n: r.lock }));
+  if (r.colors) notes.push(H('hero.aiFixMany', { n: r.colors }));
+  ed.msg = notes.map((x, i) => `<p class="${i ? 'warn' : 'ok'}">${i ? '⚠️' : '✅'} ${x}</p>`).join('');
+  C.render();
+}
+function download(name, text) {
+  const u = URL.createObjectURL(new Blob([text + '\n'], { type: 'text/csv' })), a = document.createElement('a');
+  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+}
 
 /* ---------- "you got …!" (after a test, on the next screen) ---------- */
 export function heroNews() {
@@ -125,7 +179,7 @@ export function heroNews() {
     const [k, a, b] = id.split(':');
     if (k === 'w') return `${weaponSVG(WEAPON_OF[a], +b, 32)} ${H('hero.got', { who: myName(), what: weaponName(a, +b) })}`;
     if (k === 'lv') return `⬆️ ${H('hero.gotLv', { who: myName(), n: a })}`;
-    if (k === 'c') return `<span class="hero-sw" style="background:${cssCol(+a)}"></span> ${H('hero.gotColor')}`;
+    if (k === 'c') return `<span class="hero-sw" style="background:${avCss((+a).toString(36))}"></span> ${H('hero.gotColor')}`;
     return `${['🥉', '🥈', '🏆'][((TROPHIES.find(x => x[0] === a) || [])[1] || 1) - 1]} ${H('hero.gotTrophy', { what: T(`hero.tr.${a}.n`) })}`;
   };
   // the best of each weapon only (getting 鉄 also passes 木)
@@ -148,6 +202,19 @@ export function heroSync() {
 
 /* ---------- events ---------- */
 if (typeof document !== 'undefined') {
+  document.addEventListener('input', e => {
+    const t = e.target; if (!C || !t.dataset) return;
+    if (t.dataset.heroAi === 'what') ed.what = t.value;
+    else if (t.dataset.heroAi === 'csv') ed.csv = t.value;
+    else if (t.dataset.heroAi === 'base') ed.base = t.checked;
+    else if (t.dataset.heroPick !== undefined) { ed.c = t.value.slice(1).toLowerCase(); if (ed.tool === 'erase') ed.tool = 'pen'; const h = document.querySelector('[data-hero-hex]'); if (h) h.textContent = t.value.toUpperCase(); document.querySelectorAll('.av-pal button.on').forEach(x => { x.classList.remove('on'); x.setAttribute('aria-pressed', 'false'); }); }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target; if (!C || !t.matches) return;
+    if (t.matches('[data-hero-ai="base"]')) { ed.base = t.checked; return; }
+    if (t.matches('[data-hero-pick]')) { C.render(); return; }
+    if (t.matches('[data-hero-ai-file]') && t.files && t.files[0]) { t.files[0].text().then(x => { ed.csv = x.slice(0, 20000); aiLoad(ed.csv); }); return; }
+  });
   document.addEventListener('change', e => {
     const s = e.target.closest && e.target.closest('[data-hero-title]'); if (!s || !C) return;
     const me = rec(); me.t = s.value; me.at = Date.now(); C.save(); heroSync(); C.render();
@@ -162,14 +229,18 @@ if (typeof document !== 'undefined') {
   document.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('[data-hero-c], [data-hero-tool], [data-hero-do], [data-hero-tpl], [data-hero-hold]'); if (!b || !C) return;
     if (b.dataset.heroHold) { const me = rec(); me.h = b.dataset.heroHold; me.at = Date.now(); C.save(); heroSync(); return C.render(); }
-    if (b.dataset.heroC !== undefined) { ed.c = +b.dataset.heroC; if (ed.tool === 'erase') ed.tool = 'pen'; if (ed.c === 0) ed.tool = 'erase'; return C.render(); }
+    if (b.dataset.heroC !== undefined) { ed.c = b.dataset.heroC; if (ed.tool === 'erase') ed.tool = 'pen'; return C.render(); }
     if (b.dataset.heroTool) { ed.tool = b.dataset.heroTool; return C.render(); }
-    if (b.dataset.heroTpl) { if (ed.a !== AV_TEMPLATES[b.dataset.heroTpl] && !confirm(T('hero.tplConfirm'))) return; pushUndo(); ed.a = AV_TEMPLATES[b.dataset.heroTpl]; return C.render(); }
+    if (b.dataset.heroTpl) { const t = avCells(AV_TEMPLATES[b.dataset.heroTpl]); if (ed.cells.join() !== t.join() && !confirm(T('hero.tplConfirm'))) return; pushUndo(); ed.cells = t.slice(); return C.render(); }
     const d = b.dataset.heroDo;
     if (d === 'mirror') { ed.mirror = !ed.mirror; return C.render(); }
-    if (d === 'undo') { if (ed.undo.length) ed.a = ed.undo.pop(); return C.render(); }
-    if (d === 'clear') { if (!confirm(T('hero.clearConfirm'))) return; pushUndo(); ed.a = AV_EMPTY; return C.render(); }
-    if (d === 'save') { const me = rec(); me.a = ed.a; me.at = Date.now(); C.save(); heroSync(); editLeave(); if (C.toast) C.toast(T('hero.saved')); location.hash = '#/hero'; return; }
+    if (d === 'undo') { if (ed.undo.length) ed.cells = ed.undo.pop(); return C.render(); }
+    if (d === 'clear') { if (!confirm(T('hero.clearConfirm'))) return; pushUndo(); ed.cells = avCells(AV_EMPTY).slice(); return C.render(); }
+    if (d === 'aiCopy') { copyText(aiPrompt(), () => C.toast && C.toast(T('hero.aiCopied'))); return; }
+    if (d === 'aiLoad') { const ta = document.querySelector('[data-hero-ai="csv"]'); ed.csv = ta ? ta.value : ed.csv; aiLoad(ed.csv); return; }
+    if (d === 'csvOut') { download('avatar.csv', avToCSV(ed.cells)); return; }
+    if (d === 'csvCopy') { copyText(avToCSV(ed.cells), () => C.toast && C.toast(T('hero.csvCopied'))); return; }
+    if (d === 'save') { const me = rec(); me.a = avEncode(ed.cells); me.at = Date.now(); C.save(); heroSync(); editLeave(); if (C.toast) C.toast(T('hero.saved')); location.hash = '#/hero'; return; }
     if (d === 'cancel') { editLeave(); return; }
     if (d === 'newsOk') { const me = rec(); me.seen = earnedIds(heroOf(C.S.progress)); C.save(); const n = document.querySelector('[data-hero-news]'); if (n) n.remove(); if (b.tagName !== 'A') e.preventDefault(); }
   });

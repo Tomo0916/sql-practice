@@ -2193,3 +2193,19 @@ body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select:
 /* progress and badges */
 [data-mode="adv"] .tag { border-radius: 4px; }
 [data-mode="adv"] ::selection { background: #ffd76a; color: #11143a; }
+/* the avatar editor: free colours and the AI (CSV) panel */
+.hero-ed-main { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.av-sub { margin: 10px 0 6px; font-size: .78rem; font-weight: 700; color: var(--rw-sub); }
+.av-sub:first-of-type { margin-top: 0; }
+.av-free { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.av-free input[type=color] { width: 52px; height: 36px; padding: 2px; border: 2px solid var(--rw-tint2); border-radius: 6px; background: none; cursor: pointer; }
+.av-free code { font-size: .9rem; }
+.hero-ai .fld { display: grid; gap: 4px; }
+.hero-ai input[type=text], .hero-ai textarea { width: 100%; border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; background: var(--surface-2); color: var(--ink); }
+.hero-ai textarea { font-family: var(--mono); font-size: .78rem; resize: vertical; min-height: 92px; }
+.hero-ai-steps { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 14px; }
+.hero-ai-steps > li { display: grid; gap: 8px; }
+.hero-ai .chk { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+.hero-ai-msg p { margin: 2px 0; } .hero-ai-msg .ok { color: var(--ok); } .hero-ai-msg .warn { color: var(--warn); } .hero-ai-msg .bad { color: var(--bad); }
+.hero-ai details { margin: 4px 0 10px; } .hero-ai summary { cursor: pointer; font-weight: 700; }
+[data-mode="adv"] .hero-ai input[type=text], [data-mode="adv"] .hero-ai textarea { background: #070920; border: 2px solid rgba(244,246,255,.5); color: #f4f6ff; }
