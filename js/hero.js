@@ -15,7 +15,12 @@ import { PZ_LEVELS, pzCleared, pzReached } from './pz.js';
 
 /* ---------- the avatar: 16 × 16 dots, a palette of 16 (0 = no colour), saved as 256 hex digits ---------- */
 export const AV = 16;
-export const PALETTE = ['', '#1b1b25', '#ffffff', '#ffe0bd', '#e8b48a', '#a0663f', '#e23b3b', '#f08a24', '#f6d23c', '#5cc25a', '#2f7a43', '#7fd3f5', '#3463d6', '#8a4fd1', '#7a4a26', '#9aa0a8'];
+export const PALETTE = ['', '#1b1b25', '#ffffff', '#ffe0bd', '#e8b48a', '#a0663f', '#e23b3b', '#f08a24', '#f6d23c', '#5cc25a', '#2f7a43', '#7fd3f5', '#3463d6', '#8a4fd1', '#7a4a26', '#9aa0a8',
+  // special colours (g–n), unlocked by trophies: gold, silver, pink, mint, night, lava, crystal, rainbow
+  '#ffc61a', '#dfe5ee', '#ff7eb6', '#6ff0c6', '#232a63', '#ff4d1a', '#b9f3ff', 'url(#av-rb)'];
+export const COLOR_NEED = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 5, 7, 9, 11, 13, 15];   // trophies needed
+const RAINBOW = '<defs><linearGradient id="av-rb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4d4d"/><stop offset=".33" stop-color="#ffd23c"/><stop offset=".66" stop-color="#4dd67a"/><stop offset="1" stop-color="#4d8cff"/></linearGradient></defs>';
+const cIdx = ch => parseInt(ch, 36);
 const LETTER = { '.': 0, k: 1, w: 2, s: 3, t: 4, d: 5, r: 6, o: 7, y: 8, g: 9, G: 10, c: 11, b: 12, p: 13, n: 14, a: 15 };
 const grid = rows => rows.map(r => [...r].map(ch => (LETTER[ch] || 0).toString(16)).join('')).join('');
 /** starting points (all original) */
@@ -38,7 +43,7 @@ export const AV_TEMPLATES = {
     '...knnnnnnnnk...', '...kggggggggk...', '....knnk.knnk...', '....kkkk.kkkk...'])
 };
 export const AV_EMPTY = '0'.repeat(AV * AV);
-export const avOk = s => typeof s === 'string' && /^[0-9a-f]{256}$/.test(s);
+export const avOk = s => typeof s === 'string' && /^[0-9a-n]{256}$/.test(s);
 /** the avatar as an SVG (runs of one colour become one rectangle) */
 const svgCache = new Map();
 export function avatarSVG(a, size = 32, label = '') {
@@ -49,13 +54,13 @@ export function avatarSVG(a, size = 32, label = '') {
     for (let y = 0; y < AV; y++) {
       let x = 0;
       while (x < AV) {
-        const c = parseInt(s[y * AV + x], 16); let w = 1;
+        const c = cIdx(s[y * AV + x]); let w = 1;
         while (x + w < AV && s[y * AV + x + w] === s[y * AV + x]) w++;
         if (c) out.push(`<rect x="${x}" y="${y}" width="${w}" height="1" fill="${PALETTE[c]}"/>`);
         x += w;
       }
     }
-    body = out.join(''); svgCache.set(s, body);
+    body = (s.includes('n') ? RAINBOW : '') + out.join(''); svgCache.set(s, body);
   }
   void key;
   return `<svg class="av" viewBox="0 0 16 16" width="${size}" height="${size}" style="width:${size}px;height:${size}px" shape-rendering="crispEdges" role="img" aria-label="${label}">${body}</svg>`;
@@ -64,7 +69,7 @@ export function avatarSVG(a, size = 32, label = '') {
 export const avMirror = s => { const a = [...s]; for (let y = 0; y < AV; y++) for (let x = 0; x < AV / 2; x++) a[y * AV + AV - 1 - x] = a[y * AV + x]; return a.join(''); };
 /** flood fill from (x, y) with colour c */
 export function avFill(s, x, y, c) {
-  const a = [...s], from = a[y * AV + x], to = c.toString(16);
+  const a = [...s], from = a[y * AV + x], to = c.toString(36);
   if (from === to) return s;
   const st = [[x, y]];
   while (st.length) {
@@ -167,11 +172,54 @@ export function titleKey(id) {
 }
 /** what the student has earned, as ids: for the "you got …!" messages */
 export function earnedIds(h) {
-  return [...RK_CHAPTERS.flatMap(ch => Array.from({ length: h.w[ch] }, (_, i) => `w:${ch}:${i + 1}`)), ...Array.from({ length: h.lv }, (_, i) => `lv:${i + 1}`), ...trophiesOf(h).map(id => 't:' + id)];
+  const tr = trophiesOf(h).length;
+  return [...COLOR_NEED.map((n, i) => (n && tr >= n ? `c:${i}` : null)).filter(Boolean), ...RK_CHAPTERS.flatMap(ch => Array.from({ length: h.w[ch] }, (_, i) => `w:${ch}:${i + 1}`)), ...Array.from({ length: h.lv }, (_, i) => `lv:${i + 1}`), ...trophiesOf(h).map(id => 't:' + id)];
 }
 /** the part the class sees (members.hero): avatar, title, level, weapon grades (8 digits), trophies */
 export function heroPublic(progress) {
   const me = progress.hero || {}, h = heroOf(progress), titles = titlesOf(h).map(x => x.id);
-  return { a: avOk(me.a) ? me.a : AV_TEMPLATES.knight, t: titles.includes(me.t) ? me.t : 'novice', lv: h.lv, w: RK_CHAPTERS.map(ch => h.w[ch]).join(''), tr: trophiesOf(h).length };
+  return { a: avOk(me.a) ? me.a : AV_TEMPLATES.knight, t: titles.includes(me.t) ? me.t : 'novice', lv: h.lv, w: RK_CHAPTERS.map(ch => h.w[ch]).join(''), tr: trophiesOf(h).length, h: heldOf(h.w, me.h) };
 }
 export const heroPublicOk = x => !!x && typeof x === 'object' && avOk(x.a);
+
+/* ---------- how strong the hero looks: the 16 × 16 drawing stays the student's own; around it (24 × 24)
+ *   the weapon in hand (the chosen one, else the strongest), a frame and a stand by Lv,
+ *   sparkles for legendary weapons, something on the head for some titles ---------- */
+/** the chapter whose weapon is held: the chosen one if earned, else the strongest (the first of the best) */
+export function heldOf(w, want) {
+  if (want && w[want] > 0) return want;
+  let best = null; RK_CHAPTERS.forEach(ch => { if (w[ch] > 0 && (!best || w[ch] > w[best])) best = ch; });
+  return best;
+}
+const LV_FRAME = [null, null, null, '#c07a3e', '#c07a3e', '#c9d1dc', '#ffc61a'];   // bronze from Lv3, silver Lv5, gold Lv6
+const HEAD = {   // 8 × 4, drawn above the drawing
+  crown: ['.y.y.y.y', '.yyyyyy.', '.yryyry.', '.yyyyyy.'],
+  sagecrown: ['...p....', '.y.p.y..', '.yyyyy..', '.ypyyp..'],
+  helm: ['..aaaa..', '.awwwwa.', 'a.aaaa.a', '........'],
+  band: ['........', '........', 'rrrrrrrr', '.......r']
+};
+const HEAD_COL = { y: '#ffc61a', r: '#e23b3b', p: '#8a4fd1', a: '#9aa0a8', w: '#ffffff' };
+const headOf = t => (t === 'lv6' || t === 'pzKing') ? 'crown' : t === 'sage' ? 'sagecrown' : t === 'bossSlayer' ? 'helm' : (/^(use|mas)_/.test(t || '') || t === 'hrHunter') ? 'band' : null;
+/** the whole hero as an SVG: pub = heroPublic(…) or a classmate's members.hero */
+export function heroSVG(pub, size = 96, label = '', still = false) {
+  const x = pub || {}, lv = +x.lv || 0, grades = String(x.w || '').split('').map(Number), legend = grades.filter(g => g >= 4).length, out = [];
+  // sparkles (legendary weapons): more weapons, more sparkles
+  if (legend) {
+    const spots = [[1, 3], [21, 2], [2, 13], [22, 11], [5, 1], [19, 19], [1, 20], [12, 0], [22, 17], [3, 8], [20, 6], [8, 22], [16, 22], [0, 16], [23, 5], [10, 1]];
+    spots.slice(0, Math.min(spots.length, legend * 2)).forEach(([sx, sy], i) => out.push(`<rect class="${still ? '' : 'av-sp'}" style="animation-delay:${(i * 0.37) % 2}s" x="${sx}" y="${sy}" width="1" height="1" fill="${i % 3 ? '#ffe680' : '#ffffff'}"/>`));
+  }
+  // the stand (Lv), under the feet
+  if (lv >= 1) out.push(`<rect x="6" y="20" width="12" height="1" fill="${lv >= 6 ? '#ffc61a' : 'rgba(0,0,0,.28)'}"/>`, lv >= 6 ? '<rect x="7" y="21" width="10" height="1" fill="#c48a00"/>' : '');
+  // the frame (Lv)
+  const fc = LV_FRAME[Math.min(lv, 6)];
+  if (fc) { out.push(`<rect x=".5" y=".5" width="23" height="23" fill="none" stroke="${fc}" stroke-width="1"/>`); if (lv >= 6) [[0, 0], [23, 0], [0, 23], [23, 23]].forEach(([cx, cy]) => out.push(`<rect x="${cx}" y="${cy}" width="1" height="1" fill="#e23b3b"/>`)); }
+  // the drawing
+  out.push(`<svg x="4" y="4" width="16" height="16" viewBox="0 0 16 16">${avatarSVG(x.a, 16).replace(/^<svg[^>]*>|<\/svg>$/g, '')}</svg>`);
+  // the weapon in hand
+  const held = x.h && WEAPON_OF[x.h] ? x.h : null, gi = held ? RK_CHAPTERS.indexOf(held) : -1;
+  if (held && grades[gi] > 0) out.push(`<svg x="15" y="9" width="9" height="9" viewBox="0 0 12 12">${weaponSVG(WEAPON_OF[held], grades[gi], 9).replace(/^<svg[^>]*>|<\/svg>$/g, '')}</svg>`);
+  // on the head (title)
+  const hd = HEAD[headOf(x.t)];
+  if (hd) hd.forEach((row, y) => [...row].forEach((ch, xx) => { if (HEAD_COL[ch]) out.push(`<rect x="${8 + xx}" y="${y + 1}" width="1" height="1" fill="${HEAD_COL[ch]}"/>`); }));
+  return `<svg class="hero-svg" viewBox="0 0 24 24" width="${size}" height="${size}" style="width:${size}px;height:${size}px" shape-rendering="crispEdges" role="img" aria-label="${label}">${out.join('')}</svg>`;
+}

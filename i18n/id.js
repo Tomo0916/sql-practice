@@ -2725,5 +2725,10 @@ export default {
   "hero.gotLv": "{who} naik ke level {n}!",
   "hero.gotTrophy": "Mendapat trofi “{what}”!",
   "hero.see": "Lihat catatan petualangan",
-  "hero.ok": "Tutup"
+  "hero.ok": "Tutup",
+  "hero.hold": "Pegang",
+  "hero.holding": "Dipegang",
+  "hero.colorLock": "Terbuka dengan {n} trofi",
+  "hero.gotColor": "Warna baru terbuka!",
+  "hero.lookTip": "Penampilanmu berubah saat makin kuat: bingkai dan alas dari Lv, kilau dari senjata legendaris, hiasan kepala dari gelar, warna baru dari trofi."
 };

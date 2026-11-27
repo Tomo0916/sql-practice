@@ -2726,5 +2726,10 @@ export default {
   "hero.gotLv": "{who} reached level {n}!",
   "hero.gotTrophy": "Won the trophy “{what}”!",
   "hero.see": "See the adventure log",
-  "hero.ok": "Close"
+  "hero.ok": "Close",
+  "hero.hold": "Hold",
+  "hero.holding": "In hand",
+  "hero.colorLock": "Unlocked with {n} trophies",
+  "hero.gotColor": "A new colour is unlocked!",
+  "hero.lookTip": "Your look changes as you grow: a frame and stand by Lv, sparkles for legendary weapons, headgear for titles, new colours for trophies."
 };

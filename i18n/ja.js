@@ -2726,5 +2726,10 @@ export default {
   "hero.gotLv": "{who}は レベル {n} に 上がった！",
   "hero.gotTrophy": "トロフィー「{what}」を 手に入れた！",
   "hero.see": "冒険の記録を見る",
-  "hero.ok": "とじる"
+  "hero.ok": "とじる",
+  "hero.hold": "持つ",
+  "hero.holding": "装備中",
+  "hero.colorLock": "トロフィー {n} 個で使えます",
+  "hero.gotColor": "新しい色が 使えるように なった！",
+  "hero.lookTip": "強くなると見た目も変わります：Lv で枠と台座、伝説の武器でキラキラ、称号で頭の飾り、トロフィーで新しい色。"
 };

@@ -21,7 +21,7 @@ import { installExplain, explainTcHTML, explainActions, explainInput, explainKey
 import { checkLessons } from './check.js';
 import { tableSets } from './mastery.js';
 import { LV_CHAPTERS, LV_MAX, LV_PER, isLevelRow, levelsFromLog, passed, testLessons } from './level.js';
-import { avatarSVG } from './hero.js';
+import { heroSVG } from './hero.js';
 import { RK_TIERS, RK_CHAPTERS, RK_RANKS, rankKey, rankParse, isRankRow, rankFromRow, classRanking, totalBoardHTML, classTotals } from './rank.js';
 import { QUICK_COUNTS, QUICK_LIMITS, QUICK_PRESETS, KINDS, kindsOf, quickOn, newQuick, quickProblems, quickProgress, quickPhase, passOf, simpleSlots, detailSlots, applySwaps, nextFree, slotProblems, levelSlots, tableLessons, spanText, limitSecOf, QUICK_MAX_SEC, QUICK_COUNTDOWN, logPut, logDrop, quickStats, quickCSV, slotsShape, shapeSlots, SHAPE_KINDS, SHAPE_COUNTS, DIF_RATIOS, KIND_RATIOS, QK, splitBy, spreadGrid, gridSlots, shapeCountSlots, shapeCountsOf } from './quick.js';
 import { BASIC_STEPS, BASIC_CORE, BASIC_BY_KEY } from './basics.js';
@@ -1106,7 +1106,7 @@ function rkTotalHTML(c) {
   }
   const rows = all ? rkTot.all : classTotals(S.rkAtt || [], S.members);
   if (rkTot.heroes === undefined || rkTot.heroCid !== c.id) { rkTot.heroes = null; rkTot.heroCid = c.id; backend.classHeroes(c.id).then(r => { rkTot.heroes = new Map((r || []).filter(x => x.hero && x.hero.a).map(x => [x.nickname, x.hero])); if (S.route.tab === 'board') refreshTab(); }, () => {}); }
-  const avatar = nick => { const x = rkTot.heroes && rkTot.heroes.get(nick); return x ? avatarSVG(x.a, 22, esc(nick)) : ''; };
+  const avatar = nick => { const x = rkTot.heroes && rkTot.heroes.get(nick); return x ? heroSVG(x, 28, esc(nick)) : ''; };
   return `<section class="card board-card rk-tcard">${totalBoardHTML(rows === 'loading' || rows === undefined ? [] : rows, { lang: L(), all, act: 'rkScope', teacher: true, avatar, state: rows === 'loading' || rows === undefined ? 'loading' : null })}</section>`;
 }
 

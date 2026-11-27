@@ -2725,5 +2725,10 @@ export default {
   "hero.gotLv": "{who} lên cấp {n}!",
   "hero.gotTrophy": "Nhận cúp “{what}”!",
   "hero.see": "Xem nhật ký phiêu lưu",
-  "hero.ok": "Đóng"
+  "hero.ok": "Đóng",
+  "hero.hold": "Cầm",
+  "hero.holding": "Đang cầm",
+  "hero.colorLock": "Mở khi có {n} cúp",
+  "hero.gotColor": "Đã mở màu mới!",
+  "hero.lookTip": "Ngoại hình thay đổi khi bạn mạnh lên: khung và bệ theo Lv, lấp lánh với vũ khí huyền thoại, mũ theo danh hiệu, màu mới nhờ cúp."
 };

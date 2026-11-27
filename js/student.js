@@ -23,8 +23,8 @@ import { hrRec } from './hr.js';
 import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { dialectsHTML } from './dialects.js';
-import { installHero, heroHTML, editHTML, editLeave, heroNews, heroSync, myAvatar, classHeroMap } from './hero-ui.js';
-import { avatarSVG, heroOf } from './hero.js';
+import { installHero, heroHTML, editHTML, editLeave, heroNews, heroSync, classHeroMap } from './hero-ui.js';
+import { heroSVG, heroPublic, heroOf } from './hero.js';
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML, rkScope } from './rank-ui.js';
 import { navFoldHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
@@ -449,7 +449,7 @@ function homeHTML() {
     ` : ''}
     <section class="home-group"><h2 class="home-h">${H('hm.test')}</h2><div class="home-grid">
     <section class="card mixcard drillcard herocard">
-      <div><span class="drill-ic hero-ic">${avatarSVG(myAvatar(), 40)}</span><div><b>${H('nav.hero')} <span class="tag">Lv ${heroOf(S.progress).lv}</span></b><p class="muted">${H('hero.homeSub')}</p></div></div>
+      <div><span class="drill-ic hero-ic">${heroSVG(heroPublic(S.progress), 48)}</span><div><b>${H('nav.hero')} <span class="tag">Lv ${heroOf(S.progress).lv}</span></b><p class="muted">${H('hero.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/hero">${H('hero.open')}</a>
     </section>
     <section class="card mixcard drillcard rkcard">
@@ -2930,7 +2930,7 @@ function updateBanner() {
   installHr({ S, L, save, render, asgHr: asgHrCheck });
   installPz({ S, L, save, render, asgPz: () => asgHrCheck(null) });
   installHero({ S, render, save, backend, toast });
-  installRank({ S, render, save, avatar: nick => { const x = classHeroMap().get(nick); return x ? avatarSVG(x.a, 22, esc(nick)) : ''; }, chName, workspaceHTML, asgHit, ruCleared: (ch, tier) => !!S.klass && asgList(S.klass).some(it => it.type === 'rankup' && it.ref === ch && ((((asgRec(it.id) || {}).t) || {})[tier] || {}).clear) });
+  installRank({ S, render, save, avatar: nick => { const x = classHeroMap().get(nick); return x ? heroSVG(x, 28, esc(nick)) : ''; }, chName, workspaceHTML, asgHit, ruCleared: (ch, tier) => !!S.klass && asgList(S.klass).some(it => it.type === 'rankup' && it.ref === ch && ((((asgRec(it.id) || {}).t) || {})[tier] || {}).clear) });
   installPy({ S, L, save, render, asgHit,
     // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)
     quickAnswer: (prob, ok, code, reason) => { if (qPhaseNow() !== 'run') { render(); return false; } record(prob, ok, { grade: { reason } }, code); return true; },

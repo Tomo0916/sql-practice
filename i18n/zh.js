@@ -2725,5 +2725,10 @@ export default {
   "hero.gotLv": "{who}升到了 {n} 级！",
   "hero.gotTrophy": "获得奖杯“{what}”！",
   "hero.see": "查看冒险记录",
-  "hero.ok": "关闭"
+  "hero.ok": "关闭",
+  "hero.hold": "拿着",
+  "hero.holding": "装备中",
+  "hero.colorLock": "获得 {n} 个奖杯后可用",
+  "hero.gotColor": "解锁了新颜色！",
+  "hero.lookTip": "变强后外观也会改变：等级带来边框和台座，传说武器带来闪光，称号带来头饰，奖杯解锁新颜色。"
 };

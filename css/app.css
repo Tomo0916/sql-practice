@@ -2108,3 +2108,18 @@ body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select:
 .rk-who { display: inline-flex; align-items: center; gap: 6px; }
 .rk-who .av, .rt-name .av { flex: none; image-rendering: pixelated; vertical-align: middle; margin-right: 6px; }
 .hero-ic { background: #11143a; border-radius: 8px; padding: 2px; display: grid; place-items: center; }
+/* how strong the hero looks */
+.hero-svg { image-rendering: pixelated; flex: none; vertical-align: middle; overflow: visible; }
+.hero-av .hero-svg, .hero-party .hero-svg, .rpg-msg .hero-svg { background: radial-gradient(circle at 50% 45%, #2a3080 0, #171b52 70%); border-radius: 8px; }
+.av-sp { animation: avSp 2s ease-in-out infinite; }
+@keyframes avSp { 0%, 100% { opacity: .15; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .av-sp { animation: none; } }
+.rt-name .hero-svg, .rk-who .hero-svg { margin-right: 6px; }
+.hero-look { margin: 10px 0 0; }
+.hero-weapons li { position: relative; }
+.hero-hold, .hero-held { margin-left: auto; flex: none; font-size: .72rem; }
+.hero-held { color: #ffd76a; font-weight: 800; }
+.av-pal { grid-template-columns: repeat(8, 1fr); }
+.av-pal button.lock { opacity: .35; cursor: not-allowed; font-size: .7rem; display: grid; place-items: center; }
+.av-pal button.sp:not(.lock) { box-shadow: inset 0 0 0 2px rgba(255,255,255,.5); }
+.hero-sw { display: inline-block; width: 18px; height: 18px; border-radius: 4px; border: 2px solid #fff; flex: none; }

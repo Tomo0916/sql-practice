@@ -2725,5 +2725,10 @@ export default {
   "hero.gotLv": "{who} passe au niveau {n} !",
   "hero.gotTrophy": "Trophée « {what} » obtenu !",
   "hero.see": "Voir le journal",
-  "hero.ok": "Fermer"
+  "hero.ok": "Fermer",
+  "hero.hold": "Tenir",
+  "hero.holding": "En main",
+  "hero.colorLock": "Débloqué avec {n} trophées",
+  "hero.gotColor": "Nouvelle couleur débloquée !",
+  "hero.lookTip": "Votre apparence évolue : cadre et socle selon le Lv, étincelles pour les armes légendaires, couvre-chef pour les titres, nouvelles couleurs avec les trophées."
 };
