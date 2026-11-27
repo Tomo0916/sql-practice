@@ -2004,3 +2004,36 @@ body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select:
 .rt-pts { grid-area: s; text-align: right; white-space: nowrap; } .rt-pts b { font-size: 1.1rem; font-variant-numeric: tabular-nums; } .rt-pts small { color: var(--ink-3); margin-left: 2px; }
 .rt-tests { grid-area: t; }
 @media (max-width: 600px) { .rk-total li { grid-template-columns: 2.2em minmax(0, 1fr) auto; grid-template-areas: "p n s" "p b b" "p t t"; } }
+/* ---------- SQL dialects (#/dialects) ---------- */
+.dl-page { --db-my: #00758f; --db-pg: #336791; --db-lite: #0f80cc; --db-ms: #a91d22; --db-ora: #c74634; --db-acc: #a4373a; display: grid; gap: 16px; }
+.dl-tools { display: grid; gap: 10px; padding: 14px 16px; }
+.dl-search { width: 100%; box-sizing: border-box; font-size: 1rem; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); }
+.dl-dbs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dl-db { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); cursor: pointer; font-size: .85rem; font-weight: 700; user-select: none; }
+.dl-db input { accent-color: var(--dbc); }
+.dl-db:has(input:checked) { border-color: var(--dbc); background: color-mix(in srgb, var(--dbc) 10%, var(--surface)); }
+.dl-db.db-my, .dl-cell.db-my { --dbc: var(--db-my); } .dl-db.db-pg, .dl-cell.db-pg { --dbc: var(--db-pg); } .dl-db.db-lite, .dl-cell.db-lite { --dbc: var(--db-lite); }
+.dl-db.db-ms, .dl-cell.db-ms { --dbc: var(--db-ms); } .dl-db.db-ora, .dl-cell.db-ora { --dbc: var(--db-ora); } .dl-db.db-acc, .dl-cell.db-acc { --dbc: var(--db-acc); }
+.dl-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+.dl-cats .chip { border: 1px solid var(--line); background: var(--surface-2); border-radius: 99px; padding: 4px 10px; font: inherit; font-size: .82rem; cursor: pointer; color: var(--ink); }
+.dl-cats .chip small { color: var(--ink-3); }
+.dl-legend, .dl-count { margin: 0; }
+.dl-cat { display: grid; gap: 12px; scroll-margin-top: 16px; }
+.dl-cat > h2 { margin: 8px 0 0; font-size: 1.15rem; }
+.dl-it { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 8px; }
+.dl-it h3 { margin: 0; font-size: 1rem; }
+.dl-note { margin: 0; font-size: .86rem; color: var(--ink-2); background: var(--surface-2); border-radius: 8px; padding: 6px 10px; }
+.dl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.dl-cell { border-top: 3px solid var(--dbc); background: var(--surface-2); border-radius: 8px; padding: 6px 8px 8px; min-width: 0; display: grid; align-content: start; gap: 4px; }
+.dl-cell.none { background: repeating-linear-gradient(135deg, var(--surface-2) 0 8px, color-mix(in srgb, var(--surface-2) 70%, var(--line)) 8px 9px); }
+.dl-cell-h { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.dl-cell-h b { color: var(--dbc); font-size: .8rem; margin-right: auto; }
+.dl-tag { font-size: .66rem; font-weight: 800; border-radius: 99px; padding: 1px 6px; line-height: 1.5; }
+.dl-tag.no { background: #fde8e8; color: #b42318; } .dl-tag.ver { background: #e8f0fe; color: #1d4ed8; } .dl-tag.app { background: var(--accent-soft); color: var(--accent); }
+.dl-word { margin: 0; font-size: .84rem; font-weight: 700; color: var(--ink); }
+.dl-alt { font-size: .7rem; color: var(--ink-3); }
+.dl-cell pre.dl-code { margin: 0; border: 0; border-radius: 0; font-size: .78rem; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; background: none; padding: 0; line-height: 1.45; }
+.dl-page.hide-my .db-my.dl-cell, .dl-page.hide-pg .db-pg.dl-cell, .dl-page.hide-lite .db-lite.dl-cell, .dl-page.hide-ms .db-ms.dl-cell, .dl-page.hide-ora .db-ora.dl-cell, .dl-page.hide-acc .db-acc.dl-cell { display: none; }
+@media (max-width: 860px) { .dl-cat { scroll-margin-top: 60px; } }
+@media (max-width: 520px) { .dl-grid { grid-template-columns: 1fr 1fr; } }
+[data-theme="dark"] .dl-tag.no { background: #4a1d1d; color: #fca5a5; } [data-theme="dark"] .dl-tag.ver { background: #1e2a4a; color: #93c5fd; }

@@ -22,6 +22,7 @@ import { asgReadUrl, asgHrIds } from './assign.js';
 import { hrRec } from './hr.js';
 import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
+import { dialectsHTML } from './dialects.js';
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML, rkScope } from './rank-ui.js';
 import { navFoldHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
@@ -157,6 +158,7 @@ function parseRoute() {
   if (h[0] === 'mastery') return { view: 'mastery' };
   if (h[0] === 'clauses') return { view: 'clauses', set: CQ_SETS.includes(h[1]) ? h[1] : null };
   if (h[0] === 'tables') return { view: 'tables' };
+  if (h[0] === 'dialects') return { view: 'dialects' };
   if (h[0] === 'check') return { view: 'session', kind: 'check', code: h.slice(1).join('/') || null };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
   if (h[0] === 'explain') return { view: 'explain' };
@@ -252,6 +254,7 @@ function render() {
   else if (r.view === 'py') body = pyHTML();
   else if (r.view === 'hr') body = hrHTML();
   else if (r.view === 'pz') body = pzHTML();
+  else if (r.view === 'dialects') { body = dialectsHTML(L()); document.title = `${T('nav.dialects')} · SQL Practice`; }
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
   document.body.classList.remove('nav-open');
@@ -277,7 +280,7 @@ function navItems() {
     ['home', '#/', I.home, 'nav.dash'], ['learn', '#/learn', I.layers, 'hm.learn'], ['rank', '#/rank', I.medal, 'rk.title'], ['py', '#/py', I.code, 'nav.python'],
     cls ? ['live', '#/live', liveOn(S.klass) ? '<i class="live-dot"></i>' : I.inbox, 'nav.assign', todo] : null,
     EX.on ? ['explain', '#/explain', '<i class="live-dot"></i>', 'ex.title'] : null,
-    '-', ['review', '#/review', I.repeat, 'nav.review', due], ['mastery', '#/mastery', I.map, 'rv.map'], ['words', '#/words', I.words, 'nav.words'], ['tables', '#/tables', I.table, 'nav.tables'],
+    '-', ['review', '#/review', I.repeat, 'nav.review', due], ['mastery', '#/mastery', I.map, 'rv.map'], ['words', '#/words', I.words, 'nav.words'], ['tables', '#/tables', I.table, 'nav.tables'], ['dialects', '#/dialects', I.dialect, 'nav.dialects'],
     '-', ['hr', '#/hr', I.target, 'nav.hr'], ['pz', '#/pz', I.stairs, 'nav.pz'], ['certs', `https://tomo0916.github.io/ds/certs/?lang=${encodeURIComponent(L())}`, I.medal, 'nav.certs'],
   ].filter(Boolean);
 }

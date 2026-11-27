@@ -46,13 +46,14 @@ export function asgLimit(it) {
 }
 
 /* ---------- documents to read ---------- */
-export const READ_PRESETS = ['certs', 'hr', 'book_sql', 'book_ana', 'url'];
+export const READ_PRESETS = ['certs', 'hr', 'dialects', 'book_sql', 'book_ana', 'url'];
 export const okUrl = u => /^https?:\/\/[^\s]+$/i.test(String(u || '').trim());
 /** where a document is: an address in the app (#/…), a file of the site, or a web page */
 export function asgReadUrl(it, lang) {
   switch (it.ref) {
     case 'certs': return `https://tomo0916.github.io/ds/certs/?lang=${encodeURIComponent(lang || 'ja')}`;
     case 'hr': return '#/hr';
+    case 'dialects': return '#/dialects';
     case 'book_sql': return 'book/sql-textbook-beginner.pdf';
     case 'book_ana': return 'book/data-analysis-textbook.pdf';
     default: return okUrl(it.url) ? String(it.url).trim() : '';
