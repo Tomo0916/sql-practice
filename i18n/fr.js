@@ -1998,11 +1998,9 @@ export default {
   "as.tc.mid": "Non terminés {n}",
   "as.tc.reopen": "Rouvrir",
   "as.tc.close": "Fermer",
-  "as.tc.del": "Supprimer",
   "as.tc.noMembers": "Pas encore d’élèves.",
   "as.tc.none": "Rien d’envoyé pour l’instant.",
   "as.tc.sent": "Envoyé.",
-  "as.tc.delConfirm": "Supprimer cet envoi ? La liste des résultats des élèves disparaîtra aussi.",
   "as.type.rankup": "Tests de rang (progression)",
   "as.ru.pass": "validé à partir de {r}, sans passe",
   "as.ru.tries": "{n}×",
@@ -2606,5 +2604,14 @@ export default {
   "dl.explain.t": "Voir le plan d’exécution",
   "dl.json.t": "Lire une valeur dans du JSON",
   "dl.vars.t": "Variables",
-  "as.rd.dialects": "Dialectes SQL (écriture selon le logiciel)"
+  "as.rd.dialects": "Dialectes SQL (écriture selon le logiciel)",
+  "as.tc.del": "Retirer",
+  "as.tc.delConfirm": "Retirer cet envoi ? Il disparaît des écrans des élèves et ses résultats ne sont plus visibles. (Pour garder les résultats, utilisez Fermer.)",
+  "as.tc.closeTip": "Arrêter l'envoi. Les élèves ne peuvent plus commencer, mais les résultats restent.",
+  "as.tc.reopenTip": "Permettre à nouveau aux élèves de commencer.",
+  "tc.send.t.lessons": "Leçons du cours en direct",
+  "tc.send.edit": "Modifier",
+  "tc.send.lessonsClear": "Retirer toutes les leçons du cours en direct ? Elles disparaissent aussi des devoirs des élèves.",
+  "tc.send.taken": "Retiré",
+  "tc.send.listNote": "Fermer arrête l'envoi et garde les résultats. Retirer l'enlève des écrans des élèves."
 };

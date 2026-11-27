@@ -1999,11 +1999,9 @@ export default {
   "as.tc.mid": "未完了 {n}",
   "as.tc.reopen": "再開する",
   "as.tc.close": "終了する",
-  "as.tc.del": "削除",
   "as.tc.noMembers": "まだ生徒がいません。",
   "as.tc.none": "まだ配信していません。",
   "as.tc.sent": "配信しました。",
-  "as.tc.delConfirm": "この配信を削除しますか？ 生徒の結果の一覧も見られなくなります。",
   "as.type.rankup": "ランクテスト（段階アップ）",
   "as.ru.pass": "{r} 以上（パスなし）でクリア",
   "as.ru.tries": "{n} 回",
@@ -2607,5 +2605,14 @@ export default {
   "dl.explain.t": "実行計画を見る",
   "dl.json.t": "JSON から値を取り出す",
   "dl.vars.t": "変数を使う",
-  "as.rd.dialects": "SQLの方言（ソフトごとの書き方の違い）"
+  "as.rd.dialects": "SQLの方言（ソフトごとの書き方の違い）",
+  "as.tc.del": "取り下げる",
+  "as.tc.delConfirm": "この配信を取り下げますか？ 生徒の画面から消え、結果の一覧も見られなくなります。（結果を残したいときは「終了する」を使ってください）",
+  "as.tc.closeTip": "受付を終えます。生徒はもう始められませんが、結果は残ります。",
+  "as.tc.reopenTip": "もう一度、生徒が始められるようにします。",
+  "tc.send.t.lessons": "ライブ授業のレッスン",
+  "tc.send.edit": "変更",
+  "tc.send.lessonsClear": "ライブ授業のレッスンをすべて取り下げますか？ 生徒の「課題」からも消えます。",
+  "tc.send.taken": "取り下げました",
+  "tc.send.listNote": "「終了する」は受付を止めて結果を残します。「取り下げる」は生徒の画面から消します。"
 };

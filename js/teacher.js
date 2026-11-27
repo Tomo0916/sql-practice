@@ -694,10 +694,23 @@ function sendMatrixHTML(c) {
     <tbody>${rows || `<tr><td colspan="${cols.length + 2}" class="muted">${H('as.tc.noMembers')}</td></tr>`}</tbody>
     ${S.members.length ? `<tfoot><tr><th>${H('tc.send.total')}</th><td></td>${cols.map(col => `<td class="n">${doneBy(col)}/${S.members.length}</td>`).join('')}</tr></tfoot>` : ''}</table></div></section>`;
 }
+/** the buttons on a sent item's row (seen without opening it): end / reopen, take back */
+const asActsHTML = it => `<span class="as-acts"><button type="button" class="btn btn-ghost btn-xs" data-act="asOpen" data-id="${esc(it.id)}" title="${esc(plainT(it.open === false ? 'as.tc.reopenTip' : 'as.tc.closeTip'))}">${H(it.open === false ? 'as.tc.reopen' : 'as.tc.close')}</button><button type="button" class="btn btn-ghost btn-xs danger" data-act="asDel" data-id="${esc(it.id)}">${H('as.tc.del')}</button></span>`;
+/** what is set on the class outside tasks.items: the lessons of the live class, the 基礎の型 task */
+function sendFixedHTML(c) {
+  const out = [], mix = c.tasks && c.tasks.mix;
+  if ((c.lessons || []).length) out.push(`<li class="as-item fixed"><div class="as-row"><span class="as-ic">📚</span>
+      <span class="as-what"><small class="muted">${H('tc.send.t.lessons')}</small><b>${c.lessons.filter(k => LESSON_BY_KEY[k]).map(k => esc(LESSON_BY_KEY[k].no)).join(', ')}</b></span>
+      <span class="as-acts"><button type="button" class="btn btn-ghost btn-xs" data-act="sendEdit" data-v="lessons">${H('tc.send.edit')}</button><button type="button" class="btn btn-ghost btn-xs danger" data-act="lessonsClear">${H('as.tc.del')}</button></span></div></li>`);
+  if (mix) out.push(`<li class="as-item fixed"><div class="as-row"><span class="as-ic">🧱</span>
+      <span class="as-what"><small class="muted">${H('tc.task.title')} · ${esc(fmtTime(mix.at))}</small><b>${H('tc.task.what', { n: mix.n })}</b></span>
+      <span class="as-acts"><button type="button" class="btn btn-ghost btn-xs" data-act="sendEdit" data-v="mix">${H('tc.send.edit')}</button><button type="button" class="btn btn-ghost btn-xs danger" data-act="taskClear">${H('as.tc.del')}</button></span></div></li>`);
+  return out.join('');
+}
 function sendListHTML(c) {
-  const items = asgList(c), open = items.filter(it => it.open !== false), closed = items.filter(it => it.open === false);
-  return `<section class="card snd-list"><h2>🗂 ${H('tc.send.list')}</h2>
-    ${open.length ? `<ul class="as-list">${open.map(asgItemTcHTML).join('')}</ul>` : `<p class="muted small">${H('as.tc.none')}</p>`}
+  const items = asgList(c), open = items.filter(it => it.open !== false), closed = items.filter(it => it.open === false), fixed = sendFixedHTML(c);
+  return `<section class="card snd-list"><h2>🗂 ${H('tc.send.list')}</h2><p class="muted small">${H('tc.send.listNote')}</p>
+    ${open.length || fixed ? `<ul class="as-list">${fixed}${open.map(asgItemTcHTML).join('')}</ul>` : `<p class="muted small">${H('as.tc.none')}</p>`}
     ${closed.length ? `<details class="snd-closed"><summary>${H('tc.send.closed', { n: closed.length })}</summary><ul class="as-list">${closed.map(asgItemTcHTML).join('')}</ul></details>` : ''}</section>`;
 }
 function sendHTML(c) {
@@ -766,8 +779,7 @@ function ruItemTcHTML(it) {
   const order = rs.slice().sort((a, b) => RK_TIERS.indexOf(b.next || 'z') - RK_TIERS.indexOf(a.next || 'z') || b.n - a.n);
   return `<li class="as-item ${it.open === false ? 'closed' : ''}"><details><summary><span class="as-ic">${ASG_ICON.rankup}</span>
       <span class="as-what"><small class="muted">${H('as.type.rankup')} · ${esc(fmtTime(it.at))} · ${H(it.open === false ? 'as.tc.closed' : 'as.tc.open')}</small><b>${asgLabelHTML(it, L())}</b></span>
-      <span class="as-count">${H('as.tc.ruCount', { d: all, n: rs.length })}</span></summary>
-    <div class="row-btns left"><button type="button" class="btn btn-ghost btn-sm" data-act="asOpen" data-id="${esc(it.id)}">${H(it.open === false ? 'as.tc.reopen' : 'as.tc.close')}</button><button type="button" class="btn btn-ghost btn-sm danger" data-act="asDel" data-id="${esc(it.id)}">${H('as.tc.del')}</button></div>
+      <span class="as-count">${H('as.tc.ruCount', { d: all, n: rs.length })}</span>${asActsHTML(it)}</summary>
     <table class="wtable as-tbl"><thead><tr><th></th>${RK_TIERS.map(t => `<th>${H('rk.tier.' + t)}</th>`).join('')}</tr></thead><tbody>${order.map(r => `<tr class="${r.next ? '' : 'done'}"><th>${esc(r.m.nickname)}</th>${RK_TIERS.map(t => cell(r, t)).join('')}</tr>`).join('') || `<tr><td class="muted">${H('as.tc.noMembers')}</td></tr>`}</tbody></table></details></li>`;
 }
 /** HackerRank practice on the way: each student's latest { n, m } → "n / m" */
@@ -786,8 +798,7 @@ function asgItemTcHTML(it) {
   const order = rs.slice().sort((a, b) => (b.done - a.done) || (((b.d && b.d.score) || 0) - ((a.d && a.d.score) || 0)));
   return `<li class="as-item ${it.open === false ? 'closed' : ''}"><details><summary><span class="as-ic">${ASG_ICON[it.type]}</span>
       <span class="as-what"><small class="muted">${H('as.type.' + it.type)} · ${esc(fmtTime(it.at))} · ${H(it.open === false ? 'as.tc.closed' : 'as.tc.open')}</small><b>${asgLabelHTML(it, L())}</b></span>
-      <span class="as-count">${H('as.tc.count', { d: done, n: rs.length })}${test && mid ? ` · ${H('as.tc.mid', { n: mid })}` : ''}</span></summary>
-    <div class="row-btns left"><button type="button" class="btn btn-ghost btn-sm" data-act="asOpen" data-id="${esc(it.id)}">${H(it.open === false ? 'as.tc.reopen' : 'as.tc.close')}</button><button type="button" class="btn btn-ghost btn-sm danger" data-act="asDel" data-id="${esc(it.id)}">${H('as.tc.del')}</button></div>
+      <span class="as-count">${H('as.tc.count', { d: done, n: rs.length })}${test && mid ? ` · ${H('as.tc.mid', { n: mid })}` : ''}</span>${asActsHTML(it)}</summary>
     <table class="wtable as-tbl"><tbody>${order.map(r => `<tr class="${r.done ? 'done' : ''}"><th>${esc(r.m.nickname)}</th><td>${res(r)}</td><td class="muted small">${r.at ? esc(fmtTime(r.at)) : ''}</td></tr>`).join('') || `<tr><td class="muted">${H('as.tc.noMembers')}</td></tr>`}</tbody></table></details></li>`;
 }
 function asgPanelHTML(c) {
@@ -1470,9 +1481,15 @@ const actions = {
     try { S.klass = await backend.updateClass(c.id, { tasks: Object.assign({}, c.tasks || {}, { mix }) }); redrawTask(); toast(T('tc.task.given')); }
     catch (e) { console.error(e); el.disabled = false; toast(T(tasksInDb(c) ? 'class.netError' : 'tc.task.schema')); }
   },
+  async lessonsClear() {
+    const c = S.klass; if (!(c.lessons || []).length || !confirm(T('tc.send.lessonsClear'))) return;
+    try { S.klass = await backend.updateClass(c.id, { lessons: [] }); toast(T('tc.send.taken')); render(); }
+    catch (e) { console.error(e); toast(T('class.netError')); }
+  },
+  sendEdit(el) { asD.type = el.dataset.v; render(); const m = document.querySelector('.snd-make'); if (m) m.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
   async taskClear() {
     const c = S.klass; if (!c.tasks || !c.tasks.mix || !confirm(T('tc.task.clearConfirm'))) return;
-    try { const tasks = Object.assign({}, c.tasks); delete tasks.mix; S.klass = await backend.updateClass(c.id, { tasks: Object.keys(tasks).length ? tasks : null }); redrawTask(); }
+    try { const tasks = Object.assign({}, c.tasks); delete tasks.mix; S.klass = await backend.updateClass(c.id, { tasks: Object.keys(tasks).length ? tasks : null }); redrawTask(); sendRefresh(); toast(T('tc.send.taken')); }
     catch (e) { console.error(e); toast(T('class.netError')); }
   },
   quickCmp(el) {   // one more / one less in a cell of the table (a kind, or a lesson's kind; a difficulty)

@@ -1998,11 +1998,9 @@ export default {
   "as.tc.mid": "Chưa xong {n}",
   "as.tc.reopen": "Mở lại",
   "as.tc.close": "Đóng",
-  "as.tc.del": "Xóa",
   "as.tc.noMembers": "Chưa có học viên.",
   "as.tc.none": "Chưa gửi gì.",
   "as.tc.sent": "Đã gửi.",
-  "as.tc.delConfirm": "Xóa mục này? Danh sách kết quả của học viên cũng sẽ mất.",
   "as.type.rankup": "Kiểm tra xếp hạng (lên cấp)",
   "as.ru.pass": "qua khi đạt {r} trở lên, không bỏ qua",
   "as.ru.tries": "{n} lần",
@@ -2606,5 +2604,14 @@ export default {
   "dl.explain.t": "Xem kế hoạch thực thi",
   "dl.json.t": "Lấy giá trị từ JSON",
   "dl.vars.t": "Biến",
-  "as.rd.dialects": "Phương ngữ SQL (cách viết ở từng phần mềm)"
+  "as.rd.dialects": "Phương ngữ SQL (cách viết ở từng phần mềm)",
+  "as.tc.del": "Rút lại",
+  "as.tc.delConfirm": "Rút lại mục này? Nó biến mất khỏi màn hình học sinh và không xem được kết quả nữa. (Muốn giữ kết quả thì dùng Đóng.)",
+  "as.tc.closeTip": "Ngừng nhận. Học sinh không bắt đầu được nữa nhưng kết quả vẫn còn.",
+  "as.tc.reopenTip": "Cho học sinh bắt đầu lại.",
+  "tc.send.t.lessons": "Bài học của buổi học trực tiếp",
+  "tc.send.edit": "Thay đổi",
+  "tc.send.lessonsClear": "Rút lại tất cả bài học của buổi học trực tiếp? Chúng cũng biến mất khỏi bài tập của học sinh.",
+  "tc.send.taken": "Đã rút lại",
+  "tc.send.listNote": "Đóng sẽ ngừng nhận và giữ kết quả. Rút lại sẽ xóa khỏi màn hình học sinh."
 };

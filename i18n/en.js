@@ -1999,11 +1999,9 @@ export default {
   "as.tc.mid": "Not finished {n}",
   "as.tc.reopen": "Reopen",
   "as.tc.close": "Close",
-  "as.tc.del": "Delete",
   "as.tc.noMembers": "No students yet.",
   "as.tc.none": "Nothing sent yet.",
   "as.tc.sent": "Sent.",
-  "as.tc.delConfirm": "Delete this item? The list of students' results will be gone too.",
   "as.type.rankup": "Rank tests (step up)",
   "as.ru.pass": "clear at {r} or better, no passes",
   "as.ru.tries": "{n}×",
@@ -2607,5 +2605,14 @@ export default {
   "dl.explain.t": "See the query plan",
   "dl.json.t": "Get a value out of JSON",
   "dl.vars.t": "Variables",
-  "as.rd.dialects": "SQL dialects (how each database writes it)"
+  "as.rd.dialects": "SQL dialects (how each database writes it)",
+  "as.tc.del": "Take back",
+  "as.tc.delConfirm": "Take this back? It disappears from the students' screens and its results can no longer be seen. (To keep the results, use Close instead.)",
+  "as.tc.closeTip": "Stop accepting it. Students can no longer start it, but the results stay.",
+  "as.tc.reopenTip": "Let students start it again.",
+  "tc.send.t.lessons": "Lessons of the live class",
+  "tc.send.edit": "Change",
+  "tc.send.lessonsClear": "Take back all the lessons of the live class? They also disappear from the students' assignments.",
+  "tc.send.taken": "Taken back",
+  "tc.send.listNote": "Close stops accepting and keeps the results. Take back removes it from the students' screens."
 };

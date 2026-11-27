@@ -1998,11 +1998,9 @@ export default {
   "as.tc.mid": "Belum selesai {n}",
   "as.tc.reopen": "Buka lagi",
   "as.tc.close": "Tutup",
-  "as.tc.del": "Hapus",
   "as.tc.noMembers": "Belum ada siswa.",
   "as.tc.none": "Belum ada kiriman.",
   "as.tc.sent": "Terkirim.",
-  "as.tc.delConfirm": "Hapus kiriman ini? Daftar hasil siswa juga akan hilang.",
   "as.type.rankup": "Tes peringkat (naik tingkat)",
   "as.ru.pass": "lulus dengan {r} atau lebih, tanpa lewati",
   "as.ru.tries": "{n}×",
@@ -2606,5 +2604,14 @@ export default {
   "dl.explain.t": "Melihat rencana eksekusi",
   "dl.json.t": "Mengambil nilai dari JSON",
   "dl.vars.t": "Variabel",
-  "as.rd.dialects": "Dialek SQL (cara menulis di tiap software)"
+  "as.rd.dialects": "Dialek SQL (cara menulis di tiap software)",
+  "as.tc.del": "Tarik",
+  "as.tc.delConfirm": "Tarik kiriman ini? Kiriman hilang dari layar siswa dan hasilnya tidak bisa dilihat lagi. (Untuk menyimpan hasil, pakai Tutup.)",
+  "as.tc.closeTip": "Hentikan. Siswa tidak bisa mulai lagi, tetapi hasilnya tetap ada.",
+  "as.tc.reopenTip": "Siswa bisa memulai lagi.",
+  "tc.send.t.lessons": "Pelajaran kelas langsung",
+  "tc.send.edit": "Ubah",
+  "tc.send.lessonsClear": "Tarik semua pelajaran kelas langsung? Pelajaran juga hilang dari tugas siswa.",
+  "tc.send.taken": "Sudah ditarik",
+  "tc.send.listNote": "Tutup menghentikan dan menyimpan hasil. Tarik menghapusnya dari layar siswa."
 };

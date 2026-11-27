@@ -2037,3 +2037,7 @@ body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select:
 @media (max-width: 860px) { .dl-cat { scroll-margin-top: 60px; } }
 @media (max-width: 520px) { .dl-grid { grid-template-columns: 1fr 1fr; } }
 [data-theme="dark"] .dl-tag.no { background: #4a1d1d; color: #fca5a5; } [data-theme="dark"] .dl-tag.ver { background: #1e2a4a; color: #93c5fd; }
+.as-item .as-row { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.as-acts { display: inline-flex; gap: 4px; margin-left: 6px; flex: none; }
+.as-item.fixed { background: var(--surface-2, #f8fafc); }
+@media (max-width: 600px) { .as-item summary, .as-item .as-row { flex-wrap: wrap; } .as-acts { margin-left: auto; } }

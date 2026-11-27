@@ -1998,11 +1998,9 @@ export default {
   "as.tc.mid": "未完成 {n}",
   "as.tc.reopen": "重新开放",
   "as.tc.close": "结束",
-  "as.tc.del": "删除",
   "as.tc.noMembers": "还没有学生。",
   "as.tc.none": "还没有发送内容。",
   "as.tc.sent": "已发送。",
-  "as.tc.delConfirm": "要删除这项内容吗？学生结果列表也会一起消失。",
   "as.type.rankup": "段位测试（逐级晋升）",
   "as.ru.pass": "无跳过取得 {r} 以上即通过",
   "as.ru.tries": "{n} 次",
@@ -2606,5 +2604,14 @@ export default {
   "dl.explain.t": "查看执行计划",
   "dl.json.t": "从 JSON 中取值",
   "dl.vars.t": "使用变量",
-  "as.rd.dialects": "SQL 方言（各软件写法的不同）"
+  "as.rd.dialects": "SQL 方言（各软件写法的不同）",
+  "as.tc.del": "撤回",
+  "as.tc.delConfirm": "要撤回这项发布吗？它会从学生的画面消失，也无法再查看结果。（想保留结果请用“结束”。）",
+  "as.tc.closeTip": "停止受理。学生无法再开始，但结果会保留。",
+  "as.tc.reopenTip": "让学生可以再次开始。",
+  "tc.send.t.lessons": "直播课的课程",
+  "tc.send.edit": "修改",
+  "tc.send.lessonsClear": "要撤回直播课的全部课程吗？也会从学生的“作业”中消失。",
+  "tc.send.taken": "已撤回",
+  "tc.send.listNote": "“结束”会停止受理并保留结果。“撤回”会从学生的画面上删除。"
 };
