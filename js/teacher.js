@@ -31,7 +31,7 @@ import { drawJoinLines } from './viz.js';
 import { diagnose } from './diagnose.js';
 import { Store, KEYS, loadSettings, saveSettings } from './store.js';
 import * as backend from './backend.js';
-import { navFoldHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, composeHTML, countPickHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
+import { navFoldHTML, modeBtnHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, composeHTML, countPickHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, toast, copyText, modal, closeModal } from './ui.js';
 
 const S = {
   settings: loadSettings(null),
@@ -129,7 +129,7 @@ function headerHTML() {
       ${item('#/book', v === 'book', I.words, 'book.nav')}
       ${item('#/tables', v === 'tables', I.table, 'nav.tables')}
     </nav>
-    ${navFoldHTML(L())}
+    ${modeBtnHTML(L())}${navFoldHTML(L())}
     <div class="side-foot">
       <div class="side-tools">${langSelect(L(), T('nav.language'))}${S.session ? `<button class="icon-btn" data-act="signOut" title="${esc(T('tc.signOut'))}" aria-label="${esc(T('tc.signOut'))}">${I.door}</button>` : ''}</div>
       <a class="side-teacher" href="../">${H('tc.toStudent')}</a>

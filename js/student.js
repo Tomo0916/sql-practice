@@ -26,7 +26,7 @@ import { dialectsHTML } from './dialects.js';
 import { installHero, heroHTML, editHTML, editLeave, heroNews, heroSync, classHeroMap } from './hero-ui.js';
 import { heroSVG, heroPublic, heroOf } from './hero.js';
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML, rkScope } from './rank-ui.js';
-import { navFoldHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
+import { navFoldHTML, modeBtnHTML, modeSegHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
 /* the code editor (CodeMirror, ~420 KB) is loaded when a page needs it, not on the home page */
 let createEditor = null;
@@ -257,8 +257,8 @@ function render() {
   else if (r.view === 'py') body = pyHTML();
   else if (r.view === 'hr') body = hrHTML();
   else if (r.view === 'pz') body = pzHTML();
-  else if (r.view === 'hero') { body = r.sub === 'edit' ? editHTML() : heroHTML(); document.title = `${T('nav.hero')} · SQL Practice`; }
-  else if (r.view === 'dialects') { body = dialectsHTML(L()); document.title = `${T('nav.dialects')} · SQL Practice`; }
+  else if (r.view === 'hero') { body = `<main class="wrap">${r.sub === 'edit' ? editHTML() : heroHTML()}</main>`; document.title = `${T('nav.hero')} · SQL Practice`; }
+  else if (r.view === 'dialects') { body = `<main class="wrap">${dialectsHTML(L())}</main>`; document.title = `${T('nav.dialects')} · SQL Practice`; }
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
   document.body.classList.remove('nav-open');
@@ -297,14 +297,14 @@ function headerHTML() {
   const side = `<aside class="side-nav" aria-label="menu">
     <a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
     <nav>${navItems().map(x => (x === '-' ? '<hr>' : item(x))).join('')}</nav>
-    ${navFoldHTML(L())}
+    ${modeBtnHTML(L())}${navFoldHTML(L())}
     <div class="side-foot">
       ${S.klass ? `<button class="side-class" data-act="classInfo">${I.users}<span><b>${esc(S.klass.name)}</b><small>${esc(S.klass.nickname || '')}</small></span></button>` : backend.enabled ? `<button class="side-class join" data-act="join">${I.users}<span><b>${H('class.join')}</b></span></button>` : ''}
       <div class="side-tools">${langSelect(L(), T('nav.language'))}<button class="icon-btn" data-act="settings" aria-label="${esc(T('set.title'))}" title="${esc(T('set.title'))}">${I.gear}</button></div>
       <a class="side-teacher" href="teacher/">${H('foot.teacher')}</a>
     </div></aside>`;
   const top = `<header class="m-top"><a class="brand" href="#/"><span class="brand-mark">SQL</span><span class="brand-name">SQL Practice</span></a>
-    <div class="m-top-r">${S.klass ? `<button class="icon-btn" data-act="classInfo" aria-label="${esc(S.klass.name)}">${I.users}</button>` : ''}<button class="icon-btn" data-act="settings" aria-label="${esc(T('set.title'))}">${I.gear}</button></div></header>`;
+    <div class="m-top-r">${modeBtnHTML(L(), 'icon')}${S.klass ? `<button class="icon-btn" data-act="classInfo" aria-label="${esc(S.klass.name)}">${I.users}</button>` : ''}<button class="icon-btn" data-act="settings" aria-label="${esc(T('set.title'))}">${I.gear}</button></div></header>`;
   return side + `<div class="nav-scrim" data-act="navMenu"></div>` + top;
 }
 /** phones: the five main places at the bottom; "more" opens the side menu as a drawer */
@@ -2637,6 +2637,7 @@ function openSettings() {
       <label class="fld"><span>${H('nav.language')}</span><select data-act="lang">${langOptions(L())}</select></label>
       <label class="fld"><span>${H('set.second')}</span><select data-setting="second"><option value="">${esc(T('set.secondNone'))}</option>${LANGS.filter(l => l.code !== L()).map(l => `<option value="${l.code}" ${s.second === l.code ? 'selected' : ''}>${esc(l.name)}</option>`).join('')}</select><small class="muted">${H('set.secondTip')}</small></label>
       <div class="fld"><span>${H('set.theme')}</span><div class="seg">${radio('theme', 'auto', T('set.themeAuto'))}${radio('theme', 'light', T('set.themeLight'))}${radio('theme', 'dark', T('set.themeDark'))}</div></div>
+      ${modeSegHTML(L())}
       <div class="fld"><span>${H('set.size')}</span><div class="seg">${radio('size', 's', 'A')}${radio('size', 'm', 'A+')}${radio('size', 'l', 'A++')}</div></div>
       <label class="chk"><input type="checkbox" data-setting="presenter" ${s.presenter ? 'checked' : ''}><span>${H('pres.on')}<small class="muted"> — ${H('pres.onTip')}</small></span></label>
       <hr><div class="fld"><span>${H('bk.title')}</span><small class="muted">${H('bk.sub')}</small>

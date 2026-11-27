@@ -2730,5 +2730,12 @@ export default {
   "hero.holding": "Đang cầm",
   "hero.colorLock": "Mở khi có {n} cúp",
   "hero.gotColor": "Đã mở màu mới!",
-  "hero.lookTip": "Ngoại hình thay đổi khi bạn mạnh lên: khung và bệ theo Lv, lấp lánh với vũ khí huyền thoại, mũ theo danh hiệu, màu mới nhờ cúp."
+  "hero.lookTip": "Ngoại hình thay đổi khi bạn mạnh lên: khung và bệ theo Lv, lấp lánh với vũ khí huyền thoại, mũ theo danh hiệu, màu mới nhờ cúp.",
+  "mode.title": "Chế độ hiển thị",
+  "mode.normal": "Chế độ thường",
+  "mode.adv": "Chế độ phiêu lưu",
+  "mode.tip": "Chỉ giao diện thay đổi. Kết quả, tiến độ và bài kiểm tra vẫn giữ nguyên.",
+  "mode.tryAdv": "Ở chế độ phiêu lưu, cả ứng dụng trông như màn hình trò chơi. Kết quả vẫn giữ nguyên.",
+  "mode.toAdv": "Chuyển sang chế độ phiêu lưu",
+  "mode.toNormal": "Quay lại chế độ thường"
 };

@@ -2730,5 +2730,12 @@ export default {
   "hero.holding": "Dipegang",
   "hero.colorLock": "Terbuka dengan {n} trofi",
   "hero.gotColor": "Warna baru terbuka!",
-  "hero.lookTip": "Penampilanmu berubah saat makin kuat: bingkai dan alas dari Lv, kilau dari senjata legendaris, hiasan kepala dari gelar, warna baru dari trofi."
+  "hero.lookTip": "Penampilanmu berubah saat makin kuat: bingkai dan alas dari Lv, kilau dari senjata legendaris, hiasan kepala dari gelar, warna baru dari trofi.",
+  "mode.title": "Mode tampilan",
+  "mode.normal": "Mode normal",
+  "mode.adv": "Mode petualangan",
+  "mode.tip": "Hanya tampilannya yang berubah. Catatan, kemajuan, dan tesmu tetap sama.",
+  "mode.tryAdv": "Di mode petualangan, seluruh aplikasi terlihat seperti layar game. Catatanmu tetap sama.",
+  "mode.toAdv": "Ganti ke mode petualangan",
+  "mode.toNormal": "Kembali ke mode normal"
 };

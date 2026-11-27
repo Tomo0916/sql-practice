@@ -67,7 +67,9 @@ export const I = {
 /* ---------- theme / size / language ---------- */
 export function applySettings(s, htmlLangCode) {
   const root = document.documentElement;
-  if (s.theme === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', s.theme);
+  root.dataset.userTheme = s.theme || 'auto';
+  const theme = getMode() === 'adv' ? 'dark' : root.dataset.userTheme;   // the adventure look is always dark
+  if (theme === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', theme);
   root.dataset.size = s.size || 'm';
   root.lang = htmlLangCode;
   document.body.classList.toggle('presenter', !!s.presenter);
@@ -381,4 +383,49 @@ if (typeof document !== 'undefined') {
     try { localStorage.setItem(NAV_MINI, mini ? '1' : '0'); } catch (er) { /* private window */ }
     document.querySelectorAll('[data-nav-fold]').forEach(x => { x.outerHTML = navFoldHTML(x.dataset.navFold); });
   });
+}
+
+/* ---------- the look of the whole app: 通常 (normal) or 冒険 (adventure, a retro RPG look).
+ * Only the look changes: the same pages, the same tests, the same records. Kept in this browser, apart from the progress. ---------- */
+const MODE = 'sqlp.mode';
+const PIX_FONT = 'https://fonts.googleapis.com/css2?family=DotGothic16&display=swap';
+export function getMode() { try { return localStorage.getItem(MODE) === 'adv' ? 'adv' : 'normal'; } catch (e) { return 'normal'; } }
+function applyMode(m) {
+  const root = document.documentElement;
+  root.dataset.mode = m;
+  const theme = m === 'adv' ? 'dark' : (root.dataset.userTheme || null);
+  if (theme === 'dark' || theme === 'light') root.setAttribute('data-theme', theme); else if (theme === 'auto') root.removeAttribute('data-theme');
+  if (m === 'adv' && !document.getElementById('pix-font')) document.head.insertAdjacentHTML('beforeend', `<link id="pix-font" rel="stylesheet" href="${PIX_FONT}">`);
+  const meta = document.querySelector('meta[name="theme-color"]'); if (meta) { if (!meta.dataset.normal) meta.dataset.normal = meta.content; meta.content = m === 'adv' ? '#05061a' : meta.dataset.normal; }
+}
+/** the switch in the side menu (kind 'nav'), an icon button (kind 'icon') or a plain button (kind 'btn') */
+export function modeBtnHTML(lang, kind = 'nav') {
+  const adv = typeof document !== 'undefined' && document.documentElement.dataset.mode === 'adv';
+  const tip = esc(`${t('mode.title', lang)}: ${t(adv ? 'mode.adv' : 'mode.normal', lang)}`);
+  const a = `data-mode-btn="${esc(lang)}" data-mode-kind="${kind}" aria-pressed="${adv}" title="${tip}"`;
+  if (kind === 'icon') return `<button type="button" class="icon-btn mode-ic" ${a} aria-label="${esc(t('mode.adv', lang))}">${I.sword}</button>`;
+  if (kind === 'btn') return `<button type="button" class="btn btn-ghost btn-sm" ${a}>${I.sword} ${th(adv ? 'mode.toNormal' : 'mode.toAdv', lang)}</button>`;
+  return `<button type="button" class="nav-i side-mode" ${a}>${I.sword}<span>${th('mode.adv', lang)}</span><i class="mode-sw" aria-hidden="true"></i></button>`;
+}
+/** the choice in a settings window */
+export function modeSegHTML(lang) {
+  const m = getMode(), r = (v, k) => `<label class="seg-i"><input type="radio" name="mode" data-mode-set value="${v}" ${m === v ? 'checked' : ''}><span>${th(k, lang)}</span></label>`;
+  return `<div class="fld"><span>${th('mode.title', lang)}</span><div class="seg">${r('normal', 'mode.normal')}${r('adv', 'mode.adv')}</div><small class="muted">${th('mode.tip', lang)}</small></div>`;
+}
+export function setMode(m) {
+  m = m === 'adv' ? 'adv' : 'normal';
+  try { localStorage.setItem(MODE, m); } catch (e) { /* private window */ }
+  applyMode(m);
+  document.querySelectorAll('[data-mode-btn]').forEach(x => { x.outerHTML = modeBtnHTML(x.dataset.modeBtn, x.dataset.modeKind); });
+  document.querySelectorAll('input[data-mode-set]').forEach(x => { x.checked = x.value === m; });
+  document.dispatchEvent(new CustomEvent('modechange', { detail: m }));
+}
+if (typeof document !== 'undefined') {
+  applyMode(getMode());
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-mode-btn]'); if (!b) return;
+    e.preventDefault(); setMode(getMode() === 'adv' ? 'normal' : 'adv');
+  });
+  document.addEventListener('change', e => { if (e.target.matches && e.target.matches('input[data-mode-set]')) setMode(e.target.value); });
+  window.addEventListener('storage', e => { if (e.key === MODE) setMode(getMode()); });   // another tab switched
 }

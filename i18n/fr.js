@@ -2730,5 +2730,12 @@ export default {
   "hero.holding": "En main",
   "hero.colorLock": "Débloqué avec {n} trophées",
   "hero.gotColor": "Nouvelle couleur débloquée !",
-  "hero.lookTip": "Votre apparence évolue : cadre et socle selon le Lv, étincelles pour les armes légendaires, couvre-chef pour les titres, nouvelles couleurs avec les trophées."
+  "hero.lookTip": "Votre apparence évolue : cadre et socle selon le Lv, étincelles pour les armes légendaires, couvre-chef pour les titres, nouvelles couleurs avec les trophées.",
+  "mode.title": "Mode d'affichage",
+  "mode.normal": "Mode normal",
+  "mode.adv": "Mode aventure",
+  "mode.tip": "Seule l'apparence change. Tes résultats, ta progression et les tests restent identiques.",
+  "mode.tryAdv": "En mode aventure, toute l'application ressemble à un écran de jeu. Tes résultats restent les mêmes.",
+  "mode.toAdv": "Passer en mode aventure",
+  "mode.toNormal": "Revenir au mode normal"
 };

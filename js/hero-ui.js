@@ -1,6 +1,7 @@
 /* The adventure screens (冒険): #/hero (status), #/hero/edit (the pixel avatar), the party of the class,
  * and the "you got …!" message. Everything is worked out by hero.js from the progress. */
 import { t, th, esc } from './i18n.js';
+import { getMode, modeBtnHTML } from './ui.js';
 import { RK_CHAPTERS } from './rank.js';
 import { LV_CHAPTERS } from './level.js';
 import { AV, PALETTE, AV_TEMPLATES, AV_EMPTY, COLOR_NEED, avOk, avatarSVG, heroSVG, avFill, WEAPON_OF, SYNTAX_OF, weaponSVG, weaponNext, heroOf, TROPHIES, trophiesOf, titlesOf, titleKey, earnedIds, heroPublic, heroPublicOk } from './hero.js';
@@ -47,7 +48,8 @@ export function heroHTML() {
         <p class="small">${q.pzLv ? H('hero.pzLv', { n: q.pzLv }) : H('hero.notYet')}</p><a class="btn btn-ghost btn-sm" href="#/pz">${H('hero.go')}</a></div></div>`);
   const shelf = win(`${H('hero.trophies')} <small>${tr.length} / ${TROPHIES.length}</small>`, `<ul class="hero-tr">${TROPHIES.map(([id, tier]) => { const ok = tr.includes(id);
       return `<li class="${ok ? 'on' : ''} t${tier}" title="${esc(T(`hero.tr.${id}.d`))}"><span class="cup" aria-hidden="true">${ok ? ['🥉', '🥈', '🏆'][tier - 1] : '❔'}</span><b>${ok ? H(`hero.tr.${id}.n`) : H('hero.locked')}</b><small>${H(`hero.tr.${id}.d`)}</small></li>`; }).join('')}</ul>`);
-  return `<div class="hero-page"><header class="page-head"><h1>⚔️ ${H('hero.title')}</h1><p class="muted">${H('hero.lead')}</p></header>
+  return `<div class="hero-page"><header class="page-head"><h1>⚔️ ${H('hero.title')}</h1><p class="muted">${H('hero.lead')}</p>
+      <p class="hero-mode small"><span class="muted">${H(getMode() === 'adv' ? 'mode.tip' : 'mode.tryAdv')}</span> ${modeBtnHTML(L(), 'btn')}</p></header>
     <div class="hero-grid">${status}${equip}</div>${quest}${shelf}${partyHTML()}</div>`;
 }
 

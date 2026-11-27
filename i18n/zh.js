@@ -2730,5 +2730,12 @@ export default {
   "hero.holding": "装备中",
   "hero.colorLock": "获得 {n} 个奖杯后可用",
   "hero.gotColor": "解锁了新颜色！",
-  "hero.lookTip": "变强后外观也会改变：等级带来边框和台座，传说武器带来闪光，称号带来头饰，奖杯解锁新颜色。"
+  "hero.lookTip": "变强后外观也会改变：等级带来边框和台座，传说武器带来闪光，称号带来头饰，奖杯解锁新颜色。",
+  "mode.title": "显示模式",
+  "mode.normal": "普通模式",
+  "mode.adv": "冒险模式",
+  "mode.tip": "只改变外观。你的记录、进度和测试完全不变。",
+  "mode.tryAdv": "在冒险模式下，整个应用看起来像游戏画面。记录保持不变。",
+  "mode.toAdv": "切换到冒险模式",
+  "mode.toNormal": "返回普通模式"
 };

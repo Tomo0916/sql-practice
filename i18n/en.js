@@ -2731,5 +2731,12 @@ export default {
   "hero.holding": "In hand",
   "hero.colorLock": "Unlocked with {n} trophies",
   "hero.gotColor": "A new colour is unlocked!",
-  "hero.lookTip": "Your look changes as you grow: a frame and stand by Lv, sparkles for legendary weapons, headgear for titles, new colours for trophies."
+  "hero.lookTip": "Your look changes as you grow: a frame and stand by Lv, sparkles for legendary weapons, headgear for titles, new colours for trophies.",
+  "mode.title": "Display mode",
+  "mode.normal": "Normal mode",
+  "mode.adv": "Adventure mode",
+  "mode.tip": "Only the look changes. Your records, progress and tests stay exactly the same.",
+  "mode.tryAdv": "In adventure mode the whole app looks like a game screen. Your records stay as they are.",
+  "mode.toAdv": "Switch to adventure mode",
+  "mode.toNormal": "Back to normal mode"
 };
