@@ -193,7 +193,8 @@ alter table public.classes  add column if not exists timer_sec integer check (ti
 alter table public.attempts add column if not exists late boolean not null default false;
 -- Lesson 0 questions are stored with stage 'quiz'
 alter table public.attempts drop constraint if exists attempts_stage_check;
-alter table public.attempts add constraint attempts_stage_check check (stage in ('demo', 'fill', 'order', 'write', 'review', 'quiz'));
+-- (the full list, so that running this file again never fails on rows written later: 'quick' is added further down)
+alter table public.attempts add constraint attempts_stage_check check (stage in ('demo', 'fill', 'order', 'write', 'review', 'quiz', 'quick'));
 
 /* the server's clock, so that every screen counts down together */
 create or replace function public.server_now() returns timestamptz language sql stable as $$ select now() $$;
