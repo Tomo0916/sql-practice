@@ -519,3 +519,18 @@ returns table (nickname text, total integer, tests integer, passed integer, last
 $$;
 revoke all on function public.rank_total(uuid, boolean) from public, anon;
 grant execute on function public.rank_total(uuid, boolean) to authenticated;
+
+-- ---------- 冒険 (the adventure): each student's pixel avatar, title, level and weapons, seen by the class ----------
+-- hero = { a: 256 hex digits (16×16 dots), t: title id, lv: 0–6, w: 8 digits (weapon grades), tr: trophies }. Looks only.
+alter table public.members add column if not exists hero jsonb
+  check (hero is null or (jsonb_typeof(hero) = 'object' and pg_column_size(hero) < 2000));
+grant update (hero) on public.members to authenticated;
+create or replace function public.class_heroes(p_class uuid)
+returns table (nickname text, hero jsonb)
+  language sql stable security definer set search_path = public as $$
+  select m.nickname, m.hero from public.members m
+  where m.class_id = p_class and m.hero is not null
+    and (public.is_member_of(p_class) or public.is_teacher_of(p_class));
+$$;
+revoke all on function public.class_heroes(uuid) from public, anon;
+grant execute on function public.class_heroes(uuid) to authenticated;

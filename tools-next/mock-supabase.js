@@ -168,6 +168,10 @@ export function createClient() {
         save(db); bc.postMessage({ table: 'classes', type: 'UPDATE', row: c });
         return ok(c);
       }
+      if (name === 'class_heroes') {   // the same as supabase/schema.sql
+        const mine = db.members.some(m => m.class_id === args.p_class && m.user_id === s.user.id) || db.classes.some(c => c.id === args.p_class && c.teacher_id === s.user.id);
+        return ok(mine ? db.members.filter(m => m.class_id === args.p_class && m.hero).map(m => ({ nickname: m.nickname, hero: m.hero })) : []);
+      }
       if (name === 'rank_board' || name === 'rank_total') {   // the same as supabase/schema.sql
         const mine = db.members.some(m => m.class_id === args.p_class && m.user_id === s.user.id) || db.classes.some(c => c.id === args.p_class && c.teacher_id === s.user.id);
         if (!mine) return ok([]);

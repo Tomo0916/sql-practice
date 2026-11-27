@@ -99,6 +99,24 @@ export async function renameMe(classId, nickname) {   // error 'nickname_taken' 
   check(await sb.from('members').update({ nickname }).eq('class_id', classId).eq('user_id', data.session.user.id));
 }
 
+/** the adventure (冒険): this student's public hero (avatar, title, level, weapons) for the class to see; false if the database has no hero column yet */
+export async function saveHero(classId, hero) {
+  if (!enabled) return false;
+  const sb = await client();
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return false;
+  const { error } = await sb.from('members').update({ hero }).eq('class_id', classId).eq('user_id', data.session.user.id);
+  return !error;
+}
+/** the class's heroes: [{ nickname, hero }]; null if the database has no class_heroes yet */
+export async function classHeroes(classId) {
+  if (!enabled) return null;
+  const sb = await client();
+  const { data, error } = await sb.rpc('class_heroes', { p_class: classId });
+  if (error) return null;
+  return data || [];
+}
+
 /* attempts are queued locally so nothing is lost when the network drops */
 const QKEY = 'sqln.queue';
 let flushing = false;

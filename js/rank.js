@@ -117,7 +117,7 @@ export function totalBoardHTML(rows, o) {
       <ol class="rk-total">${show.map(i => { const r = rows[i];
         return `${i === mi && i >= top ? '<li class="gap" aria-hidden="true">⋯</li>' : ''}<li class="${r.me ? 'me' : ''} ${r.same ? '' : 'other'} ${place[i] <= 3 ? 'top top' + place[i] : ''}">
           <span class="rt-place">${place[i] <= 3 ? ['🥇', '🥈', '🥉'][place[i] - 1] : place[i]}</span>
-          <span class="rt-name">${esc(r.nickname)}${r.me ? ` <span class="tag">${H('rk.you')}</span>` : ''}</span>
+          <span class="rt-name">${o.avatar && r.same ? o.avatar(r.nickname) : ''}${esc(r.nickname)}${r.me ? ` <span class="tag">${H('rk.you')}</span>` : ''}</span>
           <span class="rt-bar"><i style="width:${Math.round(r.total / max * 100)}%"></i></span>
           <span class="rt-pts"><b>${r.total}</b><small>${H('rk.total.pt')}</small></span>
           <span class="rt-tests muted small">${H('rk.total.tests', { n: r.tests, m: RK_TESTS })}${r.passed ? ` · ${H('rk.total.withPass', { n: r.passed })}` : ''}</span></li>`; }).join('')}</ol>`;

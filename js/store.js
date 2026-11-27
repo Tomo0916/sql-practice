@@ -45,6 +45,10 @@ export function mergeProgress(stored, mine) {
   out.basics = Object.assign({}, stored.basics, mine.basics);   // the root drill: this page's state wins
   out.cq = Object.assign({}, stored.cq);   // the clause quiz: the higher best, the more rounds
   Object.entries(mine.cq || {}).forEach(([k, v]) => { const x = out.cq[k]; out.cq[k] = !x ? v : { n: Math.max(x.n || 0, v.n || 0), best: Math.max(x.best || 0, v.best || 0), last: (v.n || 0) >= (x.n || 0) ? v.last : x.last }; });
+  {   // the adventure: the newer avatar / title; what was announced on either side stays announced
+    const a = stored.hero, b = mine.hero;
+    if (a || b) { const w = Object.assign({}, (a && b ? ((a.at || 0) > (b.at || 0) ? a : b) : a || b)); if (a && b && (Array.isArray(a.seen) || Array.isArray(b.seen))) w.seen = [...new Set([...(a.seen || []), ...(b.seen || [])])]; out.hero = w; }
+  }
   out.tasks = {};   // the shape-mix assignments: the problems solved on either side
   new Set([...Object.keys(stored.tasks || {}), ...Object.keys(mine.tasks || {})]).forEach(k => { out.tasks[k] = [...new Set([...((stored.tasks || {})[k] || []), ...((mine.tasks || {})[k] || [])])]; });
   out.pat = Object.assign({}, stored.pat);   // review by pattern: the state with the later answer wins (more answers on the same day)

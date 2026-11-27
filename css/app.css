@@ -2041,3 +2041,70 @@ body.qs-dragging, body.qs-dragging * { cursor: grabbing !important; user-select:
 .as-acts { display: inline-flex; gap: 4px; margin-left: 6px; flex: none; }
 .as-item.fixed { background: var(--surface-2, #f8fafc); }
 @media (max-width: 600px) { .as-item summary, .as-item .as-row { flex-wrap: wrap; } .as-acts { margin-left: auto; } }
+/* ---------- 冒険 (the adventure): retro RPG windows ---------- */
+.hero-page { display: grid; gap: 16px; }
+.rpg-win { background: #11143a; color: #f4f6ff; border: 3px solid #f4f6ff; box-shadow: 0 0 0 3px #11143a, 0 6px 18px rgba(0,0,0,.18); border-radius: 10px; padding: 14px 16px 16px; margin: 3px; min-width: 0; }
+.rpg-win .muted, .rpg-win small { color: #b9c1f2; }
+.rpg-win a:not(.btn) { color: #ffd76a; }
+.rpg-win .btn-ghost { color: #f4f6ff; border-color: rgba(244,246,255,.55); background: transparent; }
+.rpg-win .btn-ghost:hover, .rpg-win .btn-ghost.on { background: rgba(255,255,255,.14); border-color: #fff; }
+.rpg-win select { background: #1c2160; color: #fff; border: 2px solid #f4f6ff; border-radius: 6px; padding: 6px 8px; font: inherit; }
+.rpg-h { margin: -2px 0 10px; font-size: .95rem; letter-spacing: .08em; display: flex; gap: 8px; align-items: baseline; }
+.rpg-h::before { content: "▶"; font-size: .7em; color: #ffd76a; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px; }
+@media (max-width: 980px) { .hero-grid { grid-template-columns: minmax(0, 1fr); } }
+.hero-top { display: flex; gap: 18px; flex-wrap: wrap; }
+.hero-av { display: grid; gap: 8px; justify-items: center; align-content: start; }
+.hero-av .av, .hero-party .av, .rpg-msg .av, .av-tpls .av, .hero-prev .av { image-rendering: pixelated; background: repeating-conic-gradient(#1c2160 0 25%, #171b52 0 50%) 0 0 / 25% 25%; border-radius: 6px; }
+.hero-st { flex: 1; min-width: 200px; display: grid; gap: 4px; align-content: start; }
+.hero-st p { margin: 0; }
+.hero-name { font-size: 1.3rem; font-weight: 800; }
+.hero-title { color: #ffd76a; font-weight: 700; }
+.hero-lv b { font-size: 1.6rem; }
+.hero-tsel { margin-top: 8px; display: grid; gap: 4px; }
+.hero-weapons { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.hero-weapons li { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,.05); }
+.hero-weapons li.g4 { background: linear-gradient(90deg, rgba(242,194,48,.22), rgba(255,255,255,.04)); }
+.hero-weapons li > div { display: grid; min-width: 0; }
+.hero-weapons small.mono { color: #8fe3ff; }
+.wp { flex: none; image-rendering: pixelated; }
+.hero-q { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.hero-q h3 { margin: 0 0 8px; font-size: 1rem; }
+.hero-qrow { display: grid; grid-template-columns: minmax(0, 1fr) 90px auto; gap: 8px; align-items: center; margin: 0 0 6px; font-size: .88rem; }
+.hero-qrow.boss { grid-template-columns: minmax(0, 1fr) auto; }
+.hero-bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,.18); overflow: hidden; } .hero-bar i { display: block; height: 100%; background: #5cc25a; }
+.hero-pz { display: flex; gap: 6px; margin: 0 0 6px; } .hero-pz span { padding: 3px 8px; border-radius: 6px; border: 2px solid rgba(255,255,255,.35); font-weight: 800; font-size: .85rem; color: #b9c1f2; } .hero-pz span.on { background: #f2c230; color: #11143a; border-color: #f2c230; }
+.hero-tr { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.hero-tr li { display: grid; justify-items: center; text-align: center; gap: 2px; padding: 10px 8px; border-radius: 8px; background: rgba(255,255,255,.05); opacity: .55; }
+.hero-tr li.on { opacity: 1; background: rgba(255,255,255,.1); } .hero-tr li.on.t3 { background: rgba(242,194,48,.2); }
+.hero-tr .cup { font-size: 1.7rem; line-height: 1; } .hero-tr b { font-size: .86rem; } .hero-tr small { font-size: .72rem; }
+.hero-party { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.hero-party li { display: grid; justify-items: center; text-align: center; gap: 2px; padding: 10px 6px; border-radius: 8px; background: rgba(255,255,255,.05); }
+.hero-party li.me { box-shadow: inset 0 0 0 2px #ffd76a; }
+.hero-party small { font-size: .72rem; } .hero-mini { display: flex; gap: 1px; margin-top: 4px; }
+/* the editor */
+.hero-ed { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .hero-ed { grid-template-columns: minmax(0, 1fr); } }
+.av-grid { display: grid; grid-template-columns: repeat(var(--n), 1fr); aspect-ratio: 1; max-width: 520px; margin: 0 auto; touch-action: none; user-select: none; background: repeating-conic-gradient(#2a2f6e 0 25%, #222764 0 50%) 0 0 / 12.5% 12.5%; border: 2px solid #f4f6ff; }
+.av-grid i { display: block; box-shadow: inset 0 0 0 .5px rgba(255,255,255,.12); cursor: crosshair; }
+.av-grid.mirror { background-image: linear-gradient(90deg, transparent calc(50% - 1px), #ffd76a calc(50% - 1px), #ffd76a calc(50% + 1px), transparent calc(50% + 1px)), repeating-conic-gradient(#2a2f6e 0 25%, #222764 0 50%); background-size: 100% 100%, 12.5% 12.5%; }
+.hero-ed-side { display: grid; gap: 12px; }
+.av-pal { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; margin-bottom: 10px; }
+.av-pal button { aspect-ratio: 1; border-radius: 6px; border: 2px solid rgba(255,255,255,.35); cursor: pointer; padding: 0; }
+.av-pal button.clear { background: repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 0 0 / 50% 50%; }
+.av-pal button.on { border-color: #ffd76a; box-shadow: 0 0 0 2px #ffd76a; }
+.hero-ed .row-btns { gap: 6px; flex-wrap: wrap; } .hero-ed .row-btns + .row-btns { margin-top: 6px; }
+.av-tpls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.av-tpls button { display: grid; justify-items: center; gap: 2px; background: none; border: 2px solid rgba(255,255,255,.25); border-radius: 8px; padding: 6px 2px; color: inherit; cursor: pointer; }
+.av-tpls button:hover { border-color: #fff; } .av-tpls small { font-size: .7rem; }
+.hero-prev [data-av-prev] { display: flex; gap: 12px; align-items: end; }
+/* "you got …!" */
+.rpg-msg { position: fixed; inset: 0; z-index: 90; display: grid; place-items: end center; padding: 20px; background: rgba(0,0,0,.25); }
+.rpg-msg .rpg-win { width: min(620px, 100%); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; font-size: 1.02rem; animation: rpgIn .25s ease-out; }
+.rpg-msg .rpg-win p { margin: 4px 0; display: flex; gap: 8px; align-items: center; }
+.rpg-msg .row-btns { grid-column: 1 / -1; justify-content: flex-end; }
+@keyframes rpgIn { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* avatars next to names */
+.rk-who { display: inline-flex; align-items: center; gap: 6px; }
+.rk-who .av, .rt-name .av { flex: none; image-rendering: pixelated; vertical-align: middle; margin-right: 6px; }
+.hero-ic { background: #11143a; border-radius: 8px; padding: 2px; display: grid; place-items: center; }

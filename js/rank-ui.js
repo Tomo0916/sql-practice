@@ -34,7 +34,7 @@ function boardHTML(test) {
   return `<section class="card rk-cboard"><h3>${H('rk.board')}</h3><p class="muted small">${H('rk.boardSub')}</p>
     ${mi >= 0 ? `<p class="rk-myplace">${H('rk.myPlace', { n: place[mi], m: rows.length })}</p>` : ''}
     ${rows.length ? `<table class="wtable rk-board"><tbody>${show.map(i => { const r = rows[i];
-      return `${i === mi && mi >= 10 ? '<tr><td colspan="4" class="muted">⋯</td></tr>' : ''}<tr class="${r.me ? 'me' : ''}"><td class="n">${place[i]}</td><td>${esc(r.nickname)}${r.me ? ` <span class="tag">${H('rk.you')}</span>` : ''}</td><td>${rkBadge(r.rank, r.passed)}</td><td class="n"><b>${r.score}</b></td></tr>`; }).join('')}</tbody></table>`
+      return `${i === mi && mi >= 10 ? '<tr><td colspan="4" class="muted">⋯</td></tr>' : ''}<tr class="${r.me ? 'me' : ''}"><td class="n">${place[i]}</td><td><span class="rk-who">${C.avatar ? C.avatar(r.nickname) : ''}${esc(r.nickname)}</span>${r.me ? ` <span class="tag">${H('rk.you')}</span>` : ''}</td><td>${rkBadge(r.rank, r.passed)}</td><td class="n"><b>${r.score}</b></td></tr>`; }).join('')}</tbody></table>`
       : `<p class="muted small">${H('rk.boardNone')}</p>`}</section>`;
 }
 
@@ -52,7 +52,7 @@ function totalHTML() {
   if (!C.S.klass || !backend.enabled) return '';
   loadTotal(totals.scope);
   const rows = totals[totals.scope];
-  return `<section class="card">${totalBoardHTML(rows === 'loading' || rows === undefined ? [] : rows, { lang: L(), all: totals.scope === 'all', top: 20, act: 'rkScope', state: rows === 'loading' || rows === undefined ? 'loading' : null })}</section>`;
+  return `<section class="card">${totalBoardHTML(rows === 'loading' || rows === undefined ? [] : rows, { lang: L(), all: totals.scope === 'all', top: 20, act: 'rkScope', avatar: C.avatar, state: rows === 'loading' || rows === undefined ? 'loading' : null })}</section>`;
 }
 
 /* ---------- rank tests (#/rank, #/rank/<subject>/<tier>): how many ordering problems within a time limit, like e-typing's level check ---------- */

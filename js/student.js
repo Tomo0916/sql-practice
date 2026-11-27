@@ -23,6 +23,8 @@ import { hrRec } from './hr.js';
 import { ASG_TEST, ASG_ICON, asgList, asgOpen, asgById, asgLimit, asgHash, asgLabelHTML, asgRow, asParse, ruClears, ruNext } from './assign.js';
 const PRACTICE = FEATURES.practice;   // the practice corner: see features.js
 import { dialectsHTML } from './dialects.js';
+import { installHero, heroHTML, editHTML, editLeave, heroNews, heroSync, myAvatar, classHeroMap } from './hero-ui.js';
+import { avatarSVG, heroOf } from './hero.js';
 import { installRank, rkStart, rkNext, rkStopTick, rkTicking, rankHTML, rkScope } from './rank-ui.js';
 import { navFoldHTML, lessonPickHTML, lessonGroups, pyDescHTML, highlightPy, countPickHTML, choiceHTML, answerTextHTML, I, startIconizer, applySettings, langSelect, langOptions, highlightSQL, highlightDiff, gridHTML, problemHTML, lessonTitle, lessonTitleHTML, themeName, themeHTML, syntaxHint, withGloss, toast, copyText, modal, closeModal, GLOSS_KEYS } from './ui.js';
 import { orderStripHTML, joinHTML, drawJoinLines, STEP_TO_KIND } from './viz.js';
@@ -159,6 +161,7 @@ function parseRoute() {
   if (h[0] === 'clauses') return { view: 'clauses', set: CQ_SETS.includes(h[1]) ? h[1] : null };
   if (h[0] === 'tables') return { view: 'tables' };
   if (h[0] === 'dialects') return { view: 'dialects' };
+  if (h[0] === 'hero') return { view: 'hero', sub: h[1] === 'edit' ? 'edit' : null };
   if (h[0] === 'check') return { view: 'session', kind: 'check', code: h.slice(1).join('/') || null };
   if (h[0] === 'lecture' && hasLecture(h[1])) return { view: 'lecture', key: h[1] };
   if (h[0] === 'explain') return { view: 'explain' };
@@ -254,12 +257,16 @@ function render() {
   else if (r.view === 'py') body = pyHTML();
   else if (r.view === 'hr') body = hrHTML();
   else if (r.view === 'pz') body = pzHTML();
+  else if (r.view === 'hero') { body = r.sub === 'edit' ? editHTML() : heroHTML(); document.title = `${T('nav.hero')} · SQL Practice`; }
   else if (r.view === 'dialects') { body = dialectsHTML(L()); document.title = `${T('nav.dialects')} · SQL Practice`; }
   else if (r.view === 'tables') { body = tablesPageHTML(L()); document.title = `${T('tb.title')} · SQL Practice`; }
   else body = homeHTML();
   document.body.classList.remove('nav-open');
   app.innerHTML = `<div class="shell">${head}<div class="shell-main">${quickBannerHTML()}${liveBannerHTML()}${body}${exBackHTML()}${footerHTML()}</div></div>${tabbarHTML()}`;
   mountWorkspace();
+  if (!(r.view === 'hero' && r.sub === 'edit')) editLeave();
+  if (S.klass) heroSync();
+  if (!S.session && !rkTicking() && !(S.asgRun && ASG_TEST.has(S.asgRun.type)) && !(r.view === 'hero' && r.sub === 'edit')) { const old = document.querySelector('[data-hero-news]'); if (old) old.remove(); const n = heroNews(); if (n) document.body.insertAdjacentHTML('beforeend', n); }
   pyMount();
   hrMount();
   pzMount();
@@ -277,7 +284,7 @@ function navOf(r) {
 function navItems() {
   const due = S.engine ? reviewCount() : 0, cls = S.klass && ((S.klass.lessons || []).length || asgList(S.klass).length), todo = asgTodo().length;
   return [
-    ['home', '#/', I.home, 'nav.dash'], ['learn', '#/learn', I.layers, 'hm.learn'], ['rank', '#/rank', I.medal, 'rk.title'], ['py', '#/py', I.code, 'nav.python'],
+    ['home', '#/', I.home, 'nav.dash'], ['hero', '#/hero', I.sword, 'nav.hero'], ['learn', '#/learn', I.layers, 'hm.learn'], ['rank', '#/rank', I.medal, 'rk.title'], ['py', '#/py', I.code, 'nav.python'],
     cls ? ['live', '#/live', liveOn(S.klass) ? '<i class="live-dot"></i>' : I.inbox, 'nav.assign', todo] : null,
     EX.on ? ['explain', '#/explain', '<i class="live-dot"></i>', 'ex.title'] : null,
     '-', ['review', '#/review', I.repeat, 'nav.review', due], ['mastery', '#/mastery', I.map, 'rv.map'], ['words', '#/words', I.words, 'nav.words'], ['tables', '#/tables', I.table, 'nav.tables'], ['dialects', '#/dialects', I.dialect, 'nav.dialects'],
@@ -441,6 +448,10 @@ function homeHTML() {
     </div></section>
     ` : ''}
     <section class="home-group"><h2 class="home-h">${H('hm.test')}</h2><div class="home-grid">
+    <section class="card mixcard drillcard herocard">
+      <div><span class="drill-ic hero-ic">${avatarSVG(myAvatar(), 40)}</span><div><b>${H('nav.hero')} <span class="tag">Lv ${heroOf(S.progress).lv}</span></b><p class="muted">${H('hero.homeSub')}</p></div></div>
+      <a class="btn btn-ghost" href="#/hero">${H('hero.open')}</a>
+    </section>
     <section class="card mixcard drillcard rkcard">
       <div><span class="drill-ic">🏅</span><div><b>${H('rk.title')}${(n => (n ? ` <span class="tag">${H('rk.taken', { n, m: RK_CHAPTERS.length * RK_TIERS.length })}</span>` : ''))(Object.entries(S.progress.rank || {}).filter(([k, r]) => rankParse(k) && r.hist && r.hist.length).length)}</b><p class="muted">${H('rk.homeSub')}</p></div></div>
       <a class="btn btn-ghost" href="#/rank">${H('rk.open')}</a>
@@ -2918,7 +2929,8 @@ function updateBanner() {
   installTables(); setTablesLang(L);
   installHr({ S, L, save, render, asgHr: asgHrCheck });
   installPz({ S, L, save, render, asgPz: () => asgHrCheck(null) });
-  installRank({ S, render, save, chName, workspaceHTML, asgHit, ruCleared: (ch, tier) => !!S.klass && asgList(S.klass).some(it => it.type === 'rankup' && it.ref === ch && ((((asgRec(it.id) || {}).t) || {})[tier] || {}).clear) });
+  installHero({ S, render, save, backend, toast });
+  installRank({ S, render, save, avatar: nick => { const x = classHeroMap().get(nick); return x ? avatarSVG(x.a, 22, esc(nick)) : ''; }, chName, workspaceHTML, asgHit, ruCleared: (ch, tier) => !!S.klass && asgList(S.klass).some(it => it.type === 'rankup' && it.ref === ch && ((((asgRec(it.id) || {}).t) || {})[tier] || {}).clear) });
   installPy({ S, L, save, render, asgHit,
     // a Python problem of a quick test: recorded like the SQL ones (false = it did not count: the time is over)
     quickAnswer: (prob, ok, code, reason) => { if (qPhaseNow() !== 'run') { render(); return false; } record(prob, ok, { grade: { reason } }, code); return true; },
